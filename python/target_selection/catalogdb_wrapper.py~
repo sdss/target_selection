@@ -1,0 +1,114 @@
+# encoding: utf-8
+#
+# @Author: Tom Dwelly
+# @Date: Early 2019
+# @Filename: define.py
+# @License: BSD 3-Clause
+# @Copyright: Tom Dwelly
+# Content:
+#    tests of connecting to the sdss5db - run on Utah machines for now
+
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+
+import os
+import socket
+import nclib
+
+from sdssdb.connection import PeeweeDatabaseConnection
+
+from sdssdb.peewee.sdss5db import database
+from sdssdb.peewee.sdss5db import catalogdb
+#from sdssdb.peewee.sdss5db import targetdb
+#from sdssdb.peewee.sdss5db.targetdb import Survey
+
+import numpy as np
+import pymangle as mangle
+import pandas as pd
+from .define import *
+
+
+def setup_db_connection():
+    # test if we are already connected
+    if database.connected is True:
+        return True
+
+    database.set_profile('sdssadmin')
+
+    hostname = socket.gethostname()
+    # determine which machine we are working on
+    if hostname == 'eboss':
+        database.connect_from_parameters(user='sdss', host='sdssadmin.wasatch.peaks', port=5432)
+
+    else:
+        envname = 'LOCAL_PORT_UTAH_SDSS5DB'
+        sdss5db_port = os.getenv(envname)
+        if sdss5db_port is None :
+            msg = f'Error, you must set the following environment variable: {envname}'
+            raise Exception(msg)
+        else:
+            sdss5db_port = int(sdss5db_port)
+
+        # check for an existing tunnel
+        try:
+            nc = nclib.Netcat(('localhost', sdss5db_port))
+            print_comment(f'Using existing ssh tunnel to DB server via localhost:{sdss5db_port}')
+            del nc
+            database.connect_from_parameters(user='sdss', host='localhost', port=sdss5db_port)
+        except:
+            print_error(f'You first need to set up an ssh tunnel to sdssdb on port: {sdss5db_port}')
+
+    return database.connected
+
+
+
+def retrieve_targets_from_catalogdb(tablename=None,
+                                    constraints=[],
+                                    fmt='pandas',
+                                    columns=['ra', 'dec']):
+
+    assert tablename is not None
+
+#    database.set_profile('sdssadmin')
+#
+#    # test which machine we are on
+#    # if not on eboss.sdss.org then check if an ssh tunnel is in place
+#    # to do so will need to read the if so, then can
+#    database.connect_from_parameters(user='sdss', host='sdssadmin.wasatch.peaks', port=5432)
+#    print(database)
+
+    if setup_db_connection() is not True :
+        raise Exception('Unable to connect to database')
+
+    db = eval(f'catalogdb.{tablename}')
+
+    ## apply the constraints in series
+    collist = []
+    for col in columns:
+        collist.append(eval(f'db.{col}'))
+#    collist = [db.ra, db.dec]
+    targets_query = db.select(*collist)
+    for c in constraints:
+        targets_query = targets_query.where(eval(c))
+
+    print_comment(f'DB selection will return {targets_query.count()} objects')
+    print_comment(f'Retreiving objects from DB into pandas DataFrame')
+
+    df = pd.DataFrame(list(targets_query.dicts()))
+
+
+    fmt = fmt.lower()
+    if fmt is None :
+        return df
+    elif fmt == 'pandas' :
+        return df
+    elif (fmt == 'numpy' or
+          fmt == 'np' or
+          fmt == 'recarray'):
+        print_comment(f'Converting result to numpy recarray')
+        return df.to_records()
+    else:
+        return None

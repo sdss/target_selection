@@ -6,3 +6,5 @@ target_selection
 [![Travis](https://travis-ci.org/sdss/target_selection.svg?branch=master)](https://travis-ci.org/sdss/target_selection)
 
 Code to perform target selection for BHM/MWM using catalogdb
+
+Start off by importing existing efforts from bhm_targeting
