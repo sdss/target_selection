@@ -10,6 +10,4 @@
 # @Last modified time: 2019-08-03 15:42:18
 
 from setuptools import setup
-
-
 setup()
