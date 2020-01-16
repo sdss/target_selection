@@ -1,18 +1,17 @@
 # encoding: utf-8
 #
 # @Author: Tom Dwelly
-# @Date: Early 2019
-# @Filename: define.py
+# @Date: Late 2019
+# @Filename: catalogdb_wrapper.py
 # @License: BSD 3-Clause
 # @Copyright: Tom Dwelly
 # Content:
-#    wrapper to aid with connections to the sdss5db
+#    wrapper to aid with remote connections to the sdss5db
 
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
-
 
 import os
 import socket
@@ -29,16 +28,24 @@ import pandas as pd
 from .print_func import *
 
 def setup_db_connection():
+    '''
+     Sets up a remote connections to the sdss5db, using a SSH tunnel if it exists
+    '''
+
+    #sdss5db_host = 'sdssadmin.wasatch.peaks'
+    sdss5db_host = 'operations-test.sdss.utah.edu'
+
     # test if we are already connected
     if database.connected is True:
         return True
 
+    database.autorollback = True
     database.set_profile('sdssadmin')
 
     hostname = socket.gethostname()
     # determine which machine we are working on
     if hostname == 'eboss':
-        database.connect_from_parameters(user='sdss', host='sdssadmin.wasatch.peaks', port=5432)
+        database.connect_from_parameters(user='sdss', host=sdss5db_host, port=5432)
 
     else:
         envname = 'LOCAL_PORT_UTAH_SDSS5DB'
@@ -49,7 +56,7 @@ def setup_db_connection():
         else:
             sdss5db_port = int(sdss5db_port)
 
-        # check for an existing tunnel
+        # test for an existing ssh tunnel
         try:
             nc = nclib.Netcat(('localhost', sdss5db_port))
             print_comment(f'Using existing ssh tunnel to DB server via localhost:{sdss5db_port}')
@@ -57,7 +64,7 @@ def setup_db_connection():
             database.connect_from_parameters(user='sdss', host='localhost', port=sdss5db_port)
         except:
             print_error(f'You first need to set up an SSH tunnel to sdssdb on port: {sdss5db_port}')
-            print_error(f'Hint: ssh -l your_utah_username -L {sdss5db_port}:sdssadmin.wasatch.peaks:5432 eboss.sdss.org cat -')
+            print_error(f'Hint: ssh -l your_utah_username -L {sdss5db_port}:{sdss5db_host}:5432 eboss.sdss.org cat -')
 
     return database.connected
 
