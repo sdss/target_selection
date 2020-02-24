@@ -7,13 +7,12 @@ cache:
 sudo: false
 
 python:
-- '2.7'
-- '3.5'
-- '3.6'
+- '3.7'
+- '3.8'
 
 os:
 - linux
-
+g
 matrix:
   fast_finish: true
 
@@ -29,11 +28,11 @@ install:
 - pip install --upgrade setuptools --quiet
 - pip install pytest
 - pip install pytest-coverage
-- pip install coveralls
+- pip install codecov
 - pip install .[dev]
 
 script:
-- pytest python/target_selection/tests --cov python/target_selection --cov-report html
+- pytest tests --cov target_selection --cov-report html
 
 after_success:
-- coveralls
+- codecov

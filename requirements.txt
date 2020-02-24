@@ -1,7 +1,0 @@
-sdssdb>=0.3.0
-peewee>=3.11.2
-nclib
-numpy
-pandas
-pymangle
-astropy

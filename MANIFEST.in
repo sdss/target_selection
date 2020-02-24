@@ -1,0 +1,2 @@
+recursive-include python/target_selection/etc *
+recursive-include cextern/**/*
