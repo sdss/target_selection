@@ -27,7 +27,7 @@ default_fields = {'ra': catalogdb.GaiaDR2Source.ra,
                   'epoch': catalogdb.GaiaDR2Source.ref_epoch.alias('epoch')}
 
 
-class TargetClassMeta(type):
+class CartonMeta(type):
 
     __require_overload__ = ['build_query']
 
@@ -42,11 +42,11 @@ class TargetClassMeta(type):
             for method in meta.__require_overload__:
                 assert method in dct, f'overloading of {method!r} is required.'
 
-        return super(TargetClassMeta, meta).__new__(meta, name, bases, dct)
+        return super(CartonMeta, meta).__new__(meta, name, bases, dct)
 
 
-class TargetClass(metaclass=TargetClassMeta):
-    """A base class for target classes.
+class BaseCarton(metaclass=CartonMeta):
+    """A base class for target cartons.
 
     Parameters
     ----------
@@ -56,13 +56,13 @@ class TargetClass(metaclass=TargetClassMeta):
     Attributes
     ----------
     name : str
-        The name of the target class (required).
+        The name of the carton (required).
     cadence : str
-        The label of the candece rule for this target class.
+        The label of the cadence rule for this carton.
     category : str
-        The category of targets for this target class.
+        The category of targets for this carton.
     survey : str
-        The survey associated with this target class.
+        The survey associated with this carton.
     orm : str
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
 
@@ -83,7 +83,7 @@ class TargetClass(metaclass=TargetClassMeta):
         if not self.orm == 'peewee':
             raise NotImplementedError('not implemented for SQLAlchemy.')
 
-        assert database.connected, 'database is not connected.'
+        assert self.database.connected, 'database is not connected.'
 
     def log(self, message, level=logging.INFO):
         """Logs a message with a header of the current target class name."""
@@ -119,6 +119,11 @@ class TargetClass(metaclass=TargetClassMeta):
         when calling `.run`. Magnitude columns can be included and propagated
         to ``targetdb`` but must be aliased as ``magnitude_<band>`` where
         ``<band>`` must be one of the columns in ``targetdb.magnitude``.
+
+        Returns
+        -------
+        query
+            A `~peewee.Select` or `~peewee.ModelSelect` query.
 
         """
 
