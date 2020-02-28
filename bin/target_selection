@@ -1,0 +1,264 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Date: 2020-02-27
+# @Filename: target_selection
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
+import logging
+
+import click
+
+from sdssdb.peewee.sdss5db import catalogdb, targetdb
+
+from target_selection import log
+from target_selection.cartons import Carton
+
+
+catalog_model = catalogdb.GaiaDR2Source
+catalogid = catalog_model._meta.primary_key
+
+
+def connect(profile=None, dbname=None, user=None, host=None, port=None):
+    """Connects the database."""
+
+    if profile:
+        targetdb.database.set_profile(profile)
+
+    if dbname or user or host or port:
+        targetdb.database.connect(dbname=dbname, user=user, host=host, port=port)
+
+    return targetdb.database.connected
+
+
+def _create_program_metadata(carton):
+
+    survey = None
+    category = None
+
+    # Create program and associated values.
+    if carton.survey:
+        survey, created = targetdb.Survey.get_or_create(label=carton.targeting_version)
+        if created:
+            log.debug(f'({carton.name}): created survey {carton.survey!r}')
+
+    if carton.category:
+        category, created = targetdb.Category.get_or_create(label=carton.category)
+        if created:
+            log.debug(f'({carton.name}): created category {carton.category!r}')
+
+    __, created = targetdb.Program.get_or_create(label=carton.name,
+                                                 category=category,
+                                                 survey=survey)
+    if created:
+        log.debug(f'({carton.name}): created program {carton.name!r}')
+
+
+def load_data(carton, results_model):
+    """Loads data from the temporary table into targetdb."""
+
+    results_pk = results_model._meta.primary_key
+
+    # Check if data has been loaded for this carton and targeting version
+    has_targets = (targetdb.Target
+                   .select()
+                   .join(targetdb.ProgramToTarget)
+                   .join(targetdb.Program)
+                   .where(targetdb.Program.label == carton.name)
+                   .switch(targetdb.Target)
+                   .join(targetdb.Version)
+                   .where(targetdb.Version.label == carton.targeting_version)
+                   .first())
+
+    if has_targets:
+        raise ValueError(f'({carton.name}): found existing targets for carton '
+                         f'{carton.name!r} with version {carton.targeting_version!r}.')
+
+    # Convert magnitude_X in the temporary table into magnitude.X in targetdb.
+    results_magnitude_fields = []
+    magnitude_fields = []
+    for field_name in results_model._meta.fields:
+        if 'magnitude_' in field_name:
+            band = field_name.split('_')[1]
+            magnitude_fields.append(targetdb.Magnitude._meta.fields[band])
+            results_magnitude_fields.append(results_model._meta.fields[field_name])
+
+    if len(results_magnitude_fields) > 0:
+        log.debug(f'({carton.name}): inserting magnitudes to targetdb.magnitude.')
+        magnitude_query = (results_model
+                           .select(*results_magnitude_fields)
+                           .order_by(results_pk))
+        cursor = targetdb.Magnitude.insert_from(magnitude_query, magnitude_fields).execute()
+        magnitude_pks = list(zip(*cursor))[0]
+    else:
+        magnitude_pks = None
+
+    # Select the coordinate columns. If they exist in the results table use those,
+    # otherwise use the one in the catalog model.
+    target_fields = [targetdb.Target.ra, targetdb.Target.dec,
+                     targetdb.Target.pmra, targetdb.Target.pmdec, targetdb.Target.epoch]
+    select_fields = []
+    for target_field in target_fields:
+        name = target_field.name
+        if name in results_model._meta.fields:
+            select_fields.append(results_model._meta.fields[name])
+        else:
+            select_fields.append(catalog_model._meta.fields[name])
+
+    # Add the target.catalogid value to link with catalog.catalogid.
+    target_fields.append(targetdb.Target.catalogid)
+    select_fields.append(results_pk)
+
+    # Build the query and get the results as tuples.
+    target_query = (results_model
+                    .select(*select_fields)
+                    .join(catalog_model, on=(results_pk == catalogid))
+                    .order_by(results_pk))
+
+    target_data = target_query.tuples()
+
+    # Create a column for the version_pk.
+    target_fields.append(targetdb.Target.version_pk)
+    version_pk = targetdb.Version.get(label=carton.targeting_version).pk
+    version_data = [version_pk] * len(target_data)
+
+    # Unzip and rezip the tuples adding the version_pks and the magnitude_pks.
+    if magnitude_pks:
+        target_fields.append(targetdb.Target.magnitude_pk)
+        target_data = zip(*zip(*target_data), version_data, magnitude_pks)
+    else:
+        target_data = zip(*zip(*target_data), version_data)
+
+    # Insert the data and grab the resulting pks.
+    log.debug(f'({carton.name}): inserting data to targetdb.target.')
+    cursor = targetdb.Target.insert_many(target_data, target_fields).execute()
+    target_pks = list(zip(*cursor))[0]
+
+    # Add the new targets to the program_to_target relational table.
+    program_pks = [targetdb.Program.get(label=carton.name).pk] * len(target_pks)
+
+    log.debug(f'({carton.name}): inserting data to targetdb.program_to_target.')
+    targetdb.ProgramToTarget.insert_many(zip(target_pks, program_pks),
+                                         [targetdb.ProgramToTarget.target_pk,
+                                          targetdb.ProgramToTarget.program_pk]).execute()
+
+
+def process_carton(carton, keep=False, drop=False, no_load=False,
+                   skip_query=False, tile=None):
+    """Processes the target selection for a carton."""
+
+    log.info(f'({carton.name}): running target selection for carton {carton.name!r}.')
+
+    _create_program_metadata(carton)
+
+    if drop:
+        carton.database.execute_sql(f'DROP TABLE IF EXISTS {carton.schema}.{carton.table_name};')
+
+    if not skip_query:
+        results_model = carton.run(tile=tile)
+    else:
+        log.debug(f'({carton.name}): skipping query.')
+        results_model = carton.get_model_from_query()
+
+    if no_load:
+        log.debug(f'({carton.name}): not loading data into targetdb.target.')
+    else:
+        load_data(carton, results_model)
+
+    if not keep:
+        log.debug(f'({carton.name}): dropping intermediate table {carton.table_name!r}.')
+        carton.database.drop_tables([results_model])
+
+
+@click.group()
+@click.option('--profile', '-p', type=str, default=None)
+@click.option('--dbname', '-d', type=str, default=None)
+@click.option('--user', '-u', type=str, default=None)
+@click.option('--host', '-h', type=str, default=None)
+@click.option('--port', '-P', type=int, default=None)
+@click.option('--verbose', '-v', is_flag=True,
+              help='outputs extra debug information')
+def target_selection(profile, dbname, user, host, port, verbose):
+    """Performs tasks related to target selection for SDSS-V."""
+
+    if verbose:
+        log.set_level(logging.DEBUG)
+
+    assert connect(profile, dbname, user, host, port), 'database is not connected.'
+
+
+@target_selection.command()
+@click.argument('TARGETING-VERSION', type=str)
+@click.option('--drop', is_flag=True,
+              help='drop or truncate intermediate tables if they exist')
+@click.option('--keep', is_flag=True, help='keep intermediate tables')
+@click.option('--intermediate-schema', type=str, default='sandbox', show_default=True,
+              help='the schema in which to create intermediate tables')
+@click.option('--skip-query', is_flag=True,
+              help='do not run the query, only load intermediate table if it exists')
+@click.option('--tile/--no-tile', is_flag=True, default=None,
+              help='whether to run the query in chunks tiling the sky')
+@click.option('--no-load', is_flag=True,
+              help='do not load data into targetdb.target')
+@click.option('--include', '-i', type=str,
+              help='comma-separated carton names to include')
+@click.option('--exclude', '-e', type=str,
+              help='comma-separated carton names to exclude')
+def run(targeting_version, drop, keep, intermediate_schema, tile, no_load,
+        skip_query, include, exclude):
+    """Runs target selection for all cartons."""
+
+    Cartons = Carton.__subclasses__()
+
+    if exclude:
+        Cartons = [CC for CC in Cartons if CC.name not in exclude]
+
+    if include:
+        Cartons = [CC for CC in Cartons if CC.name in include]
+
+    # Create targeting version in targetdb.
+    __, created = targetdb.Version.get_or_create(label=targeting_version)
+    if created:
+        log.info(f'created record in targetdb.version for {targeting_version!r}.')
+
+    for CartonClass in Cartons:
+        carton = CartonClass(targeting_version, schema=intermediate_schema)
+        process_carton(carton, keep=keep, drop=drop,
+                       skip_query=skip_query, no_load=no_load,
+                       tile=tile)
+
+
+@target_selection.command()
+@click.argument('TARGETING-VERSION', type=str)
+@click.option('--tables', is_flag=True, help='also remove intermediate tables')
+def clear(targeting_version, tables):
+    """Clear all data for a target selection version."""
+
+    if tables:
+        programs = (targetdb.Program
+                    .select()
+                    .distinct()
+                    .join(targetdb.ProgramToTarget)
+                    .join(targetdb.Target)
+                    .join(targetdb.Version)
+                    .where(targetdb.Version.label == targeting_version))
+        for program in programs:
+            program_name = program.label
+            targetdb.database.execute_sql(f'DROP TABLE IF EXISTS sandbox.temp_{program_name};')
+
+    # Manually remove magnitudes since the don't get removed by cascading.
+    magnitudes = (targetdb.Magnitude
+                  .select(targetdb.Magnitude.pk)
+                  .join(targetdb.Target)
+                  .join(targetdb.Version)
+                  .where(targetdb.Version.label == targeting_version))
+
+    targetdb.Magnitude.delete().where(targetdb.Magnitude.pk.in_(magnitudes)).execute()
+
+    targetdb.Version.get(label=targeting_version).delete_instance()
+
+
+if __name__ == '__main__':
+
+    target_selection()

@@ -52,6 +52,12 @@ class Carton(metaclass=CartonMeta):
     ----------
     targeting_version : str
         The version of the target selection.
+    schema : str
+        Schema in which the temporary table with the results of the
+        query will be created.
+    table_name : str
+        The name of the temporary table. Defaults to ``temp_<name>`` where
+        ``<name>`` is the target class name.
 
     Attributes
     ----------
@@ -73,12 +79,18 @@ class Carton(metaclass=CartonMeta):
     category = None
     survey = None
 
+    tile = True
+    tile_num = 21
+
     orm = 'peewee'
 
-    def __init__(self, targeting_version):
+    def __init__(self, targeting_version, schema='sandbox', table_name=None):
 
         self.targeting_version = targeting_version
+
         self.database = targetdb.database
+        self.schema = schema
+        self.table_name = table_name or f'temp_{self.name}'
 
         if self.targeting_version in config:
             self.config = config[self.targeting_version].get(self.name, None)
@@ -89,6 +101,9 @@ class Carton(metaclass=CartonMeta):
             raise NotImplementedError('not implemented for SQLAlchemy.')
 
         assert self.database.connected, 'database is not connected.'
+
+        assert self.name, 'carton subclass must override name'
+        assert self.category, 'carton subclass must override category'
 
     def log(self, message, level=logging.INFO):
         """Logs a message with a header of the current target class name."""
@@ -102,13 +117,19 @@ class Carton(metaclass=CartonMeta):
         try:
             program = targetdb.Program.get(label=self.name)
         except peewee.DoesNotExist:
-            raise f'program {self.name} does not exist in targetdb.program.'
+            raise RuntimeError(f'program {self.name!r} does not exist in targetdb.program.')
 
         if self.survey:
             assert program.survey and program.survey.label == self.survey, \
                 f'{self.survey!r} not present in targetdb.survey.'
         else:
             assert program.survey is None, 'targetdb.survey should be empty but is not.'
+
+        if self.cadence:
+            assert (targetdb.Cadence
+                    .select()
+                    .where(targetdb.Cadence.label == self.cadence)
+                    .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
 
         assert program.category and program.category.label == self.category, \
             f'{self.category!r} not present in targetdb.category.'
@@ -150,15 +171,18 @@ class Carton(metaclass=CartonMeta):
 
         raise ValueError(f'failed resolving column {field!r}')
 
-    def _get_model_from_query(self, table_name, query):
+    def get_model_from_query(self, query=None):
         """Returns a Peewee model with the columns returned by a query."""
+
+        if query is None:
+            query = self.build_query()
 
         class Model(SDSS5dbModel):
             class Meta:
-                schema = 'catalogdb'
+                table_name = self.table_name
+                schema = self.schema
                 primary_key = False
 
-        Model._meta.table_name = table_name
         returning_fields = query._returning
 
         for field in returning_fields:
@@ -169,21 +193,18 @@ class Carton(metaclass=CartonMeta):
             new_field = resolved_field.__class__(primary_key=is_primary_key,
                                                  null=not is_primary_key)
 
-            Model._meta.add_field(field_name, new_field)
+            if is_primary_key:
+                Model._meta.set_primary_key(field_name, new_field)
+            else:
+                Model._meta.add_field(field_name, new_field)
 
         return Model
 
-    def run(self, schema='sandbox', table_name=None, tile=False, tile_num=21):
+    def run(self, tile=None, tile_num=None):
         """Executes the query and stores the results.
 
         Parameters
         ----------
-        schema : str
-            Schema in which the temporary table with the results of the
-            query will be created.
-        table_name : str
-            The name of the temporary table. Defaults to ``temp_<name>`` where
-            ``<name>`` is the target class name.
         tile : bool
             Whether to perform multiple queries by tiling the sky with a
             rectangular grid instead of running a single query. If `True`,
@@ -194,15 +215,14 @@ class Carton(metaclass=CartonMeta):
 
         """
 
-        self.log(f'running target selection for target class {self.name!r}.')
+        tile = tile or self.tile
+        tile_num = tile_num or self.tile_num
 
         # Check to make sure that the program entries exist in targetdb.
         self._check_targetdb()
 
-        table_name = table_name or f'temp_{self.name}'
-
-        if database.table_exists(table_name, schema=schema):
-            raise RuntimeError(f'temporary table {table_name} already exists.')
+        if database.table_exists(self.table_name, schema=self.schema):
+            raise RuntimeError(f'temporary table {self.table_name} already exists.')
 
         query = self.build_query()
 
@@ -211,12 +231,11 @@ class Carton(metaclass=CartonMeta):
             raise RuntimeError(f'{catalogid_field} not being returned in query.')
 
         # Dynamically create a model for the results table.
-        ResultsModel = self._get_model_from_query(table_name, query)
-        ResultsModel._meta.schema = schema
+        ResultsModel = self.get_model_from_query(query)
 
         # Create sandbox table.
         database.create_tables([ResultsModel])
-        self.log(f'created table {table_name}', logging.DEBUG)
+        self.log(f'created table {self.table_name}', logging.DEBUG)
 
         self.log(f'running query with tile={tile}', logging.DEBUG)
 
@@ -228,8 +247,8 @@ class Carton(metaclass=CartonMeta):
 
             assert tile_num > 1, 'tile_num must be >= 2'
 
-            ra_space = numpy.linspace(0, 20, num=tile_num)
-            dec_space = numpy.linspace(0, 20, num=tile_num)
+            ra_space = numpy.linspace(0, 360, num=tile_num)
+            dec_space = numpy.linspace(-90, 90, num=tile_num)
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
 
             nn = 1
