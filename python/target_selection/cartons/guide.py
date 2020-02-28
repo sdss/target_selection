@@ -10,10 +10,10 @@ import peewee
 
 from sdssdb.peewee.sdss5db import catalogdb
 
-from .base import BaseCarton
+from .base import Carton
 
 
-class Guide(BaseCarton):
+class Guide(Carton):
 
     name = 'guide'
     category = 'guide'

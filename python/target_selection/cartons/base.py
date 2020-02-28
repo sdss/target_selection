@@ -45,7 +45,7 @@ class CartonMeta(type):
         return super(CartonMeta, meta).__new__(meta, name, bases, dct)
 
 
-class BaseCarton(metaclass=CartonMeta):
+class Carton(metaclass=CartonMeta):
     """A base class for target cartons.
 
     Parameters

@@ -1,2 +1,2 @@
 
-from .base import BaseCarton
+from .base import Carton
