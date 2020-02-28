@@ -8,12 +8,13 @@
 
 import logging
 
+import enlighten
 import numpy
 import peewee
 
 from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
 
-from .. import config, log
+from .. import config, log, manager
 
 
 # For now use Gaia but eventually change to Catalog and Catalog.catalogid.
@@ -200,7 +201,7 @@ class Carton(metaclass=CartonMeta):
 
         return Model
 
-    def run(self, tile=None, tile_num=None):
+    def run(self, tile=None, tile_num=None, progress_bar=True):
         """Executes the query and stores the results.
 
         Parameters
@@ -212,6 +213,8 @@ class Carton(metaclass=CartonMeta):
         tile_num : int
             The number of tile nodes in which to divide the RA and Dec axes
             when tiling.
+        progress_bar : bool
+            Use a progress bar when tiling.
 
         """
 
@@ -251,6 +254,9 @@ class Carton(metaclass=CartonMeta):
             dec_space = numpy.linspace(-90, 90, num=tile_num)
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
 
+            if progress_bar:
+                counter = manager.counter(total=n_tiles, desc=self.name, unit='ticks')
+
             nn = 1
             for ii in range(len(ra_space) - 1):
                 for jj in range(len(dec_space) - 1):
@@ -277,5 +283,8 @@ class Carton(metaclass=CartonMeta):
                     ResultsModel.insert_from(tile_query, ResultsModel._meta.fields).execute()
 
                     nn += 1
+
+                    if progress_bar:
+                        counter.update()
 
         return ResultsModel
