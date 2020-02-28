@@ -1,0 +1,6 @@
+
+'0.1.0':
+    guide:
+        g_min: 13
+        g_max: 17
+        min_separation: 0.016667

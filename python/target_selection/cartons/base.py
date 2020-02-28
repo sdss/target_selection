@@ -13,7 +13,7 @@ import peewee
 
 from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
 
-from .. import log
+from .. import config, log
 
 
 # For now use Gaia but eventually change to Catalog and Catalog.catalogid.
@@ -80,6 +80,11 @@ class BaseCarton(metaclass=CartonMeta):
         self.targeting_version = targeting_version
         self.database = targetdb.database
 
+        if self.targeting_version in config:
+            self.config = config[self.targeting_version].get(self.name, None)
+        else:
+            self.config = None
+
         if not self.orm == 'peewee':
             raise NotImplementedError('not implemented for SQLAlchemy.')
 
@@ -88,7 +93,7 @@ class BaseCarton(metaclass=CartonMeta):
     def log(self, message, level=logging.INFO):
         """Logs a message with a header of the current target class name."""
 
-        message = f'[{self.name.upper()}]: {message}'
+        message = f'({self.name}): {message}'
         log.log(level, message)
 
     def _check_targetdb(self):
@@ -159,7 +164,6 @@ class BaseCarton(metaclass=CartonMeta):
         for field in returning_fields:
 
             field_name, resolved_field = self._resolve_field(field)
-            print(field, resolved_field)
             is_primary_key = resolved_field.primary_key
 
             new_field = resolved_field.__class__(primary_key=is_primary_key,

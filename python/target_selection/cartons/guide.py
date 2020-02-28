@@ -26,19 +26,20 @@ class Guide(BaseCarton):
                                catalogdb.GaiaDR2Source.dec,
                                catalogdb.GaiaDR2Source.phot_g_mean_mag)
                        .join(catalogdb.GaiaDR2Clean)
-                       .where((catalogdb.GaiaDR2Source.phot_g_mean_mag > 13) &
-                              (catalogdb.GaiaDR2Source.phot_g_mean_mag < 17))
+                       .where((catalogdb.GaiaDR2Source.phot_g_mean_mag > self.config['g_min']) &
+                              (catalogdb.GaiaDR2Source.phot_g_mean_mag < self.config['g_max']))
                        .cte('sample_data'))
 
+        # We should use q3c_join_pm and q3c_dist_pm here.
         subq = (catalogdb.GaiaDR2Source
                 .select(catalogdb.GaiaDR2Source.source_id)
                 .where(catalogdb.GaiaDR2Source.cone_search(sample_data.c.ra,
                                                            sample_data.c.dec,
-                                                           1 / 60.))
+                                                           self.config['min_separation']))
                 .where(peewee.fn.q3c_join(sample_data.c.ra, sample_data.c.dec,
                                           catalogdb.GaiaDR2Source.ra,
                                           catalogdb.GaiaDR2Source.dec,
-                                          1. / 60))
+                                          self.config['min_separation']))
                 .order_by(peewee.fn.q3c_dist(sample_data.c.ra,
                                              sample_data.c.dec,
                                              catalogdb.GaiaDR2Source.ra,
