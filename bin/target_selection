@@ -14,7 +14,7 @@ import peewee
 from sdssdb.peewee.sdss5db import catalogdb, targetdb
 
 from target_selection import log
-from target_selection.cartons import Carton
+from target_selection.cartons import BaseCarton
 
 
 catalog_model = catalogdb.GaiaDR2Source
@@ -216,21 +216,21 @@ def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
         skip_query, include, exclude, write_table):
     """Runs target selection for all cartons."""
 
-    Cartons = Carton.__subclasses__()
+    Cartons = BaseCarton.__subclasses__()
 
     if exclude:
-        Cartons = [CC for CC in Cartons if CC.name not in exclude]
+        Cartons = [Carton for Carton in Cartons if Carton.name not in exclude]
 
     if include:
-        Cartons = [CC for CC in Cartons if CC.name in include]
+        Cartons = [Carton for Carton in Cartons if Carton.name in include]
 
     # Create targeting version in targetdb.
     __, created = targetdb.Version.get_or_create(label=targeting_version)
     if created:
         log.info(f'created record in targetdb.version for {targeting_version!r}.')
 
-    for CartonClass in Cartons:
-        carton = CartonClass(targeting_version, schema=intermediate_schema)
+    for Carton in Cartons:
+        carton = Carton(targeting_version, schema=intermediate_schema)
         process_carton(carton, keep=keep, overwrite=overwrite,
                        skip_query=skip_query, no_load=no_load,
                        tile=tile, write_table=write_table)
@@ -244,9 +244,9 @@ def clear(targeting_version, tables):
     """Clear all data for a target selection version."""
 
     if tables:
-        Cartons = Carton.__subclasses__()
-        for CC in Cartons:
-            CC.drop_table()
+        Cartons = BaseCarton.__subclasses__()
+        for Carton in Cartons:
+            Carton.drop_table()
 
     # Manually remove magnitudes since the don't get removed by cascading.
     magnitudes = (targetdb.Magnitude
