@@ -9,6 +9,7 @@
 import logging
 
 import click
+import peewee
 
 from sdssdb.peewee.sdss5db import catalogdb, targetdb
 
@@ -235,6 +236,11 @@ def run(targeting_version, drop, keep, intermediate_schema, tile, no_load,
 def clear(targeting_version, tables):
     """Clear all data for a target selection version."""
 
+    try:
+        version_instance = targetdb.Version.get(label=targeting_version)
+    except peewee.DoesNotExist:
+        raise RuntimeError(f'version {targeting_version} does not exist.')
+
     if tables:
         programs = (targetdb.Program
                     .select()
@@ -256,7 +262,7 @@ def clear(targeting_version, tables):
 
     targetdb.Magnitude.delete().where(targetdb.Magnitude.pk.in_(magnitudes)).execute()
 
-    targetdb.Version.get(label=targeting_version).delete_instance()
+    version_instance.delete_instance()
 
 
 if __name__ == '__main__':
