@@ -146,7 +146,7 @@ def load_data(carton, results_model):
 
 
 def process_carton(carton, keep=False, overwrite=False, no_load=False,
-                   skip_query=False, tile=None):
+                   skip_query=False, tile=None, write_table=False):
     """Processes the target selection for a carton."""
 
     log.info(f'({carton.name}): running target selection for carton {carton.name!r}.')
@@ -154,13 +154,16 @@ def process_carton(carton, keep=False, overwrite=False, no_load=False,
     _create_program_metadata(carton)
 
     if overwrite:
-        carton.database.execute_sql(f'DROP TABLE IF EXISTS {carton.schema}.{carton.table_name};')
+        carton.drop_table()
 
     if not skip_query:
         results_model = carton.run(tile=tile)
     else:
         log.debug(f'({carton.name}): skipping query.')
         results_model = carton.get_model_from_query()
+
+    if write_table:
+        carton.write_table()
 
     if no_load:
         log.debug(f'({carton.name}): not loading data into targetdb.target.')
@@ -193,7 +196,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.argument('TARGETING-VERSION', type=str)
 @click.option('--overwrite', is_flag=True,
               help='drop or truncate intermediate tables if they exist')
-@click.option('--keep', is_flag=True, help='keep intermediate tables')
+@click.option('--keep', is_flag=True,
+              help='keep intermediate tables')
 @click.option('--intermediate-schema', type=str, default='sandbox', show_default=True,
               help='the schema in which to create intermediate tables')
 @click.option('--skip-query', is_flag=True,
@@ -206,8 +210,10 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='comma-separated carton names to include')
 @click.option('--exclude', '-e', type=str,
               help='comma-separated carton names to exclude')
+@click.option('--write-table', '-w', is_flag=True,
+              help='write intermediate table as ')
 def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
-        skip_query, include, exclude):
+        skip_query, include, exclude, write_table):
     """Runs target selection for all cartons."""
 
     Cartons = Carton.__subclasses__()
@@ -227,20 +233,20 @@ def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
         carton = CartonClass(targeting_version, schema=intermediate_schema)
         process_carton(carton, keep=keep, overwrite=overwrite,
                        skip_query=skip_query, no_load=no_load,
-                       tile=tile)
+                       tile=tile, write_table=write_table)
 
 
 @target_selection.command()
 @click.argument('TARGETING-VERSION', type=str)
-@click.option('--tables', is_flag=True, help='also remove intermediate tables')
+@click.option('--tables', is_flag=True,
+              help='also remove intermediate tables')
 def clear(targeting_version, tables):
     """Clear all data for a target selection version."""
 
     if tables:
         Cartons = Carton.__subclasses__()
         for CC in Cartons:
-            program_name = CC.name
-            targetdb.database.execute_sql(f'DROP TABLE IF EXISTS sandbox.temp_{program_name};')
+            CC.drop_table()
 
     # Manually remove magnitudes since the don't get removed by cascading.
     magnitudes = (targetdb.Magnitude

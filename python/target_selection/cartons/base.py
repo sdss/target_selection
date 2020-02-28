@@ -8,9 +8,9 @@
 
 import logging
 
-import enlighten
 import numpy
 import peewee
+from astropy import table
 
 from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
 
@@ -288,3 +288,34 @@ class Carton(metaclass=CartonMeta):
                         counter.update()
 
         return ResultsModel
+
+    def drop_table(self):
+        """Drops the intermediate table if it exists."""
+
+        self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+
+    def write_table(self, filename=None, model=None):
+        """Writes the intermediate table to a FITS file.
+
+        Parameters
+        ----------
+        filename : str
+            The file to which to write the table. Defaults to
+            ``<name>_<version>.fits``.
+        model : ~peewee.Model
+            The model of the intermediate table. Defaults to use the
+            model matching the carton query.
+
+        """
+
+        filename = filename or f'{self.name}_{self.targeting_version}.fits'
+
+        log.debug(f'({self.name}): writing table to {filename}.')
+
+        results_model = model or self.get_model_from_query()
+
+        write_query = results_model.select()
+
+        colnames = [field.name for field in write_query._returning]
+        carton_table = table.Table(rows=write_query.tuples(), names=colnames)
+        carton_table.write(filename, overwrite=True)
