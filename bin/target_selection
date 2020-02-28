@@ -145,7 +145,7 @@ def load_data(carton, results_model):
                                           targetdb.ProgramToTarget.program_pk]).execute()
 
 
-def process_carton(carton, keep=False, drop=False, no_load=False,
+def process_carton(carton, keep=False, overwrite=False, no_load=False,
                    skip_query=False, tile=None):
     """Processes the target selection for a carton."""
 
@@ -153,7 +153,7 @@ def process_carton(carton, keep=False, drop=False, no_load=False,
 
     _create_program_metadata(carton)
 
-    if drop:
+    if overwrite:
         carton.database.execute_sql(f'DROP TABLE IF EXISTS {carton.schema}.{carton.table_name};')
 
     if not skip_query:
@@ -191,7 +191,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
 
 @target_selection.command()
 @click.argument('TARGETING-VERSION', type=str)
-@click.option('--drop', is_flag=True,
+@click.option('--overwrite', is_flag=True,
               help='drop or truncate intermediate tables if they exist')
 @click.option('--keep', is_flag=True, help='keep intermediate tables')
 @click.option('--intermediate-schema', type=str, default='sandbox', show_default=True,
@@ -206,7 +206,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='comma-separated carton names to include')
 @click.option('--exclude', '-e', type=str,
               help='comma-separated carton names to exclude')
-def run(targeting_version, drop, keep, intermediate_schema, tile, no_load,
+def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
         skip_query, include, exclude):
     """Runs target selection for all cartons."""
 
@@ -225,7 +225,7 @@ def run(targeting_version, drop, keep, intermediate_schema, tile, no_load,
 
     for CartonClass in Cartons:
         carton = CartonClass(targeting_version, schema=intermediate_schema)
-        process_carton(carton, keep=keep, drop=drop,
+        process_carton(carton, keep=keep, overwrite=overwrite,
                        skip_query=skip_query, no_load=no_load,
                        tile=tile)
 
