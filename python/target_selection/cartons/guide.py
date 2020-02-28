@@ -18,6 +18,9 @@ class GuideCarton(BaseCarton):
     name = 'guide'
     category = 'guide'
 
+    tile = True
+    tile_num = 501
+
     def build_query(self):
 
         sample_data = (catalogdb.GaiaDR2Source

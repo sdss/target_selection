@@ -72,6 +72,11 @@ class BaseCarton(metaclass=CartonMeta):
         The survey associated with this carton.
     orm : str
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
+    tile : bool
+        Whether to tile the query instead of running it all at once.
+    tile_num : int
+        The number of tile nodes in which to divide the RA and Dec axes
+        when tiling.
 
     """
 
@@ -80,8 +85,8 @@ class BaseCarton(metaclass=CartonMeta):
     category = None
     survey = None
 
-    tile = True
-    tile_num = 21
+    tile = False
+    tile_num = None
 
     orm = 'peewee'
 
@@ -278,7 +283,7 @@ class BaseCarton(metaclass=CartonMeta):
                         peewee.fn.q3c_poly_query(query_model.ra, query_model.dec,
                                                  peewee.SQL(f'\'{polygon}\'::polygon')))
 
-                    self.log(f'executing tile {nn}/{n_tiles}: {polygon}', logging.DEBUG)
+                    self.log(f'tile {nn}/{n_tiles}: {polygon}', logging.DEBUG)
 
                     ResultsModel.insert_from(tile_query, ResultsModel._meta.fields).execute()
 
