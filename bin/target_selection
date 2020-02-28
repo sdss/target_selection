@@ -246,7 +246,7 @@ def clear(targeting_version, tables):
     if tables:
         Cartons = BaseCarton.__subclasses__()
         for Carton in Cartons:
-            Carton.drop_table()
+            Carton(targeting_version).drop_table()
 
     # Manually remove magnitudes since the don't get removed by cascading.
     magnitudes = (targetdb.Magnitude
