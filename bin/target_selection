@@ -67,7 +67,7 @@ def load_data(carton, results_model):
                    .join(targetdb.ProgramToTarget)
                    .join(targetdb.Program)
                    .where(targetdb.Program.label == carton.name)
-                   .switch(targetdb.Target)
+                   .switch(targetdb.ProgramToTarget)
                    .join(targetdb.Version)
                    .where(targetdb.Version.label == carton.targeting_version)
                    .first())
@@ -119,17 +119,10 @@ def load_data(carton, results_model):
 
     target_data = target_query.tuples()
 
-    # Create a column for the version_pk.
-    target_fields.append(targetdb.Target.version_pk)
-    version_pk = targetdb.Version.get(label=carton.targeting_version).pk
-    version_data = [version_pk] * len(target_data)
-
-    # Unzip and rezip the tuples adding the version_pks and the magnitude_pks.
+    # Unzip and rezip the tuples adding the magnitude_pks.
     if magnitude_pks:
         target_fields.append(targetdb.Target.magnitude_pk)
-        target_data = zip(*zip(*target_data), version_data, magnitude_pks)
-    else:
-        target_data = zip(*zip(*target_data), version_data)
+        target_data = zip(*zip(*target_data), magnitude_pks)
 
     # Insert the data and grab the resulting pks.
     log.debug(f'({carton.name}): inserting data to targetdb.target.')
@@ -139,10 +132,14 @@ def load_data(carton, results_model):
     # Add the new targets to the program_to_target relational table.
     program_pks = [targetdb.Program.get(label=carton.name).pk] * len(target_pks)
 
+    # Create a column for the version_pk.
+    version_pks = [targetdb.Version.get(label=carton.targeting_version).pk] * len(target_pks)
+
     log.debug(f'({carton.name}): inserting data to targetdb.program_to_target.')
-    targetdb.ProgramToTarget.insert_many(zip(target_pks, program_pks),
+    targetdb.ProgramToTarget.insert_many(zip(target_pks, program_pks, version_pks),
                                          [targetdb.ProgramToTarget.target_pk,
-                                          targetdb.ProgramToTarget.program_pk]).execute()
+                                          targetdb.ProgramToTarget.program_pk,
+                                          targetdb.ProgramToTarget.version_pk]).execute()
 
 
 def process_carton(carton, keep=False, overwrite=False, no_load=False,
@@ -252,6 +249,7 @@ def clear(targeting_version, tables):
     magnitudes = (targetdb.Magnitude
                   .select(targetdb.Magnitude.pk)
                   .join(targetdb.Target)
+                  .join(targetdb.ProgramToTarget)
                   .join(targetdb.Version)
                   .where(targetdb.Version.label == targeting_version))
 
