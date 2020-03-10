@@ -2,14 +2,14 @@
 .. _api:
 
 target_selection Reference
-=========================
+==========================
 
-.. _api-main:
+.. _api-carton:
 
-Main
-----
+Carton
+------
 
-.. automodule:: target_selection.main
+.. automodule:: target_selection.carton.base
    :members:
    :undoc-members:
    :show-inheritance:

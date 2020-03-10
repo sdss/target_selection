@@ -1,4 +1,4 @@
-.. _target_selection-changelog:
+.. This changelog uses releases: https://releases.readthedocs.io/en/latest/
 
 ==========
 Change Log
