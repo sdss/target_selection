@@ -61,20 +61,9 @@ def load_data(carton, results_model):
 
     results_pk = results_model._meta.primary_key
 
-    # Check if data has been loaded for this carton and targeting version
-    has_targets = (targetdb.Target
-                   .select()
-                   .join(targetdb.ProgramToTarget)
-                   .join(targetdb.Program)
-                   .where(targetdb.Program.label == carton.name)
-                   .switch(targetdb.ProgramToTarget)
-                   .join(targetdb.Version)
-                   .where(targetdb.Version.label == carton.targeting_version)
-                   .first())
-
-    if has_targets:
-        raise ValueError(f'({carton.name}): found existing targets for carton '
-                         f'{carton.name!r} with version {carton.targeting_version!r}.')
+    n_targets = results_model.select().where(results_model.selected == True).count()  # noqa
+    if n_targets == 0:
+        raise ValueError(f'({carton.name}): no targets found in intermediate table.')
 
     # Convert magnitude_X in the temporary table into magnitude.X in targetdb.
     results_magnitude_fields = []
