@@ -169,7 +169,7 @@ class BaseCarton(metaclass=CartonMeta):
         Returns
         -------
         query
-            A `~peewee.Select` or `~peewee.ModelSelect` query.
+            A :class:`peewee:Select` or :class:`peewee:ModelSelect` query.
 
         """
 
@@ -251,7 +251,7 @@ class BaseCarton(metaclass=CartonMeta):
 
         Returns
         -------
-        model : peewee.Model
+        model : :class:`peewee:Model`
             The model for the intermediate table.
 
         """
@@ -368,12 +368,12 @@ class BaseCarton(metaclass=CartonMeta):
 
         Parameters
         ----------
-        model : peewee.Model
+        model : peewee:Model
             The model of the intermediate table.
 
         Returns
         -------
-        mask : tuple
+        mask : `tuple`
             The list of catalogids from the temporary table that should be
             selected as part of this carton. If `True` (the default), selects
             all the records.
@@ -398,7 +398,7 @@ class BaseCarton(metaclass=CartonMeta):
         filename : str
             The file to which to write the table. Defaults to
             ``<name>_<version>.fits``.
-        model : ~peewee.Model
+        model : peewee:Model
             The model of the intermediate table. Defaults to use the
             model matching the carton query.
 

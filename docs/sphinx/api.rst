@@ -9,7 +9,7 @@ target_selection Reference
 Carton
 ------
 
-.. automodule:: target_selection.carton.base
-   :members:
+.. automodule:: target_selection.cartons.base
+   :members: BaseCarton
    :undoc-members:
    :show-inheritance:
