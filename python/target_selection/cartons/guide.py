@@ -19,6 +19,7 @@ class GuideCarton(BaseCarton):
     category = 'guide'
 
     tile = True
+    tile_region = None
     tile_num = 501
 
     def build_query(self):

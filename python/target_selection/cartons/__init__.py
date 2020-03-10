@@ -1,4 +1,7 @@
 
+# flake8: noqa
+
+
 from .base import BaseCarton
 
 # Import cartons so that they can be discovered by calling Carton.__subclasses__().

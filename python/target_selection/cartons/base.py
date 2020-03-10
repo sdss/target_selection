@@ -11,6 +11,7 @@ import logging
 import numpy
 import peewee
 from astropy import table
+from playhouse.migrate import PostgresqlMigrator, migrate
 
 from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
 
@@ -78,6 +79,12 @@ class BaseCarton(metaclass=CartonMeta):
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
     tile : bool
         Whether to tile the query instead of running it all at once.
+    tile_region : tuple
+        A tuple defining the region over which to tile with the format
+        ``(ra0, dec0, ra1, dec1)``. This setting is only applied if
+        ``tile=True``; for a non-tiled delimitation of the query region, use
+        the `q3c <https://github.com/segasai/q3c>`__ function
+        ``q3c_poly_query`` when building the query.
     tile_num : int
         The number of tile nodes in which to divide the RA and Dec axes
         when tiling.
@@ -90,6 +97,7 @@ class BaseCarton(metaclass=CartonMeta):
     survey = None
 
     tile = False
+    tile_region = None
     tile_num = None
 
     orm = 'peewee'
@@ -99,7 +107,7 @@ class BaseCarton(metaclass=CartonMeta):
         self.targeting_version = targeting_version
 
         self.database = targetdb.database
-        self.schema = schema
+        self.schema = 'sandbox'
         self.table_name = table_name or f'temp_{self.name}'
 
         self.has_run = False
@@ -210,9 +218,6 @@ class BaseCarton(metaclass=CartonMeta):
             else:
                 Model._meta.add_field(field_name, new_field)
 
-        # Add the selected column
-        Model._meta.add_field('selected', peewee.BooleanField())
-
         return Model
 
     def run(self, tile=None, tile_num=None, progress_bar=True,
@@ -284,12 +289,20 @@ class BaseCarton(metaclass=CartonMeta):
 
             assert tile_num > 1, 'tile_num must be >= 2'
 
-            ra_space = numpy.linspace(0, 360, num=tile_num)
-            dec_space = numpy.linspace(-90, 90, num=tile_num)
+            if self.tile_region is None:
+                ra_space = numpy.linspace(0, 360, num=tile_num)
+                dec_space = numpy.linspace(-90, 90, num=tile_num)
+            else:
+                ra_space = numpy.linspace(self.tile_region[0], self.tile_region[2],
+                                          num=tile_num)
+                dec_space = numpy.linspace(self.tile_region[1], self.tile_region[3],
+                                           num=tile_num)
+
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
 
             if progress_bar:
                 counter = manager.counter(total=n_tiles, desc=self.name, unit='ticks')
+                counter.update(0)
 
             nn = 1
             for ii in range(len(ra_space) - 1):
@@ -321,22 +334,25 @@ class BaseCarton(metaclass=CartonMeta):
                     if progress_bar:
                         counter.update()
 
+        # Add the selected column.
+        selected_field = peewee.BooleanField(default=True, null=False)
+        migrator = PostgresqlMigrator(database)
+        migrate(migrator.set_search_path(self.schema),
+                migrator.add_column(self.table_name, 'selected', selected_field))
+        ResultsModel._meta.add_field('selected', selected_field)
+
         if call_post_process:
             mask = self.post_process(ResultsModel, **post_process_kawrgs)
-
             if mask is True:
                 self.log('post-processing returned True. Selecting all records.')
-                ResultsModel.update({ResultsModel.selected: True}).execute()
+                pass  # No need to do anything
             else:
                 assert len(mask) > 0, 'the post-process list is empty'
                 self.log(f'selecting {len(mask)} records.')
                 (ResultsModel
-                 .update({ResultsModel.selected: True})
-                 .where(ResultsModel.catalogid.in_(mask))
+                 .update({ResultsModel.selected: False})
+                 .where(ResultsModel._meta.primary_key.not_in(mask))
                  .execute())
-        else:
-            self.log('not calling post-processing. Selecting all records.')
-            ResultsModel.update({ResultsModel.selected: True}).execute()
 
         self.has_run = True
 
@@ -369,7 +385,10 @@ class BaseCarton(metaclass=CartonMeta):
     def drop_table(self):
         """Drops the intermediate table if it exists."""
 
-        self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+        if self.schema:
+            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+        else:
+            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.table_name};')
 
     def write_table(self, filename=None, model=None):
         """Writes the intermediate table to a FITS file.
