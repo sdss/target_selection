@@ -214,9 +214,11 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.option('--exclude', '-e', type=str,
               help='comma-separated carton names to exclude')
 @click.option('--write-table', '-w', is_flag=True,
-              help='write intermediate table as ')
+              help='write intermediate table as a FITS file')
+@click.option('--allow-errors', is_flag=True,
+              help='continue processing cartons if a carton fails')
 def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
-        skip_query, include, exclude, write_table):
+        skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
     Cartons = BaseCarton.__subclasses__()
@@ -233,10 +235,16 @@ def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
         log.info(f'created record in targetdb.version for {targeting_version!r}.')
 
     for Carton in Cartons:
-        carton = Carton(targeting_version, schema=intermediate_schema)
-        process_carton(carton, keep=keep, overwrite=overwrite,
-                       skip_query=skip_query, no_load=no_load,
-                       tile=tile, write_table=write_table)
+        try:
+            carton = Carton(targeting_version, schema=intermediate_schema)
+            process_carton(carton, keep=keep, overwrite=overwrite,
+                           skip_query=skip_query, no_load=no_load,
+                           tile=tile, write_table=write_table)
+        except Exception as ee:
+            if allow_errors:
+                log.error(f'found error processing carton {carton.name}: {ee}')
+            else:
+                raise
 
 
 @target_selection.command()
@@ -264,7 +272,7 @@ def clear(targeting_version, tables):
     try:
         targetdb.Version.get(label=targeting_version).delete_instance()
     except peewee.DoesNotExist:
-        raise RuntimeError(f'version {targeting_version} does not exist.')
+        pass
 
 
 if __name__ == '__main__':
