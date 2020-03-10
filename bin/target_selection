@@ -139,6 +139,21 @@ def process_carton(carton, keep=False, overwrite=False, no_load=False,
 
     log.info(f'({carton.name}): running target selection for carton {carton.name!r}.')
 
+    # Check if data has been loaded for this carton and targeting version
+    has_targets = (targetdb.Target
+                   .select()
+                   .join(targetdb.ProgramToTarget)
+                   .join(targetdb.Program)
+                   .where(targetdb.Program.label == carton.name)
+                   .switch(targetdb.ProgramToTarget)
+                   .join(targetdb.Version)
+                   .where(targetdb.Version.label == carton.targeting_version)
+                   .first())
+
+    if has_targets:
+        raise ValueError(f'({carton.name}): found existing targets for carton '
+                         f'{carton.name!r} with version {carton.targeting_version!r}.')
+
     _create_program_metadata(carton)
 
     if overwrite:
