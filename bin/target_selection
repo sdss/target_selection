@@ -89,6 +89,7 @@ def load_data(carton, results_model):
         log.debug(f'({carton.name}): inserting magnitudes to targetdb.magnitude.')
         magnitude_query = (results_model
                            .select(*results_magnitude_fields)
+                           .where(results_model.selected == True)  # noqa
                            .order_by(results_pk))
         cursor = targetdb.Magnitude.insert_from(magnitude_query, magnitude_fields).execute()
         magnitude_pks = list(zip(*cursor))[0]
@@ -115,6 +116,7 @@ def load_data(carton, results_model):
     target_query = (results_model
                     .select(*select_fields)
                     .join(catalog_model, on=(results_pk == catalogid))
+                    .where(results_model.selected == True)  # noqa
                     .order_by(results_pk))
 
     target_data = target_query.tuples()

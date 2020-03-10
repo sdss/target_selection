@@ -49,6 +49,10 @@ class CartonMeta(type):
 class BaseCarton(metaclass=CartonMeta):
     """A base class for target cartons.
 
+    This class is not intended for direct instantiation. Instead, it must be
+    subclassed and the relevant class attributes overridden with the values
+    corresponding to the carton.
+
     Parameters
     ----------
     targeting_version : str
@@ -97,6 +101,8 @@ class BaseCarton(metaclass=CartonMeta):
         self.database = targetdb.database
         self.schema = schema
         self.table_name = table_name or f'temp_{self.name}'
+
+        self.has_run = False
 
         if self.targeting_version in config:
             self.config = config[self.targeting_version].get(self.name, None)
@@ -204,10 +210,23 @@ class BaseCarton(metaclass=CartonMeta):
             else:
                 Model._meta.add_field(field_name, new_field)
 
+        # Add the selected column
+        Model._meta.add_field('selected', peewee.BooleanField())
+
         return Model
 
-    def run(self, tile=None, tile_num=None, progress_bar=True):
-        """Executes the query and stores the results.
+    def run(self, tile=None, tile_num=None, progress_bar=True,
+            call_post_process=True, **post_process_kawrgs):
+        """Executes the query and post-process steps, and stores the results.
+
+        This method calls `.build_query` and runs the returned query. The
+        output of the query is stored in a temporary table whose schema and
+        table name are defined when the object is instantiated. The target
+        selection query can be run as a single query or tiled.
+
+        After the query has run, the `.post_process` routine is called if the
+        method has been overridden for the given carton. The returned mask
+        is stored as a new column, ``selected``, in the intermediary table.
 
         Parameters
         ----------
@@ -220,6 +239,15 @@ class BaseCarton(metaclass=CartonMeta):
             when tiling.
         progress_bar : bool
             Use a progress bar when tiling.
+        call_post_process : bool
+            Whether to call the post-process routine.
+        post_process_args : dict
+            Keyword arguments to be passed to `.post_process`.
+
+        Returns
+        -------
+        model : peewee.Model
+            The model for the intermediate table.
 
         """
 
@@ -232,6 +260,7 @@ class BaseCarton(metaclass=CartonMeta):
         if database.table_exists(self.table_name, schema=self.schema):
             raise RuntimeError(f'temporary table {self.table_name} already exists.')
 
+        self.log('building query ...')
         query = self.build_query()
 
         # Tweak the query. Start by making sure the catalogid column is selected.
@@ -292,7 +321,50 @@ class BaseCarton(metaclass=CartonMeta):
                     if progress_bar:
                         counter.update()
 
+        if call_post_process:
+            mask = self.post_process(ResultsModel, **post_process_kawrgs)
+
+            if mask is True:
+                self.log('post-processing returned True. Selecting all records.')
+                ResultsModel.update({ResultsModel.selected: True}).execute()
+            else:
+                assert len(mask) > 0, 'the post-process list is empty'
+                self.log(f'selecting {len(mask)} records.')
+                (ResultsModel
+                 .update({ResultsModel.selected: True})
+                 .where(ResultsModel.catalogid.in_(mask))
+                 .execute())
+        else:
+            self.log('not calling post-processing. Selecting all records.')
+            ResultsModel.update({ResultsModel.selected: True}).execute()
+
+        self.has_run = True
+
         return ResultsModel
+
+    def post_process(self, model, **kwargs):
+        """Post-processes the temporary table.
+
+        This method provides a framework for applying non-SQL operations on
+        carton query. It receives the model for the temporary table and can
+        perform any operation as long as it returns a tuple with the list of
+        catalogids that should be selected.
+
+        Parameters
+        ----------
+        model : peewee.Model
+            The model of the intermediate table.
+
+        Returns
+        -------
+        mask : tuple
+            The list of catalogids from the temporary table that should be
+            selected as part of this carton. If `True` (the default), selects
+            all the records.
+
+        """
+
+        return True
 
     def drop_table(self):
         """Drops the intermediate table if it exists."""
