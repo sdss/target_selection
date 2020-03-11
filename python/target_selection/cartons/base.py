@@ -145,11 +145,12 @@ class BaseCarton(metaclass=CartonMeta):
         else:
             assert program.survey is None, 'targetdb.survey should be empty but is not.'
 
-        if self.cadence:
-            assert (targetdb.Cadence
-                    .select()
-                    .where(targetdb.Cadence.label == self.cadence)
-                    .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
+        # TODO: uncomment this when the cadences are set in the DB.
+        # if self.candece:
+        #     assert (targetdb.Cadence
+        #             .select()
+        #             .where(targetdb.Cadence.label == self.cadence)
+        #             .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
 
         assert program.category and program.category.label == self.category, \
             f'{self.category!r} not present in targetdb.category.'
