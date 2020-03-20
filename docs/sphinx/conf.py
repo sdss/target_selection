@@ -37,7 +37,7 @@ from pkg_resources import parse_version
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
               'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.mathjax',
-              'sphinx.ext.intersphinx', 'releases']
+              'sphinx.ext.intersphinx', 'sdsstools.releases']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -49,7 +49,6 @@ source_suffix = ['.rst', '.md']
 # source_suffix = '.rst'
 
 source_parsers = {
-    '.md': 'recommonmark.parser.CommonMarkParser',
 }
 
 # The master toctree document.
@@ -111,7 +110,8 @@ todo_include_todos = False
 # Intersphinx mappings
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'astropy': ('http://docs.astropy.org/en/latest', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy/', None)}
+                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+                       'peewee': ('http://docs.peewee-orm.com/en/latest/', None)}
 
 autodoc_mock_imports = ['_tkinter']
 autodoc_member_order = 'groupwise'

@@ -61,20 +61,9 @@ def load_data(carton, results_model):
 
     results_pk = results_model._meta.primary_key
 
-    # Check if data has been loaded for this carton and targeting version
-    has_targets = (targetdb.Target
-                   .select()
-                   .join(targetdb.ProgramToTarget)
-                   .join(targetdb.Program)
-                   .where(targetdb.Program.label == carton.name)
-                   .switch(targetdb.ProgramToTarget)
-                   .join(targetdb.Version)
-                   .where(targetdb.Version.label == carton.targeting_version)
-                   .first())
-
-    if has_targets:
-        raise ValueError(f'({carton.name}): found existing targets for carton '
-                         f'{carton.name!r} with version {carton.targeting_version!r}.')
+    n_targets = results_model.select().where(results_model.selected == True).count()  # noqa
+    if n_targets == 0:
+        raise ValueError(f'({carton.name}): no targets found in intermediate table.')
 
     # Convert magnitude_X in the temporary table into magnitude.X in targetdb.
     results_magnitude_fields = []
@@ -89,6 +78,7 @@ def load_data(carton, results_model):
         log.debug(f'({carton.name}): inserting magnitudes to targetdb.magnitude.')
         magnitude_query = (results_model
                            .select(*results_magnitude_fields)
+                           .where(results_model.selected == True)  # noqa
                            .order_by(results_pk))
         cursor = targetdb.Magnitude.insert_from(magnitude_query, magnitude_fields).execute()
         magnitude_pks = list(zip(*cursor))[0]
@@ -115,6 +105,7 @@ def load_data(carton, results_model):
     target_query = (results_model
                     .select(*select_fields)
                     .join(catalog_model, on=(results_pk == catalogid))
+                    .where(results_model.selected == True)  # noqa
                     .order_by(results_pk))
 
     target_data = target_query.tuples()
@@ -147,6 +138,21 @@ def process_carton(carton, keep=False, overwrite=False, no_load=False,
     """Processes the target selection for a carton."""
 
     log.info(f'({carton.name}): running target selection for carton {carton.name!r}.')
+
+    # Check if data has been loaded for this carton and targeting version
+    has_targets = (targetdb.Target
+                   .select()
+                   .join(targetdb.ProgramToTarget)
+                   .join(targetdb.Program)
+                   .where(targetdb.Program.label == carton.name)
+                   .switch(targetdb.ProgramToTarget)
+                   .join(targetdb.Version)
+                   .where(targetdb.Version.label == carton.targeting_version)
+                   .first())
+
+    if has_targets:
+        raise ValueError(f'({carton.name}): found existing targets for carton '
+                         f'{carton.name!r} with version {carton.targeting_version!r}.')
 
     _create_program_metadata(carton)
 
@@ -208,9 +214,11 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.option('--exclude', '-e', type=str,
               help='comma-separated carton names to exclude')
 @click.option('--write-table', '-w', is_flag=True,
-              help='write intermediate table as ')
+              help='write intermediate table as a FITS file')
+@click.option('--allow-errors', is_flag=True,
+              help='continue processing cartons if a carton fails')
 def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
-        skip_query, include, exclude, write_table):
+        skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
     Cartons = BaseCarton.__subclasses__()
@@ -227,10 +235,16 @@ def run(targeting_version, overwrite, keep, intermediate_schema, tile, no_load,
         log.info(f'created record in targetdb.version for {targeting_version!r}.')
 
     for Carton in Cartons:
-        carton = Carton(targeting_version, schema=intermediate_schema)
-        process_carton(carton, keep=keep, overwrite=overwrite,
-                       skip_query=skip_query, no_load=no_load,
-                       tile=tile, write_table=write_table)
+        try:
+            carton = Carton(targeting_version, schema=intermediate_schema)
+            process_carton(carton, keep=keep, overwrite=overwrite,
+                           skip_query=skip_query, no_load=no_load,
+                           tile=tile, write_table=write_table)
+        except Exception as ee:
+            if allow_errors:
+                log.error(f'found error processing carton {carton.name}: {ee}')
+            else:
+                raise
 
 
 @target_selection.command()
@@ -258,7 +272,7 @@ def clear(targeting_version, tables):
     try:
         targetdb.Version.get(label=targeting_version).delete_instance()
     except peewee.DoesNotExist:
-        raise RuntimeError(f'version {targeting_version} does not exist.')
+        pass
 
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ import logging
 import numpy
 import peewee
 from astropy import table
+from playhouse.migrate import PostgresqlMigrator, migrate
 
 from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
 
@@ -49,6 +50,10 @@ class CartonMeta(type):
 class BaseCarton(metaclass=CartonMeta):
     """A base class for target cartons.
 
+    This class is not intended for direct instantiation. Instead, it must be
+    subclassed and the relevant class attributes overridden with the values
+    corresponding to the carton.
+
     Parameters
     ----------
     targeting_version : str
@@ -74,6 +79,12 @@ class BaseCarton(metaclass=CartonMeta):
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
     tile : bool
         Whether to tile the query instead of running it all at once.
+    tile_region : tuple
+        A tuple defining the region over which to tile with the format
+        ``(ra0, dec0, ra1, dec1)``. This setting is only applied if
+        ``tile=True``; for a non-tiled delimitation of the query region, use
+        the `q3c <https://github.com/segasai/q3c>`__ function
+        ``q3c_poly_query`` when building the query.
     tile_num : int
         The number of tile nodes in which to divide the RA and Dec axes
         when tiling.
@@ -86,6 +97,7 @@ class BaseCarton(metaclass=CartonMeta):
     survey = None
 
     tile = False
+    tile_region = None
     tile_num = None
 
     orm = 'peewee'
@@ -95,8 +107,10 @@ class BaseCarton(metaclass=CartonMeta):
         self.targeting_version = targeting_version
 
         self.database = targetdb.database
-        self.schema = schema
+        self.schema = 'sandbox'
         self.table_name = table_name or f'temp_{self.name}'
+
+        self.has_run = False
 
         if self.targeting_version in config:
             self.config = config[self.targeting_version].get(self.name, None)
@@ -131,11 +145,12 @@ class BaseCarton(metaclass=CartonMeta):
         else:
             assert program.survey is None, 'targetdb.survey should be empty but is not.'
 
-        if self.cadence:
-            assert (targetdb.Cadence
-                    .select()
-                    .where(targetdb.Cadence.label == self.cadence)
-                    .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
+        # TODO: uncomment this when the cadences are set in the DB.
+        # if self.candece:
+        #     assert (targetdb.Cadence
+        #             .select()
+        #             .where(targetdb.Cadence.label == self.cadence)
+        #             .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
 
         assert program.category and program.category.label == self.category, \
             f'{self.category!r} not present in targetdb.category.'
@@ -155,7 +170,7 @@ class BaseCarton(metaclass=CartonMeta):
         Returns
         -------
         query
-            A `~peewee.Select` or `~peewee.ModelSelect` query.
+            A :class:`peewee:Select` or :class:`peewee:ModelSelect` query.
 
         """
 
@@ -206,8 +221,18 @@ class BaseCarton(metaclass=CartonMeta):
 
         return Model
 
-    def run(self, tile=None, tile_num=None, progress_bar=True):
-        """Executes the query and stores the results.
+    def run(self, tile=None, tile_num=None, progress_bar=True,
+            call_post_process=True, **post_process_kawrgs):
+        """Executes the query and post-process steps, and stores the results.
+
+        This method calls `.build_query` and runs the returned query. The
+        output of the query is stored in a temporary table whose schema and
+        table name are defined when the object is instantiated. The target
+        selection query can be run as a single query or tiled.
+
+        After the query has run, the `.post_process` routine is called if the
+        method has been overridden for the given carton. The returned mask
+        is stored as a new column, ``selected``, in the intermediary table.
 
         Parameters
         ----------
@@ -220,6 +245,15 @@ class BaseCarton(metaclass=CartonMeta):
             when tiling.
         progress_bar : bool
             Use a progress bar when tiling.
+        call_post_process : bool
+            Whether to call the post-process routine.
+        post_process_args : dict
+            Keyword arguments to be passed to `.post_process`.
+
+        Returns
+        -------
+        model : :class:`peewee:Model`
+            The model for the intermediate table.
 
         """
 
@@ -232,6 +266,7 @@ class BaseCarton(metaclass=CartonMeta):
         if database.table_exists(self.table_name, schema=self.schema):
             raise RuntimeError(f'temporary table {self.table_name} already exists.')
 
+        self.log('building query ...')
         query = self.build_query()
 
         # Tweak the query. Start by making sure the catalogid column is selected.
@@ -255,12 +290,20 @@ class BaseCarton(metaclass=CartonMeta):
 
             assert tile_num > 1, 'tile_num must be >= 2'
 
-            ra_space = numpy.linspace(0, 360, num=tile_num)
-            dec_space = numpy.linspace(-90, 90, num=tile_num)
+            if self.tile_region is None:
+                ra_space = numpy.linspace(0, 360, num=tile_num)
+                dec_space = numpy.linspace(-90, 90, num=tile_num)
+            else:
+                ra_space = numpy.linspace(self.tile_region[0], self.tile_region[2],
+                                          num=tile_num)
+                dec_space = numpy.linspace(self.tile_region[1], self.tile_region[3],
+                                           num=tile_num)
+
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
 
             if progress_bar:
                 counter = manager.counter(total=n_tiles, desc=self.name, unit='ticks')
+                counter.update(0)
 
             nn = 1
             for ii in range(len(ra_space) - 1):
@@ -292,12 +335,61 @@ class BaseCarton(metaclass=CartonMeta):
                     if progress_bar:
                         counter.update()
 
+        # Add the selected column.
+        selected_field = peewee.BooleanField(default=True, null=False)
+        migrator = PostgresqlMigrator(database)
+        migrate(migrator.set_search_path(self.schema),
+                migrator.add_column(self.table_name, 'selected', selected_field))
+        ResultsModel._meta.add_field('selected', selected_field)
+
+        if call_post_process:
+            mask = self.post_process(ResultsModel, **post_process_kawrgs)
+            if mask is True:
+                self.log('post-processing returned True. Selecting all records.')
+                pass  # No need to do anything
+            else:
+                assert len(mask) > 0, 'the post-process list is empty'
+                self.log(f'selecting {len(mask)} records.')
+                (ResultsModel
+                 .update({ResultsModel.selected: False})
+                 .where(ResultsModel._meta.primary_key.not_in(mask))
+                 .execute())
+
+        self.has_run = True
+
         return ResultsModel
+
+    def post_process(self, model, **kwargs):
+        """Post-processes the temporary table.
+
+        This method provides a framework for applying non-SQL operations on
+        carton query. It receives the model for the temporary table and can
+        perform any operation as long as it returns a tuple with the list of
+        catalogids that should be selected.
+
+        Parameters
+        ----------
+        model : peewee:Model
+            The model of the intermediate table.
+
+        Returns
+        -------
+        mask : `tuple`
+            The list of catalogids from the temporary table that should be
+            selected as part of this carton. If `True` (the default), selects
+            all the records.
+
+        """
+
+        return True
 
     def drop_table(self):
         """Drops the intermediate table if it exists."""
 
-        self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+        if self.schema:
+            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+        else:
+            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.table_name};')
 
     def write_table(self, filename=None, model=None):
         """Writes the intermediate table to a FITS file.
@@ -307,7 +399,7 @@ class BaseCarton(metaclass=CartonMeta):
         filename : str
             The file to which to write the table. Defaults to
             ``<name>_<version>.fits``.
-        model : ~peewee.Model
+        model : peewee:Model
             The model of the intermediate table. Defaults to use the
             model matching the carton query.
 
