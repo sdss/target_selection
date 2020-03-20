@@ -4,3 +4,34 @@
         g_min: 13
         g_max: 17
         min_separation: 0.016667
+    bhm_spiders_agn_efeds:
+        ismock: false
+        catalogdb_table: 'BhmSpidersAgnSuperset'
+        value_boost: 1.0
+        mag_r_min: 17.0
+        mag_r_max: 22.5
+        det_like_0_min: 6.0
+    bhm_spiders_agn_wide:
+        ismock: false
+        catalogdb_table: 'BhmSpidersAgnSuperset'
+        req_ntargets: 300000
+        value_boost: 1.0
+        mag_r_min: 17.0
+        mag_r_max: 22.0
+        det_like_0_min: 6.0
+    bhm_spiders_agn_deep:
+        ismock: false
+        catalogdb_table: 'BhmSpidersAgnSuperset'
+        req_ntargets: 30000
+        value_boost: 1.0
+        mag_r_min: 17.0
+        mag_r_max: 22.5
+        det_like_0_min: 6.0
+    bhm_spiders_agn_wide_mock:
+        ismock: true
+        catalogdb_table: 'ErositaAGNMock'
+        req_ntargets: 300000
+        value_boost: 1.0
+        mag_r_min: 17.0
+        mag_r_max: 22.0
+        det_like_0_min: 6.0
