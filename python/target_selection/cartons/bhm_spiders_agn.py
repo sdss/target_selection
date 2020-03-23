@@ -18,8 +18,18 @@ from .base import BaseCarton
 # example to get the listing of fields from a PeeWee model
 print(catalogdb.ErositaAGNMock._meta.fields)
 
+sp = catalogdb.BhmSpidersAgnSuperset.alias()
+ls = catalogdb.LegacySurveyDR8.alias()
+
+for f in ls._meta.fields:
+    print (f)
+
 '''
 ####
+
+## Will provide the following cartons here:
+
+
 
 
 class BhmSpidersAgnWideCarton(BaseCarton):
@@ -53,7 +63,7 @@ class BhmSpidersAgnWideCarton(BaseCarton):
         #assert tab is not None, 'Failed to locate catalogdb table'
 
         sp = catalogdb.BhmSpidersAgnSuperset.alias()
-        ls = catalogdb.LegacySurveyDr8.alias()
+        ls = catalogdb.LegacySurveyDR8.alias()
         #ps = catalogdb.PanStarrsDr2.alias()
 
         query = (sp.select(sp.ls_id.alias('catalog_id'),
@@ -75,10 +85,33 @@ class BhmSpidersAgnWideCarton(BaseCarton):
         return query
 
 
-    def post_run(self, *args, **kwargs):
-        super().post_run(*args, **kwargs)
+
+    def post_process(self, model, **kwargs):
+        # this is where we select on mask location
+        # get the coords of all of the objects oin the temp table
+        ra = np.array(model.ra[:])
+        dec = np.array(model.dec[:])
+        return True
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##############################################################
+##############################################################
+##############################################################
+## MOCK TARGETS ##############################################
 class BhmSpidersAgnWideMockCarton(BaseCarton):
 
     name = 'bhm_spiders_agn_wide_mock'
@@ -127,5 +160,15 @@ class BhmSpidersAgnWideMockCarton(BaseCarton):
         return query
 
 
-    def post_run(self, *args, **kwargs):
-        super().post_run(*args, **kwargs)
+    def post_process(self, model, **kwargs):
+        # this is where we select on mask location
+        # get the coords of all of the objects oin the temp table
+        ra = np.array(model.ra[:])
+        dec = np.array(model.dec[:])
+
+        return True
+
+## MOCK TARGETS ##############################################
+##############################################################
+##############################################################
+##############################################################
