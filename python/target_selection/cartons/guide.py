@@ -24,31 +24,31 @@ class GuideCarton(BaseCarton):
 
     def build_query(self):
 
-        sample_data = (catalogdb.GaiaDR2Source
-                       .select(catalogdb.GaiaDR2Source.source_id,
-                               catalogdb.GaiaDR2Source.ra,
-                               catalogdb.GaiaDR2Source.dec,
-                               catalogdb.GaiaDR2Source.phot_g_mean_mag,
-                               catalogdb.GaiaDR2Source.ref_epoch)
+        sample_data = (catalogdb.Gaia_DR2
+                       .select(catalogdb.Gaia_DR2.source_id,
+                               catalogdb.Gaia_DR2.ra,
+                               catalogdb.Gaia_DR2.dec,
+                               catalogdb.Gaia_DR2.phot_g_mean_mag,
+                               catalogdb.Gaia_DR2.ref_epoch)
                        .join(catalogdb.GaiaDR2Clean)
-                       .where((catalogdb.GaiaDR2Source.phot_g_mean_mag > self.config['g_min']) &
-                              (catalogdb.GaiaDR2Source.phot_g_mean_mag < self.config['g_max']))
+                       .where((catalogdb.Gaia_DR2.phot_g_mean_mag > self.config['g_min']) &
+                              (catalogdb.Gaia_DR2.phot_g_mean_mag < self.config['g_max']))
                        .cte('sample_data'))
 
         # We should use q3c_join_pm and q3c_dist_pm here.
-        subq = (catalogdb.GaiaDR2Source
-                .select(catalogdb.GaiaDR2Source.source_id)
-                .where(catalogdb.GaiaDR2Source.cone_search(sample_data.c.ra,
-                                                           sample_data.c.dec,
-                                                           self.config['min_separation']))
+        subq = (catalogdb.Gaia_DR2
+                .select(catalogdb.Gaia_DR2.source_id)
+                .where(catalogdb.Gaia_DR2.cone_search(sample_data.c.ra,
+                                                      sample_data.c.dec,
+                                                      self.config['min_separation']))
                 .where(peewee.fn.q3c_join(sample_data.c.ra, sample_data.c.dec,
-                                          catalogdb.GaiaDR2Source.ra,
-                                          catalogdb.GaiaDR2Source.dec,
+                                          catalogdb.Gaia_DR2.ra,
+                                          catalogdb.Gaia_DR2.dec,
                                           self.config['min_separation']))
                 .order_by(peewee.fn.q3c_dist(sample_data.c.ra,
                                              sample_data.c.dec,
-                                             catalogdb.GaiaDR2Source.ra,
-                                             catalogdb.GaiaDR2Source.dec).asc())
+                                             catalogdb.Gaia_DR2.ra,
+                                             catalogdb.Gaia_DR2.dec).asc())
                 .limit(1)
                 .offset(1))
 
