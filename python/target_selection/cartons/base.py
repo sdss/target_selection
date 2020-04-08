@@ -138,7 +138,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert program.category and program.category.label == self.category, \
             f'{self.category!r} not present in targetdb.category.'
 
-    @abc.abstractmethod()
+    @abc.abstractmethod
     def build_query(self):
         """Builds and returns the query.
 
