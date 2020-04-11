@@ -13,3 +13,9 @@ Carton
    :members: BaseCarton
    :undoc-members:
    :show-inheritance:
+
+XMatch
+------
+
+.. automodule:: target_selection.xmatch
+   :members:
