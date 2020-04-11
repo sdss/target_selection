@@ -9,16 +9,34 @@
 import inspect
 import os
 import re
+import time
 
 import networkx
 import numpy
 import peewee
 import yaml
+from peewee import fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
 
 import target_selection
+
+
+class Timer:
+    """Convenience context manager to time events.
+
+    Modified from https://bit.ly/3ebdp3y.
+
+    """
+
+    def __enter__(self):
+        self.start = time.time()
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.time()
+        self.interval = self.end - self.start
 
 
 class Catalog(peewee.Model):
@@ -123,7 +141,7 @@ class XMatchPlanner(object):
 
     Parameters
     ----------
-    connection : ~sdssdb.connection.PeeweeDatabaseConnection
+    database : ~sdssdb.connection.PeeweeDatabaseConnection
         A ~sdssdb.connection.PeeweeDatabaseConnection to the database
         containing ``catalogdb``.
     models : list
@@ -133,26 +151,9 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, connection, models, version, order='hierarchical',
+    def __init__(self, database, models, version, order='hierarchical',
                  key='row_count', start_node=None, output_table='catalogdb.catalog',
                  log_path='./xmatch_{version}.log', debug=False):
-
-        self.connection = connection
-        assert self.connection.connected, 'database is not connected.'
-
-        self.models = {model._meta.table_name: model for model in models}
-        self.version = version
-
-        # Sets the metadata of the Catalog table.
-        if '.' in output_table:
-            Catalog._meta.schema, Catalog._meta.table_name = output_table.split('.')
-        else:
-            Catalog._meta.table_name = output_table
-
-        Catalog._meta.database = connection
-        self.connection.bind([Catalog])
-
-        self.relational_models = []
 
         self.log = target_selection.log
 
@@ -168,6 +169,28 @@ class XMatchPlanner(object):
             self.log.sh.setLevel(100)
         else:
             self.log.sh.setLevel(debug)
+
+        self.database = database
+        assert self.database.connected, 'database is not connected.'
+
+        self.models = {model._meta.table_name: model for model in models}
+        self.version = version
+
+        # Sets the metadata of the Catalog table.
+        if '.' in output_table:
+            Catalog._meta.schema, Catalog._meta.table_name = output_table.split('.')
+        else:
+            Catalog._meta.table_name = output_table
+
+        self.database.bind([Catalog])
+
+        if Catalog.table_exists() and self.database.get_primary_keys(Catalog._meta.table_name,
+                                                                     Catalog._meta.schema):
+            self.log.warning('output table has a primary key. This is not needed and will '
+                             'slow down insertions. Consider dropping the pk and '
+                             'recreating it later.')
+
+        self.relational_models = []
 
         self._check_models()
         self.update_model_graph()
@@ -200,7 +223,7 @@ class XMatchPlanner(object):
 
         # TODO: I don't like too much this way of defining the models.
         if inspect.isclass(base_model) and issubclass(base_model, peewee.Model):
-            connection = base_model._meta.database
+            database = base_model._meta.database
             models = set(base_model.__subclasses__())
             while True:
                 old_models = models.copy()
@@ -209,12 +232,12 @@ class XMatchPlanner(object):
                 if models == old_models:
                     break
         elif isinstance(base_model, PeeweeDatabaseConnection):
-            connection = base_model
-            models = connection.models
+            database = base_model
+            models = database.models
         else:
             raise TypeError(f'invalid input of type {type(base_model)!r}')
 
-        assert connection.connected, 'database is not connected.'
+        assert database.connected, 'database is not connected.'
 
         if config_file is None:
             config_file = os.path.dirname(target_selection.__file__) + '/config/xmatch.yml'
@@ -230,7 +253,7 @@ class XMatchPlanner(object):
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config.pop('schema')
-        all_models = [model for model in connection.models
+        all_models = [model for model in database.models
                       if model._meta.schema == schema]
 
         if include:
@@ -254,28 +277,29 @@ class XMatchPlanner(object):
 
         config.update(kwargs)
 
-        return cls(connection, xmatch_models, version, **config)
+        return cls(database, xmatch_models, version, **config)
 
     def run(self):
         """Runs the cross-matching process."""
 
         for table_name in self.process_order:
             self.process_model(self.models[table_name])
-        self.update_model_graph(silent=True)
+            self.update_model_graph(silent=True)
+            break
 
     def process_model(self, model):
         """Processes a model, loading it into the output table."""
 
         table_name = model._meta.table_name
 
-        self.log.info(f'processing table {table_name}.')
+        self.log.info(f'[{table_name.upper()}] Processing table {table_name}.')
 
         if table_name == self.process_order[0]:
             assert not model._meta.has_duplicates, 'first model to ingest cannot have duplicates.'
             is_first_model = True
 
         if is_first_model:
-            self._ingest(*self._build_select((model)))
+            return self._ingest(*self._build_select(model))
 
     def _build_select(self, model):
         """Returns the ModelSelect and associated Catalog fields."""
@@ -293,19 +317,42 @@ class XMatchPlanner(object):
             model_fields.append(getattr(model, model._meta.epoch_column))
             catalog_fields.append(Catalog.epoch)
 
-        return model.select(*model_fields).order_by(model._meta.primary_key), catalog_fields
+        return model.select(*model_fields), catalog_fields
 
-    def _ingest(self, query, fields, n_chunk=10):
+    def _ingest(self, query, fields):
         """Ingests a query into the output table with coordinate conversion."""
 
-        nn = 1
-        while True:
-            data = query
-            print(nn)
-            n_rows = print(Catalog.insert_many(data, fields))
-            # if n_rows == 0:
-            break
-            nn += 1
+        table_name = query.model._meta.table_name
+        pk = query.model._meta.primary_key
+
+        header = f'[{table_name.upper()}] '
+
+        with Timer() as timer:
+
+            with self.database.atomic():
+
+                # Get the max catalogid currently in the table.
+                max_id = Catalog.select(fn.MAX(Catalog.catalogid)).scalar()
+                self.log.debug(header + f'catalogid will start at {max_id+1}.')
+
+                # Add the version and a row_number() function that sets the serial
+                # value for catalogid. The ordering of the query happens here so no need
+                # to order the select itself.
+                query = query.select_extend(
+                    self.version,
+                    fn.row_number().over(order_by=pk) + max_id)
+                fields.extend([Catalog.version, Catalog.catalogid])
+
+                # Use an empty returning to get the number of rows as an scalar.
+                insert_query = Catalog.insert_many(query, fields).returning()
+                self.log.debug(header + f'INSERT query: {insert_query}')
+
+                self.log.debug(header + 'Running INSERT')
+                n_rows = insert_query.execute(self.database)
+
+        self.log.debug(header + f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
+
+        return
 
     def _check_models(self):
         """Checks the input models."""
@@ -340,7 +387,7 @@ class XMatchPlanner(object):
 
             self.model_graph.add_node(table_name)
 
-            fks = self.connection.get_foreign_keys(table_name, schema)
+            fks = self.database.get_foreign_keys(table_name, schema)
             for fk in fks:
                 self.model_graph.add_edge(table_name, fk.dest_table)
 
