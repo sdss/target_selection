@@ -52,6 +52,7 @@ def get_relational_model(model):
 
     class BaseRelationalModel(peewee.Model):
 
+        id = peewee.BigAutoField(primary_key=True)
         catalogid = peewee.BigIntegerField()
         target_id = model._meta.primary_key.__class__()
         best = peewee.BooleanField(null=True, default=True)
@@ -59,7 +60,6 @@ def get_relational_model(model):
         class Meta:
             database = model._meta.database
             schema = model._meta.schema
-            primary_key = peewee.CompositeKey('catalogid', 'target_id')
 
     RelationalModel = type('CatalogTo' + model.__name__, (BaseRelationalModel,), {})
     RelationalModel._meta.table_name = 'catalog_to_' + model._meta.table_name
@@ -205,7 +205,7 @@ class XMatchPlanner(object):
 
         self.database.bind([Catalog])
 
-        self.relational_models = []
+        self.relational_models = {}
 
         self._check_models()
         self.update_model_graph()
@@ -250,7 +250,7 @@ class XMatchPlanner(object):
                     break
         elif isinstance(base_model, PeeweeDatabaseConnection):
             database = base_model
-            models = database.models
+            models = database.models.values()
         else:
             raise TypeError(f'invalid input of type {type(base_model)!r}')
 
@@ -270,7 +270,7 @@ class XMatchPlanner(object):
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config.pop('schema')
-        all_models = [model for model in database.models
+        all_models = [model for model in models
                       if model._meta.schema == schema]
 
         if include:
@@ -473,6 +473,17 @@ class XMatchPlanner(object):
 
         migrator.database.close()
 
+        RelationalModel._meta.add_field('catalog',
+                                        peewee.ForeignKeyField(Catalog,
+                                                               column_name='catalogid',
+                                                               backref='+'))
+        RelationalModel._meta.add_field('target',
+                                        peewee.ForeignKeyField(model,
+                                                               column_name='target_id',
+                                                               backref='+'))
+
+        self.relational_models[rtname] = RelationalModel
+
         return
 
     def _check_models(self):
@@ -499,7 +510,7 @@ class XMatchPlanner(object):
 
         self.model_graph = networkx.Graph()
 
-        all_models = list(self.models.values()) + [Catalog] + self.relational_models
+        all_models = list(self.models.values()) + [Catalog] + self.relational_models.values()
 
         for model in all_models:
 
@@ -542,7 +553,7 @@ class XMatchPlanner(object):
         else:
             subgraphs = [node for node in subgraphs.nodes]
 
-        for model in [Catalog] + self.relational_models:
+        for model in [Catalog] + self.relational_models.values():
             graph.remove_node(model._meta.table_name)
 
         subgraphs_ext = []
