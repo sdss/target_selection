@@ -19,3 +19,9 @@ XMatch
 
 .. automodule:: target_selection.xmatch
    :members:
+
+Utils
+-----
+
+.. automodule:: target_selection.utils
+   :members:

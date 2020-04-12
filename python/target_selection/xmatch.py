@@ -7,9 +7,9 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import inspect
+import itertools
 import os
 import re
-import time
 
 import networkx
 import numpy
@@ -21,36 +21,50 @@ from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
 
 import target_selection
+from target_selection.utils import (Timer, copy_pandas,
+                                    sql_apply_pm, sql_iauname)
 
 
-class Timer:
-    """Convenience context manager to time events.
-
-    Modified from https://bit.ly/3ebdp3y.
-
-    """
-
-    def __enter__(self):
-        self.start = time.time()
-        return self
-
-    def __exit__(self, *args):
-        self.end = time.time()
-        self.interval = self.end - self.start
+EPOCH = 'J2015.5'
 
 
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigAutoField(primary_key=True)
-    iauname = peewee.TextField(null=False)
+    catalogid = peewee.BigIntegerField(null=False)
+    iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
-    pmra = peewee.FloatField()
-    pmdec = peewee.FloatField()
-    epoch = peewee.FloatField()
-    parallax = peewee.FloatField()
-    version = peewee.TextField()
+    pmra = peewee.FloatField(null=True)
+    pmdec = peewee.FloatField(null=True)
+    parallax = peewee.FloatField(null=True)
+    version = peewee.TextField(null=False)
+
+    class Meta:
+        primary_key = False
+
+
+def get_relational_model(model):
+
+    assert model._meta.primary_key != '__composite_key__', \
+        'invalid pk for model {model__name__!r}.'
+
+    class Meta:
+        database = model._meta.database
+        table_name = 'catalog_to_' + model._meta.table_name
+        schema = model._meta.schema
+        primary_key = False
+
+    RelationalModel = type(
+        'CatalogTo' + model.__name__, (peewee.Model,),
+        {
+            'catalogid': peewee.BigIntegerField(),
+            model._meta.table_name + '_id': model._meta.primary_key.__class__(),
+            'best': peewee.BooleanField(null=True, default=True),
+            'Meta': Meta
+        })
+
+    return RelationalModel
 
 
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
@@ -86,7 +100,9 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         be in Julian date.
     epoch : float
         The Julian date of the targets. Applies to all the records in the
-        table. ``epoch`` and ``epoch_column`` are mutually exclusive.
+        table. ``epoch`` and ``epoch_column`` are mutually exclusive. If
+        neither ``epoch_column`` nor ``epoch`` are defined, assumes that the
+        epoch is ``J2015.5``.
     has_duplicates : bool
         Whether the table contains duplicates.
     skip_unlinked : bool
@@ -110,7 +126,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         indexes = meta.database.get_indexes(meta.table_name, meta.schema)
         for index in indexes:
             if 'q3c' in index.sql.lower():
-                match = re.match(r'.+q3c_ang2ipix\("*(\w+)"*, "*(\w+)"*\).+', index.sql)
+                match = re.match(r'.+q3c_ang2ipix\("*(\w+)"*, "*(\w+)"*\).+',
+                                 index.sql)
                 if match:
                     ra_column, dec_column = match.groups()
 
@@ -122,8 +139,12 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.is_pmra_cos = is_pmra_cos
     meta.parallax_column = parallax_column
 
-    assert ((not epoch) & (not epoch_column)) or (epoch ^ epoch), \
+    epoch = 'J2015.5' if (not epoch) & (not epoch_column) else epoch
+
+    assert (((epoch is None) & (epoch_column is None)) or
+            ((epoch is not None) ^ (epoch_column is not None))), \
         'epoch and epoch_column are mutually exclusive.'
+
     meta.epoch = epoch
     meta.epoch_column = epoch_column
 
@@ -282,6 +303,9 @@ class XMatchPlanner(object):
     def run(self):
         """Runs the cross-matching process."""
 
+        # Make sure the output table exists.
+        Catalog.create_table()
+
         for table_name in self.process_order:
             self.process_model(self.models[table_name])
             self.update_model_graph(silent=True)
@@ -304,22 +328,50 @@ class XMatchPlanner(object):
     def _build_select(self, model):
         """Returns the ModelSelect and associated Catalog fields."""
 
-        model_fields = [getattr(model, model._meta.ra_column),
-                        getattr(model, model._meta.dec_column)]
-        catalog_fields = [Catalog.ra, Catalog.dec]
+        meta = model._meta
+        fields = meta.fields
 
-        if model._meta.pmra_column:
-            model_fields.extend([getattr(model, model._meta.pmra_column),
-                                 getattr(model, model._meta.pmdec_column)])
+        model_fields = []
+        catalog_fields = []
+
+        ra_field = fields[meta.ra_column]
+        dec_field = fields[meta.dec_column]
+
+        if meta.pmra_column:
+
+            pmra_field = fields[meta.pmra_column]
+            pmdec_field = fields[meta.pmdec_column]
+
+            model_fields.extend([pmra_field, pmdec_field])
             catalog_fields.extend([Catalog.pmra, Catalog.pmdec])
 
-        if model._meta.epoch_column:
-            model_fields.append(getattr(model, model._meta.epoch_column))
-            catalog_fields.append(Catalog.epoch)
+            if (meta.epoch and meta.epoch != EPOCH) or meta.epoch_column:
+
+                if meta.epoch:
+                    # TODO: Is this correct?
+                    delta_years = float(EPOCH[1:]) - float(meta.epoch[1:])
+                else:
+                    epoch_model = fn.ltrim(fields[meta.epoch_column], 'J').cast('REAL')
+                    delta_years = float(EPOCH[1:]) - epoch_model
+
+                ra_field, dec_field = sql_apply_pm(ra_field, dec_field,
+                                                   pmra_field, pmdec_field,
+                                                   delta_years,
+                                                   is_pmra_cos=meta.is_pmra_cos)
+
+        model_fields.extend([ra_field, dec_field])
+        catalog_fields.extend([Catalog.ra, Catalog.dec])
+
+        if meta.parallax_column:
+            model_fields.append(fields[meta.parallax_column])
+            catalog_fields.append(Catalog.parallax)
+
+        model_fields.append(sql_iauname(ra_field, dec_field))
+        catalog_fields.append(Catalog.iauname)
 
         return model.select(*model_fields), catalog_fields
 
-    def _ingest(self, query, fields):
+    def _ingest(self, query, fields, chunk_size=1000000):
         """Ingests a query into the output table with coordinate conversion."""
 
         table_name = query.model._meta.table_name
@@ -332,7 +384,7 @@ class XMatchPlanner(object):
             with self.database.atomic():
 
                 # Get the max catalogid currently in the table.
-                max_id = Catalog.select(fn.MAX(Catalog.catalogid)).scalar()
+                max_id = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
                 self.log.debug(header + f'catalogid will start at {max_id+1}.')
 
                 # Add the version and a row_number() function that sets the serial
@@ -343,14 +395,47 @@ class XMatchPlanner(object):
                     fn.row_number().over(order_by=pk) + max_id)
                 fields.extend([Catalog.version, Catalog.catalogid])
 
-                # Use an empty returning to get the number of rows as an scalar.
-                insert_query = Catalog.insert_many(query, fields).returning()
-                self.log.debug(header + f'INSERT query: {insert_query}')
+                insert_query = Catalog.insert_many(query, fields).returning(Catalog.catalogid)
+                self.log.debug(header + f'Running INSERT query: {insert_query}')
 
-                self.log.debug(header + 'Running INSERT')
-                n_rows = insert_query.execute(self.database)
+                catalogids = insert_query.tuples().execute(self.database)
 
-        self.log.debug(header + f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
+        self.log.debug(header + f'Inserted {len(catalogids)} rows '
+                       f'in {timer.interval:.3f} s.')
+
+        RelationalModel = get_relational_model(query.model)
+        RelationalModel.create_table()
+
+        self.log.debug(header + 'Created relational table '
+                       f'{RelationalModel._meta.table_name!r}')
+
+        self.log.debug(header + f'Populating {RelationalModel._meta.table_name!r}')
+
+        with Timer() as timer:
+
+            # Keep query but now return only the pk of the queried table.
+            query._returning = (pk,)
+            query = query.order_by(pk)
+            pks = query.tuples()
+
+            for range0 in range(0, len(catalogids), chunk_size):
+
+                pks_chunk = itertools.islice(pks, range0, range0 + chunk_size)
+                cids_chunk = itertools.islice(catalogids, range0, range0 + chunk_size)
+
+                data = {'cids': (cid[0] for cid in cids_chunk),
+                        'pks': (pk[0] for pk in pks_chunk),
+                        'best': True}
+
+                copy_pandas(data, self.database,
+                            RelationalModel._meta.table_name,
+                            schema=RelationalModel._meta.schema,
+                            columns=['catalogid',
+                                     table_name + '_id',
+                                     'best'])
+
+        self.log.debug(header + f'Table {RelationalModel._meta.table_name!r} loading '
+                       f'took {timer.interval:.3f} s.')
 
         return
 
