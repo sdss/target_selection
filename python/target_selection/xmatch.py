@@ -16,6 +16,7 @@ import numpy
 import peewee
 import yaml
 from peewee import fn
+from playhouse.migrate import PostgresqlMigrator, migrate
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
@@ -31,7 +32,7 @@ EPOCH = 'J2015.5'
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField(null=False)
+    catalogid = peewee.BigIntegerField(primary_key=True, null=False)
     iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
@@ -49,20 +50,19 @@ def get_relational_model(model):
     assert model._meta.primary_key != '__composite_key__', \
         'invalid pk for model {model__name__!r}.'
 
-    class Meta:
-        database = model._meta.database
-        table_name = 'catalog_to_' + model._meta.table_name
-        schema = model._meta.schema
-        primary_key = False
+    class BaseRelationalModel(peewee.Model):
 
-    RelationalModel = type(
-        'CatalogTo' + model.__name__, (peewee.Model,),
-        {
-            'catalogid': peewee.BigIntegerField(),
-            model._meta.table_name + '_id': model._meta.primary_key.__class__(),
-            'best': peewee.BooleanField(null=True, default=True),
-            'Meta': Meta
-        })
+        catalogid = peewee.BigIntegerField()
+        target_id = model._meta.primary_key.__class__()
+        best = peewee.BooleanField(null=True, default=True)
+
+        class Meta:
+            database = model._meta.database
+            schema = model._meta.schema
+            primary_key = peewee.CompositeKey('catalogid', 'target_id')
+
+    RelationalModel = type('CatalogTo' + model.__name__, (BaseRelationalModel,), {})
+    RelationalModel._meta.table_name = 'catalog_to_' + model._meta.table_name
 
     return RelationalModel
 
@@ -174,7 +174,7 @@ class XMatchPlanner(object):
 
     def __init__(self, database, models, version, order='hierarchical',
                  key='row_count', start_node=None, output_table='catalogdb.catalog',
-                 log_path='./xmatch_{version}.log', debug=False):
+                 order_by='q3c', log_path='./xmatch_{version}.log', debug=False):
 
         self.log = target_selection.log
 
@@ -205,12 +205,6 @@ class XMatchPlanner(object):
 
         self.database.bind([Catalog])
 
-        if Catalog.table_exists() and self.database.get_primary_keys(Catalog._meta.table_name,
-                                                                     Catalog._meta.schema):
-            self.log.warning('output table has a primary key. This is not needed and will '
-                             'slow down insertions. Consider dropping the pk and '
-                             'recreating it later.')
-
         self.relational_models = []
 
         self._check_models()
@@ -218,6 +212,8 @@ class XMatchPlanner(object):
 
         self.process_order = []
         self._set_process_order(order=order, key=key, start_node=start_node)
+
+        self._options = {'order_by': order_by}
 
     @classmethod
     def read(cls, base_model, version, config_file=None, **kwargs):
@@ -374,8 +370,16 @@ class XMatchPlanner(object):
     def _ingest(self, query, fields, chunk_size=1000000):
         """Ingests a query into the output table with coordinate conversion."""
 
-        table_name = query.model._meta.table_name
-        pk = query.model._meta.primary_key
+        model = query.model
+        table_name = model._meta.table_name
+        pk = model._meta.primary_key
+
+        if self._options['order_by'] == 'q3c':
+            ra = model._meta.fields[model._meta.ra_column]
+            dec = model._meta.fields[model._meta.dec_column]
+            order_by = fn.q3c_ang2ipix(ra, dec)
+        else:
+            order_by = pk
 
         header = f'[{table_name.upper()}] '
 
@@ -392,7 +396,7 @@ class XMatchPlanner(object):
                 # to order the select itself.
                 query = query.select_extend(
                     self.version,
-                    fn.row_number().over(order_by=pk) + max_id)
+                    fn.row_number().over(order_by=order_by) + max_id)
                 fields.extend([Catalog.version, Catalog.catalogid])
 
                 insert_query = Catalog.insert_many(query, fields).returning(Catalog.catalogid)
@@ -400,22 +404,30 @@ class XMatchPlanner(object):
 
                 catalogids = insert_query.tuples().execute(self.database)
 
-        self.log.debug(header + f'Inserted {len(catalogids)} rows '
-                       f'in {timer.interval:.3f} s.')
+        self.log.debug(header + f'Inserted {len(catalogids)} rows in {timer.interval:.3f} s.')
 
-        RelationalModel = get_relational_model(query.model)
-        RelationalModel.create_table()
+        RelationalModel = get_relational_model(model)
+        rtname = RelationalModel._meta.table_name
+        rtschema = RelationalModel._meta.schema
 
-        self.log.debug(header + 'Created relational table '
-                       f'{RelationalModel._meta.table_name!r}')
+        if not RelationalModel.table_exists():
+            RelationalModel.create_table()
+            self.log.debug(header + f'Created relational table {rtname!r}')
+            create_indexes = True
+        else:
+            if RelationalModel.select().count() > 0:
+                self.log.warning(header + f'relational table {rtname!r} is not empty!')
+            else:
+                self.log.debug(header + f'empty relational table {rtname!r} already exists.')
+            create_indexes = False
 
-        self.log.debug(header + f'Populating {RelationalModel._meta.table_name!r}')
+        self.log.debug(header + f'Populating {rtname!r}')
 
         with Timer() as timer:
 
             # Keep query but now return only the pk of the queried table.
             query._returning = (pk,)
-            query = query.order_by(pk)
+            query = query.order_by(order_by)
             pks = query.tuples()
 
             for range0 in range(0, len(catalogids), chunk_size):
@@ -427,15 +439,39 @@ class XMatchPlanner(object):
                         'pks': (pk[0] for pk in pks_chunk),
                         'best': True}
 
-                copy_pandas(data, self.database,
-                            RelationalModel._meta.table_name,
-                            schema=RelationalModel._meta.schema,
-                            columns=['catalogid',
-                                     table_name + '_id',
-                                     'best'])
+                copy_pandas(data, self.database, rtname, schema=rtschema,
+                            columns=['catalogid', 'target_id', 'best'])
 
-        self.log.debug(header + f'Table {RelationalModel._meta.table_name!r} loading '
-                       f'took {timer.interval:.3f} s.')
+        self.log.debug(header + f'Loading table {rtname!r} took {timer.interval:.3f} s.')
+
+        if not create_indexes:
+            self.log.debug(header + f'Not creating indexes and FKs in the relational table '
+                           'because it already existed.')
+            return
+
+        self.log.debug(header + f'Creating indexes and FKs for {rtname!r}.')
+
+        migrator = PostgresqlMigrator(self.database)
+
+        with self.database.atomic():
+
+            migrate(
+                migrator.set_search_path(rtschema),
+                migrator.add_index(rtname, ('catalogid',), False),
+                migrator.add_constraint(
+                    rtname, 'catalogid',
+                    peewee.SQL('FOREIGN KEY (catalogid) '
+                               f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
+                               '(catalogid)')),
+                migrator.add_index(rtname, ('target_id',), False),
+                migrator.add_constraint(
+                    rtname, 'target_id',
+                    peewee.SQL(f'FOREIGN KEY (target_id) '
+                               f'REFERENCES {model._meta.schema}.{model._meta.table_name} '
+                               f'({pk.column_name})'))
+            )
+
+        migrator.database.close()
 
         return
 
