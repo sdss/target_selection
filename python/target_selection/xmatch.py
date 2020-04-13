@@ -45,7 +45,7 @@ class Catalog(peewee.Model):
         primary_key = False
 
 
-def get_relational_model(model):
+def get_relational_model(model, prefix='catalog_to_'):
 
     assert model._meta.primary_key != '__composite_key__', \
         'invalid pk for model {model__name__!r}.'
@@ -61,10 +61,50 @@ def get_relational_model(model):
             database = model._meta.database
             schema = model._meta.schema
 
-    RelationalModel = type('CatalogTo' + model.__name__, (BaseRelationalModel,), {})
-    RelationalModel._meta.table_name = 'catalog_to_' + model._meta.table_name
+    model_prefix = ''.join(x.capitalize() or '_' for x in prefix.rstrip().split('_'))
+
+    RelationalModel = type(model_prefix + model.__name__, (BaseRelationalModel,), {})
+    RelationalModel._meta.table_name = prefix + model._meta.table_name
 
     return RelationalModel
+
+
+def add_fks(database, RelationalModel, rel_model):
+    """Adds foreign keys and indexes to a relational model class."""
+
+    rtschema = RelationalModel._meta.schema
+    rtname = RelationalModel._meta.table_name
+
+    migrator = PostgresqlMigrator(database)
+
+    with database.atomic():
+
+        migrate(
+            migrator.set_search_path(rtschema),
+            migrator.add_index(rtname, ('catalogid',), False),
+            migrator.add_constraint(
+                rtname, 'catalogid',
+                peewee.SQL('FOREIGN KEY (catalogid) '
+                           f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
+                           '(catalogid)')),
+            migrator.add_index(rtname, ('target_id',), False),
+            migrator.add_constraint(
+                rtname, 'target_id',
+                peewee.SQL(f'FOREIGN KEY (target_id) '
+                           f'REFERENCES {rel_model._meta.schema}.{rel_model._meta.table_name} '
+                           f'({rel_model._meta.primary_key.column_name})'))
+        )
+
+    migrator.database.close()
+
+    RelationalModel._meta.add_field('catalog',
+                                    peewee.ForeignKeyField(Catalog,
+                                                           column_name='catalogid',
+                                                           backref='+'))
+    RelationalModel._meta.add_field('target',
+                                    peewee.ForeignKeyField(rel_model,
+                                                           column_name='target_id',
+                                                           backref='+'))
 
 
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
@@ -172,9 +212,10 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, database, models, version, order='hierarchical',
-                 key='row_count', start_node=None, output_table='catalogdb.catalog',
-                 order_by='q3c', log_path='./xmatch_{version}.log', debug=False):
+    def __init__(self, database, models, version, extra_nodes=[], skip_tables=[],
+                 order='hierarchical', key='row_count', start_node=None,
+                 schema='catalogdb', output_table='catalog', order_by='q3c',
+                 log_path='./xmatch_{version}.log', debug=False, show_sql=False):
 
         self.log = target_selection.log
 
@@ -191,6 +232,7 @@ class XMatchPlanner(object):
         else:
             self.log.sh.setLevel(debug)
 
+        self.schema = schema
         self.database = database
         assert self.database.connected, 'database is not connected.'
 
@@ -198,14 +240,12 @@ class XMatchPlanner(object):
         self.version = version
 
         # Sets the metadata of the Catalog table.
-        if '.' in output_table:
-            Catalog._meta.schema, Catalog._meta.table_name = output_table.split('.')
-        else:
-            Catalog._meta.table_name = output_table
+        Catalog._meta.schema = schema
+        Catalog._meta.table_name = output_table
 
         self.database.bind([Catalog])
 
-        self.relational_models = {}
+        self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._check_models()
         self.update_model_graph()
@@ -213,7 +253,9 @@ class XMatchPlanner(object):
         self.process_order = []
         self._set_process_order(order=order, key=key, start_node=start_node)
 
-        self._options = {'order_by': order_by}
+        self._options = {'order_by': order_by,
+                         'skip_tables': skip_tables,
+                         'show_sql': show_sql}
 
     @classmethod
     def read(cls, base_model, version, config_file=None, **kwargs):
@@ -269,9 +311,18 @@ class XMatchPlanner(object):
         exclude = config.pop('exclude', [])
 
         assert 'schema' in config, 'schema is required in configuration.'
-        schema = config.pop('schema')
+        schema = config['schema']
+
+        otable = config.get('output_table', 'catalog')
+        extra_nodes = []
+        for model in models:
+            if model._meta.schema == schema and model._meta.table_name == otable:
+                extra_nodes.append(model)
+            elif model._meta.table_name.startswith(otable + '_to_'):
+                extra_nodes.append(model)
+
         all_models = [model for model in models
-                      if model._meta.schema == schema]
+                      if model._meta.schema == schema and model not in extra_nodes]
 
         if include:
             all_models = [model for model in all_models
@@ -294,7 +345,136 @@ class XMatchPlanner(object):
 
         config.update(kwargs)
 
-        return cls(database, xmatch_models, version, **config)
+        return cls(database, xmatch_models, version, extra_nodes=extra_nodes, **config)
+
+    def _check_models(self):
+        """Checks the input models."""
+
+        non_existing_models = []
+
+        for model in self.models.values():
+
+            meta = model._meta
+
+            if not model.table_exists():
+                self.log.warning(f'table {meta.table_name!r} does not exist.')
+            elif meta.table_name == Catalog._meta.table_name:
+                self.log.debug(f'skipping output table {Catalog._meta.table_name!r}.')
+
+                self.extra_nodes[Catalog._meta.table_name] = Catalog
+            elif meta.table_name.startswith(Catalog._meta.table_name + '_to_'):
+                self.log.debug(f'skipping relational table {meta.table_name!r} '
+                               'and adding it as an extra node.')
+                self.extra_nodes[meta.table_name] = model
+            else:
+                self.log.debug(f'added table {meta.schema}.{meta.table_name} '
+                               f'with resolution={meta.resolution:.2f} arcsec and '
+                               f'row count={meta.approximate_row_count:.0f} records.')
+                continue
+
+            non_existing_models.append(model)
+
+        [self.models.pop(model._meta.table_name) for model in non_existing_models]
+
+    def update_model_graph(self, silent=False):
+        """Updates the model graph using models as nodes and fks as edges."""
+
+        self.model_graph = networkx.Graph()
+
+        all_models = list(self.models.values()) + list(self.extra_nodes.values())
+
+        for model in all_models:
+
+            table_name = model._meta.table_name
+            schema = model._meta.schema
+
+            self.model_graph.add_node(table_name)
+
+            fks = self.database.get_foreign_keys(table_name, schema)
+            for fk in fks:
+                self.model_graph.add_edge(table_name, fk.dest_table)
+
+        return self.model_graph
+
+    def _set_process_order(self, order='hierarchical', key='row_count',
+                           start_node=None):
+        """Sets and returns the order in which tables will be processed.
+
+        See `.XMatchPlanner` for details on how the order is decided depending
+        on the input parameters.
+
+        """
+
+        assert order in ['hierarchical', 'global'], f'invalid order value {order!r}.'
+        self.log.info(f'processing order mode is {order!r}')
+
+        if isinstance(order, (list, tuple)):
+            self.log.info(f'processing order: {order}')
+            return order
+
+        assert key in ['row_count', 'resolution'], f'invalid order key {key}.'
+        self.log.info(f'ordering key is {key!r}.')
+
+        ordered_tables = []
+
+        graph = self.model_graph.copy()
+
+        if order == 'hierarchical':
+            subgraphs = networkx.connected_components(graph)
+        else:
+            subgraphs = [node for node in subgraphs.nodes]
+
+        for model in self.extra_nodes.values():
+            graph.remove_node(model._meta.table_name)
+
+        subgraphs_ext = []
+        for sg in subgraphs:
+            if start_node and start_node in sg:
+                # Last item in record is 0 for initial table, 1 for other.
+                # This prioritises the initial table in a sort without
+                # having to reverse.
+                subgraphs_ext.append((sg, numpy.nan, 0))
+            else:
+                if key == 'row_count':
+                    total_row_count = sum([self.models[tn]._meta.approximate_row_count
+                                           for tn in sg])
+                    # Use -total_row_count to avoid needing reverse order.
+                    subgraphs_ext.append((sg, -total_row_count, 1))
+                elif key == 'resolution':
+                    resolution = [self.models[tn]._meta.resolution for tn in sg]
+                    if all(numpy.isnan(resolution)):
+                        min_resolution = numpy.nan
+                    else:
+                        min_resolution = numpy.nanmin(resolution)
+                    subgraphs_ext.append((sg, -(min_resolution or numpy.nan), 1))
+
+        subgraphs_ordered = list(zip(*sorted(subgraphs_ext,
+                                             key=lambda x: (x[2], x[1], x[0]))))[0]
+
+        if order == 'global':
+            ordered_tables = subgraphs_ordered
+        else:
+            for sgo in subgraphs_ordered:
+                sg_ext = []
+                for table_name in sgo:
+                    if start_node and start_node == table_name:
+                        sg_ext.append((table_name, numpy.nan, 0))
+                        continue
+                    if key == 'row_count':
+                        row_count = self.models[table_name]._meta.approximate_row_count
+                        sg_ext.append((table_name, -row_count, 1))
+                    elif key == 'resolution':
+                        resolution = self.models[table_name]._meta.resolution
+                        sg_ext.append((table_name, resolution, 1))
+                # Use table name as second sorting order to use alphabetic order in
+                # case of draw.
+                sg_ordered = list(zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
+                ordered_tables.extend(sg_ordered)
+
+        self.log.info(f'processing order: {ordered_tables}')
+        self.process_order = ordered_tables
+
+        return ordered_tables
 
     def run(self):
         """Runs the cross-matching process."""
@@ -311,6 +491,10 @@ class XMatchPlanner(object):
         """Processes a model, loading it into the output table."""
 
         table_name = model._meta.table_name
+
+        if table_name in self._options['skip_tables']:
+            self.log.debug(f'[{table_name.upper()}] Skipping due to manual skip list.')
+            return False
 
         self.log.info(f'[{table_name.upper()}] Processing table {table_name}.')
 
@@ -400,13 +584,14 @@ class XMatchPlanner(object):
                 fields.extend([Catalog.version, Catalog.catalogid])
 
                 insert_query = Catalog.insert_many(query, fields).returning(Catalog.catalogid)
-                self.log.debug(header + f'Running INSERT query: {insert_query}')
+                self.log.debug(header + f'Running INSERT query' +
+                               (f': {insert_query}' if self._options['show_sql'] else '.'))
 
                 catalogids = insert_query.tuples().execute(self.database)
 
         self.log.debug(header + f'Inserted {len(catalogids)} rows in {timer.interval:.3f} s.')
 
-        RelationalModel = get_relational_model(model)
+        RelationalModel = get_relational_model(model, prefix=Catalog._meta.table_name + '_to_')
         rtname = RelationalModel._meta.table_name
         rtschema = RelationalModel._meta.schema
 
@@ -421,26 +606,34 @@ class XMatchPlanner(object):
                 self.log.debug(header + f'empty relational table {rtname!r} already exists.')
             create_indexes = False
 
-        self.log.debug(header + f'Populating {rtname!r}')
+        self.log.debug(header + f'Populating {rtname!r} using COPY.')
 
         with Timer() as timer:
+
+            n_records = len(catalogids)
 
             # Keep query but now return only the pk of the queried table.
             query._returning = (pk,)
             query = query.order_by(order_by)
             pks = query.tuples()
 
-            for range0 in range(0, len(catalogids), chunk_size):
+            # Calculate ids for relational table
+            max_id = RelationalModel.select(fn.max(RelationalModel.id)).scalar() or 0
+            ids = range(max_id + 1, max_id + 1 + n_records)
 
+            for range0 in range(0, n_records, chunk_size):
+
+                ids_chunk = itertools.islice(ids, range0, range0 + chunk_size)
                 pks_chunk = itertools.islice(pks, range0, range0 + chunk_size)
                 cids_chunk = itertools.islice(catalogids, range0, range0 + chunk_size)
 
-                data = {'cids': (cid[0] for cid in cids_chunk),
+                data = {'ids': (id_ for id_ in ids_chunk),
+                        'cids': (cid[0] for cid in cids_chunk),
                         'pks': (pk[0] for pk in pks_chunk),
                         'best': True}
 
                 copy_pandas(data, self.database, rtname, schema=rtschema,
-                            columns=['catalogid', 'target_id', 'best'])
+                            columns=['id', 'catalogid', 'target_id', 'best'])
 
         self.log.debug(header + f'Loading table {rtname!r} took {timer.interval:.3f} s.')
 
@@ -450,157 +643,8 @@ class XMatchPlanner(object):
             return
 
         self.log.debug(header + f'Creating indexes and FKs for {rtname!r}.')
+        add_fks(self.database, RelationalModel, model)
 
-        migrator = PostgresqlMigrator(self.database)
+        self.extra_nodes[rtname] = RelationalModel
 
-        with self.database.atomic():
-
-            migrate(
-                migrator.set_search_path(rtschema),
-                migrator.add_index(rtname, ('catalogid',), False),
-                migrator.add_constraint(
-                    rtname, 'catalogid',
-                    peewee.SQL('FOREIGN KEY (catalogid) '
-                               f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
-                               '(catalogid)')),
-                migrator.add_index(rtname, ('target_id',), False),
-                migrator.add_constraint(
-                    rtname, 'target_id',
-                    peewee.SQL(f'FOREIGN KEY (target_id) '
-                               f'REFERENCES {model._meta.schema}.{model._meta.table_name} '
-                               f'({pk.column_name})'))
-            )
-
-        migrator.database.close()
-
-        RelationalModel._meta.add_field('catalog',
-                                        peewee.ForeignKeyField(Catalog,
-                                                               column_name='catalogid',
-                                                               backref='+'))
-        RelationalModel._meta.add_field('target',
-                                        peewee.ForeignKeyField(model,
-                                                               column_name='target_id',
-                                                               backref='+'))
-
-        self.relational_models[rtname] = RelationalModel
-
-        return
-
-    def _check_models(self):
-        """Checks the input models."""
-
-        non_existing_models = []
-        for model in self.models.values():
-            if not model.table_exists():
-                self.log.warning(f'table {model._meta.table_name!r} does not exist.')
-                non_existing_models.append(model)
-            elif model._meta.table_name == Catalog._meta.table_name:
-                self.log.debug(f'skipping output table {Catalog._meta.table_name!r}')
-                non_existing_models.append(model)
-            else:
-                meta = model._meta
-                self.log.debug(f'added table {meta.schema}.{meta.table_name} '
-                               f'with resolution={meta.resolution:.2f} arcsec and '
-                               f'row count={meta.approximate_row_count:.0f} records.')
-
-        [self.models.pop(model._meta.table_name) for model in non_existing_models]
-
-    def update_model_graph(self, silent=False):
-        """Updates the model graph using models as nodes and fks as edges."""
-
-        self.model_graph = networkx.Graph()
-
-        all_models = list(self.models.values()) + [Catalog] + self.relational_models.values()
-
-        for model in all_models:
-
-            table_name = model._meta.table_name
-            schema = model._meta.schema
-
-            self.model_graph.add_node(table_name)
-
-            fks = self.database.get_foreign_keys(table_name, schema)
-            for fk in fks:
-                self.model_graph.add_edge(table_name, fk.dest_table)
-
-        return self.model_graph
-
-    def _set_process_order(self, order='hierarchical', key='row_count',
-                           start_node=None):
-        """Sets and returns the order in which tables will be processed.
-
-        See `.XMatchPlanner` for details on how the order is decided depending
-        on the input parameters.
-
-        """
-
-        assert order in ['hierarchical', 'global'], f'invalid order value {order!r}.'
-        self.log.info(f'processing order mode is {order!r}')
-
-        if isinstance(order, (list, tuple)):
-            self.log.info(f'processing order: {order}')
-            return order
-
-        assert key in ['row_count', 'resolution'], f'invalid order key {key}.'
-        self.log.info(f'ordering key is {key!r}.')
-
-        ordered_tables = []
-
-        graph = self.model_graph.copy()
-
-        if order == 'hierarchical':
-            subgraphs = networkx.connected_components(graph)
-        else:
-            subgraphs = [node for node in subgraphs.nodes]
-
-        for model in [Catalog] + self.relational_models.values():
-            graph.remove_node(model._meta.table_name)
-
-        subgraphs_ext = []
-        for sg in subgraphs:
-            if start_node and start_node in sg:
-                # Last item in record is 0 for initial table, 1 for other.
-                # This prioritises the initial table in a sort without
-                # having to reverse.
-                subgraphs_ext.append((sg, numpy.nan, 0))
-            else:
-                if key == 'row_count':
-                    total_row_count = sum([self.models[tn]._meta.approximate_row_count
-                                           for tn in sg])
-                    # Use -total_row_count to avoid needing reverse order.
-                    subgraphs_ext.append((sg, -total_row_count, 1))
-                elif key == 'resolution':
-                    resolution = [self.models[tn]._meta.resolution for tn in sg]
-                    if all(numpy.isnan(resolution)):
-                        min_resolution = numpy.nan
-                    else:
-                        min_resolution = numpy.nanmin(resolution)
-                    subgraphs_ext.append((sg, -(min_resolution or numpy.nan), 1))
-
-        subgraphs_ordered = list(zip(*sorted(subgraphs_ext,
-                                             key=lambda x: (x[2], x[1], x[0]))))[0]
-
-        if order == 'global':
-            ordered_tables = subgraphs_ordered
-        else:
-            for sgo in subgraphs_ordered:
-                sg_ext = []
-                for table_name in sgo:
-                    if start_node and start_node == table_name:
-                        sg_ext.append((table_name, numpy.nan, 0))
-                        continue
-                    if key == 'row_count':
-                        row_count = self.models[table_name]._meta.approximate_row_count
-                        sg_ext.append((table_name, -row_count, 1))
-                    elif key == 'resolution':
-                        resolution = self.models[table_name]._meta.resolution
-                        sg_ext.append((table_name, resolution, 1))
-                # Use table name as second sorting order to use alphabetic order in
-                # case of draw.
-                sg_ordered = list(zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
-                ordered_tables.extend(sg_ordered)
-
-        self.log.info(f'processing order: {ordered_tables}')
-        self.process_order = ordered_tables
-
-        return ordered_tables
+        return True

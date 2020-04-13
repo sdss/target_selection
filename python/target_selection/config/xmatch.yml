@@ -1,11 +1,11 @@
 '0.1.0':
     order: hierarchical
     key: resolution
-    output_table: catalogdb.catalog
+    schema: catalogdb
+    output_table: catalog
     start_node: tic_v8
     debug: true
     log_path: false
-    schema: catalogdb
     include: ['twomass_psc', 'gaia_dr2_source', 'legacy_survey_dr8', 'tycho2', 'tic_v8', 'ps1_g18']
     exclude: null
     tables:
