@@ -215,7 +215,8 @@ class XMatchPlanner(object):
     def __init__(self, database, models, version, extra_nodes=[], skip_tables=[],
                  order='hierarchical', key='row_count', start_node=None,
                  schema='catalogdb', output_table='catalog', order_by='q3c',
-                 log_path='./xmatch_{version}.log', debug=False, show_sql=False):
+                 log_path='./xmatch_{version}.log', debug=False, show_sql=False,
+                 sample_region=None):
 
         self.log = target_selection.log
 
@@ -255,7 +256,8 @@ class XMatchPlanner(object):
 
         self._options = {'order_by': order_by,
                          'skip_tables': skip_tables,
-                         'show_sql': show_sql}
+                         'show_sql': show_sql,
+                         'sample_region': sample_region}
 
     @classmethod
     def read(cls, base_model, version, config_file=None, **kwargs):
@@ -480,7 +482,12 @@ class XMatchPlanner(object):
         """Runs the cross-matching process."""
 
         # Make sure the output table exists.
-        Catalog.create_table()
+        if not Catalog.table_exists():
+            Catalog.create_table()
+            self.log.info(f'created table {Catalog._meta.table_name!r}')
+
+        if self._options['sample_region']:
+            self.log.warning(f'using sample region {self._options['sample_region']!r}')
 
         for table_name in self.process_order:
             self.process_model(self.models[table_name])
@@ -555,17 +562,26 @@ class XMatchPlanner(object):
         """Ingests a query into the output table with coordinate conversion."""
 
         model = query.model
-        table_name = model._meta.table_name
-        pk = model._meta.primary_key
+        meta = model._meta
+        table_name = meta.table_name
+        pk = meta.primary_key
+
+        header = f'[{table_name.upper()}] '
 
         if self._options['order_by'] == 'q3c':
-            ra = model._meta.fields[model._meta.ra_column]
-            dec = model._meta.fields[model._meta.dec_column]
+            ra = meta.fields[meta.ra_column]
+            dec = meta.fields[meta.dec_column]
             order_by = fn.q3c_ang2ipix(ra, dec)
         else:
             order_by = pk
 
-        header = f'[{table_name.upper()}] '
+        if self._options['sample_region']:
+            sample_region = self._options['sample_region']
+            query = query.where(fn.q3c_radial_query(meta.fields[meta.ra_column],
+                                                    meta.fields[meta.dec_column],
+                                                    sample_region[0],
+                                                    sample_region[1],
+                                                    sample_region[2]))
 
         with Timer() as timer:
 
