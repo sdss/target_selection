@@ -65,6 +65,15 @@ def get_relational_model(model, prefix='catalog_to_'):
     RelationalModel = type(model_prefix + model.__name__, (BaseRelationalModel,), {})
     RelationalModel._meta.table_name = prefix + model._meta.table_name
 
+    RelationalModel._meta.add_field('catalog',
+                                    peewee.ForeignKeyField(Catalog,
+                                                           column_name='catalogid',
+                                                           backref='+'))
+    RelationalModel._meta.add_field('target',
+                                    peewee.ForeignKeyField(model,
+                                                           column_name='target_id',
+                                                           backref='+'))
+
     return RelationalModel
 
 
@@ -96,15 +105,6 @@ def add_fks(database, RelationalModel, related_model):
         )
 
     migrator.database.close()
-
-    RelationalModel._meta.add_field('catalog',
-                                    peewee.ForeignKeyField(Catalog,
-                                                           column_name='catalogid',
-                                                           backref='+'))
-    RelationalModel._meta.add_field('target',
-                                    peewee.ForeignKeyField(related_model,
-                                                           column_name='target_id',
-                                                           backref='+'))
 
 
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
@@ -309,8 +309,8 @@ class XMatchPlanner(object):
         config = config[version]
 
         table_config = config.pop('tables', {}) or {}
-        include = config.pop('include', [])
-        exclude = config.pop('exclude', [])
+        include = config.pop('include', None)
+        exclude = config.pop('exclude', None)
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config['schema']
@@ -322,19 +322,20 @@ class XMatchPlanner(object):
                 extra_nodes.append(model)
             elif model._meta.table_name.startswith(otable + '_to_'):
                 extra_nodes.append(model)
+            elif include and model not in include:
+                extra_nodes.append(model)
 
-        all_models = [model for model in models
-                      if model._meta.schema == schema and model not in extra_nodes]
+        models = [model for model in models
+                  if model._meta.schema == schema and model not in extra_nodes]
 
-        if include:
-            all_models = [model for model in all_models
-                          if model._meta.table_name in include]
         if exclude:
-            all_models = [model for model in all_models
-                          if model._meta.table_name not in exclude]
+            models = [model for model in models
+                      if model._meta.table_name not in exclude]
+            extra_nodes = [model for model in extra_nodes
+                           if model._meta.table_name not in exclude]
 
         xmatch_models = []
-        for model in all_models:
+        for model in models:
             table_name = model._meta.table_name
             table_params = table_config[table_name] if table_name in table_config else {}
             xmatch_models.append(XMatchModel(model, **table_params))
@@ -573,7 +574,7 @@ class XMatchPlanner(object):
         else:
             model_fields.append(peewee.Value(None).alias('parallax'))
 
-        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
+        # model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
 
         query = model.select(*model_fields)
 
@@ -619,7 +620,6 @@ class XMatchPlanner(object):
 
                 insert_query = Catalog.insert_from(
                     y.select(y.c.catalogid,
-                             x.c.iauname,
                              x.c.ra,
                              x.c.dec,
                              x.c.pmra,
@@ -627,7 +627,6 @@ class XMatchPlanner(object):
                              x.c.parallax,
                              self.version).join(x, on=(x.c.id == y.c.target_id)),
                     [Catalog.catalogid,
-                     Catalog.iauname,
                      Catalog.ra,
                      Catalog.dec,
                      Catalog.pmra,
