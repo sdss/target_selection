@@ -7,7 +7,6 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import inspect
-import itertools
 import os
 import re
 
@@ -69,7 +68,7 @@ def get_relational_model(model, prefix='catalog_to_'):
     return RelationalModel
 
 
-def add_fks(database, RelationalModel, rel_model):
+def add_fks(database, RelationalModel, related_model):
     """Adds foreign keys and indexes to a relational model class."""
 
     rtschema = RelationalModel._meta.schema
@@ -90,9 +89,10 @@ def add_fks(database, RelationalModel, rel_model):
             migrator.add_index(rtname, ('target_id',), False),
             migrator.add_constraint(
                 rtname, 'target_id',
-                peewee.SQL(f'FOREIGN KEY (target_id) '
-                           f'REFERENCES {rel_model._meta.schema}.{rel_model._meta.table_name} '
-                           f'({rel_model._meta.primary_key.column_name})'))
+                peewee.SQL(
+                    f'FOREIGN KEY (target_id) '
+                    f'REFERENCES {related_model._meta.schema}.{related_model._meta.table_name} '
+                    f'({related_model._meta.primary_key.column_name})'))
         )
 
     migrator.database.close()
@@ -102,7 +102,7 @@ def add_fks(database, RelationalModel, rel_model):
                                                            column_name='catalogid',
                                                            backref='+'))
     RelationalModel._meta.add_field('target',
-                                    peewee.ForeignKeyField(rel_model,
+                                    peewee.ForeignKeyField(related_model,
                                                            column_name='target_id',
                                                            backref='+'))
 
@@ -214,7 +214,7 @@ class XMatchPlanner(object):
 
     def __init__(self, database, models, version, extra_nodes=[], skip_tables=[],
                  order='hierarchical', key='row_count', start_node=None,
-                 schema='catalogdb', output_table='catalog', order_by='q3c',
+                 schema='catalogdb', output_table='catalog', order_by='pk',
                  log_path='./xmatch_{version}.log', debug=False, show_sql=False,
                  sample_region=None):
 
@@ -487,9 +487,10 @@ class XMatchPlanner(object):
             self.log.info(f'created table {Catalog._meta.table_name!r}')
 
         if self._options['sample_region']:
-            self.log.warning(f'using sample region {self._options['sample_region']!r}')
+            sample_region = self._options['sample_region']
+            self.log.warning(f'using sample region {sample_region!r}')
 
-        for table_name in self.process_order:
+        for table_name in self.process_order[1:]:
             self.process_model(self.models[table_name])
             self.update_model_graph(silent=True)
             break
@@ -498,28 +499,44 @@ class XMatchPlanner(object):
         """Processes a model, loading it into the output table."""
 
         table_name = model._meta.table_name
+        header = f'[{table_name.upper()}] '
 
         if table_name in self._options['skip_tables']:
-            self.log.debug(f'[{table_name.upper()}] Skipping due to manual skip list.')
+            self.log.debug(header + 'Skipping due to manual skip list.')
             return False
 
-        self.log.info(f'[{table_name.upper()}] Processing table {table_name}.')
+        self.log.info(header + f'Processing table {table_name}.')
 
         if table_name == self.process_order[0]:
             assert not model._meta.has_duplicates, 'first model to ingest cannot have duplicates.'
             is_first_model = True
+        else:
+            is_first_model = True
 
         if is_first_model:
-            return self._ingest(*self._build_select(model))
+
+            rel_model, rel_model_created = self._create_relational_model(model)
+            if rel_model_created:
+                self.log.info(header + 'Created relational '
+                              f'table {rel_model._meta.table_name!r}.')
+            else:
+                self.log.info(header + 'Relational table '
+                              f'{rel_model._meta.table_name!r} already existed.')
+
+            self._load_catalog(model, rel_model)
+
+            if rel_model_created:
+                self.log.debug(header + 'Adding indexes and FKs to '
+                               f'{rel_model._meta.table_name!r}.')
+                add_fks(self.database, rel_model, model)
 
     def _build_select(self, model):
-        """Returns the ModelSelect and associated Catalog fields."""
+        """Returns the ModelSelect with all the fields to populate Catalog."""
 
         meta = model._meta
         fields = meta.fields
 
-        model_fields = []
-        catalog_fields = []
+        model_fields = [model._meta.primary_key.alias('id')]
 
         ra_field = fields[meta.ra_column]
         dec_field = fields[meta.dec_column]
@@ -528,9 +545,7 @@ class XMatchPlanner(object):
 
             pmra_field = fields[meta.pmra_column]
             pmdec_field = fields[meta.pmdec_column]
-
-            model_fields.extend([pmra_field, pmdec_field])
-            catalog_fields.extend([Catalog.pmra, Catalog.pmdec])
+            model_fields.extend([pmra_field.alias('pmra'), pmdec_field.alias('pmdec')])
 
             if (meta.epoch and meta.epoch != EPOCH) or meta.epoch_column:
 
@@ -546,34 +561,26 @@ class XMatchPlanner(object):
                                                    delta_years,
                                                    is_pmra_cos=meta.is_pmra_cos)
 
-        model_fields.extend([ra_field, dec_field])
-        catalog_fields.extend([Catalog.ra, Catalog.dec])
+        else:
+
+            model_fields.extend([peewee.Value(None).alias('pmra'),
+                                 peewee.Value(None).alias('pmdec')])
+
+        model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
         if meta.parallax_column:
-            model_fields.append(fields[meta.parallax_column])
-            catalog_fields.append(Catalog.parallax)
+            model_fields.append(fields[meta.parallax_column].alias('parallax'))
+        else:
+            model_fields.append(peewee.Value(None).alias('parallax'))
 
-        model_fields.append(sql_iauname(ra_field, dec_field))
-        catalog_fields.append(Catalog.iauname)
+        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
 
-        return model.select(*model_fields), catalog_fields
-
-    def _ingest(self, query, fields, chunk_size=1000000):
-        """Ingests a query into the output table with coordinate conversion."""
-
-        model = query.model
-        meta = model._meta
-        table_name = meta.table_name
-        pk = meta.primary_key
-
-        header = f'[{table_name.upper()}] '
+        query = model.select(*model_fields)
 
         if self._options['order_by'] == 'q3c':
-            ra = meta.fields[meta.ra_column]
-            dec = meta.fields[meta.dec_column]
-            order_by = fn.q3c_ang2ipix(ra, dec)
+            query = query.order_by(fn.q3c_ang2ipix(ra_field, dec_field))
         else:
-            order_by = pk
+            query = query.order_by(model._meta.primary_key.asc())
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -583,84 +590,111 @@ class XMatchPlanner(object):
                                                     sample_region[1],
                                                     sample_region[2]))
 
+        return query
+
+    def _load_catalog(self, model, rel_model):
+        """Ingests a query into the output and relational tables."""
+
+        meta = model._meta
+        table_name = meta.table_name
+
+        header = f'[{table_name.upper()}] '
+
+        query = self._build_select(model)
+
         with Timer() as timer:
 
             with self.database.atomic():
 
                 # Get the max catalogid currently in the table.
-                max_id = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
-                self.log.debug(header + f'catalogid will start at {max_id+1}.')
+                max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
+                self.log.debug(header + f'catalogid will start at {max_cid+1}.')
 
-                # Add the version and a row_number() function that sets the serial
-                # value for catalogid. The ordering of the query happens here so no need
-                # to order the select itself.
-                query = query.select_extend(
-                    self.version,
-                    fn.row_number().over(order_by=order_by) + max_id)
-                fields.extend([Catalog.version, Catalog.catalogid])
+                x = query.cte('x')
 
-                insert_query = Catalog.insert_many(query, fields).returning(Catalog.catalogid)
+                y = peewee.CTE('y', rel_model.insert_from(
+                    x.select(fn.row_number().over() + max_cid, x.c.id),
+                    [rel_model.catalogid, rel_model.target_id]
+                ).returning(rel_model))
+
+                insert_query = Catalog.insert_from(
+                    y.select(y.c.catalogid,
+                             x.c.iauname,
+                             x.c.ra,
+                             x.c.dec,
+                             x.c.pmra,
+                             x.c.pmdec,
+                             x.c.parallax,
+                             self.version).join(x, on=(x.c.id == y.c.target_id)),
+                    [Catalog.catalogid,
+                     Catalog.iauname,
+                     Catalog.ra,
+                     Catalog.dec,
+                     Catalog.pmra,
+                     Catalog.pmdec,
+                     Catalog.parallax,
+                     Catalog.version]
+                ).returning().with_cte(x, y)
+
                 self.log.debug(header + f'Running INSERT query' +
-                               (f': {insert_query}' if self._options['show_sql'] else '.'))
+                               (f': {insert_query}.' if self._options['show_sql'] else '.'))
+                n_rows = insert_query.execute()
 
-                catalogids = insert_query.tuples().execute(self.database)
+        self.log.debug(header + f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
 
-        self.log.debug(header + f'Inserted {len(catalogids)} rows in {timer.interval:.3f} s.')
+        return
+
+    def _create_relational_model(self, model):
+        """Creates a relational table for a given model.
+
+        Returns the relational model and `True` if the table was created or
+        `False` if it already existed.
+
+        """
 
         RelationalModel = get_relational_model(model, prefix=Catalog._meta.table_name + '_to_')
         rtname = RelationalModel._meta.table_name
-        rtschema = RelationalModel._meta.schema
 
         if not RelationalModel.table_exists():
             RelationalModel.create_table()
-            self.log.debug(header + f'Created relational table {rtname!r}')
-            create_indexes = True
+            return RelationalModel, True
         else:
             if RelationalModel.select().count() > 0:
-                self.log.warning(header + f'relational table {rtname!r} is not empty!')
-            else:
-                self.log.debug(header + f'empty relational table {rtname!r} already exists.')
-            create_indexes = False
+                self.log.warning(f'Relational table {rtname!r} is not empty!')
+            return RelationalModel, False
 
-        self.log.debug(header + f'Populating {rtname!r} using COPY.')
+    def _load_relational_table(self, rel_model, catalogids, target_ids):
+        """Inserts rows into the relational table associated with a model.
 
-        with Timer() as timer:
+        Parameters
+        ----------
+        rel_model : peewee:Model
+            The relational model to load.
+        catalogids : tuple
+            The catalogids to be associated.
+        target_ids : tuple or peewee:ModelSelect
+            Either a tuple with the target_ids from the related model or a
+            query that will return them.
+        chunk_size : int
+            How many records to insert at a time.
 
-            n_records = len(catalogids)
+        Returns
+        -------
+        n_rows : int
+            The number of rows inserted.
 
+        """
+
+        meta = rel_model._meta
+
+        if isinstance(target_ids, peewee.ModelSelect):
             # Keep query but now return only the pk of the queried table.
-            query._returning = (pk,)
-            query = query.order_by(order_by)
-            pks = query.tuples()
+            target_ids._returning = (target_ids.model._meta.primary_key,)
+            target_ids = (tid[0] for tid in target_ids.tuples())
 
-            # Calculate ids for relational table
-            max_id = RelationalModel.select(fn.max(RelationalModel.id)).scalar() or 0
-            ids = range(max_id + 1, max_id + 1 + n_records)
+        data = {'cids': catalogids, 'tids': target_ids, 'best': True}
 
-            for range0 in range(0, n_records, chunk_size):
+        df = copy_pandas(data, self.database, meta.table_name, schema=meta.schema,
+                         columns=['catalogid', 'target_id', 'best'])
 
-                ids_chunk = itertools.islice(ids, range0, range0 + chunk_size)
-                pks_chunk = itertools.islice(pks, range0, range0 + chunk_size)
-                cids_chunk = itertools.islice(catalogids, range0, range0 + chunk_size)
-
-                data = {'ids': (id_ for id_ in ids_chunk),
-                        'cids': (cid[0] for cid in cids_chunk),
-                        'pks': (pk[0] for pk in pks_chunk),
-                        'best': True}
-
-                copy_pandas(data, self.database, rtname, schema=rtschema,
-                            columns=['id', 'catalogid', 'target_id', 'best'])
-
-        self.log.debug(header + f'Loading table {rtname!r} took {timer.interval:.3f} s.')
-
-        if not create_indexes:
-            self.log.debug(header + f'Not creating indexes and FKs in the relational table '
-                           'because it already existed.')
-            return
-
-        self.log.debug(header + f'Creating indexes and FKs for {rtname!r}.')
-        add_fks(self.database, RelationalModel, model)
-
-        self.extra_nodes[rtname] = RelationalModel
-
-        return True
+        return len(df)

@@ -14,3 +14,8 @@
             pmdec_column: pmdec
             parallax_column: plx
             epoch: J2015.5
+        gaia_dr2_source:
+            pmra_column: pmra
+            pmdec_column: pmdec
+            parallax_column: parallax
+            epoch: J2015.5

@@ -22,11 +22,20 @@ class Timer:
 
     def __enter__(self):
         self.start = time.time()
+        self.end = None
         return self
 
     def __exit__(self, *args):
         self.end = time.time()
         self.interval = self.end - self.start
+
+    @property
+    def elapsed(self):
+
+        if self.end:
+            return self.interval
+
+        return time.time() - self.start
 
 
 def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
@@ -140,3 +149,5 @@ def copy_pandas(df, database, table_name, schema=None, columns=None):
 
     with database.atomic():
         cursor.copy_from(stream, full_table_name, columns=columns, sep=',')
+
+    return df
