@@ -106,11 +106,11 @@ def sql_iauname(ra_field, dec_field, prefix='SDSS J'):
         secs = (fn.round(((((fn.abs(dd) - fn.abs(degs)) * 60) - mins) * 60)
                          .cast('NUMERIC'), round).cast('REAL'))
 
-        degs_fmt = 'FM99' if sign is False else 'SGFM99'
-        secs_fmt = 'FM99.' + '0' * round
+        degs_fmt = '00' if sign is False else 'SG00'
+        secs_fmt = '00.' + '0' * round
 
         return fn.trim(fn.to_char(degs, degs_fmt)).concat(
-            fn.trim(fn.to_char(mins, 'FM99'))).concat(
+            fn.trim(fn.to_char(mins, '00'))).concat(
                 fn.trim(fn.to_char(secs, secs_fmt)))
 
     return SQL('\'' + prefix + '\'').concat(
