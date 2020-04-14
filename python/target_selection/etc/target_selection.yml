@@ -35,3 +35,36 @@
         mag_r_min: 17.0
         mag_r_max: 22.0
         det_like_0_min: 6.0
+    bhm_rm_core:
+        ismock: false
+        value_boost: 100.0
+        mag_i_min: 15.0
+        mag_i_max: 21.5
+        pmsig_max: 5.0
+        plxsig_max: 5.0
+    bhm_rm_known_spec:
+        ismock: false
+        value_boost: 100.0
+        mag_i_min: 15.0
+        mag_i_max: 21.5
+        specz_min: 0.005
+    bhm_rm_var:
+        ismock: false
+        value_boost: 100.0
+        mag_i_min: 15.0
+        mag_i_max: 21.5
+        mag_g_max: 21.0
+        des_var_sn_min: 5.0
+        des_var_rms_min: 0.05
+        ps1_var_sn_min: 5.0
+        ps1_var_rms_min: 0.05
+        pmsig_max: 5.0
+        plxsig_max: 5.0
+    bhm_rm_ancillary:
+        ismock: false
+        value_boost: 100.0
+        photo_bitmask: 3
+        mag_i_min: 15.0
+        mag_i_max: 21.5
+        pmsig_max: 5.0
+        plxsig_max: 5.0
