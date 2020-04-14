@@ -490,7 +490,7 @@ class XMatchPlanner(object):
             sample_region = self._options['sample_region']
             self.log.warning(f'using sample region {sample_region!r}')
 
-        for table_name in self.process_order[1:]:
+        for table_name in self.process_order:
             self.process_model(self.models[table_name])
             self.update_model_graph(silent=True)
             break
