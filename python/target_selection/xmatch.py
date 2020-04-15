@@ -37,6 +37,7 @@ class Catalog(peewee.Model):
     pmra = peewee.FloatField(null=True)
     pmdec = peewee.FloatField(null=True)
     parallax = peewee.FloatField(null=True)
+    lead = peewee.TextField(null=False)
     version = peewee.TextField(null=False)
 
     class Meta:
@@ -64,7 +65,7 @@ def get_relational_model(model, prefix='catalog_to_'):
         id = peewee.BigAutoField(primary_key=True)
         catalogid = peewee.BigIntegerField()
         target_id = model_pk_class()
-        best = peewee.BooleanField(null=True, default=True)
+        best = peewee.BooleanField(null=False, default=True)
 
         class Meta:
             database = meta.database
@@ -204,8 +205,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.skip_unlinked = skip_unlinked
     meta.xmatch.skip = skip
 
-    meta.xmatch.approximate_row_count = get_row_count(meta.database, meta.table_name,
-                                                      schema=meta.schema, approximate=True)
+    meta.xmatch.row_count = get_row_count(meta.database, meta.table_name,
+                                          schema=meta.schema, approximate=True)
 
     return Model
 
@@ -258,6 +259,7 @@ class XMatchPlanner(object):
         self.database.bind([Catalog])
 
         self.models = {model._meta.table_name: model for model in models}
+
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._check_models()
@@ -364,7 +366,7 @@ class XMatchPlanner(object):
             else:
                 self.log.debug(f'added table {meta.schema}.{table_name} '
                                f'with resolution={meta.xmatch.resolution:.2f} arcsec and '
-                               f'row count={meta.xmatch.approximate_row_count:.0f} records.')
+                               f'row count={meta.xmatch.row_count:.0f} records.')
                 continue
 
             remove_models.append(model)
@@ -384,15 +386,16 @@ class XMatchPlanner(object):
         all_models = list(self.models.values()) + list(self.extra_nodes.values())
 
         for model in all_models:
-
             table_name = model._meta.table_name
-            schema = model._meta.schema
+            self.model_graph.add_node(table_name, model=model)
 
-            self.model_graph.add_node(table_name)
-
-            fks = self.database.get_foreign_keys(table_name, schema)
-            for fk in fks:
-                self.model_graph.add_edge(table_name, fk.dest_table)
+        for model in all_models:
+            table_name = model._meta.table_name
+            for fk_model in model._meta.model_refs:
+                ref_table_name = fk_model._meta.table_name
+                if ref_table_name not in self.model_graph.nodes:
+                    continue
+                self.model_graph.add_edge(table_name, ref_table_name)
 
         return self.model_graph
 
@@ -436,12 +439,15 @@ class XMatchPlanner(object):
                 subgraphs_ext.append((sg, numpy.nan, 0))
             else:
                 if key == 'row_count':
-                    total_row_count = sum([self.models[tn]._meta.xmatch.approximate_row_count
-                                           for tn in sg])
+                    total_row_count = sum([self.models[tn]._meta.xmatch.row_count
+                                           for tn in sg
+                                           if not self.models[tn]._meta.xmatch.skip])
                     # Use -total_row_count to avoid needing reverse order.
                     subgraphs_ext.append((sg, -total_row_count, 1))
                 elif key == 'resolution':
-                    resolution = [self.models[tn]._meta.xmatch.resolution for tn in sg]
+                    resolution = [self.models[tn]._meta.xmatch.resolution
+                                  for tn in sg
+                                  if not self.models[tn]._meta.xmatch.skip]
                     if all(numpy.isnan(resolution)):
                         min_resolution = numpy.nan
                     else:
@@ -457,14 +463,17 @@ class XMatchPlanner(object):
             for sgo in subgraphs_ordered:
                 sg_ext = []
                 for table_name in sgo:
+                    model = self.models[table_name]
                     if start_node and start_node == table_name:
                         sg_ext.append((table_name, numpy.nan, 0))
                         continue
+                    elif model._meta.xmatch.skip:
+                        continue
                     if key == 'row_count':
-                        row_count = self.models[table_name]._meta.xmatch.approximate_row_count
+                        row_count = model._meta.xmatch.row_count
                         sg_ext.append((table_name, -row_count, 1))
                     elif key == 'resolution':
-                        resolution = self.models[table_name]._meta.xmatch.resolution
+                        resolution = model._meta.xmatch.resolution
                         sg_ext.append((table_name, resolution, 1))
                 # Use table name as second sorting order to use alphabetic order in
                 # case of draw.
@@ -476,6 +485,64 @@ class XMatchPlanner(object):
 
         return ordered_tables
 
+    def get_simple_paths(self, source, dest, allow_relational_table=True,
+                         return_models=False):
+        """Determines all possible join path between two tables.
+
+        Instead of returning all possible simple paths between the ``source``
+        and ``dest`` tables, this algorithm follows a "scorched earth" approach
+        in which once an edge has been used for a join it cannot be used again.
+        This produces only distint joins between the two nodes.
+
+        Parameters
+        ----------
+        source : str
+            The initial table for the path.
+        dest : str
+            The final table for the path.
+        allow_relational_tables : bool, optional
+            If `False`, the path that contains only the initial and final
+            tables joined via their relational table is not included.
+        return_models : bool
+            If `True`, returns each path as a list of models. Otherwise returns
+            the table names.
+
+        Returns
+        -------
+        list
+            A list in which each item is a path with the table names or models
+            joining ``source`` to ``dest``. The list is sorted in order of
+            increasing path length.
+
+        """
+
+        graph = self.model_graph.copy()
+
+        if not allow_relational_table:
+            rel_table_name = Catalog._meta.table_name + '_to_' + source
+            if rel_table_name in graph:
+                graph.remove_node(rel_table_name)
+
+        paths = []
+
+        while True:
+            try:
+                shortest_path = networkx.algorithms.shortest_path(graph, source, dest)
+                paths.append(shortest_path)
+                for node in shortest_path[1:-1]:
+                    graph.remove_node(node)
+            except networkx.NetworkXNoPath:
+                break
+
+        if len(paths) == 0:
+            return []
+
+        if return_models:
+            paths = [[self.model_graph.nodes[node]['model'] for node in path]
+                     for path in paths]
+
+        return paths
+
     def run(self):
         """Runs the cross-matching process."""
 
@@ -483,8 +550,9 @@ class XMatchPlanner(object):
         if not Catalog.table_exists():
             Catalog.create_table()
             self.log.info(f'created table {Catalog._meta.table_name!r}')
-            self.extra_nodes[Catalog._meta.table_name] = Catalog
-            self.update_model_graph(silent=True)
+
+        self.extra_nodes[Catalog._meta.table_name] = Catalog
+        self.update_model_graph(silent=True)
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -499,42 +567,100 @@ class XMatchPlanner(object):
                 continue
 
             self.process_model(model)
-            self.update_model_graph(silent=True)
 
     def process_model(self, model):
         """Processes a model, loading it into the output table."""
 
         table_name = model._meta.table_name
-        header = f'[{table_name.upper()}] '
+        self.log.header = f'[{table_name.upper()}] '
+
+        show_sql = self._options['show_sql']
 
         if table_name in self._options['skip_tables']:
-            self.log.debug(header + 'Skipping due to manual skip list.')
+            self.log.debug('Skipping due to manual skip list.')
             return False
 
-        self.log.info(header + f'Processing table {table_name}.')
+        self.log.info(f'Processing table {table_name}.')
 
-        if table_name == self.process_order[0]:
-            assert not model._meta.xmatch.has_duplicates, \
-                'first model to ingest cannot have duplicates.'
+        if model._meta.xmatch.has_duplicates:
+            raise ValueError('handling of tables with duplicates '
+                             'is not implemented.')
+
+        # Check if there are already records in catalog for this version.
+        if Catalog.select().where(Catalog.version == self.version).limit(1).count() == 0:
             is_first_model = True
         else:
-            is_first_model = True
+            is_first_model = False
 
         rel_model, rel_model_created = self._create_relational_model(model)
+        rel_table_name = rel_model._meta.table_name
         if rel_model_created:
-            self.log.info(header + 'Created relational '
-                          f'table {rel_model._meta.table_name!r}.')
+            self.log.debug(f'Created relational table {rel_table_name!r}.')
         else:
-            self.log.info(header + 'Relational table '
-                          f'{rel_model._meta.table_name!r} already existed.')
+            self.log.debug(f'Relational table {rel_table_name!r} already existed.')
 
         if is_first_model:
             self._load_catalog(model, rel_model)
+        else:
+
+            self.log.info('Phase 1: linking existing targets.')
+
+            join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
+                                               allow_relational_table=False)
+
+            if len(join_paths) == 0:
+                self.log.debug(f'No paths found between {table_name!r} and output table.')
+            else:
+                self.log.debug(f'Found {len(join_paths)} paths between '
+                               f'{table_name!r} and output table.')
+
+                # Go through the list following the same order as process_order to ensure
+                # that the cross-matching has already happened for those tables.
+                paths_processed = []
+                for through_table in self.process_order:
+                    # Loop over he paths that contain the through table. Because of the
+                    # scorched earth mode of the path-finding algorithm, there can only
+                    # be 0 or 1 paths that contain through_table.
+                    for path in [pth for pth in join_paths if (through_table in pth and
+                                                               pth not in paths_processed)]:
+
+                        join_models = [self.model_graph.nodes[node]['model'] for node in path]
+
+                        with Timer() as timer:
+
+                            with self.database.atomic():
+
+                                query = self._build_join(join_models).select(
+                                    model._meta.primary_key, Catalog.catalogid,
+                                    peewee.Value(False))
+                                print(query)
+                                insert_query = rel_model.insert_from(
+                                    query, fields=[rel_model.target_id,
+                                                   rel_model.catalogid,
+                                                   rel_model.best]).returning()
+
+                                self.log.debug(
+                                    f'Inserting linked targets into '
+                                    f'{rel_table_name!r} with path {path}' +
+                                    (f': {insert_query}.' if show_sql else '.'))
+
+                                nids = insert_query.execute()
+
+                        self.log.debug(f'Inserted {nids} records '
+                                       f'in {timer.interval:.3f} s.')
+
+                        paths_processed.append(path)
+
+                if len(paths_processed) == 0:
+                    self.log.warning('No join paths were found using table that '
+                                     'had already been cross-matched. You should '
+                                     'review your processing order.')
 
         if rel_model_created:
-            self.log.debug(header + 'Adding indexes and FKs to '
-                           f'{rel_model._meta.table_name!r}.')
+            self.log.debug(f'Adding indexes and FKs to {rel_model._meta.table_name!r}.')
             add_fks(self.database, rel_model, model)
+
+        self.log.header = ''
 
     def _build_select(self, model):
         """Returns the ModelSelect with all the fields to populate Catalog."""
@@ -607,8 +733,6 @@ class XMatchPlanner(object):
         meta = model._meta
         table_name = meta.table_name
 
-        header = f'[{table_name.upper()}] '
-
         query = self._build_select(model)
 
         with Timer() as timer:
@@ -617,13 +741,13 @@ class XMatchPlanner(object):
 
                 # Get the max catalogid currently in the table.
                 max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
-                self.log.debug(header + f'catalogid will start at {max_cid+1}.')
+                self.log.debug(f'catalogid will start at {max_cid+1}.')
 
                 x = query.cte('x')
 
                 y = peewee.CTE('y', rel_model.insert_from(
-                    x.select(fn.row_number().over() + max_cid, x.c.id),
-                    [rel_model.catalogid, rel_model.target_id]
+                    x.select(fn.row_number().over() + max_cid, x.c.id, peewee.Value(True)),
+                    [rel_model.catalogid, rel_model.target_id, rel_model.best]
                 ).returning(rel_model.catalogid, rel_model.target_id))
 
                 insert_query = Catalog.insert_from(
@@ -633,21 +757,24 @@ class XMatchPlanner(object):
                              x.c.pmra,
                              x.c.pmdec,
                              x.c.parallax,
-                             self.version).join(x, on=(x.c.id == y.c.target_id)),
+                             peewee.Value(table_name),
+                             peewee.Value(self.version))
+                     .join(x, on=(x.c.id == y.c.target_id)),
                     [Catalog.catalogid,
                      Catalog.ra,
                      Catalog.dec,
                      Catalog.pmra,
                      Catalog.pmdec,
                      Catalog.parallax,
+                     Catalog.lead,
                      Catalog.version]
                 ).returning().with_cte(x, y)
 
-                self.log.debug(header + f'Running INSERT query' +
+                self.log.debug(f'Running INSERT query' +
                                (f': {insert_query}.' if self._options['show_sql'] else '.'))
                 n_rows = insert_query.execute()
 
-        self.log.debug(header + f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
+        self.log.debug(f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
 
         return
 
@@ -667,10 +794,10 @@ class XMatchPlanner(object):
             created = True
         else:
             if (RelationalModel
-                .select(fn.count('*'))
-                .join(Catalog, on=(Catalog.catalogid == RelationalModel.target_id))
-                .where(Catalog.version == self.version)
-                .limit(1).scalar()) > 0:
+                    .select()
+                    .join(Catalog, on=(Catalog.catalogid == RelationalModel.catalogid))
+                    .where(Catalog.version == self.version)
+                    .limit(1).count()) > 0:
                 raise RecursionError(f'Relational table {rtname!r} contains records '
                                      f'for this version of cross-matching ({self.version}). '
                                      'This problem needs to be solved manually.')
@@ -692,7 +819,31 @@ class XMatchPlanner(object):
                                                                column_name='target_id',
                                                                backref='+'))
 
+        self.extra_nodes[rtname] = RelationalModel
+        self.update_model_graph(silent=True)
+
         return RelationalModel, created
+
+    def _build_join(self, path):
+        """Returns a build query for a given join path."""
+
+        model = path[0]
+        meta = model._meta
+        xmatch = meta.xmatch
+
+        query = model.select()
+        for node in path[1:]:
+            query = query.join(node)
+
+        if self._options['sample_region']:
+            sample_region = self._options['sample_region']
+            query = query.where(fn.q3c_radial_query(meta.fields[xmatch.ra_column],
+                                                    meta.fields[xmatch.dec_column],
+                                                    sample_region[0],
+                                                    sample_region[1],
+                                                    sample_region[2]))
+
+        return query
 
     def _load_relational_table(self, rel_model, catalogids, target_ids):
         """Inserts rows into the relational table associated with a model.

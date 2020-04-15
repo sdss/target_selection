@@ -14,7 +14,7 @@
             is_pmra_cos: true
             parallax_column: plx
             epoch: 2015.5
-            skip: true
+            skip: false
         gaia_dr2_source:
             pmra_column: pmra
             pmdec_column: pmdec
@@ -34,8 +34,8 @@
             epoch_format: jd
             skip: true
         tycho2:
-            ra_column: mradeg
-            dec_column: mdedeg
+            ra_column: ramdeg
+            dec_column: demdeg
             pmra_column: pmra
             pmdec_column: pmde
             is_pmra_cos: true
