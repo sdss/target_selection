@@ -6,16 +6,40 @@
     start_node: tic_v8
     debug: true
     log_path: false
-    include: ['twomass_psc', 'gaia_dr2_source', 'legacy_survey_dr8', 'tycho2', 'tic_v8', 'ps1_g18']
     exclude: null
     tables:
         tic_v8:
             pmra_column: pmra
             pmdec_column: pmdec
+            is_pmra_cos: true
             parallax_column: plx
-            epoch: J2015.5
+            epoch: 2015.5
+            skip: true
         gaia_dr2_source:
             pmra_column: pmra
             pmdec_column: pmdec
+            is_pmra_cos: true
             parallax_column: parallax
-            epoch: J2015.5
+            epoch: 2015.5
+            skip: true
+        legacy_survey_dr8:
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch_column: ref_epoch
+        twomass_psc:
+            dec_column: decl
+            epoch_column: jdate
+            epoch_format: jd
+            skip: true
+        tycho2:
+            ra_column: mradeg
+            dec_column: mdedeg
+            pmra_column: pmra
+            pmdec_column: pmde
+            is_pmra_cos: true
+            epoch: 2000.0
+        ps1_g18:
+            ra_column: ramean
+            dec_column: decmean

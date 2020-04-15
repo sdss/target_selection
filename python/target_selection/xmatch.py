@@ -21,11 +21,10 @@ from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
 
 import target_selection
-from target_selection.utils import (Timer, copy_pandas,
-                                    sql_apply_pm, sql_iauname)
+from target_selection.utils import Timer, copy_pandas, sql_apply_pm
 
 
-EPOCH = 'J2015.5'
+EPOCH = 2015.5
 
 
 class Catalog(peewee.Model):
@@ -46,33 +45,35 @@ class Catalog(peewee.Model):
 
 def get_relational_model(model, prefix='catalog_to_'):
 
-    assert model._meta.primary_key != '__composite_key__', \
-        'invalid pk for model {model__name__!r}.'
+    meta = model._meta
+
+    assert meta.primary_key != '__composite_key__', \
+        f'composite pk fount for model {model.__name__!r}.'
+
+    # Auto/Serial are automatically PKs. Convert them to integers to avoid
+    # having two pks in the relational table.
+    if meta.primary_key.__class__.field_type == 'AUTO':
+        model_pk_class = peewee.IntegerField
+    elif meta.primary_key.__class__.field_type == 'BIGAUTO':
+        model_pk_class = peewee.BigIntegerField
+    else:
+        model_pk_class = meta.primary_key.__class__
 
     class BaseRelationalModel(peewee.Model):
 
         id = peewee.BigAutoField(primary_key=True)
         catalogid = peewee.BigIntegerField()
-        target_id = model._meta.primary_key.__class__()
+        target_id = model_pk_class()
         best = peewee.BooleanField(null=True, default=True)
 
         class Meta:
-            database = model._meta.database
-            schema = model._meta.schema
+            database = meta.database
+            schema = meta.schema
 
     model_prefix = ''.join(x.capitalize() or '_' for x in prefix.rstrip().split('_'))
 
     RelationalModel = type(model_prefix + model.__name__, (BaseRelationalModel,), {})
-    RelationalModel._meta.table_name = prefix + model._meta.table_name
-
-    RelationalModel._meta.add_field('catalog',
-                                    peewee.ForeignKeyField(Catalog,
-                                                           column_name='catalogid',
-                                                           backref='+'))
-    RelationalModel._meta.add_field('target',
-                                    peewee.ForeignKeyField(model,
-                                                           column_name='target_id',
-                                                           backref='+'))
+    RelationalModel._meta.table_name = prefix + meta.table_name
 
     return RelationalModel
 
@@ -110,7 +111,8 @@ def add_fks(database, RelationalModel, related_model):
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
-                has_duplicates=False, skip_unlinked=False):
+                epoch_format='jyear', has_duplicates=False,
+                skip_unlinked=False, skip=False):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -136,15 +138,20 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     parallax_column : str
         The column containing the parallax, assumed to be in arcsec.
     epoch_column : str
-        The column containing the epoch of the target coordinates, assumed to
-        be in Julian date.
+        The column containing the epoch of the target coordinates.
     epoch : float
-        The Julian date of the targets. Applies to all the records in the
+        The epoch of the targets that applies to all the records in the
         table. ``epoch`` and ``epoch_column`` are mutually exclusive. If
         neither ``epoch_column`` nor ``epoch`` are defined, assumes that the
-        epoch is ``J2015.5``.
+        epoch is ``2015.5``.
+    epoch_format : str
+        The format of the epoch. Either Julian year (``'jyear'``) or Julian
+        date (``'jd'``).
     has_duplicates : bool
         Whether the table contains duplicates.
+    skip : bool
+        If `True`, the table will be used as a join node but will not be
+        cross-matched.
     skip_unlinked : bool
         If True, any row that cannot be directly linked to a record in the
         output table will be skipped. This option is ignored if the table
@@ -158,9 +165,13 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
 
     """
 
-    meta = Model._meta
+    class XMatchMeta:
+        pass
 
-    meta.resolution = resolution or numpy.nan
+    meta = Model._meta
+    meta.xmatch = XMatchMeta()
+
+    meta.xmatch.resolution = resolution or numpy.nan
 
     if not ra_column or not dec_column:
         indexes = meta.database.get_indexes(meta.table_name, meta.schema)
@@ -171,28 +182,30 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 if match:
                     ra_column, dec_column = match.groups()
 
-    meta.ra_column = ra_column
-    meta.dec_column = dec_column
+    meta.xmatch.ra_column = ra_column
+    meta.xmatch.dec_column = dec_column
 
-    meta.pmra_column = pmra_column
-    meta.pmdec_column = pmdec_column
-    meta.is_pmra_cos = is_pmra_cos
-    meta.parallax_column = parallax_column
+    meta.xmatch.pmra_column = pmra_column
+    meta.xmatch.pmdec_column = pmdec_column
+    meta.xmatch.is_pmra_cos = is_pmra_cos
+    meta.xmatch.parallax_column = parallax_column
 
-    epoch = 'J2015.5' if (not epoch) & (not epoch_column) else epoch
+    epoch = EPOCH if (not epoch) & (not epoch_column) else epoch
 
     assert (((epoch is None) & (epoch_column is None)) or
             ((epoch is not None) ^ (epoch_column is not None))), \
         'epoch and epoch_column are mutually exclusive.'
 
-    meta.epoch = epoch
-    meta.epoch_column = epoch_column
+    meta.xmatch.epoch = epoch
+    meta.xmatch.epoch_column = epoch_column
+    meta.xmatch.epoch_format = epoch_format
 
-    meta.has_duplicates = has_duplicates
-    meta.skip_unlinked = skip_unlinked
+    meta.xmatch.has_duplicates = has_duplicates
+    meta.xmatch.skip_unlinked = skip_unlinked
+    meta.xmatch.skip = skip
 
-    meta.approximate_row_count = get_row_count(meta.database, meta.table_name,
-                                               schema=meta.schema, approximate=True)
+    meta.xmatch.approximate_row_count = get_row_count(meta.database, meta.table_name,
+                                                      schema=meta.schema, approximate=True)
 
     return Model
 
@@ -237,15 +250,14 @@ class XMatchPlanner(object):
         self.database = database
         assert self.database.connected, 'database is not connected.'
 
-        self.models = {model._meta.table_name: model for model in models}
         self.version = version
 
         # Sets the metadata of the Catalog table.
         Catalog._meta.schema = schema
         Catalog._meta.table_name = output_table
-
         self.database.bind([Catalog])
 
+        self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._check_models()
@@ -309,75 +321,60 @@ class XMatchPlanner(object):
         config = config[version]
 
         table_config = config.pop('tables', {}) or {}
-        include = config.pop('include', None)
-        exclude = config.pop('exclude', None)
+        exclude = config.pop('exclude', []) or []
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config['schema']
 
-        otable = config.get('output_table', 'catalog')
-        extra_nodes = []
-        for model in models:
-            if model._meta.schema == schema and model._meta.table_name == otable:
-                extra_nodes.append(model)
-            elif model._meta.table_name.startswith(otable + '_to_'):
-                extra_nodes.append(model)
-            elif include and model not in include:
-                extra_nodes.append(model)
+        models = {model._meta.table_name: model for model in models
+                  if (model.table_exists() and
+                      model._meta.schema == schema and
+                      model not in exclude)}
 
-        models = [model for model in models
-                  if model._meta.schema == schema and model not in extra_nodes]
+        xmatch_models = {}
+        for table_name in table_config:
+            table_params = table_config[table_name]
+            xmatch_models[table_name] = XMatchModel(models[table_name], **table_params)
 
-        if exclude:
-            models = [model for model in models
-                      if model._meta.table_name not in exclude]
-            extra_nodes = [model for model in extra_nodes
-                           if model._meta.table_name not in exclude]
-
-        xmatch_models = []
-        for model in models:
-            table_name = model._meta.table_name
-            table_params = table_config[table_name] if table_name in table_config else {}
-            xmatch_models.append(XMatchModel(model, **table_params))
-
-        xmodel_table_names = set([model._meta.table_name for model in xmatch_models])
-        missing_tables = set(table_config.keys()) - xmodel_table_names
-        if len(missing_tables) > 0:
-            raise ValueError('some tables for which configuration was provided '
-                             f'are not in the list of models: {missing_tables}')
+        extra_nodes = [models[table_name] for table_name in models
+                       if table_name not in xmatch_models]
 
         config.update(kwargs)
-
-        return cls(database, xmatch_models, version, extra_nodes=extra_nodes, **config)
+        return cls(database, xmatch_models.values(), version, extra_nodes=extra_nodes, **config)
 
     def _check_models(self):
         """Checks the input models."""
 
-        non_existing_models = []
+        remove_models = []
 
         for model in self.models.values():
 
             meta = model._meta
+            table_name = meta.table_name
 
             if not model.table_exists():
-                self.log.warning(f'table {meta.table_name!r} does not exist.')
-            elif meta.table_name == Catalog._meta.table_name:
+                self.log.warning(f'table {table_name!r} does not exist.')
+            elif table_name == Catalog._meta.table_name:
                 self.log.debug(f'skipping output table {Catalog._meta.table_name!r}.')
-
                 self.extra_nodes[Catalog._meta.table_name] = Catalog
-            elif meta.table_name.startswith(Catalog._meta.table_name + '_to_'):
+            elif table_name.startswith(Catalog._meta.table_name + '_to_'):
                 self.log.debug(f'skipping relational table {meta.table_name!r} '
                                'and adding it as an extra node.')
-                self.extra_nodes[meta.table_name] = model
+                self.extra_nodes[table_name] = model
             else:
-                self.log.debug(f'added table {meta.schema}.{meta.table_name} '
-                               f'with resolution={meta.resolution:.2f} arcsec and '
-                               f'row count={meta.approximate_row_count:.0f} records.')
+                self.log.debug(f'added table {meta.schema}.{table_name} '
+                               f'with resolution={meta.xmatch.resolution:.2f} arcsec and '
+                               f'row count={meta.xmatch.approximate_row_count:.0f} records.')
                 continue
 
-            non_existing_models.append(model)
+            remove_models.append(model)
 
-        [self.models.pop(model._meta.table_name) for model in non_existing_models]
+        [self.models.pop(model._meta.table_name) for model in remove_models]
+        [self.extra_nodes.pop(y) for y in [x for x in self.extra_nodes
+                                           if not self.extra_nodes[x].table_exists()]]
+
+        if len(self.models) == 0:
+            raise RuntimeError('no models to cross-match.')
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
@@ -439,12 +436,12 @@ class XMatchPlanner(object):
                 subgraphs_ext.append((sg, numpy.nan, 0))
             else:
                 if key == 'row_count':
-                    total_row_count = sum([self.models[tn]._meta.approximate_row_count
+                    total_row_count = sum([self.models[tn]._meta.xmatch.approximate_row_count
                                            for tn in sg])
                     # Use -total_row_count to avoid needing reverse order.
                     subgraphs_ext.append((sg, -total_row_count, 1))
                 elif key == 'resolution':
-                    resolution = [self.models[tn]._meta.resolution for tn in sg]
+                    resolution = [self.models[tn]._meta.xmatch.resolution for tn in sg]
                     if all(numpy.isnan(resolution)):
                         min_resolution = numpy.nan
                     else:
@@ -464,10 +461,10 @@ class XMatchPlanner(object):
                         sg_ext.append((table_name, numpy.nan, 0))
                         continue
                     if key == 'row_count':
-                        row_count = self.models[table_name]._meta.approximate_row_count
+                        row_count = self.models[table_name]._meta.xmatch.approximate_row_count
                         sg_ext.append((table_name, -row_count, 1))
                     elif key == 'resolution':
-                        resolution = self.models[table_name]._meta.resolution
+                        resolution = self.models[table_name]._meta.xmatch.resolution
                         sg_ext.append((table_name, resolution, 1))
                 # Use table name as second sorting order to use alphabetic order in
                 # case of draw.
@@ -486,15 +483,23 @@ class XMatchPlanner(object):
         if not Catalog.table_exists():
             Catalog.create_table()
             self.log.info(f'created table {Catalog._meta.table_name!r}')
+            self.extra_nodes[Catalog._meta.table_name] = Catalog
+            self.update_model_graph(silent=True)
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
             self.log.warning(f'using sample region {sample_region!r}')
 
         for table_name in self.process_order:
-            self.process_model(self.models[table_name])
+
+            model = self.models[table_name]
+
+            if model._meta.xmatch.skip:
+                self.log.info(f'skipping table {table_name!r}.')
+                continue
+
+            self.process_model(model)
             self.update_model_graph(silent=True)
-            break
 
     def process_model(self, model):
         """Processes a model, loading it into the output table."""
@@ -509,58 +514,61 @@ class XMatchPlanner(object):
         self.log.info(header + f'Processing table {table_name}.')
 
         if table_name == self.process_order[0]:
-            assert not model._meta.has_duplicates, 'first model to ingest cannot have duplicates.'
+            assert not model._meta.xmatch.has_duplicates, \
+                'first model to ingest cannot have duplicates.'
             is_first_model = True
         else:
             is_first_model = True
 
+        rel_model, rel_model_created = self._create_relational_model(model)
+        if rel_model_created:
+            self.log.info(header + 'Created relational '
+                          f'table {rel_model._meta.table_name!r}.')
+        else:
+            self.log.info(header + 'Relational table '
+                          f'{rel_model._meta.table_name!r} already existed.')
+
         if is_first_model:
-
-            rel_model, rel_model_created = self._create_relational_model(model)
-            if rel_model_created:
-                self.log.info(header + 'Created relational '
-                              f'table {rel_model._meta.table_name!r}.')
-            else:
-                self.log.info(header + 'Relational table '
-                              f'{rel_model._meta.table_name!r} already existed.')
-
             self._load_catalog(model, rel_model)
 
-            if rel_model_created:
-                self.log.debug(header + 'Adding indexes and FKs to '
-                               f'{rel_model._meta.table_name!r}.')
-                add_fks(self.database, rel_model, model)
+        if rel_model_created:
+            self.log.debug(header + 'Adding indexes and FKs to '
+                           f'{rel_model._meta.table_name!r}.')
+            add_fks(self.database, rel_model, model)
 
     def _build_select(self, model):
         """Returns the ModelSelect with all the fields to populate Catalog."""
 
         meta = model._meta
+        xmatch = meta.xmatch
         fields = meta.fields
 
-        model_fields = [model._meta.primary_key.alias('id')]
+        model_fields = [meta.primary_key.alias('id')]
 
-        ra_field = fields[meta.ra_column]
-        dec_field = fields[meta.dec_column]
+        ra_field = fields[xmatch.ra_column]
+        dec_field = fields[xmatch.dec_column]
 
-        if meta.pmra_column:
+        if xmatch.pmra_column:
 
-            pmra_field = fields[meta.pmra_column]
-            pmdec_field = fields[meta.pmdec_column]
-            model_fields.extend([pmra_field.alias('pmra'), pmdec_field.alias('pmdec')])
+            pmra_field = fields[xmatch.pmra_column]
+            pmdec_field = fields[xmatch.pmdec_column]
+            model_fields.extend([pmra_field.alias('pmra'),
+                                 pmdec_field.alias('pmdec')])
 
-            if (meta.epoch and meta.epoch != EPOCH) or meta.epoch_column:
+            if (xmatch.epoch and xmatch.epoch != EPOCH) or xmatch.epoch_column:
 
-                if meta.epoch:
-                    # TODO: Is this correct?
-                    delta_years = float(EPOCH[1:]) - float(meta.epoch[1:])
-                else:
-                    epoch_model = fn.ltrim(fields[meta.epoch_column], 'J').cast('REAL')
-                    delta_years = float(EPOCH[1:]) - epoch_model
+                epoch = (peewee.Value(xmatch.epoch)
+                         if xmatch.epoch else fields[xmatch.epoch_column])
+
+                if xmatch.epoch_format == 'jd':
+                    epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
+
+                delta_years = EPOCH - epoch
 
                 ra_field, dec_field = sql_apply_pm(ra_field, dec_field,
                                                    pmra_field, pmdec_field,
                                                    delta_years,
-                                                   is_pmra_cos=meta.is_pmra_cos)
+                                                   is_pmra_cos=xmatch.is_pmra_cos)
 
         else:
 
@@ -569,8 +577,8 @@ class XMatchPlanner(object):
 
         model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
-        if meta.parallax_column:
-            model_fields.append(fields[meta.parallax_column].alias('parallax'))
+        if xmatch.parallax_column:
+            model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
         else:
             model_fields.append(peewee.Value(None).alias('parallax'))
 
@@ -581,12 +589,12 @@ class XMatchPlanner(object):
         if self._options['order_by'] == 'q3c':
             query = query.order_by(fn.q3c_ang2ipix(ra_field, dec_field))
         else:
-            query = query.order_by(model._meta.primary_key.asc())
+            query = query.order_by(meta.primary_key.asc())
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
-            query = query.where(fn.q3c_radial_query(meta.fields[meta.ra_column],
-                                                    meta.fields[meta.dec_column],
+            query = query.where(fn.q3c_radial_query(fields[xmatch.ra_column],
+                                                    fields[xmatch.dec_column],
                                                     sample_region[0],
                                                     sample_region[1],
                                                     sample_region[2]))
@@ -616,7 +624,7 @@ class XMatchPlanner(object):
                 y = peewee.CTE('y', rel_model.insert_from(
                     x.select(fn.row_number().over() + max_cid, x.c.id),
                     [rel_model.catalogid, rel_model.target_id]
-                ).returning(rel_model))
+                ).returning(rel_model.catalogid, rel_model.target_id))
 
                 insert_query = Catalog.insert_from(
                     y.select(y.c.catalogid,
@@ -656,11 +664,35 @@ class XMatchPlanner(object):
 
         if not RelationalModel.table_exists():
             RelationalModel.create_table()
-            return RelationalModel, True
+            created = True
         else:
+            if (RelationalModel
+                .select(fn.count('*'))
+                .join(Catalog, on=(Catalog.catalogid == RelationalModel.target_id))
+                .where(Catalog.version == self.version)
+                .limit(1).scalar()) > 0:
+                raise RecursionError(f'Relational table {rtname!r} contains records '
+                                     f'for this version of cross-matching ({self.version}). '
+                                     'This problem needs to be solved manually.')
+
             if RelationalModel.select().count() > 0:
                 self.log.warning(f'Relational table {rtname!r} is not empty!')
-            return RelationalModel, False
+
+            created = False
+
+        # Add foreign key fields here. We want to avoid Peewee creating them
+        # as constraints and indexes if the table is created because that would
+        # slow down inserts. We'll created them manually with add_fks.
+        RelationalModel._meta.add_field('catalog',
+                                        peewee.ForeignKeyField(Catalog,
+                                                               column_name='catalogid',
+                                                               backref='+'))
+        RelationalModel._meta.add_field('target',
+                                        peewee.ForeignKeyField(model,
+                                                               column_name='target_id',
+                                                               backref='+'))
+
+        return RelationalModel, created
 
     def _load_relational_table(self, rel_model, catalogids, target_ids):
         """Inserts rows into the relational table associated with a model.
