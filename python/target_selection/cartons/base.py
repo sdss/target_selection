@@ -6,6 +6,7 @@
 # @Filename: base.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import abc
 import logging
 
 import numpy
@@ -13,41 +14,23 @@ import peewee
 from astropy import table
 from playhouse.migrate import PostgresqlMigrator, migrate
 
-from sdssdb.peewee.sdss5db import SDSS5dbModel, catalogdb, database, targetdb
+from sdssdb.peewee.sdss5db import BaseModel, catalogdb, database, targetdb
 
 from .. import config, log, manager
 
 
 # For now use Gaia but eventually change to Catalog and Catalog.catalogid.
-catalog_model = catalogdb.GaiaDR2Source
-catalogid_field = catalogdb.GaiaDR2Source.source_id
+catalog_model = catalogdb.Gaia_DR2
+catalogid_field = catalogdb.Gaia_DR2.source_id
 
-default_fields = {'ra': catalogdb.GaiaDR2Source.ra,
-                  'dec': catalogdb.GaiaDR2Source.dec,
-                  'pmra': catalogdb.GaiaDR2Source.pmra,
-                  'pmdec': catalogdb.GaiaDR2Source.pmdec,
-                  'epoch': catalogdb.GaiaDR2Source.ref_epoch.alias('epoch')}
-
-
-class CartonMeta(type):
-
-    __require_overload__ = ['build_query']
-
-    def __new__(meta, name, bases, dct):
-
-        if bases:
-            assert dct.get('name', None) is not None, 'name is not defined.'
-
-            # Make sure we have overloaded the necessary methods. We do this
-            # manually because we are already using one metaclass and cannot
-            # use abc.
-            for method in meta.__require_overload__:
-                assert method in dct, f'overloading of {method!r} is required.'
-
-        return super(CartonMeta, meta).__new__(meta, name, bases, dct)
+default_fields = {'ra': catalogdb.Gaia_DR2.ra,
+                  'dec': catalogdb.Gaia_DR2.dec,
+                  'pmra': catalogdb.Gaia_DR2.pmra,
+                  'pmdec': catalogdb.Gaia_DR2.pmdec,
+                  'epoch': catalogdb.Gaia_DR2.ref_epoch.alias('epoch')}
 
 
-class BaseCarton(metaclass=CartonMeta):
+class BaseCarton(metaclass=abc.ABCMeta):
     """A base class for target cartons.
 
     This class is not intended for direct instantiation. Instead, it must be
@@ -155,6 +138,7 @@ class BaseCarton(metaclass=CartonMeta):
         assert program.category and program.category.label == self.category, \
             f'{self.category!r} not present in targetdb.category.'
 
+    @abc.abstractmethod
     def build_query(self):
         """Builds and returns the query.
 
@@ -198,7 +182,7 @@ class BaseCarton(metaclass=CartonMeta):
         if query is None:
             query = self.build_query()
 
-        class Model(SDSS5dbModel):
+        class Model(BaseModel):
             class Meta:
                 table_name = self.table_name
                 schema = self.schema
