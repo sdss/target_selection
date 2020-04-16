@@ -52,8 +52,8 @@ class BhmSpidersAgnWideCarton(BaseCarton):
     cadence = 'bhm_spiders_1x4'
     tile = False
 
-    # list of masks - move to the config file?
-    masks = [
+    # list of skymasks - move to the config file?
+    skymasks = [
         SkyMask(filename=pkg_resources.resource_filename(
             __name__,
             'masks/eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply'),
@@ -104,13 +104,20 @@ class BhmSpidersAgnWideCarton(BaseCarton):
 
     def post_process(self, model, **kwargs):
         # this is where we select on mask location
-        # get the id and coords of all of the objects in the temp table
+        # get the ids and coords of all of the objects in the temp table
         cat_id = np.array(model.catalog_id[:])
         ra = np.array(model.ra[:])
         dec = np.array(model.dec[:])
 
+        flags = np.ones(len(cat_id), np.bool)
 
-        return True
+        for sm in self.skymasks:
+            sm.apply(lon=ra, lat=dec, flags=flags)
+
+        # not sure what to return at this point - a list of tuples?
+        result = [(i,flag) for i,flag in zip(cat_id,flags)]
+
+        return result
 
 
 
