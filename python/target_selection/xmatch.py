@@ -22,6 +22,8 @@ from sdssdb.utils import get_row_count
 from sdsstools.color_print import color_text
 
 import target_selection
+from target_selection.exceptions import (TargetSelectionNotImplemented,
+                                         XMatchError)
 from target_selection.utils import Timer, get_epoch, sql_apply_pm, sql_iauname
 
 
@@ -49,11 +51,11 @@ def get_relational_model(model, prefix='catalog_to_'):
 
     meta = model._meta
 
-    assert meta.primary_key != '__composite_key__', \
-        f'composite pk fount for model {model.__name__!r}.'
+    if meta.primary_key == '__composite_key__':
+        raise XMatchError(f'composite pk fount for model {model.__name__!r}.')
 
-    # Auto/Serial are automatically PKs. Convert them to integers to avoid
-    # having two pks in the relational table.
+    # Auto/Serial are automatically PKs. Convert them to integers
+    # to avoid having two pks in the relational table.
     if meta.primary_key.__class__.field_type == 'AUTO':
         model_pk_class = peewee.IntegerField
     elif meta.primary_key.__class__.field_type == 'BIGAUTO':
@@ -61,7 +63,7 @@ def get_relational_model(model, prefix='catalog_to_'):
     else:
         model_pk_class = meta.primary_key.__class__
 
-    class BaseRelationalModel(peewee.Model):
+    class BaseModel(peewee.Model):
 
         id = peewee.BigAutoField(primary_key=True)
         catalogid = peewee.BigIntegerField()
@@ -73,9 +75,10 @@ def get_relational_model(model, prefix='catalog_to_'):
             database = meta.database
             schema = meta.schema
 
-    model_prefix = ''.join(x.capitalize() or '_' for x in prefix.rstrip().split('_'))
+    model_prefix = ''.join(x.capitalize() or '_'
+                           for x in prefix.rstrip().split('_'))
 
-    RelationalModel = type(model_prefix + model.__name__, (BaseRelationalModel,), {})
+    RelationalModel = type(model_prefix + model.__name__, (BaseModel,), {})
     RelationalModel._meta.table_name = prefix + meta.table_name
 
     return RelationalModel
@@ -87,6 +90,9 @@ def add_fks(database, RelationalModel, related_model):
     rtschema = RelationalModel._meta.schema
     rtname = RelationalModel._meta.table_name
 
+    rel_schema = related_model._meta.schema
+    rel_tname = related_model._meta.table_name
+
     migrator = PostgresqlMigrator(database)
 
     with database.atomic():
@@ -96,15 +102,16 @@ def add_fks(database, RelationalModel, related_model):
             migrator.add_index(rtname, ('catalogid',), False),
             migrator.add_constraint(
                 rtname, 'catalogid',
-                peewee.SQL('FOREIGN KEY (catalogid) '
-                           f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
-                           '(catalogid)')),
+                peewee.SQL(
+                    'FOREIGN KEY (catalogid) '
+                    f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
+                    '(catalogid)')),
             migrator.add_index(rtname, ('target_id',), False),
             migrator.add_constraint(
                 rtname, 'target_id',
                 peewee.SQL(
                     f'FOREIGN KEY (target_id) '
-                    f'REFERENCES {related_model._meta.schema}.{related_model._meta.table_name} '
+                    f'REFERENCES {rel_schema}.{rel_tname} '
                     f'({related_model._meta.primary_key.column_name})'))
         )
 
@@ -119,7 +126,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
-    ``Model._meta.<parameter>`` (e.g., ``Model._meta.has_duplicates``).
+    ``Model._meta.xmatch.<parameter>`` (e.g.,
+    ``Model._meta.xmatch.has_duplicates``).
 
     Parameters
     ----------
@@ -164,7 +172,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     -------
     Model
         The same input model with the additional cross-matching parameters
-        added to the metadata.
+        added to the metadata namespace ``xmatch``.
 
     """
 
@@ -231,7 +239,7 @@ class XMatchPlanner(object):
     def __init__(self, database, models, version, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  query_radius=None, start_node=None, schema='catalogdb',
-                 output_table='catalog', order_by='pk',
+                 output_table='catalog', order_by='pk', allow_existing=False,
                  log_path='./xmatch_{version}.log', debug=False,
                  show_sql=False, sample_region=None):
 
@@ -273,6 +281,7 @@ class XMatchPlanner(object):
 
         self._options = {'order_by': order_by,
                          'query_radius': query_radius or 1 / 3600.,
+                         'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
                          'epoch': epoch}
@@ -383,7 +392,7 @@ class XMatchPlanner(object):
                                            if not self.extra_nodes[x].table_exists()]]
 
         if len(self.models) == 0:
-            raise RuntimeError('no models to cross-match.')
+            raise XMatchError('no models to cross-match.')
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
@@ -553,6 +562,10 @@ class XMatchPlanner(object):
     def run(self):
         """Runs the cross-matching process."""
 
+        error_msg = (f'{Catalog._meta.table_name!r} contains '
+                     'records for this version of cross-matching '
+                     f'({self.version}).')
+
         # Make sure the output table exists.
         if not Catalog.table_exists():
             Catalog.create_table()
@@ -560,12 +573,13 @@ class XMatchPlanner(object):
         else:
             # Check if Catalog already has entries for this xmatch version.
             if (Catalog.select()
-                    .where(Catalog.version == self.version)
-                    .limit(1).count() > 0):
-                raise RuntimeError(f'{Catalog._meta.table_name!r} contains '
-                                   'records for this version of cross-matching '
-                                   f'({self.version}). This problem needs to '
-                                   'be solved manually.')
+                    .where(Catalog.version == self.version).limit(1).count() > 0):
+
+                if self._options['allow_existing']:
+                    self.log.warning(error_msg)
+                else:
+                    raise XMatchError(error_msg +
+                                      ' This problem needs to be solved manually.')
 
         self.extra_nodes[Catalog._meta.table_name] = Catalog
         self.update_model_graph(silent=True)
@@ -590,8 +604,8 @@ class XMatchPlanner(object):
         self.log.info(f'Processing table {table_name}.')
 
         if model._meta.xmatch.has_duplicates:
-            raise ValueError('handling of tables with duplicates '
-                             'is not implemented.')
+            raise TargetSelectionNotImplemented(
+                'handling of tables with duplicates is not implemented.')
 
         # Check if there are already records in catalog for this version.
         if Catalog.select().where(Catalog.version == self.version).limit(1).count() == 0:
@@ -767,17 +781,6 @@ class XMatchPlanner(object):
             RelationalModel.create_table()
             created = True
         else:
-            # TODO: with the check on Catalog done in .run() this check may not
-            # be needed anymore.
-            if (RelationalModel
-                    .select()
-                    .join(Catalog, on=(Catalog.catalogid == RelationalModel.catalogid))
-                    .where(Catalog.version == self.version)
-                    .limit(1).count()) > 0:
-                raise RuntimeError(f'Relational table {rtname!r} contains records '
-                                   f'for this version of cross-matching ({self.version}). '
-                                   'This problem needs to be solved manually.')
-
             if RelationalModel.select().count() > 0:
                 self.log.warning(f'Relational table {rtname!r} is not empty!')
 
