@@ -22,7 +22,7 @@ from sdssdb.utils import get_row_count
 from sdsstools.color_print import color_text
 
 import target_selection
-from target_selection.utils import Timer, copy_pandas, get_epoch, sql_apply_pm
+from target_selection.utils import Timer, get_epoch, sql_apply_pm, sql_iauname
 
 
 EPOCH = 2015.5
