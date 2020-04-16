@@ -339,7 +339,7 @@ class XMatchPlanner(object):
 
         xmatch_models = {}
         for table_name in table_config:
-            table_params = table_config[table_name]
+            table_params = table_config[table_name] or {}
             xmatch_models[table_name] = XMatchModel(models[table_name],
                                                     **table_params)
 

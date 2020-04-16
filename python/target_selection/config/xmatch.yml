@@ -44,3 +44,30 @@
         ps1_g18:
             ra_column: ramean
             dec_column: decmean
+        guvcat:
+            ra_column: ra
+            dec_column: dec
+        sdss_dr13_photoobj:
+            ra_column: ra
+            dec_column: dec
+        kepler_input_10:
+            ra_column: kic_ra
+            dec_column: kic_dec
+        glimpse:
+            ra_column: ra
+            dec_column: dec
+        skymapper_dr1_1:
+            ra_column: raj2000
+            dec_column: dej2000
+        gaia_qso:
+            ra_column: raj2000
+            dec_column: dej2000
+        bhm_csc:
+            ra_column: oir_ra
+            dec_column: oir_dec
+        gaia_dr2_wd_sdss:
+            ra_column: ra
+            dec_column: dec
+        unwise:
+            ra_column: ra
+            dec_column: dec
