@@ -10,6 +10,8 @@
     exclude: null
     tables:
         tic_v8:
+            ra_column: ra
+            dec_column: dec
             pmra_column: pmra
             pmdec_column: pmdec
             is_pmra_cos: true
@@ -17,6 +19,8 @@
             epoch: 2015.5
             skip: false
         gaia_dr2_source:
+            ra_column: ra
+            dec_column: dec
             pmra_column: pmra
             pmdec_column: pmdec
             is_pmra_cos: true
@@ -24,12 +28,15 @@
             epoch: 2015.5
             skip: true
         legacy_survey_dr8:
+            ra_column: ra
+            dec_column: dec
             pmra_column: pmra
             pmdec_column: pmdec
             is_pmra_cos: true
             parallax_column: parallax
             epoch_column: ref_epoch
         twomass_psc:
+            ra_column: ra
             dec_column: decl
             epoch_column: jdate
             epoch_format: jd
@@ -44,6 +51,13 @@
         ps1_g18:
             ra_column: ramean
             dec_column: decmean
+        catwise:
+            ra_column: ra_pm
+            dec_column: dec_pm
+            pmra_column: pmra
+            pmdec_column: pmdec
+            epoch: 2014.115  # MJD 56700
+            parallax_column: par_pm
         guvcat:
             ra_column: ra
             dec_column: dec
