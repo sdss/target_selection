@@ -617,13 +617,15 @@ class XMatchPlanner(object):
         xmatch = meta.xmatch
         fields = meta.fields
 
-        model_fields = [meta.primary_key.alias('id')]
+        # List of fields that will become the SELECT clause.
+        model_fields = [meta.primary_key.alias('target_id')]
 
         ra_field = fields[xmatch.ra_column]
         dec_field = fields[xmatch.dec_column]
 
         to_epoch = self._options['epoch']
 
+        # RA, Dec, and pro[er motion fields.
         if xmatch.pmra_column:
 
             pmra_field = fields[xmatch.pmra_column]
@@ -645,22 +647,30 @@ class XMatchPlanner(object):
             model_fields.extend([peewee.Value(None).cast('REAL').alias('pmra'),
                                  peewee.Value(None).cast('REAL').alias('pmdec')])
 
+        # Actually add the RA/Dec fields as defined above
         model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
+        # Parallax
         if xmatch.parallax_column:
             model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
         else:
             model_fields.append(peewee.Value(None).cast('REAL').alias('parallax'))
 
-        # model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
+        # Calculate IAU name.
+        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
 
+        # Build the SELECT
         query = model.select(*model_fields)
 
+        # Define the order. One would thing that if the table has been clustered
+        # along the Q3C index that would be the natural order but it seems
+        # that ordering on the PK is still faster.
         if self._options['order_by'] == 'q3c':
             query = query.order_by(fn.q3c_ang2ipix(ra_field, dec_field))
         else:
             query = query.order_by(meta.primary_key.asc())
 
+        # Apply any restriction to the sampled area.
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
             query = query.where(fn.q3c_radial_query(fields[xmatch.ra_column],
@@ -688,9 +698,11 @@ class XMatchPlanner(object):
 
                 x = query.cte('x')
 
+                # CTE to populate the relational table.
                 y = peewee.CTE('y',
                                rel_model.insert_from(
-                                   x.select(fn.row_number().over() + max_cid, x.c.id,
+                                   x.select(fn.row_number().over() + max_cid,
+                                            x.c.target_id,
                                             peewee.SQL('true'))
                                    .where(x.c.ra.is_null(False),  # Make sure RA and Dec exist.
                                           x.c.dec.is_null(False)),
@@ -700,8 +712,11 @@ class XMatchPlanner(object):
                                .returning(rel_model.catalogid,
                                           rel_model.target_id))
 
+                # INSERT INTO catalog using the catalogids and targetids
+                # returned by y. Return only the number of rows inserted.
                 insert_query = Catalog.insert_from(
                     y.select(y.c.catalogid,
+                             x.c.iauname,
                              x.c.ra,
                              x.c.dec,
                              x.c.pmra,
@@ -711,6 +726,7 @@ class XMatchPlanner(object):
                              peewee.Value(self.version))
                      .join(x, on=(x.c.id == y.c.target_id)),
                     [Catalog.catalogid,
+                     Catalog.iauname,
                      Catalog.ra,
                      Catalog.dec,
                      Catalog.pmra,
@@ -793,6 +809,42 @@ class XMatchPlanner(object):
                                                     sample_region[2]))
 
         return query
+
+    def _load_relational_table(self, rel_model, catalogids, target_ids):
+        """Inserts rows into the relational table associated with a model.
+
+        Parameters
+        ----------
+        rel_model : peewee:Model
+            The relational model to load.
+        catalogids : tuple
+            The catalogids to be associated.
+        target_ids : tuple or peewee:ModelSelect
+            Either a tuple with the target_ids from the related model or a
+            query that will return them.
+        chunk_size : int
+            How many records to insert at a time.
+
+        Returns
+        -------
+        n_rows : int
+            The number of rows inserted.
+
+        """
+
+        meta = rel_model._meta
+
+        if isinstance(target_ids, peewee.ModelSelect):
+            # Keep query but now return only the pk of the queried table.
+            target_ids._returning = (target_ids.model._meta.primary_key,)
+            target_ids = (tid[0] for tid in target_ids.tuples())
+
+        data = {'cids': catalogids, 'tids': target_ids, 'best': True}
+
+        df = copy_pandas(data, self.database, meta.table_name, schema=meta.schema,
+                         columns=['catalogid', 'target_id', 'best'])
+
+        return len(df)
 
     def _run_phase_1(self, model, rel_model):
         """Runs the linking against matched catalogids stage."""
