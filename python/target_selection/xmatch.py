@@ -334,11 +334,12 @@ class XMatchPlanner(object):
 
         models = {model._meta.table_name: model for model in models
                   if (model.table_exists() and
-                      model._meta.schema == schema and
-                      model not in exclude)}
+                      model._meta.schema == schema and model not in exclude)}
 
         xmatch_models = {}
         for table_name in table_config:
+            if table_name not in models:
+                continue
             table_params = table_config[table_name] or {}
             xmatch_models[table_name] = XMatchModel(models[table_name],
                                                     **table_params)
