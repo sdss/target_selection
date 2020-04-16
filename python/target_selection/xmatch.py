@@ -51,18 +51,19 @@ class Catalog(peewee.Model):
 def get_relational_model(model, prefix='catalog_to_'):
 
     meta = model._meta
+    pk = meta.primary_key
 
-    if meta.primary_key == '__composite_key__':
-        raise XMatchError(f'composite pk fount for model {model.__name__!r}.')
+    if isinstance(pk, str) and pk == '__composite_key__':
+        raise XMatchError(f'composite pk found for model {model.__name__!r}.')
 
     # Auto/Serial are automatically PKs. Convert them to integers
     # to avoid having two pks in the relational table.
-    if meta.primary_key.__class__.field_type == 'AUTO':
+    if pk.__class__.field_type == 'AUTO':
         model_pk_class = peewee.IntegerField
-    elif meta.primary_key.__class__.field_type == 'BIGAUTO':
+    elif pk.__class__.field_type == 'BIGAUTO':
         model_pk_class = peewee.BigIntegerField
     else:
-        model_pk_class = meta.primary_key.__class__
+        model_pk_class = pk.__class__
 
     class BaseModel(peewee.Model):
 
@@ -741,7 +742,7 @@ class XMatchPlanner(object):
                              x.c.parallax,
                              peewee.Value(table_name),
                              peewee.Value(self.version))
-                     .join(x, on=(x.c.id == y.c.target_id)),
+                     .join(x, on=(x.c.target_id == y.c.target_id)),
                     [Catalog.catalogid,
                      Catalog.iauname,
                      Catalog.ra,
