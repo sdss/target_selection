@@ -22,7 +22,7 @@ from sdssdb.utils import get_row_count
 from sdsstools.color_print import color_text
 
 import target_selection
-from target_selection.utils import Timer, get_epoch, sql_apply_pm, sql_iauname
+from target_selection.utils import Timer, copy_pandas, get_epoch, sql_apply_pm
 
 
 EPOCH = 2015.5
@@ -793,42 +793,6 @@ class XMatchPlanner(object):
                                                     sample_region[2]))
 
         return query
-
-    def _load_relational_table(self, rel_model, catalogids, target_ids):
-        """Inserts rows into the relational table associated with a model.
-
-        Parameters
-        ----------
-        rel_model : peewee:Model
-            The relational model to load.
-        catalogids : tuple
-            The catalogids to be associated.
-        target_ids : tuple or peewee:ModelSelect
-            Either a tuple with the target_ids from the related model or a
-            query that will return them.
-        chunk_size : int
-            How many records to insert at a time.
-
-        Returns
-        -------
-        n_rows : int
-            The number of rows inserted.
-
-        """
-
-        meta = rel_model._meta
-
-        if isinstance(target_ids, peewee.ModelSelect):
-            # Keep query but now return only the pk of the queried table.
-            target_ids._returning = (target_ids.model._meta.primary_key,)
-            target_ids = (tid[0] for tid in target_ids.tuples())
-
-        data = {'cids': catalogids, 'tids': target_ids, 'best': True}
-
-        df = copy_pandas(data, self.database, meta.table_name, schema=meta.schema,
-                         columns=['catalogid', 'target_id', 'best'])
-
-        return len(df)
 
     def _run_phase_1(self, model, rel_model):
         """Runs the linking against matched catalogids stage."""
