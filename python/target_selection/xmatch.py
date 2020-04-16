@@ -596,6 +596,8 @@ class XMatchPlanner(object):
             self._run_phase_1(model, rel_model)
             self.log.info('Phase 2: cross-matching against existing targets.')
             self._run_phase_2(model, rel_model)
+            self.log.info('Phase 3: adding non cross-matched targets.')
+            self._run_phase_3(model, rel_model)
 
         if rel_model_created:
             self.log.debug(f'Adding indexes and FKs to {rel_model._meta.table_name!r}.')
@@ -633,15 +635,15 @@ class XMatchPlanner(object):
 
         else:
 
-            model_fields.extend([peewee.Value(None).alias('pmra'),
-                                 peewee.Value(None).alias('pmdec')])
+            model_fields.extend([peewee.Value(None).cast('REAL').alias('pmra'),
+                                 peewee.Value(None).cast('REAL').alias('pmdec')])
 
         model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
         if xmatch.parallax_column:
             model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
         else:
-            model_fields.append(peewee.Value(None).alias('parallax'))
+            model_fields.append(peewee.Value(None).cast('REAL').alias('parallax'))
 
         # model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
 
@@ -676,14 +678,20 @@ class XMatchPlanner(object):
 
                 # Get the max catalogid currently in the table.
                 max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
-                self.log.debug(f'catalogid will start at {max_cid+1}.')
 
                 x = query.cte('x')
 
-                y = peewee.CTE('y', rel_model.insert_from(
-                    x.select(fn.row_number().over() + max_cid, x.c.id, peewee.Value(True)),
-                    [rel_model.catalogid, rel_model.target_id, rel_model.best]
-                ).returning(rel_model.catalogid, rel_model.target_id))
+                y = peewee.CTE('y',
+                               rel_model.insert_from(
+                                   x.select(fn.row_number().over() + max_cid, x.c.id,
+                                            peewee.SQL('true'))
+                                   .where(x.c.ra.is_null(False),  # Make sure RA and Dec exist.
+                                          x.c.dec.is_null(False)),
+                                   [rel_model.catalogid,
+                                    rel_model.target_id,
+                                    rel_model.best])
+                               .returning(rel_model.catalogid,
+                                          rel_model.target_id))
 
                 insert_query = Catalog.insert_from(
                     y.select(y.c.catalogid,
@@ -970,3 +978,17 @@ class XMatchPlanner(object):
         self.log.debug(f'Inserted {nids[0]} records in {rel_table_name!r} '
                        f'associated with {nids[1]} targets in {table_name!r}, '
                        f'in {timer.interval:.3f} s.')
+
+    def _run_phase_3(self, model, rel_model):
+        """Add non-matched targets to Catalog and the relational table."""
+
+        # Build the initial query.
+        query = self._build_select(model)
+
+        # Limit the query to targets not matched.
+        query = (query
+                 .join(rel_model, peewee.JOIN.LEFT_OUTER)
+                 .where(rel_model.catalogid.is_null()))
+
+        # Insert the records
+        self._load_catalog(model, rel_model, query=query)
