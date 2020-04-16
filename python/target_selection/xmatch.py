@@ -938,7 +938,7 @@ class XMatchPlanner(object):
         # the smallest distance to the Catalog target as best.
         partition = (fn.first_value(subq.c.target_id)
                      .over(partition_by=[unmatched.c.catalogid],
-                           order_by=[subq.c.distance.asc()])
+                           order_by=[subq.c.distance.asc()]))
         best = peewee.Value(partition == subq.c.target_id)
 
         xmatches = (unmatched
