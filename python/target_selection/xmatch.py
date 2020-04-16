@@ -14,6 +14,7 @@ import networkx
 import numpy
 import peewee
 import yaml
+from networkx.algorithms import shortest_path
 from peewee import fn
 from playhouse.migrate import PostgresqlMigrator, migrate
 
@@ -270,14 +271,13 @@ class XMatchPlanner(object):
         self.database.bind([Catalog])
 
         self.models = {model._meta.table_name: model for model in models}
-
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._check_models()
         self.update_model_graph()
 
         self.process_order = []
-        self._set_process_order(order=order, key=key, start_node=start_node)
+        self.set_process_order(order=order, key=key, start_node=start_node)
 
         self._options = {'order_by': order_by,
                          'query_radius': query_radius or 1 / 3600.,
@@ -287,7 +287,7 @@ class XMatchPlanner(object):
                          'epoch': epoch}
 
     @classmethod
-    def read(cls, base_model, version, config_file=None, **kwargs):
+    def read(cls, in_models, version, config_file=None, **kwargs):
         """Instantiates `.XMatchPlanner` from a configuration file.
 
         Parameters
@@ -308,22 +308,22 @@ class XMatchPlanner(object):
             User arguments that will override the configuration file values.
 
         """
-
-        # TODO: I don't like too much this way of defining the models.
-        if inspect.isclass(base_model) and issubclass(base_model, peewee.Model):
-            database = base_model._meta.database
-            models = set(base_model.__subclasses__())
+        if isinstance(in_models, (list, tuple)):
+            models = in_models
+        elif inspect.isclass(in_models) and issubclass(in_models, peewee.Model):
+            database = in_models._meta.database
+            models = set(in_models.__subclasses__())
             while True:
                 old_models = models.copy()
                 for model in old_models:
                     models |= set(model.__subclasses__())
                 if models == old_models:
                     break
-        elif isinstance(base_model, PeeweeDatabaseConnection):
-            database = base_model
+        elif isinstance(in_models, PeeweeDatabaseConnection):
+            database = in_models
             models = database.models.values()
         else:
-            raise TypeError(f'invalid input of type {type(base_model)!r}')
+            raise TypeError(f'invalid input of type {type(in_models)!r}')
 
         assert database.connected, 'database is not connected.'
 
@@ -373,16 +373,12 @@ class XMatchPlanner(object):
             if not model.table_exists():
                 self.log.warning(f'table {table_name!r} does not exist.')
             elif table_name == Catalog._meta.table_name:
-                self.log.debug(f'skipping output table {Catalog._meta.table_name!r}.')
                 self.extra_nodes[Catalog._meta.table_name] = Catalog
             elif table_name.startswith(Catalog._meta.table_name + '_to_'):
-                self.log.debug(f'skipping relational table {meta.table_name!r} '
-                               'and adding it as an extra node.')
+                self.extra_nodes[table_name] = model
+            elif meta.xmatch.skip:
                 self.extra_nodes[table_name] = model
             else:
-                self.log.debug(f'added table {meta.schema}.{table_name} '
-                               f'with resolution={meta.xmatch.resolution:.2f} arcsec and '
-                               f'row count={meta.xmatch.row_count:.0f} records.')
                 continue
 
             remove_models.append(model)
@@ -415,8 +411,8 @@ class XMatchPlanner(object):
 
         return self.model_graph
 
-    def _set_process_order(self, order='hierarchical', key='row_count',
-                           start_node=None):
+    def set_process_order(self, order='hierarchical', key='row_count',
+                          start_node=None):
         """Sets and returns the order in which tables will be processed.
 
         See `.XMatchPlanner` for details on how the order is decided depending
@@ -456,14 +452,12 @@ class XMatchPlanner(object):
             else:
                 if key == 'row_count':
                     total_row_count = sum([self.models[tn]._meta.xmatch.row_count
-                                           for tn in sg
-                                           if not self.models[tn]._meta.xmatch.skip])
+                                           for tn in sg])
                     # Use -total_row_count to avoid needing reverse order.
                     subgraphs_ext.append((sg, -total_row_count, 1))
                 elif key == 'resolution':
                     resolution = [self.models[tn]._meta.xmatch.resolution
-                                  for tn in sg
-                                  if not self.models[tn]._meta.xmatch.skip]
+                                  for tn in sg]
                     if all(numpy.isnan(resolution)):
                         min_resolution = numpy.nan
                     else:
@@ -482,8 +476,6 @@ class XMatchPlanner(object):
                     model = self.models[table_name]
                     if start_node and start_node == table_name:
                         sg_ext.append((table_name, numpy.nan, 0))
-                        continue
-                    elif model._meta.xmatch.skip:
                         continue
                     if key == 'row_count':
                         row_count = model._meta.xmatch.row_count
@@ -543,9 +535,9 @@ class XMatchPlanner(object):
 
         while True:
             try:
-                shortest_path = networkx.algorithms.shortest_path(graph, source, dest)
-                paths.append(shortest_path)
-                for node in shortest_path[1:-1]:
+                spath = shortest_path(graph, source, dest)
+                paths.append(spath)
+                for node in spath[1:-1]:
                     graph.remove_node(node)
             except networkx.NetworkXNoPath:
                 break
@@ -554,8 +546,8 @@ class XMatchPlanner(object):
             return []
 
         if return_models:
-            paths = [[self.model_graph.nodes[node]['model'] for node in path]
-                     for path in paths]
+            nodes = self.model_graph.nodes
+            paths = [[nodes[node]['model'] for node in path] for path in paths]
 
         return paths
 
@@ -628,13 +620,14 @@ class XMatchPlanner(object):
             self._run_phase_3(model, rel_model)
 
         if rel_model_created:
-            self.log.debug(f'Adding indexes and FKs to {rel_model._meta.table_name!r}.')
+            self.log.debug(f'Adding indexes and FKs to '
+                           f'{rel_model._meta.table_name!r}.')
             add_fks(self.database, rel_model, model)
 
         self.log.header = ''
 
     def _build_select(self, model):
-        """Returns the ModelSelect with all the fields to populate Catalog."""
+        """Builds the SELECT with the model fields to populate Catalog."""
 
         meta = model._meta
         xmatch = meta.xmatch
@@ -661,7 +654,7 @@ class XMatchPlanner(object):
                 ra_field, dec_field = sql_apply_pm(ra_field, dec_field,
                                                    pmra_field, pmdec_field,
                                                    delta_years,
-                                                   is_pmra_cos=xmatch.is_pmra_cos)
+                                                   xmatch.is_pmra_cos)
                 if not xmatch.is_pmra_cos:
                     pmra_field *= fn.cos(fn.radians(dec_field))
 
@@ -673,14 +666,14 @@ class XMatchPlanner(object):
         # Actually add the RA/Dec fields as defined above
         model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
+        # Calculate IAU name.
+        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
+
         # Parallax
         if xmatch.parallax_column:
             model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
         else:
             model_fields.append(peewee.Value(None).cast('REAL').alias('parallax'))
-
-        # Calculate IAU name.
-        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
 
         # Build the SELECT
         query = model.select(*model_fields)
@@ -719,6 +712,7 @@ class XMatchPlanner(object):
                 # Get the max catalogid currently in the table.
                 max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
 
+                # Query the model, as a CTE.
                 x = query.cte('x')
 
                 # CTE to populate the relational table.
@@ -774,7 +768,9 @@ class XMatchPlanner(object):
 
         """
 
-        RelationalModel = get_relational_model(model, prefix=Catalog._meta.table_name + '_to_')
+        cat_table = Catalog._meta.table_name
+
+        RelationalModel = get_relational_model(model, prefix=cat_table + '_to_')
         rtname = RelationalModel._meta.table_name
 
         if not RelationalModel.table_exists():
@@ -789,14 +785,15 @@ class XMatchPlanner(object):
         # Add foreign key fields here. We want to avoid Peewee creating them
         # as constraints and indexes if the table is created because that would
         # slow down inserts. We'll created them manually with add_fks.
-        RelationalModel._meta.add_field('catalog',
-                                        peewee.ForeignKeyField(Catalog,
-                                                               column_name='catalogid',
-                                                               backref='+'))
-        RelationalModel._meta.add_field('target',
-                                        peewee.ForeignKeyField(model,
-                                                               column_name='target_id',
-                                                               backref='+'))
+        RelationalModel._meta.add_field(
+            'catalog',
+            peewee.ForeignKeyField(Catalog, column_name='catalogid',
+                                   backref='+'))
+
+        RelationalModel._meta.add_field(
+            'target',
+            peewee.ForeignKeyField(model, column_name='target_id',
+                                   backref='+'))
 
         self.extra_nodes[rtname] = RelationalModel
         self.update_model_graph(silent=True)
@@ -919,7 +916,7 @@ class XMatchPlanner(object):
                                             unmatched.c.dec,
                                             unmatched.c.pmra,
                                             unmatched.c.pmdec,
-                                            1,  # Catalog pmra is pmra*cos_delta by definition.
+                                            1,  # Catalog pmra is pmra*cos by definition.
                                             catalog_epoch,
                                             model_ra,
                                             model_dec,
@@ -939,12 +936,16 @@ class XMatchPlanner(object):
         # Do a lateral join (for each loop). Partition over each group of
         # targets that are within radius of a catalogid. Mark the one with
         # the smallest distance to the Catalog target as best.
-        partition = fn.first_value(subq.c.target_id).over(partition_by=[unmatched.c.catalogid],
-                                                          order_by=[subq.c.distance.asc()])
-        xmatches = (unmatched.select(unmatched.c.catalogid,
-                                     subq.c.target_id,
-                                     subq.c.distance,
-                                     peewee.Value(partition == subq.c.target_id).alias('best'))
+        partition = (fn.first_value(subq.c.target_id)
+                     .over(partition_by=[unmatched.c.catalogid],
+                           order_by=[subq.c.distance.asc()])
+        best = peewee.Value(partition == subq.c.target_id)
+
+        xmatches = (unmatched
+                    .select(unmatched.c.catalogid,
+                            subq.c.target_id,
+                            subq.c.distance,
+                            best.alias('best'))
                     .join(subq, 'CROSS JOIN LATERAL')
                     .order_by(unmatched.c.catalogid)
                     .with_cte(unmatched))
