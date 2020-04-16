@@ -555,18 +555,21 @@ class XMatchPlanner(object):
         # Make sure the output table exists.
         if not Catalog.table_exists():
             Catalog.create_table()
-            self.log.info(f'created table {Catalog._meta.table_name!r}')
+            self.log.info(f'Created table {Catalog._meta.table_name!r}.')
 
         self.extra_nodes[Catalog._meta.table_name] = Catalog
         self.update_model_graph(silent=True)
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
-            self.log.warning(f'using sample region {sample_region!r}')
+            self.log.warning(f'Using sample region {sample_region!r}.')
 
-        for table_name in self.process_order:
-            model = self.models[table_name]
-            self.process_model(model)
+        with Timer() as timer:
+            for table_name in self.process_order:
+                model = self.models[table_name]
+                self.process_model(model)
+
+        self.log.info(f'Cross-matching completed in {timer.interval:.3f} s.')
 
     def process_model(self, model):
         """Processes a model, loading it into the output table."""
