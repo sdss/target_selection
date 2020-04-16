@@ -1,6 +1,7 @@
 '0.1.0':
     order: hierarchical
     key: resolution
+    query_radius: 0.000277778  # 1 arcsec
     schema: catalogdb
     output_table: catalog
     start_node: tic_v8

@@ -19,9 +19,10 @@ from playhouse.migrate import PostgresqlMigrator, migrate
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
+from sdsstools.color_print import color_text
 
 import target_selection
-from target_selection.utils import Timer, copy_pandas, sql_apply_pm
+from target_selection.utils import Timer, copy_pandas, get_epoch, sql_apply_pm
 
 
 EPOCH = 2015.5
@@ -65,6 +66,7 @@ def get_relational_model(model, prefix='catalog_to_'):
         id = peewee.BigAutoField(primary_key=True)
         catalogid = peewee.BigIntegerField()
         target_id = model_pk_class()
+        distance = peewee.DoubleField(null=True)
         best = peewee.BooleanField(null=False, default=True)
 
         class Meta:
@@ -226,11 +228,11 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, database, models, version, extra_nodes=[], skip_tables=[],
-                 order='hierarchical', key='row_count', start_node=None,
-                 schema='catalogdb', output_table='catalog', order_by='pk',
-                 log_path='./xmatch_{version}.log', debug=False, show_sql=False,
-                 sample_region=None):
+    def __init__(self, database, models, version, extra_nodes=[],
+                 order='hierarchical', key='row_count', query_radius=None,
+                 start_node=None, schema='catalogdb', output_table='catalog',
+                 order_by='pk', log_path='./xmatch_{version}.log', debug=False,
+                 show_sql=False, sample_region=None):
 
         self.log = target_selection.log
 
@@ -269,7 +271,7 @@ class XMatchPlanner(object):
         self._set_process_order(order=order, key=key, start_node=start_node)
 
         self._options = {'order_by': order_by,
-                         'skip_tables': skip_tables,
+                         'query_radius': query_radius or 1 / 3600.,
                          'show_sql': show_sql,
                          'sample_region': sample_region}
 
@@ -559,13 +561,7 @@ class XMatchPlanner(object):
             self.log.warning(f'using sample region {sample_region!r}')
 
         for table_name in self.process_order:
-
             model = self.models[table_name]
-
-            if model._meta.xmatch.skip:
-                self.log.info(f'skipping table {table_name!r}.')
-                continue
-
             self.process_model(model)
 
     def process_model(self, model):
@@ -573,12 +569,6 @@ class XMatchPlanner(object):
 
         table_name = model._meta.table_name
         self.log.header = f'[{table_name.upper()}] '
-
-        show_sql = self._options['show_sql']
-
-        if table_name in self._options['skip_tables']:
-            self.log.debug('Skipping due to manual skip list.')
-            return False
 
         self.log.info(f'Processing table {table_name}.')
 
@@ -602,59 +592,10 @@ class XMatchPlanner(object):
         if is_first_model:
             self._load_catalog(model, rel_model)
         else:
-
             self.log.info('Phase 1: linking existing targets.')
-
-            join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
-                                               allow_relational_table=False)
-
-            if len(join_paths) == 0:
-                self.log.debug(f'No paths found between {table_name!r} and output table.')
-            else:
-                self.log.debug(f'Found {len(join_paths)} paths between '
-                               f'{table_name!r} and output table.')
-
-                # Go through the list following the same order as process_order to ensure
-                # that the cross-matching has already happened for those tables.
-                paths_processed = []
-                for through_table in self.process_order:
-                    # Loop over he paths that contain the through table. Because of the
-                    # scorched earth mode of the path-finding algorithm, there can only
-                    # be 0 or 1 paths that contain through_table.
-                    for path in [pth for pth in join_paths if (through_table in pth and
-                                                               pth not in paths_processed)]:
-
-                        join_models = [self.model_graph.nodes[node]['model'] for node in path]
-
-                        with Timer() as timer:
-
-                            with self.database.atomic():
-
-                                query = self._build_join(join_models).select(
-                                    model._meta.primary_key, Catalog.catalogid,
-                                    peewee.Value(False))
-                                print(query)
-                                insert_query = rel_model.insert_from(
-                                    query, fields=[rel_model.target_id,
-                                                   rel_model.catalogid,
-                                                   rel_model.best]).returning()
-
-                                self.log.debug(
-                                    f'Inserting linked targets into '
-                                    f'{rel_table_name!r} with path {path}' +
-                                    (f': {insert_query}.' if show_sql else '.'))
-
-                                nids = insert_query.execute()
-
-                        self.log.debug(f'Inserted {nids} records '
-                                       f'in {timer.interval:.3f} s.')
-
-                        paths_processed.append(path)
-
-                if len(paths_processed) == 0:
-                    self.log.warning('No join paths were found using table that '
-                                     'had already been cross-matched. You should '
-                                     'review your processing order.')
+            self._run_phase_1(model, rel_model)
+            self.log.info('Phase 2: cross-matching against existing targets.')
+            self._run_phase_2(model, rel_model)
 
         if rel_model_created:
             self.log.debug(f'Adding indexes and FKs to {rel_model._meta.table_name!r}.')
@@ -682,19 +623,13 @@ class XMatchPlanner(object):
                                  pmdec_field.alias('pmdec')])
 
             if (xmatch.epoch and xmatch.epoch != EPOCH) or xmatch.epoch_column:
-
-                epoch = (peewee.Value(xmatch.epoch)
-                         if xmatch.epoch else fields[xmatch.epoch_column])
-
-                if xmatch.epoch_format == 'jd':
-                    epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
-
-                delta_years = EPOCH - epoch
-
+                delta_years = EPOCH - get_epoch(model)
                 ra_field, dec_field = sql_apply_pm(ra_field, dec_field,
                                                    pmra_field, pmdec_field,
                                                    delta_years,
                                                    is_pmra_cos=xmatch.is_pmra_cos)
+                if not xmatch.is_pmra_cos:
+                    pmra_field *= fn.cos(fn.radians(dec_field))
 
         else:
 
@@ -727,13 +662,13 @@ class XMatchPlanner(object):
 
         return query
 
-    def _load_catalog(self, model, rel_model):
+    def _load_catalog(self, model, rel_model, query=None):
         """Ingests a query into the output and relational tables."""
 
         meta = model._meta
         table_name = meta.table_name
 
-        query = self._build_select(model)
+        query = query or self._build_select(model)
 
         with Timer() as timer:
 
@@ -771,7 +706,8 @@ class XMatchPlanner(object):
                 ).returning().with_cte(x, y)
 
                 self.log.debug(f'Running INSERT query' +
-                               (f': {insert_query}.' if self._options['show_sql'] else '.'))
+                               (f': {color_text(str(insert_query), "darkgrey")}'
+                                if self._options['show_sql'] else '.'))
                 n_rows = insert_query.execute()
 
         self.log.debug(f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
@@ -880,3 +816,157 @@ class XMatchPlanner(object):
                          columns=['catalogid', 'target_id', 'best'])
 
         return len(df)
+
+    def _run_phase_1(self, model, rel_model):
+        """Runs the linking against matched catalogids stage."""
+
+        table_name = model._meta.table_name
+        rel_table_name = rel_model._meta.table_name
+
+        show_sql = self._options['show_sql']
+
+        join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
+                                           allow_relational_table=False)
+
+        if len(join_paths) == 0:
+            self.log.debug(f'No paths found between {table_name!r} and output table.')
+            return False
+
+        self.log.debug(f'Found {len(join_paths)} paths between '
+                       f'{table_name!r} and output table.')
+
+        # Go through the list following the same order as process_order to ensure
+        # that the cross-matching has already happened for those tables.
+        paths_processed = []
+
+        for through_table in self.process_order:
+            # Loop over he paths that contain the through table. Because of the
+            # scorched earth mode of the path-finding algorithm, there can only
+            # be 0 or 1 paths that contain through_table.
+            for path in [pth for pth in join_paths if (through_table in pth and
+                                                       pth not in paths_processed)]:
+
+                join_models = [self.model_graph.nodes[node]['model'] for node in path]
+
+                with Timer() as timer:
+
+                    with self.database.atomic():
+
+                        query = self._build_join(join_models).select(
+                            model._meta.primary_key, Catalog.catalogid,
+                            peewee.Value(False))
+
+                        insert_query = rel_model.insert_from(
+                            query, fields=[rel_model.target_id,
+                                           rel_model.catalogid,
+                                           rel_model.best]).returning()
+
+                        self.log.debug(f'Inserting linked targets into '
+                                       f'{rel_table_name!r} with join path {path}' +
+                                       (f': {color_text(str(insert_query), "darkgrey")}'
+                                        if show_sql else '.'))
+
+                        nids = insert_query.execute()
+
+                self.log.debug(f'Inserted {nids} records in {timer.interval:.3f} s.')
+
+                paths_processed.append(path)
+
+        if len(paths_processed) == 0:
+            self.log.warning('No join paths were found using table that '
+                             'had already been cross-matched. You should '
+                             'review your processing order.')
+            return False
+
+        return True
+
+    def _run_phase_2(self, model, rel_model):
+        """Associates existing targets in Catalog with entries in the model."""
+
+        table_name = model._meta.table_name
+        rel_table_name = rel_model._meta.table_name
+
+        show_sql = self._options['show_sql']
+
+        meta = model._meta
+        xmatch = meta.xmatch
+
+        model_pk = meta.primary_key
+        model_ra = meta.fields[xmatch.ra_column]
+        model_dec = meta.fields[xmatch.dec_column]
+        model_epoch = get_epoch(model)
+
+        self.log.debug('Determining maximum delta epoch between tables.')
+        max_delta_epoch = peewee.Value(
+            model.select(fn.MAX(fn.ABS(model_epoch - EPOCH))).scalar())
+
+        # Determine what targets in the model haven't been matched in phase 1.
+        unmatched = (Catalog.select().join(rel_model, peewee.JOIN.LEFT_OUTER)
+                     .where(rel_model.catalogid.is_null()).cte('unmatched'))
+
+        # Create a subquery that returns the entries in the model that are
+        # within query_radius of the Catalog target.
+        subq = (model.select(model_pk.alias('target_id'),
+                             fn.q3c_dist_pm(unmatched.c.ra,
+                                            unmatched.c.dec,
+                                            unmatched.c.pmra,
+                                            unmatched.c.pmdec,
+                                            1,  # Catalog pmra is pmra*cos_delta by definition.
+                                            EPOCH,
+                                            model_ra,
+                                            model_dec,
+                                            model_epoch).alias('distance'))
+                .where(fn.q3c_join_pm(unmatched.c.ra,
+                                      unmatched.c.dec,
+                                      unmatched.c.pmra,
+                                      unmatched.c.pmdec,
+                                      1,
+                                      EPOCH,
+                                      model_ra,
+                                      model_dec,
+                                      model_epoch,
+                                      max_delta_epoch,
+                                      self._options['query_radius'])))
+
+        # Do a lateral join (for each loop). Partition over each group of
+        # targets that are within radius of a catalogid. Mark the one with
+        # the smallest distance to the Catalog target as best.
+        partition = fn.first_value(subq.c.target_id).over(partition_by=[unmatched.c.catalogid],
+                                                          order_by=[subq.c.distance.asc()])
+        xmatches = (unmatched.select(unmatched.c.catalogid,
+                                     subq.c.target_id,
+                                     subq.c.distance,
+                                     peewee.Value(partition == subq.c.target_id).alias('best'))
+                    .join(subq, 'CROSS JOIN LATERAL')
+                    .order_by(unmatched.c.catalogid)
+                    .with_cte(unmatched))
+
+        # Insert as a CTE because we want to gather some stats from the returned values.
+        insert_cte = peewee.CTE('insert_cte',
+                                rel_model.insert_from(
+                                    xmatches,
+                                    fields=[rel_model.catalogid,
+                                            rel_model.target_id,
+                                            rel_model.distance,
+                                            rel_model.best])
+                                .returning(rel_model.catalogid,
+                                           rel_model.target_id))
+
+        insert_query = (insert_cte
+                        .select(
+                            fn.count(insert_cte.c.catalogid.distinct()).alias('n_catalogid'),
+                            fn.count(insert_cte.c.target_id.distinct()).alias('n_target_id'))
+                        .with_cte(insert_cte))
+
+        with Timer() as timer:
+            with self.database.atomic():
+
+                self.log.debug(f'Inserting cross-matched targets into {rel_table_name!r}' +
+                               (f': {color_text(str(insert_query), "darkgrey")}'
+                                if show_sql else '.'))
+
+                nids = list(insert_query.tuples().execute(self.database))[0]
+
+        self.log.debug(f'Inserted {nids[0]} records in {rel_table_name!r} '
+                       f'associated with {nids[1]} targets in {table_name!r}, '
+                       f'in {timer.interval:.3f} s.')

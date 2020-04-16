@@ -10,6 +10,7 @@ import io
 import time
 
 import pandas
+import peewee
 from peewee import SQL, fn
 
 
@@ -151,3 +152,20 @@ def copy_pandas(df, database, table_name, schema=None, columns=None):
         cursor.copy_from(stream, full_table_name, columns=columns, sep=',')
 
     return df
+
+
+def get_epoch(xmodel):
+    """Returns the epoch for a `.XMatchModel` in Julian years."""
+
+    xmatch = xmodel._meta.xmatch
+    fields = xmodel._meta.fields
+
+    # If epoch == 0, make it null. This helps with q3c functions.
+    epoch = fn.nullif(
+        peewee.Value(xmatch.epoch) if xmatch.epoch else fields[xmatch.epoch_column],
+        0)
+
+    if xmatch.epoch_format == 'jd':
+        epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
+
+    return epoch
