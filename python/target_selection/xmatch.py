@@ -229,9 +229,10 @@ class XMatchPlanner(object):
     """
 
     def __init__(self, database, models, version, extra_nodes=[],
-                 order='hierarchical', key='row_count', query_radius=None,
-                 start_node=None, schema='catalogdb', output_table='catalog',
-                 order_by='pk', log_path='./xmatch_{version}.log', debug=False,
+                 order='hierarchical', key='row_count', epoch=EPOCH,
+                 query_radius=None, start_node=None, schema='catalogdb',
+                 output_table='catalog', order_by='pk',
+                 log_path='./xmatch_{version}.log', debug=False,
                  show_sql=False, sample_region=None):
 
         self.log = target_selection.log
@@ -273,7 +274,8 @@ class XMatchPlanner(object):
         self._options = {'order_by': order_by,
                          'query_radius': query_radius or 1 / 3600.,
                          'show_sql': show_sql,
-                         'sample_region': sample_region}
+                         'sample_region': sample_region,
+                         'epoch': epoch}
 
     @classmethod
     def read(cls, base_model, version, config_file=None, **kwargs):
@@ -338,13 +340,15 @@ class XMatchPlanner(object):
         xmatch_models = {}
         for table_name in table_config:
             table_params = table_config[table_name]
-            xmatch_models[table_name] = XMatchModel(models[table_name], **table_params)
+            xmatch_models[table_name] = XMatchModel(models[table_name],
+                                                    **table_params)
 
         extra_nodes = [models[table_name] for table_name in models
                        if table_name not in xmatch_models]
 
         config.update(kwargs)
-        return cls(database, xmatch_models.values(), version, extra_nodes=extra_nodes, **config)
+        return cls(database, xmatch_models.values(), version,
+                   extra_nodes=extra_nodes, **config)
 
     def _check_models(self):
         """Checks the input models."""
@@ -592,11 +596,8 @@ class XMatchPlanner(object):
         if is_first_model:
             self._load_catalog(model, rel_model)
         else:
-            self.log.info('Phase 1: linking existing targets.')
             self._run_phase_1(model, rel_model)
-            self.log.info('Phase 2: cross-matching against existing targets.')
             self._run_phase_2(model, rel_model)
-            self.log.info('Phase 3: adding non cross-matched targets.')
             self._run_phase_3(model, rel_model)
 
         if rel_model_created:
@@ -617,6 +618,8 @@ class XMatchPlanner(object):
         ra_field = fields[xmatch.ra_column]
         dec_field = fields[xmatch.dec_column]
 
+        to_epoch = self._options['epoch']
+
         if xmatch.pmra_column:
 
             pmra_field = fields[xmatch.pmra_column]
@@ -624,8 +627,8 @@ class XMatchPlanner(object):
             model_fields.extend([pmra_field.alias('pmra'),
                                  pmdec_field.alias('pmdec')])
 
-            if (xmatch.epoch and xmatch.epoch != EPOCH) or xmatch.epoch_column:
-                delta_years = EPOCH - get_epoch(model)
+            if (xmatch.epoch and xmatch.epoch != to_epoch) or xmatch.epoch_column:
+                delta_years = to_epoch - get_epoch(model)
                 ra_field, dec_field = sql_apply_pm(ra_field, dec_field,
                                                    pmra_field, pmdec_field,
                                                    delta_years,
@@ -713,9 +716,7 @@ class XMatchPlanner(object):
                      Catalog.version]
                 ).returning().with_cte(x, y)
 
-                self.log.debug(f'Running INSERT query' +
-                               (f': {color_text(str(insert_query), "darkgrey")}'
-                                if self._options['show_sql'] else '.'))
+                self.log.debug(f'Running INSERT query{self._get_sql(insert_query)}')
                 n_rows = insert_query.execute()
 
         self.log.debug(f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
@@ -831,7 +832,7 @@ class XMatchPlanner(object):
         table_name = model._meta.table_name
         rel_table_name = rel_model._meta.table_name
 
-        show_sql = self._options['show_sql']
+        self.log.info('Phase 1: linking existing targets.')
 
         join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
                                            allow_relational_table=False)
@@ -870,9 +871,8 @@ class XMatchPlanner(object):
                                            rel_model.best]).returning()
 
                         self.log.debug(f'Inserting linked targets into '
-                                       f'{rel_table_name!r} with join path {path}' +
-                                       (f': {color_text(str(insert_query), "darkgrey")}'
-                                        if show_sql else '.'))
+                                       f'{rel_table_name!r} with join path {path}'
+                                       f'{self._get_sql(insert_query)}')
 
                         nids = insert_query.execute()
 
@@ -891,22 +891,24 @@ class XMatchPlanner(object):
     def _run_phase_2(self, model, rel_model):
         """Associates existing targets in Catalog with entries in the model."""
 
-        table_name = model._meta.table_name
-        rel_table_name = rel_model._meta.table_name
-
-        show_sql = self._options['show_sql']
+        self.log.info('Phase 2: cross-matching against existing targets.')
 
         meta = model._meta
         xmatch = meta.xmatch
 
+        table_name = meta.table_name
+        rel_table_name = rel_model._meta.table_name
+
         model_pk = meta.primary_key
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
+
         model_epoch = get_epoch(model)
+        catalog_epoch = self._options['epoch']
 
         self.log.debug('Determining maximum delta epoch between tables.')
         max_delta_epoch = peewee.Value(
-            model.select(fn.MAX(fn.ABS(model_epoch - EPOCH))).scalar())
+            model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
 
         # Determine what targets in the model haven't been matched in phase 1.
         unmatched = (Catalog.select().join(rel_model, peewee.JOIN.LEFT_OUTER)
@@ -920,7 +922,7 @@ class XMatchPlanner(object):
                                             unmatched.c.pmra,
                                             unmatched.c.pmdec,
                                             1,  # Catalog pmra is pmra*cos_delta by definition.
-                                            EPOCH,
+                                            catalog_epoch,
                                             model_ra,
                                             model_dec,
                                             model_epoch).alias('distance'))
@@ -929,7 +931,7 @@ class XMatchPlanner(object):
                                       unmatched.c.pmra,
                                       unmatched.c.pmdec,
                                       1,
-                                      EPOCH,
+                                      catalog_epoch,
                                       model_ra,
                                       model_dec,
                                       model_epoch,
@@ -962,25 +964,28 @@ class XMatchPlanner(object):
 
         insert_query = (insert_cte
                         .select(
-                            fn.count(insert_cte.c.catalogid.distinct()).alias('n_catalogid'),
-                            fn.count(insert_cte.c.target_id.distinct()).alias('n_target_id'))
+                            fn.count(insert_cte.c.catalogid.distinct()),
+                            fn.count(insert_cte.c.target_id.distinct()))
                         .with_cte(insert_cte))
 
         with Timer() as timer:
             with self.database.atomic():
 
-                self.log.debug(f'Inserting cross-matched targets into {rel_table_name!r}' +
-                               (f': {color_text(str(insert_query), "darkgrey")}'
-                                if show_sql else '.'))
+                self.log.debug('Inserting cross-matched targets into '
+                               f'{rel_table_name!r}{self._get_sql(insert_query)}')
 
-                nids = list(insert_query.tuples().execute(self.database))[0]
+                n_catalogid, n_target_id = list(insert_query
+                                                .tuples()
+                                                .execute(self.database))[0]
 
-        self.log.debug(f'Inserted {nids[0]} records in {rel_table_name!r} '
-                       f'associated with {nids[1]} targets in {table_name!r}, '
+        self.log.debug(f'Inserted {n_catalogid} records in {rel_table_name!r} '
+                       f'associated with {n_target_id} targets in {table_name!r}, '
                        f'in {timer.interval:.3f} s.')
 
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
+
+        self.log.info('Phase 3: adding non cross-matched targets.')
 
         # Build the initial query.
         query = self._build_select(model)
@@ -992,3 +997,11 @@ class XMatchPlanner(object):
 
         # Insert the records
         self._load_catalog(model, rel_model, query=query)
+
+    def _get_sql(self, query):
+        """Returns coulourised SQL text for logging."""
+
+        if self._options['show_sql']:
+            return f': {color_text(str(query), "darkgrey")}'
+        else:
+            return '.'
