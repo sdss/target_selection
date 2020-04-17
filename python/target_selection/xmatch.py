@@ -86,40 +86,6 @@ def get_relational_model(model, prefix='catalog_to_'):
     return RelationalModel
 
 
-def add_fks(database, RelationalModel, related_model):
-    """Adds foreign keys and indexes to a relational model class."""
-
-    rtschema = RelationalModel._meta.schema
-    rtname = RelationalModel._meta.table_name
-
-    rel_schema = related_model._meta.schema
-    rel_tname = related_model._meta.table_name
-
-    migrator = PostgresqlMigrator(database)
-
-    with database.atomic():
-
-        migrate(
-            migrator.set_search_path(rtschema),
-            migrator.add_index(rtname, ('catalogid',), False),
-            migrator.add_constraint(
-                rtname, 'catalogid',
-                peewee.SQL(
-                    'FOREIGN KEY (catalogid) '
-                    f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
-                    '(catalogid)')),
-            migrator.add_index(rtname, ('target_id',), False),
-            migrator.add_constraint(
-                rtname, 'target_id',
-                peewee.SQL(
-                    f'FOREIGN KEY (target_id) '
-                    f'REFERENCES {rel_schema}.{rel_tname} '
-                    f'({related_model._meta.primary_key.column_name})'))
-        )
-
-    migrator.database.close()
-
-
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
@@ -172,7 +138,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
 
     Returns
     -------
-    Model
+    :obj:`peewee:Model`
         The same input model with the additional cross-matching parameters
         added to the metadata namespace ``xmatch``.
 
@@ -224,24 +190,158 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
 
 
 class XMatchPlanner(object):
-    """Prepares and runs the catalogue cross-matching.
+    """Prepares and runs catalogue cross-matching.
+
+    This class prepares the execution of a cross-matching between multiple
+    catalogues, the result being an output table of unique targets linked to
+    each input catalog via a relational table. Target coordinates are
+    propagated to a common epoch when proper motions are available.
+    Instantiating the class only prepares the process and sets up the
+    processing order; cross-matching itself happens by calling the `.run`
+    method.
+
+    The output table contains a sequential integer identifier for each unique
+    target (``catalogid``), along with the following columns: ``ra``, ``dec``,
+    ``pmra``, ``pmdec``, ``parallax``, ``lead``, and ``version``. ``version``
+    matches the version string for the cross-matching process. ``lead``
+    indicates from which one of the input catalogues the coordinates were
+    obtained.
+
+    The output table is related to each input catalogue via a many-to-many
+    table with the format ``<output_table>_to_<catalogue_table>`` where
+    ``<output_table>`` is the table name of the output table and
+    ``<catalog_table>`` is the table name of the referred catalogue. Each
+    relational table contains a unique identifier column, ``id``,
+    ``catalogid``, ``target_id`` pointing to the primary key of the referred
+    catalogue, and a boolean ``best`` indicating whether it is the best
+    (closest) possible match when a target in the output table correspond to
+    multiple targets in the input catalogue.
+
+    The cross-matching process roughly follows the following process:
+
+    |
+
+    .. image:: _static/Catalogdb_Crossmatch.png
+        :scale: 75 %
+        :align: center
+
+    |
+
+    In practice the cross-matching process begins by creating a graph of all
+    nodes (tables to be processed and additional tables, ``extra_nodes``, in
+    the database) and edges (foreign keys relating two tables). This graph is
+    used to determine join conditions and to establish the order in which the
+    input models will be processed. The processing order is determined by the
+    ``order`` and ``key`` input parameters. When ``key='row_count'``, tables
+    are sorted by number of decreasing rows so that tables with more targets
+    are processed first (note that to speed things up the row count is always
+    the latest known approximate determined by ``ANALYZE``); if
+    ``key='resolution'`` the associated spatial resolution for a catalogue is
+    used to process catalogues with high resolution first. If
+    ``order='hierarchical'``, all the tables are divided into as many
+    disconnected subgraphs as exist; then for each subgraph the maximum row
+    count or minim resolution is calculated (depending on the value of
+    ``key``). Subgraphs are sorted based on this result and then tables
+    belonging to each subgraph are sorted by key. If ``order='global'`` the
+    ``key`` ordering is applied to all tables without taking into account
+    subgraphs.
+
+    Once the order has been determined and when `.run` is called, each table
+    model is processed in order. The first model is just ingested completely
+    into the output table and its associated relational table is created.
+
+    For each additional model the following three stages are applied:
+
+    - In *phase 1* we determine what targets in the input model have an
+      existing cross-match to targets already ingested into the output table.
+      To do that we build all possible joins between the model and the output
+      table. If multiple joins are possible via a given table only the shortest
+      is used (see `.get_simple_paths`). For all matched targets we insert
+      entries in the relational table. The *lead* of the original entries is
+      not changed.
+
+    - In *phase 2* we perform the actual cross-match between targets in the
+      output table and the ones in the input catalogue. Currently the only
+      cross-matching method available is a spatial cone query with radius
+      ``query_radius``. All matched targets are added to the relational table
+      and the one with the smallest distance is defined as *best*.
+
+    - In *phase 3* we determine any target in the input catalogue that has not
+      been cross-matched at this point and insert them into the output table as
+      new entries. The *lead* is set to the input catalogue and the one-to-one
+      match is added to the relational table.
+
+    After each model has been processed the relational table is modified to
+    add foreign keys and indexes to speed up future queries. The model graph
+    is updated to reflect the newly created relational table and foreign keys.
+
+    In addition to the limitations of the spatial cone query method, the
+    following caveats are known:
+
+    - Input tables with duplicate targets are not currently supported.
 
     Parameters
     ----------
-    database : ~sdssdb.connection.PeeweeDatabaseConnection
-        A ~sdssdb.connection.PeeweeDatabaseConnection to the database
-        containing ``catalogdb``.
+    database : peewee:PostgresqlDatabase
+        A `peewee:PostgresqlDatabase` to the database the tables to
+        cross-match.
     models : list
-        The list of `.XMatchModel` classes to be cross-matched.
+        The list of `.XMatchModel` classes to be cross-matched. If the model
+        correspond to a non-existing table it will be silently ignored.
     version : str
         The cross-matching version.
+    extra_nodes : list
+        List of PeeWee models to be used as extra nodes for joins (i.e.,
+        already established cross-matches between catalogues). This models
+        are not processed or inserted into the output table.
+    order : str or list
+        The type of sorting to be applies to the input models to decide in
+        what order to process them. Currently allowed values are
+        ``'hierarchical'`` and ``'global'`` (refer to the description above).
+        The order can also be a list of table names, in which case that order
+        is used without any further sorting.
+    key : str
+        The key to be used while sorting. Can be ``'row_count'`` or
+        ``'resolution'``.
+    epoch : float
+        The epoch to which to convert all the target coordinates as they are
+        inserted into the output table.
+    start_node : str
+        If specified, the name of the table that will be inserted first
+        regarding of the above sorting process.
+    query_radius : float
+        The radius, in degrees, for cross-matching between existing targets.
+        Used in phase 2. Defaults to 1 arcsec.
+    schema : str
+        The schema in which all the tables to cross-match live (multiple
+        schemas are not supported), and the schema in which the output table
+        will be created.
+    output_table : str
+        The name of the output table. Defaults to ``catalog``.
+    allow_existing : bool
+        By default instantiation will fail if the output table already exists
+        and contains entries associated with this cross-matching version. This
+        option allows to continue but should be used only for testing.
+    log_path : str
+        The path to which to log or `False` to disable file logging.
+    debug : bool or int
+        Controls the level to which to log to the screen. If `False` no logging
+        is done to ``stdout``. If `True` the logging level is set to ``debug``
+        (all messages). It's also possible specify a numerical value for the
+        `logging level <logging>`.
+    show_sql : bool
+        Whether to log the full SQL queries being run.
+    sample_region : tuple
+        Allows to specify a 3-element tuple with the
+        (``ra``, ``dec``, ``radius``) of the region to which to limit the
+        cross-match. All values must be in degrees.
 
     """
 
     def __init__(self, database, models, version, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
-                 query_radius=None, start_node=None, schema='catalogdb',
-                 output_table='catalog', order_by='pk', allow_existing=False,
+                 start_node=None, query_radius=None, schema='catalogdb',
+                 output_table='catalog', allow_existing=False,
                  log_path='./xmatch_{version}.log', debug=False,
                  show_sql=False, sample_region=None):
 
@@ -275,13 +375,14 @@ class XMatchPlanner(object):
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._check_models()
+
+        self.model_graph = None
         self.update_model_graph()
 
         self.process_order = []
         self.set_process_order(order=order, key=key, start_node=start_node)
 
-        self._options = {'order_by': order_by,
-                         'query_radius': query_radius or 1 / 3600.,
+        self._options = {'query_radius': query_radius or 1 / 3600.,
                          'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
@@ -291,13 +392,63 @@ class XMatchPlanner(object):
     def read(cls, in_models, version, config_file=None, **kwargs):
         """Instantiates `.XMatchPlanner` from a configuration file.
 
+        The YAML configuration file must organised by version string (multiple
+        versions can live in the same file). Any parameter that
+        `.XMatchPlanner` accepts can be passed via the configuration file.
+        Additionally, the configuration file accepts the two extra parameters:
+        ``exclude``, a list of table names that will be ignored (this is useful
+        if you pass a datbase or base class as ``in_models`` and want to ignore
+        some of the models), and ``tables``, a dictionary of table names with
+        parameters to be passed to `.XMatchModel` for its corresponding model.
+        An example of a valid configuration files is:
+
+        .. code-block:: yaml
+
+            '0.1.0':
+                order: hierarchical
+                key: resolution
+                query_radius: 0.000277778  # 1 arcsec
+                schema: catalogdb
+                output_table: catalog
+                start_node: tic_v8
+                debug: true
+                log_path: false
+                exclude: ['catwise']
+                tables:
+                    tic_v8:
+                        ra_column: ra
+                        dec_column: dec
+                        pmra_column: pmra
+                        pmdec_column: pmdec
+                        is_pmra_cos: true
+                        parallax_column: plx
+                        epoch: 2015.5
+                    gaia_dr2_source:
+                        ra_column: ra
+                        dec_column: dec
+                        pmra_column: pmra
+                        pmdec_column: pmdec
+                        is_pmra_cos: true
+                        parallax_column: parallax
+                        epoch: 2015.5
+                        skip: true
+
+        Note that only models that match the table names in ``tables`` will be
+        passed to `.XMatchPlanner` to be processed; any other table will be
+        used as an extra joining node unless it's listed in ``exclude``, in
+        which case it will be ignored completely. It's possible to set the
+        ``skip`` option for a table; this has the same effect as removing the
+        entry in ``table``.
+
         Parameters
         ----------
-        base_model
-            A PeeWee model from which all the models to use subclass, or a
+        in_models
+            The models to cross-match. Can be a list or tuple of PeeWee
+            :obj:`peewee:Model` instances, a base class from which all the
+            models to use subclass, or a
             `~sdssdb.connection.PeeweeDatabaseConnection` to the database
             containing the models. In the latter case, the models must have
-            been imported so that they are available in the ``models``
+            been imported so that they are available via the ``models``
             attribute.
         version : str
             The cross-matching version.
@@ -391,6 +542,21 @@ class XMatchPlanner(object):
         if len(self.models) == 0:
             raise XMatchError('no models to cross-match.')
 
+        error_msg = (f'{Catalog._meta.table_name!r} contains '
+                     'records for this version of cross-matching '
+                     f'({self.version}).')
+
+        # Check if Catalog already has entries for this xmatch version.
+        if Catalog.table_exists() and (Catalog.select()
+                                       .where(Catalog.version == self.version)
+                                       .limit(1)
+                                       .count() > 0):
+            if self._options['allow_existing']:
+                self.log.warning(error_msg)
+            else:
+                raise XMatchError(error_msg + ' This problem needs to be '
+                                  'solved manually.')
+
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
 
@@ -431,17 +597,15 @@ class XMatchPlanner(object):
         assert key in ['row_count', 'resolution'], f'invalid order key {key}.'
         self.log.info(f'ordering key is {key!r}.')
 
-        ordered_tables = []
-
         graph = self.model_graph.copy()
+
+        for model in self.extra_nodes.values():
+            graph.remove_node(model._meta.table_name)
 
         if order == 'hierarchical':
             subgraphs = networkx.connected_components(graph)
         else:
             subgraphs = [node for node in subgraphs.nodes]
-
-        for model in self.extra_nodes.values():
-            graph.remove_node(model._meta.table_name)
 
         subgraphs_ext = []
         for sg in subgraphs:
@@ -471,6 +635,7 @@ class XMatchPlanner(object):
         if order == 'global':
             ordered_tables = subgraphs_ordered
         else:
+            ordered_tables = []
             for sgo in subgraphs_ordered:
                 sg_ext = []
                 for table_name in sgo:
@@ -518,7 +683,7 @@ class XMatchPlanner(object):
 
         Returns
         -------
-        list
+        `list`
             A list in which each item is a path with the table names or models
             joining ``source`` to ``dest``. The list is sorted in order of
             increasing path length.
@@ -555,24 +720,10 @@ class XMatchPlanner(object):
     def run(self):
         """Runs the cross-matching process."""
 
-        error_msg = (f'{Catalog._meta.table_name!r} contains '
-                     'records for this version of cross-matching '
-                     f'({self.version}).')
-
         # Make sure the output table exists.
         if not Catalog.table_exists():
             Catalog.create_table()
             self.log.info(f'Created table {Catalog._meta.table_name!r}.')
-        else:
-            # Check if Catalog already has entries for this xmatch version.
-            if (Catalog.select()
-                    .where(Catalog.version == self.version).limit(1).count() > 0):
-
-                if self._options['allow_existing']:
-                    self.log.warning(error_msg)
-                else:
-                    raise XMatchError(error_msg +
-                                      ' This problem needs to be solved manually.')
 
         self.extra_nodes[Catalog._meta.table_name] = Catalog
         self.update_model_graph(silent=True)
@@ -623,7 +774,7 @@ class XMatchPlanner(object):
         if rel_model_created:
             self.log.debug(f'Adding indexes and FKs to '
                            f'{rel_model._meta.table_name!r}.')
-            add_fks(self.database, rel_model, model)
+            self.add_fks(rel_model, model)
 
         self.log.header = ''
 
@@ -677,15 +828,7 @@ class XMatchPlanner(object):
             model_fields.append(peewee.Value(None).cast('REAL').alias('parallax'))
 
         # Build the SELECT
-        query = model.select(*model_fields)
-
-        # Define the order. One would thing that if the table has been clustered
-        # along the Q3C index that would be the natural order but it seems
-        # that ordering on the PK is still faster.
-        if self._options['order_by'] == 'q3c':
-            query = query.order_by(fn.q3c_ang2ipix(ra_field, dec_field))
-        else:
-            query = query.order_by(meta.primary_key.asc())
+        query = model.select(*model_fields).order_by(meta.primary_key.asc())
 
         # Apply any restriction to the sampled area.
         if self._options['sample_region']:
@@ -1005,3 +1148,36 @@ class XMatchPlanner(object):
             return f': {color_text(str(query), "darkgrey")}'
         else:
             return '.'
+
+    def add_fks(self, relational_model, to_model):
+        """Adds foreign keys and indexes to a relational model class."""
+
+        rtschema = relational_model._meta.schema
+        rtname = relational_model._meta.table_name
+
+        to_schema = to_model._meta.schema
+        to_table_name = to_model._meta.table_name
+
+        migrator = PostgresqlMigrator(self.database)
+
+        with self.database.atomic():
+
+            migrate(
+                migrator.set_search_path(rtschema),
+                migrator.add_index(rtname, ('catalogid',), False),
+                migrator.add_constraint(
+                    rtname, 'catalogid',
+                    peewee.SQL(
+                        'FOREIGN KEY (catalogid) '
+                        f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
+                        '(catalogid)')),
+                migrator.add_index(rtname, ('target_id',), False),
+                migrator.add_constraint(
+                    rtname, 'target_id',
+                    peewee.SQL(
+                        f'FOREIGN KEY (target_id) '
+                        f'REFERENCES {to_schema}.{to_table_name} '
+                        f'({to_model._meta.primary_key.column_name})'))
+            )
+
+        migrator.database.close()

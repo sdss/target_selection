@@ -18,7 +18,7 @@ XMatch
 ------
 
 .. automodule:: target_selection.xmatch
-   :members:
+   :members: XMatchModel, XMatchPlanner
 
 Utils
 -----

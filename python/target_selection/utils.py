@@ -155,7 +155,7 @@ def copy_pandas(df, database, table_name, schema=None, columns=None):
 
 
 def get_epoch(xmodel):
-    """Returns the epoch for a `.XMatchModel` in Julian years."""
+    """Returns the epoch for an `.XMatchModel` in Julian years."""
 
     xmatch = xmodel._meta.xmatch
     fields = xmodel._meta.fields
