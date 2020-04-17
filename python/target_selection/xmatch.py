@@ -1094,7 +1094,8 @@ class XMatchPlanner(object):
                     .order_by(unmatched.c.catalogid)
                     .with_cte(unmatched))
 
-        # Insert as a CTE because we want to gather some stats from the returned values.
+        # Insert as a CTE because we want to gather some
+        # stats from the returned values.
         insert_cte = peewee.CTE('insert_cte',
                                 rel_model.insert_from(
                                     xmatches,
