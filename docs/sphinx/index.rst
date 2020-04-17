@@ -4,29 +4,21 @@
 Target Selection
 ================
 
-This is the Sphinx documentation for the SDSS Python product `target_selection <https://github.com/sdss/target_selection>`__.
+``target_selection`` provides the framework for defining cross-matching and target selection algorithms against the parent catalogues in `catalogdb <https://sdssdb.readthedocs.io/en/stable/_static/schema_graphs/auto/sdss5db.catalogdb.pdf>`__.
 
-Introduction
-------------
 
-A description of the package can go here.
+Contents
+--------
 
 .. toctree::
 
   What's new in target_selection? <changelog>
-  Introduction to target_selection <intro>
-
-Reference
----------
-
-.. toctree::
-   :maxdepth: 1
-
-   api
+  cross-match
+  api
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
