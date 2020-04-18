@@ -35,7 +35,7 @@ EPOCH = 2015.5
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField(primary_key=True, null=False)
+    catalogid = peewee.BigIntegerField(null=False)
     iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
@@ -46,7 +46,7 @@ class Catalog(peewee.Model):
     version = peewee.TextField(null=False)
 
     class Meta:
-        primary_key = False
+        primary_key = peewee.CompositeKey('catalogid', 'version')
 
 
 def get_relational_model(model, prefix='catalog_to_'):
@@ -954,8 +954,7 @@ class XMatchPlanner(object):
         # Catalog because the relationship is only unique on (catalogid, version).
         RelationalModel._meta.add_field(
             'target',
-            peewee.ForeignKeyField(model, column_name='target_id',
-                                   backref='+'))
+            peewee.ForeignKeyField(model, column_name='target_id', backref='+'))
 
         self.extra_nodes[rtname] = RelationalModel
         self.update_model_graph(silent=True)
