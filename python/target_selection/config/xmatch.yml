@@ -1,4 +1,4 @@
-'0.1.0':
+'0.1.0-alpha.1':
     order: hierarchical
     key: resolution
     query_radius: 0.000277778  # 1 arcsec
@@ -7,6 +7,7 @@
     start_node: tic_v8
     debug: true
     log_path: false
+    disable_seqscan: true
     exclude: null
     tables:
         tic_v8:
