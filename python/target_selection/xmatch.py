@@ -791,15 +791,15 @@ class XMatchPlanner(object):
 
         self.log.header = ''
 
-    def _build_select(self, model):
-        """Builds the SELECT with the model fields to populate Catalog."""
+    def _get_model_fields(self, model):
+        """Returns the model fields needed to populate Catalog."""
 
         meta = model._meta
         xmatch = meta.xmatch
         fields = meta.fields
 
         # List of fields that will become the SELECT clause.
-        model_fields = [meta.primary_key.alias('target_id')]
+        model_fields = []
 
         ra_field = fields[xmatch.ra_column]
         dec_field = fields[xmatch.dec_column]
@@ -811,8 +811,6 @@ class XMatchPlanner(object):
 
             pmra_field = fields[xmatch.pmra_column]
             pmdec_field = fields[xmatch.pmdec_column]
-            model_fields.extend([pmra_field.alias('pmra'),
-                                 pmdec_field.alias('pmdec')])
 
             if (xmatch.epoch and xmatch.epoch != to_epoch) or xmatch.epoch_column:
                 delta_years = to_epoch - get_epoch(model)
@@ -825,34 +823,20 @@ class XMatchPlanner(object):
 
         else:
 
-            model_fields.extend([peewee.Value(None).cast('REAL').alias('pmra'),
-                                 peewee.Value(None).cast('REAL').alias('pmdec')])
+            pmra_field = peewee.Value(None).cast('REAL')
+            pmdec_field = peewee.Value(None).cast('REAL')
 
         # Actually add the RA/Dec fields as defined above
-        model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
-
-        # Calculate IAU name.
-        model_fields.append(sql_iauname(ra_field, dec_field).alias('iauname'))
+        model_fields.extend([ra_field, dec_field])
+        model_fields.extend([pmra_field, pmdec_field])
 
         # Parallax
         if xmatch.parallax_column:
-            model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
+            model_fields.append(fields[xmatch.parallax_column])
         else:
-            model_fields.append(peewee.Value(None).cast('REAL').alias('parallax'))
+            model_fields.append(peewee.Value(None).cast('REAL'))
 
-        # Build the SELECT
-        query = model.select(*model_fields).order_by(meta.primary_key.asc())
-
-        # Apply any restriction to the sampled area.
-        if self._options['sample_region']:
-            sample_region = self._options['sample_region']
-            query = query.where(fn.q3c_radial_query(fields[xmatch.ra_column],
-                                                    fields[xmatch.dec_column],
-                                                    sample_region[0],
-                                                    sample_region[1],
-                                                    sample_region[2]))
-
-        return query
+        return model_fields
 
     def _load_catalog(self, model, rel_model, query=None):
         """Ingests a query into the output and relational tables."""
@@ -860,11 +844,13 @@ class XMatchPlanner(object):
         meta = model._meta
         table_name = meta.table_name
 
-        query = query or self._build_select(model)
+        model_fields = self._get_model_fields(model)
 
-        with Timer() as timer:
+        pk = model._meta.primary_key
+        ra_field = meta.fields[meta.xmatch.ra_column]
+        dec_field = meta.fields[meta.xmatch.dec_column]
 
-            with self.database.atomic():
+        disable_seqscan = self._options['disable_seqscan']
 
         # Get the max catalogid currently in the table for the version.
         max_cid = (Catalog
@@ -872,53 +858,68 @@ class XMatchPlanner(object):
                    .where(Catalog.version == self.version)
                    .scalar() or 0)
 
-                # Query the model, as a CTE.
-                x = query.cte('x')
+        if query is None:
+            query = model.select()
+
+        # Build the query and exclude rows without RA/Dec. Note that this
+        # resets any SELECT field passed to the query but keeps the WHEREs.
+        query = (query
+                 .select(fn.row_number().over() + max_cid,
+                         model._meta.primary_key,
+                         peewee.SQL('true'))
+                 .where(ra_field.is_null(False),
+                        dec_field.is_null(False))
+                 .order_by(meta.primary_key.asc()))
+
+        # Apply any restriction to the sampled area.
+        if self._options['sample_region']:
+            sample_region = self._options['sample_region']
+            query = query.where(fn.q3c_radial_query(ra_field,
+                                                    dec_field,
+                                                    sample_region[0],
+                                                    sample_region[1],
+                                                    sample_region[2]))
+
+        with Timer() as timer:
+
+            with self.database.atomic():
 
                 with set_config_parameter(self.database, 'enable_seqscan',
                                           'OFF' if disable_seqscan else 'ON',
                                           log=self.log):
 
-                # CTE to populate the relational table.
-                y = peewee.CTE('y',
-                               rel_model.insert_from(
-                                   x.select(fn.row_number().over() + max_cid,
-                                            x.c.target_id,
-                                            peewee.SQL('true'))
-                                   .where(x.c.ra.is_null(False),  # Make sure RA and Dec exist.
-                                          x.c.dec.is_null(False)),
-                                   [rel_model.catalogid,
-                                    rel_model.target_id,
-                                    rel_model.best])
-                               .returning(rel_model.catalogid,
-                                          rel_model.target_id))
+                    # CTE to populate the relational table.
+                    rel_insert = peewee.CTE('rel_insert',
+                                            rel_model.insert_from(
+                                                query,
+                                                [rel_model.catalogid,
+                                                 rel_model.target_id,
+                                                 rel_model.best])
+                                            .returning(rel_model.catalogid,
+                                                       rel_model.target_id))
 
-                # INSERT INTO catalog using the catalogids and targetids
-                # returned by y. Return only the number of rows inserted.
-                insert_query = Catalog.insert_from(
-                    y.select(y.c.catalogid,
-                             x.c.iauname,
-                             x.c.ra,
-                             x.c.dec,
-                             x.c.pmra,
-                             x.c.pmdec,
-                             x.c.parallax,
-                             peewee.Value(table_name),
-                             peewee.Value(self.version))
-                     .join(x, on=(x.c.target_id == y.c.target_id)),
-                    [Catalog.catalogid,
-                     Catalog.iauname,
-                     Catalog.ra,
-                     Catalog.dec,
-                     Catalog.pmra,
-                     Catalog.pmdec,
-                     Catalog.parallax,
-                     Catalog.lead,
-                     Catalog.version]
-                ).returning().with_cte(x, y)
+                    # INSERT INTO catalog using the catalogids and targetids
+                    # returned by y. Return only the number of rows inserted.
+                    insert_query = Catalog.insert_from(
+                        rel_insert.select(rel_insert.c.catalogid,
+                                          *model_fields,
+                                          peewee.Value(table_name),
+                                          peewee.Value(self.version))
+                        .join(model, on=(pk == rel_insert.c.target_id)),
+                        [Catalog.catalogid,
+                         Catalog.ra,
+                         Catalog.dec,
+                         Catalog.pmra,
+                         Catalog.pmdec,
+                         Catalog.parallax,
+                         Catalog.lead,
+                         Catalog.version]
+                    ).returning().with_cte(rel_insert)
 
-                self.log.debug(f'Running INSERT query{self._get_sql(insert_query)}')
-                n_rows = insert_query.execute()
+                    self.log.debug(f'Running INSERT query'
+                                   f'{self._get_sql(insert_query)}')
+
+                    n_rows = insert_query.execute()
 
         self.log.debug(f'Inserted {n_rows} rows in {timer.interval:.3f} s.')
 
@@ -1022,9 +1023,11 @@ class XMatchPlanner(object):
 
                     with self.database.atomic():
 
-                        query = self._build_join(join_models).select(
-                            model._meta.primary_key, Catalog.catalogid,
-                            peewee.Value(False))
+                        query = (self._build_join(join_models)
+                                 .select(model._meta.primary_key,
+                                         Catalog.catalogid,
+                                         peewee.Value(True))
+                                 .where(Catalog.version == self.version))
 
                         insert_query = rel_model.insert_from(
                             query, fields=[rel_model.target_id,
@@ -1066,31 +1069,30 @@ class XMatchPlanner(object):
 
         model_epoch = get_epoch(model)
         catalog_epoch = self._options['epoch']
+        disable_seqscan = self._options['disable_seqscan']
 
-        self.log.debug('Determining maximum delta epoch between tables.')
-        max_delta_epoch = peewee.Value(
-            model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
-
-        # Determine what targets in the model haven't been matched in phase 1.
-        unmatched = (Catalog.select().join(rel_model, peewee.JOIN.LEFT_OUTER)
-                     .where(rel_model.catalogid.is_null()).cte('unmatched'))
+        # TODO: find a way to get this delta that is not too time consuming.
+        # self.log.debug('Determining maximum delta epoch between tables.')
+        # max_delta_epoch = peewee.Value(
+        #     model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
+        max_delta_epoch = 50.
 
         # Create a subquery that returns the entries in the model that are
         # within query_radius of the Catalog target.
         subq = (model.select(model_pk.alias('target_id'),
-                             fn.q3c_dist_pm(unmatched.c.ra,
-                                            unmatched.c.dec,
-                                            unmatched.c.pmra,
-                                            unmatched.c.pmdec,
+                             fn.q3c_dist_pm(Catalog.ra,
+                                            Catalog.dec,
+                                            Catalog.pmra,
+                                            Catalog.pmdec,
                                             1,  # Catalog pmra is pmra*cos by definition.
                                             catalog_epoch,
                                             model_ra,
                                             model_dec,
                                             model_epoch).alias('distance'))
-                .where(fn.q3c_join_pm(unmatched.c.ra,
-                                      unmatched.c.dec,
-                                      unmatched.c.pmra,
-                                      unmatched.c.pmdec,
+                .where(fn.q3c_join_pm(Catalog.ra,
+                                      Catalog.dec,
+                                      Catalog.pmra,
+                                      Catalog.pmdec,
                                       1,
                                       catalog_epoch,
                                       model_ra,
@@ -1099,68 +1101,95 @@ class XMatchPlanner(object):
                                       max_delta_epoch,
                                       self._options['query_radius'])))
 
-        # Do a lateral join (for each loop). Partition over each group of
-        # targets that are within radius of a catalogid. Mark the one with
-        # the smallest distance to the Catalog target as best.
+        # We'll partition over each group of targets that are within
+        # radius of a catalogid and mark the one with the smallest
+        # distance to the Catalog target as best.
         partition = (fn.first_value(subq.c.target_id)
-                     .over(partition_by=[unmatched.c.catalogid],
+                     .over(partition_by=[Catalog.catalogid],
                            order_by=[subq.c.distance.asc()]))
         best = peewee.Value(partition == subq.c.target_id)
 
+        # Determine what targets in the model haven't been matched in phase 1.
+        # We do this starting from the Catalog side and determining what targets
+        # don't have an entry in the relational table.
+        unmatched = (Catalog.select(Catalog.catalogid,
+                                    subq.c.target_id,
+                                    subq.c.distance,
+                                    best.alias('best'))
+                     .join(rel_model, peewee.JOIN.LEFT_OUTER,
+                           on=((Catalog.catalogid == rel_model.catalogid) &
+                               (Catalog.version == self.version)))
+                     .where(rel_model.catalogid.is_null(),
+                            Catalog.version == self.version))
+
+        # Limit the query region
+        if self._options['sample_region']:
+            racen, deccen, radius = self._options['sample_region']
+            unmatched = unmatched.where(fn.q3c_radial_query(Catalog.ra,
+                                                            Catalog.dec,
+                                                            racen,
+                                                            deccen,
+                                                            radius))
+
+        # Do a lateral join (for each loop). Remove pairs in which
+        # target_id is null (i.e., where there is no target within the query
+        # radius).
         xmatches = (unmatched
-                    .select(unmatched.c.catalogid,
-                            subq.c.target_id,
-                            subq.c.distance,
-                            best.alias('best'))
+                    .join(subq, 'LEFT JOIN LATERAL', on=peewee.SQL('true'))
+                    .order_by(Catalog.catalogid)
+                    .where(subq.c.target_id.is_null(False)))
+
+        with Timer() as timer:
+
+            with self.database.atomic():
+
                 with set_config_parameter(self.database, 'enable_seqscan',
                                           'OFF' if disable_seqscan else 'ON',
                                           log=self.log):
 
+                    self.log.debug('Inserting cross-matched targets into '
+                                   f'{rel_table_name!r}{self._get_sql(xmatches)}')
 
-        # Insert as a CTE because we want to gather some
-        # stats from the returned values.
-        insert_cte = peewee.CTE('insert_cte',
-                                rel_model.insert_from(
-                                    xmatches,
-                                    fields=[rel_model.catalogid,
-                                            rel_model.target_id,
-                                            rel_model.distance,
-                                            rel_model.best])
-                                .returning(rel_model.catalogid,
-                                           rel_model.target_id))
+                    # Insert as CTE to gather some statistincs
+                    insert_cte = peewee.CTE(
+                        'insert_cte',
+                        rel_model.insert_from(xmatches,
+                                              fields=[rel_model.catalogid,
+                                                      rel_model.target_id,
+                                                      rel_model.distance,
+                                                      rel_model.best])
+                        .returning(rel_model.catalogid,
+                                   rel_model.target_id))
 
-        insert_query = (insert_cte
-                        .select(
-                            fn.count(insert_cte.c.catalogid.distinct()),
-                            fn.count(insert_cte.c.target_id.distinct()))
-                        .with_cte(insert_cte))
+                    insert_query = (insert_cte
+                                    .select(
+                                        fn.count(insert_cte.c.catalogid.distinct()),
+                                        fn.count(insert_cte.c.target_id.distinct()))
+                                    .with_cte(insert_cte))
 
-        with Timer() as timer:
-            with self.database.atomic():
+                    n_catalogid, n_target_id = list(insert_query
+                                                    .tuples()
+                                                    .execute(self.database))[0]
 
-                self.log.debug('Inserting cross-matched targets into '
-                               f'{rel_table_name!r}{self._get_sql(insert_query)}')
-
-                n_catalogid, n_target_id = list(insert_query
-                                                .tuples()
-                                                .execute(self.database))[0]
-
-        self.log.debug(f'Inserted {n_catalogid} records in {rel_table_name!r} '
-                       f'associated with {n_target_id} targets in {table_name!r}, '
-                       f'in {timer.interval:.3f} s.')
+        ratio_msg = (f' (ratio {n_target_id / n_catalogid:.2f}). '
+                     if n_catalogid > 0 else '. ')
+        self.log.debug(f'Cross-matched {n_catalogid} catalogids '
+                       f'associated with {n_target_id} targets in {table_name!r}' +
+                       ratio_msg + f'Run in {timer.interval:.3f} s.')
 
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
 
         self.log.info('Phase 3: adding non cross-matched targets.')
 
-        # Build the initial query.
-        query = self._build_select(model)
-
         # Limit the query to targets not matched.
-        query = (query
-                 .join(rel_model, peewee.JOIN.LEFT_OUTER)
-                 .where(rel_model.catalogid.is_null()))
+        query = (model
+                 .select()
+                 .where(~fn.EXISTS(rel_model.select(rel_model.target_id)
+                                   .join(Catalog,
+                                         on=((Catalog.catalogid == rel_model.catalogid) &
+                                             (Catalog.version == self.version)))
+                                   .where(rel_model.target_id == model._meta.primary_key))))
 
         # Insert the records
         self._load_catalog(model, rel_model, query=query)
