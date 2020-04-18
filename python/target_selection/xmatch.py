@@ -582,6 +582,13 @@ class XMatchPlanner(object):
                     continue
                 self.model_graph.add_edge(table_name, ref_table_name)
 
+            # A bit of a hack here. There is no FK between catalog_to_table
+            # and catalog because it depends on catalogid and version. So
+            # We add an edge manually and we'll deal with the join later.
+            if table_name.startswith(Catalog._meta.table_name + '_to_'):
+                ref_table_name = Catalog._meta.table_name
+                self.model_graph.add_edge(table_name, ref_table_name)
+
         return self.model_graph
 
     def set_process_order(self, order='hierarchical', key='row_count',
@@ -859,8 +866,11 @@ class XMatchPlanner(object):
 
             with self.database.atomic():
 
-                # Get the max catalogid currently in the table.
-                max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
+        # Get the max catalogid currently in the table for the version.
+        max_cid = (Catalog
+                   .select(fn.MAX(Catalog.catalogid))
+                   .where(Catalog.version == self.version)
+                   .scalar() or 0)
 
                 # Query the model, as a CTE.
                 x = query.cte('x')
@@ -936,14 +946,11 @@ class XMatchPlanner(object):
 
             created = False
 
-        # Add foreign key fields here. We want to avoid Peewee creating them
-        # as constraints and indexes if the table is created because that would
+        # Add foreign key field here. We want to avoid Peewee creating it
+        # as a constraint and index if the table is created because that would
         # slow down inserts. We'll created them manually with add_fks.
-        RelationalModel._meta.add_field(
-            'catalog',
-            peewee.ForeignKeyField(Catalog, column_name='catalogid',
-                                   backref='+'))
-
+        # Note that we do not create an FK between the relational model and
+        # Catalog because the relationship is only unique on (catalogid, version).
         RelationalModel._meta.add_field(
             'target',
             peewee.ForeignKeyField(model, column_name='target_id',
@@ -962,8 +969,13 @@ class XMatchPlanner(object):
         xmatch = meta.xmatch
 
         query = model.select()
-        for node in path[1:]:
-            query = query.join(node)
+        for inode in range(1, len(path)):
+            if path[inode] is Catalog:
+                query = query.join(Catalog,
+                                   on=((Catalog.catalogid == path[inode - 1].catalogid) &
+                                       (Catalog.version == self.version)))
+            else:
+                query = query.join(path[inode])
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -1177,19 +1189,12 @@ class XMatchPlanner(object):
             migrate(
                 migrator.set_search_path(rtschema),
                 migrator.add_index(rtname, ('catalogid',), False),
-                migrator.add_constraint(
-                    rtname, 'catalogid',
-                    peewee.SQL(
-                        'FOREIGN KEY (catalogid) '
-                        f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
-                        '(catalogid)')),
                 migrator.add_index(rtname, ('target_id',), False),
                 migrator.add_constraint(
                     rtname, 'target_id',
                     peewee.SQL(
                         f'FOREIGN KEY (target_id) '
                         f'REFERENCES {to_schema}.{to_table_name} '
-                        f'({to_model._meta.primary_key.column_name})'))
-            )
+                        f'({to_model._meta.primary_key.column_name})')))
 
         migrator.database.close()
