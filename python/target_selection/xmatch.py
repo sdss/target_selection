@@ -25,7 +25,8 @@ from sdsstools.color_print import color_text
 import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          XMatchError)
-from target_selection.utils import Timer, get_epoch, sql_apply_pm, sql_iauname
+from target_selection.utils import (Timer, get_epoch, set_config_parameter,
+                                    sql_apply_pm)
 
 
 EPOCH = 2015.5
@@ -335,6 +336,10 @@ class XMatchPlanner(object):
         Allows to specify a 3-element tuple with the
         (``ra``, ``dec``, ``radius``) of the region to which to limit the
         cross-match. All values must be in degrees.
+    disable_seqscan : bool
+        Whether to disable sequential scans completely. Depending on the tables
+        to process and the database server configuration, this may sometimes
+        be needed to force the query planner to use the Q3C indexes.
 
     """
 
@@ -343,7 +348,7 @@ class XMatchPlanner(object):
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', allow_existing=False,
                  log_path='./xmatch_{version}.log', debug=False,
-                 show_sql=False, sample_region=None):
+                 show_sql=False, sample_region=None, disable_seqscan=False):
 
         self.log = target_selection.log
 
@@ -374,6 +379,13 @@ class XMatchPlanner(object):
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
+        self._options = {'query_radius': query_radius or 1 / 3600.,
+                         'allow_existing': allow_existing,
+                         'show_sql': show_sql,
+                         'sample_region': sample_region,
+                         'epoch': epoch,
+                         'disable_seqscan': disable_seqscan}
+
         self._check_models()
 
         self.model_graph = None
@@ -381,12 +393,6 @@ class XMatchPlanner(object):
 
         self.process_order = []
         self.set_process_order(order=order, key=key, start_node=start_node)
-
-        self._options = {'query_radius': query_radius or 1 / 3600.,
-                         'allow_existing': allow_existing,
-                         'show_sql': show_sql,
-                         'sample_region': sample_region,
-                         'epoch': epoch}
 
     @classmethod
     def read(cls, in_models, version, config_file=None, **kwargs):
@@ -859,6 +865,10 @@ class XMatchPlanner(object):
                 # Query the model, as a CTE.
                 x = query.cte('x')
 
+                with set_config_parameter(self.database, 'enable_seqscan',
+                                          'OFF' if disable_seqscan else 'ON',
+                                          log=self.log):
+
                 # CTE to populate the relational table.
                 y = peewee.CTE('y',
                                rel_model.insert_from(
@@ -1090,9 +1100,10 @@ class XMatchPlanner(object):
                             subq.c.target_id,
                             subq.c.distance,
                             best.alias('best'))
-                    .join(subq, 'CROSS JOIN LATERAL')
-                    .order_by(unmatched.c.catalogid)
-                    .with_cte(unmatched))
+                with set_config_parameter(self.database, 'enable_seqscan',
+                                          'OFF' if disable_seqscan else 'ON',
+                                          log=self.log):
+
 
         # Insert as a CTE because we want to gather some
         # stats from the returned values.

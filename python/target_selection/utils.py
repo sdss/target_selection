@@ -6,6 +6,7 @@
 # @Filename: utils.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import contextlib
 import io
 import time
 
@@ -71,12 +72,12 @@ def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
     pmdec_field = fn.coalesce(pmdec_field, 0) / 1000 / 3600
 
     if is_pmra_cos:
-        cos_dec = fn.cos(fn.radians(dec_field))
-        ra_corr = ra_field + pmra_field / cos_dec * epoch_delta
+        cos_dec = fn.cos(fn.radians(fn.coalesce(dec_field, 0)))
+        ra_corr = ra_field + pmra_field / cos_dec * fn.coalesce(epoch_delta, 0)
     else:
-        ra_corr = ra_field + pmra_field * epoch_delta
+        ra_corr = ra_field + pmra_field * fn.coalesce(epoch_delta, 0)
 
-    dec_corr = dec_field + pmdec_field * epoch_delta
+    dec_corr = dec_field + pmdec_field * fn.coalesce(epoch_delta, 0)
 
     return ra_corr, dec_corr
 
@@ -169,3 +170,26 @@ def get_epoch(xmodel):
         epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
 
     return epoch
+
+
+@contextlib.contextmanager
+def set_config_parameter(database, parameter, new_value, reset=True, log=None):
+    """Temporarily a database configuration parameter."""
+
+    try:
+
+        if reset:
+            orig_value = database.execute_sql(f'show {parameter}').fetchone()[0]
+
+        database.execute_sql(f'SET {parameter} = {new_value};')
+        if log:
+            log.debug(f'{parameter} is {new_value}.')
+
+        yield
+
+    finally:
+
+        if reset:
+            database.execute_sql(f'SET {parameter} = {orig_value};')
+            if log:
+                log.debug(f'{parameter} reset to {orig_value}.')
