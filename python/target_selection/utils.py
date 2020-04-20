@@ -11,7 +11,6 @@ import io
 import time
 
 import pandas
-import peewee
 from peewee import SQL, fn
 
 
@@ -162,9 +161,10 @@ def get_epoch(xmodel):
     fields = xmodel._meta.fields
 
     # If epoch == 0, make it null. This helps with q3c functions.
-    epoch = fn.nullif(
-        peewee.Value(xmatch.epoch) if xmatch.epoch else fields[xmatch.epoch_column],
-        0)
+    if xmatch.epoch:
+        epoch = xmatch.epoch
+    else:
+        epoch = fn.nullif(fields[xmatch.epoch_column], 0)
 
     if xmatch.epoch_format == 'jd':
         epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
@@ -176,20 +176,23 @@ def get_epoch(xmodel):
 def set_config_parameter(database, parameter, new_value, reset=True, log=None):
     """Temporarily a database configuration parameter."""
 
+    new_value = new_value.upper()
+
     try:
 
-        if reset:
-            orig_value = database.execute_sql(f'show {parameter}').fetchone()[0]
+        orig_value = database.execute_sql(f'show {parameter}').fetchone()[0].upper()
+        value_changed = orig_value != new_value
 
-        database.execute_sql(f'SET {parameter} = {new_value};')
-        if log:
-            log.debug(f'{parameter} is {new_value}.')
+        if value_changed:
+            database.execute_sql(f'SET {parameter} = {new_value};')
+            if log:
+                log.debug(f'{parameter} is {new_value}.')
 
         yield
 
     finally:
 
-        if reset:
+        if reset and value_changed:
             database.execute_sql(f'SET {parameter} = {orig_value};')
             if log:
                 log.debug(f'{parameter} reset to {orig_value}.')
