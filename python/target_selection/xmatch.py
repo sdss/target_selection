@@ -24,8 +24,7 @@ from sdsstools.color_print import color_text
 import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          XMatchError)
-from target_selection.utils import (Timer, get_epoch, set_config_parameter,
-                                    sql_apply_pm)
+from target_selection.utils import Timer, get_epoch, sql_apply_pm
 
 
 EPOCH = 2015.5
@@ -1198,15 +1197,8 @@ class XMatchPlanner(object):
 
         with Timer() as timer:
             with self.database.atomic():
-
-                # TODO: I cannot find a good way to run this insert without
-                # disabling seqscan. Need more query planner tuning.
-                with set_config_parameter(self.database, 'enable_seqscan',
-                                          self._options['seqscan'], log=self.log):
-
-                    self.log.debug(f'Running INSERT query{self._get_sql(insert_query)}')
-
-                    n_rows = insert_query.execute()
+                self.log.debug(f'Running INSERT query{self._get_sql(insert_query)}')
+                n_rows = insert_query.execute()
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
         self.log.debug(f'Inserted {n_rows} rows in {timer.elapsed:.3f} s.')
