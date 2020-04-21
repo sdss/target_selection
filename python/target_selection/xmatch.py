@@ -919,8 +919,6 @@ class XMatchPlanner(object):
         """Returns a build query for a given join path."""
 
         model = path[0]
-        meta = model._meta
-        xmatch = meta.xmatch
 
         query = model.select()
         for inode in range(1, len(path)):
@@ -929,9 +927,6 @@ class XMatchPlanner(object):
                                    on=(Catalog.catalogid == path[inode - 1].catalogid))
             else:
                 query = query.join(path[inode])
-
-        query = query.where(self._get_sample_where(meta.fields[xmatch.ra_column],
-                                                   meta.fields[xmatch.dec_column]))
 
         return query
 
@@ -979,7 +974,12 @@ class XMatchPlanner(object):
                                  # with a different join path
                                  .where(join_models[0]._meta.primary_key.not_in(
                                      rel_model.select(rel_model.target_id)
-                                              .where(rel_model.version_id == self._version_id))))
+                                     .where(rel_model.version_id == self._version_id)))
+                                 .where(Catalog.version_id == self._version_id))
+
+                        # In query we do not include a Q3C where for the sample region
+                        # because Catalog for this version should already be sample
+                        # region limited.
 
                         insert_query = rel_model.insert_from(
                             query, fields=[rel_model.target_id,
