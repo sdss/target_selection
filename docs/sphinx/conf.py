@@ -111,7 +111,8 @@ todo_include_todos = False
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'astropy': ('http://docs.astropy.org/en/latest', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       'peewee': ('http://docs.peewee-orm.com/en/latest/', None)}
+                       'peewee': ('http://docs.peewee-orm.com/en/latest/', None),
+                       'sdssdb': ('http://sdssdb.readthedocs.org/en/stable/', None)}
 
 autodoc_mock_imports = ['_tkinter']
 autodoc_member_order = 'groupwise'

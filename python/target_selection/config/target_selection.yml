@@ -1,5 +1,6 @@
 
 '0.1.0':
+    xmatch_version: 0.1.0
     guide:
         g_min: 13
         g_max: 17

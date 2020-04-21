@@ -1,10 +1,8 @@
 
 .. _api:
 
-target_selection Reference
-==========================
-
-.. _api-carton:
+API Reference
+=============
 
 Carton
 ------
@@ -13,3 +11,17 @@ Carton
    :members: BaseCarton
    :undoc-members:
    :show-inheritance:
+
+.. _api-xmatch:
+
+XMatch
+------
+
+.. automodule:: target_selection.xmatch
+   :members: XMatchModel, XMatchPlanner
+
+Utils
+-----
+
+.. automodule:: target_selection.utils
+   :members:

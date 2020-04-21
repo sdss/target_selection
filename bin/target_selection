@@ -15,6 +15,7 @@ from sdssdb.peewee.sdss5db import catalogdb, targetdb
 
 from target_selection import log
 from target_selection.cartons import BaseCarton
+from target_selection.xmatch import XMatchPlanner
 
 
 catalog_model = catalogdb.GaiaDR2Source
@@ -273,6 +274,19 @@ def clear(targeting_version, tables):
         targetdb.Version.get(label=targeting_version).delete_instance()
     except peewee.DoesNotExist:
         pass
+
+
+@target_selection.command()
+@click.argument('XMATCH-VERSION', type=str)
+@click.option('--file', type=click.Path(exists=True, dir_okay=False),
+              help='the file to read. Defaults to the internal '
+                   'configuration file.')
+def xmatch(xmatch_version, file):
+    """Runs catalogue cross-matching from a configuration file."""
+
+    xmatch = XMatchPlanner.read(catalogdb.database, xmatch_version,
+                                config_file=file)
+    xmatch.run()
 
 
 if __name__ == '__main__':
