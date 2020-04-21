@@ -9,11 +9,11 @@
     log_path: false
     disable_seqscan: true
     sample_region:
-        - [270., 66.56, 5]    # North CVZ
-        - [90., -66.56, 5]    # South CVZ
-        - [45.0, 0.0, 5]      # Stripe-82-West
-        - [135.0, 1.0, 5]     # eFEDS
-        - [315.0, 0.0, 5]     # Stripe-82-East
+        - [270., 66.56, 5.]    # North CVZ
+        - [90., -66.56, 5.]    # South CVZ
+        - [45.0, 0.0, 5.]      # Stripe-82-West
+        - [135.0, 1.0, 5.]     # eFEDS
+        - [315.0, 0.0, 5.]     # Stripe-82-East
     exclude: null
     tables:
         tic_v8:

@@ -16,7 +16,6 @@ import peewee
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import fn
-from playhouse.migrate import PostgresqlMigrator, migrate
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
@@ -46,18 +45,15 @@ class Version(peewee.Model):
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField()
+    catalogid = peewee.BigIntegerField(null=False)
     iauname = peewee.TextField(null=True)
-    ra = peewee.DoubleField(null=True)
-    dec = peewee.DoubleField(null=True)
+    ra = peewee.DoubleField(null=False)
+    dec = peewee.DoubleField(null=False)
     pmra = peewee.FloatField(null=True)
     pmdec = peewee.FloatField(null=True)
     parallax = peewee.FloatField(null=True)
-    lead = peewee.TextField()
-    version = peewee.ForeignKeyField(Version)
-
-    class Meta:
-        primary_key = peewee.CompositeKey('catalogid', 'version')
+    lead = peewee.TextField(null=False)
+    version_id = peewee.IntegerField(null=False)
 
 
 def get_relational_model(model, prefix='catalog_to_'):
@@ -79,16 +75,16 @@ def get_relational_model(model, prefix='catalog_to_'):
 
     class BaseModel(peewee.Model):
 
-        catalogid = peewee.BigIntegerField()
-        target_id = model_pk_class(index=True)
-        version_id = peewee.IntegerField()
+        catalogid = peewee.BigIntegerField(null=False)
+        target_id = model_pk_class(null=False)
+        version_id = peewee.SmallIntegerField(null=False)
         distance = peewee.DoubleField(null=True)
-        best = peewee.BooleanField()
+        best = peewee.BooleanField(null=False)
 
         class Meta:
             database = meta.database
             schema = meta.schema
-            indexes = [(('catalogid', 'target_id', 'version_id'), True)]
+            primary_key = False
 
     model_prefix = ''.join(x.capitalize() or '_'
                            for x in prefix.rstrip().split('_'))
@@ -218,19 +214,18 @@ class XMatchPlanner(object):
     ``pmra``, ``pmdec``, ``parallax``, ``lead``, and ``version_id``.
     ``version_id`` relates the record with the ``version`` table which contains
     the cross-matching version and the version of the code used when it was
-    run. Note that ``catalogid`` is not unique across versions, but
-    ``(catalogid, version_id)`` is. ``lead`` indicates from which one of the
-    input catalogues the coordinates were obtained.
+    run. ``lead`` indicates from which one of the input catalogues the
+    coordinates were obtained.
 
     The output table is related to each input catalogue via a many-to-many
     table with the format ``<output_table>_to_<catalogue_table>`` where
     ``<output_table>`` is the table name of the output table and
     ``<catalog_table>`` is the table name of the referred catalogue. Each
-    relational table contains a unique identifier column, ``id``,
-    ``catalogid``, ``target_id``, and ``version_id`` pointing to the primary
-    key of the referred catalogue, and a boolean ``best`` indicating whether it
-    is the best (closest) possible match when a target in the output table
-    correspond to multiple targets in the input catalogue.
+    relational table contains the unique identifier column, ``catalogid``,
+    ``target_id`` pointing to the primary key of the referred catalogue,
+    ``version_id``, and a boolean ``best`` indicating whether it is the best
+    (closest) possible match when a target in the output table correspond to
+    multiple targets in the input catalogue.
 
     The cross-matching process roughly follows the following process:
 
@@ -417,6 +412,7 @@ class XMatchPlanner(object):
         self.set_process_order(order=order, key=key, start_node=start_node)
 
         self._version_id = None
+        self._max_cid = None
 
     @classmethod
     def read(cls, in_models, version, config_file=None, **kwargs):
@@ -579,7 +575,7 @@ class XMatchPlanner(object):
         if Catalog.table_exists():
 
             if (Catalog.select()
-                       .join(Version)
+                       .join(Version, on=(Catalog.version_id == Version.id))
                        .where(Version.version == self.version)
                        .limit(1).count() > 0):
 
@@ -834,11 +830,6 @@ class XMatchPlanner(object):
             self._run_phase_2(model, rel_model)
             self._run_phase_3(model, rel_model)
 
-        if rel_model_created:
-            self.log.debug(f'Adding indexes and FKs to '
-                           f'{rel_model._meta.table_name!r}.')
-            self.add_fks(rel_model, model)
-
         self.log.header = ''
 
     def _get_model_fields(self, model):
@@ -935,8 +926,7 @@ class XMatchPlanner(object):
         for inode in range(1, len(path)):
             if path[inode] is Catalog:
                 query = query.join(Catalog,
-                                   on=((Catalog.catalogid == path[inode - 1].catalogid) &
-                                       (Catalog.version_id == path[inode - 1].version_id)))
+                                   on=(Catalog.catalogid == path[inode - 1].catalogid))
             else:
                 query = query.join(path[inode])
 
@@ -985,7 +975,8 @@ class XMatchPlanner(object):
                                          Catalog.catalogid,
                                          peewee.Value(self._version_id),
                                          peewee.SQL('true'))
-                                 .where(Catalog.version_id == self._version_id)
+                                 # Exclude targets that have already been linked
+                                 # with a different join path
                                  .where(join_models[0]._meta.primary_key.not_in(
                                      rel_model.select(rel_model.target_id)
                                               .where(rel_model.version_id == self._version_id))))
@@ -1040,10 +1031,9 @@ class XMatchPlanner(object):
 
         # Determine what Catalog targets haven't been matched in phase 1.
         unmatched = (Catalog.select()
-                     .where(Catalog.catalogid
-                            .not_in(rel_model.select(rel_model.catalogid)
-                                             .where(rel_model.version_id == self._version_id)))
-                     .where(Catalog.version_id == self._version_id)).cte('unmatched')
+                     .where(Catalog.version_id == self._version_id)
+                     .where(Catalog.catalogid.not_in(rel_model.select(rel_model.catalogid)))
+                     ).cte('unmatched')
 
         # Build the q3c expressions depending on whether there are PMs or not.
         if model_epoch == catalog_epoch:
@@ -1142,25 +1132,38 @@ class XMatchPlanner(object):
         model_dec = meta.fields[xmatch.dec_column]
 
         # Get the max catalogid currently in the table for the version.
-        max_cid = (Catalog
-                   .select(fn.MAX(Catalog.catalogid))
-                   .where(Catalog.version_id == self._version_id)
-                   .scalar() or 0)
+        if not self._max_cid:
+            self._max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
 
-        sampled = (model
-                   .select(model_pk.alias('target_id'))
-                   .where(self._get_sample_where(model_ra, model_dec))
-                   ).cte('sampled')
+        # Add a CTE for the Q3C sampling only if it makes sense. Otherwise it could
+        # mess the planner.
+        if self._options['sample_region']:
 
-        unmatched = (sampled
-                     .select(fn.row_number().over() + max_cid,
-                             sampled.c.target_id,
-                             peewee.Value(self._version_id),
-                             peewee.SQL('true'))
-                     .where(sampled.c.target_id.not_in(
-                            rel_model.select(rel_model.target_id)
-                                     .where(rel_model.version_id == self._version_id)))
-                     ).with_cte(sampled)
+            sampled = (model
+                       .select(model_pk.alias('target_id'))
+                       .where(self._get_sample_where(model_ra, model_dec))).cte('sampled')
+
+            unmatched = (sampled
+                         .select(fn.row_number().over() + self._max_cid,
+                                 sampled.c.target_id,
+                                 peewee.Value(self._version_id),
+                                 peewee.SQL('true'))
+                         .where(sampled.c.target_id.not_in(
+                                rel_model.select(rel_model.target_id)
+                                         .where(rel_model.version_id == self._version_id))))
+            ctes = [sampled]
+
+        else:
+
+            unmatched = (model
+                         .select(fn.row_number().over() + self._max_cid,
+                                 model_pk,
+                                 peewee.Value(self._version_id),
+                                 peewee.SQL('true'))
+                         .where(model_pk.not_in(
+                                rel_model.select(rel_model.target_id)
+                                         .where(rel_model.version_id == self._version_id))))
+            ctes = []
 
         # CTE to populate the relational table.
         rel_insert = peewee.CTE('rel_insert',
@@ -1173,6 +1176,8 @@ class XMatchPlanner(object):
                                      rel_model.best])
                                 .returning(rel_model.catalogid,
                                            rel_model.target_id))
+
+        ctes.append(rel_insert)
 
         # INSERT INTO catalog using the catalogids and targetids
         # returned by y. Return only the number of rows inserted.
@@ -1189,7 +1194,7 @@ class XMatchPlanner(object):
              Catalog.pmdec,
              Catalog.parallax,
              Catalog.lead,
-             Catalog.version]).returning().with_cte(rel_insert)
+             Catalog.version_id]).returning().with_cte(*ctes)
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1203,6 +1208,7 @@ class XMatchPlanner(object):
 
                     n_rows = insert_query.execute()
 
+        self._max_cid += n_rows  # Avoid having to calculate max_cid again
         self.log.debug(f'Inserted {n_rows} rows in {timer.elapsed:.3f} s.')
 
     def _get_sql(self, query):
@@ -1212,42 +1218,6 @@ class XMatchPlanner(object):
             return f': {color_text(str(query), "darkgrey")}'
         else:
             return '.'
-
-    def add_fks(self, relational_model, to_model):
-        """Adds foreign keys and indexes to a relational model class."""
-
-        rtschema = relational_model._meta.schema
-        rtname = relational_model._meta.table_name
-
-        to_schema = to_model._meta.schema
-        to_table_name = to_model._meta.table_name
-
-        migrator = PostgresqlMigrator(self.database)
-
-        with self.database.atomic():
-
-            migrate(
-                migrator.set_search_path(rtschema),
-                migrator.add_constraint(
-                    rtname, 'version_fk',
-                    peewee.SQL(
-                        f'FOREIGN KEY (version_id) '
-                        f'REFERENCES {Version._meta.schema}.{Version._meta.table_name} '
-                        f'(id)')),
-                migrator.add_constraint(
-                    rtname, 'catalog_fk',
-                    peewee.SQL(
-                        f'FOREIGN KEY (catalogid, version_id) '
-                        f'REFERENCES {Catalog._meta.schema}.{Catalog._meta.table_name} '
-                        f'(catalogid, version_id)')),
-                migrator.add_constraint(
-                    rtname, 'target_fk',
-                    peewee.SQL(
-                        f'FOREIGN KEY (target_id) '
-                        f'REFERENCES {to_schema}.{to_table_name} '
-                        f'({to_model._meta.primary_key.column_name})')))
-
-        migrator.database.close()
 
     def _get_sample_where(self, ra_field, dec_field):
         """Returns the list of conditions to sample a model."""
