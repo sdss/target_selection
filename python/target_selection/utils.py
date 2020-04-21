@@ -167,7 +167,7 @@ def get_epoch(xmodel):
         epoch = fn.nullif(fields[xmatch.epoch_column], 0)
 
     if xmatch.epoch_format == 'jd':
-        epoch = 2000 + (xmatch.epoch - 2451545.0) / 365.25
+        epoch = 2000 + (epoch - 2451545.0) / 365.25
 
     return epoch
 
