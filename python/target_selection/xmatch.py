@@ -101,7 +101,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
                 epoch_format='jyear', has_duplicates=False,
-                skip_unlinked=False, skip=False, join_weight=1):
+                skip=False, skip_phases=None, query_radius=None,
+                join_weight=1):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -146,10 +147,13 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         ``base_version`` option but want to remove that table. It can also
         be used when setting a ``join_path`` for a model but otherwise don't
         want the table to be processed.
-    skip_unlinked : bool
-        If True, any row that cannot be directly linked to a record in the
-        output table will be skipped. This option is ignored if the table
-        is the first one to be processed.
+    skip_phases : list
+        A list of cross-matching phases to be skipped for this model. Refer
+        to the `.XMatchPlanner` documentation for definitions on what each
+        phase does.
+    query_radius : float
+        The radius, in degrees, to use in the radial query for cross-matching.
+        If not provided defaults to the `.XMatchPlanner` value.
     join_weight : float
         The weight used by `.XMatchPlanner.get_simple_paths` to determine
         the cost of using this table as a join. Lower weights translate to
@@ -199,8 +203,9 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.epoch_format = epoch_format
 
     meta.xmatch.has_duplicates = has_duplicates
-    meta.xmatch.skip_unlinked = skip_unlinked
     meta.xmatch.skip = skip
+    meta.xmatch.skip_phases = skip_phases or []
+    meta.xmatch.query_radius = query_radius
 
     meta.xmatch.row_count = get_row_count(meta.database, meta.table_name,
                                           schema=meta.schema, approximate=True)
@@ -683,12 +688,12 @@ class XMatchPlanner(object):
 
         """
 
-        assert order in ['hierarchical', 'global'], f'invalid order value {order!r}.'
-        self.log.info(f'processing order mode is {order!r}')
-
         if isinstance(order, (list, tuple)):
             self.log.info(f'processing order: {order}')
             return order
+
+        assert order in ['hierarchical', 'global'], f'invalid order value {order!r}.'
+        self.log.info(f'processing order mode is {order!r}')
 
         assert key in ['row_count', 'resolution'], f'invalid order key {key}.'
         self.log.info(f'ordering key is {key!r}.')
@@ -990,6 +995,10 @@ class XMatchPlanner(object):
 
         self.log.info('Phase 1: linking existing targets.')
 
+        if 1 in model._meta.xmatch.skip_phases:
+            self.log.warning('Skipping due to configuration.')
+            return
+
         join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
                                            allow_relational_table=False)
 
@@ -1060,10 +1069,14 @@ class XMatchPlanner(object):
     def _run_phase_2(self, model, rel_model):
         """Associates existing targets in Catalog with entries in the model."""
 
-        self.log.info('Phase 2: cross-matching against existing targets.')
-
         meta = model._meta
         xmatch = meta.xmatch
+
+        self.log.info('Phase 2: cross-matching against existing targets.')
+
+        if 2 in xmatch.skip_phases:
+            self.log.warning('Skipping due to configuration.')
+            return
 
         table_name = meta.table_name
         rel_table_name = rel_model._meta.table_name
@@ -1071,6 +1084,8 @@ class XMatchPlanner(object):
         model_pk = meta.primary_key
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
+
+        query_radius = xmatch.query_radius or self._options['query_radius']
 
         model_epoch = get_epoch(model)
         catalog_epoch = self._options['epoch']
@@ -1098,7 +1113,7 @@ class XMatchPlanner(object):
                                    unmatched.c.dec,
                                    model_ra,
                                    model_dec,
-                                   self._options['query_radius'])
+                                   query_radius)
         else:
             q3c_dist = fn.q3c_dist_pm(unmatched.c.ra,
                                       unmatched.c.dec,
@@ -1119,7 +1134,7 @@ class XMatchPlanner(object):
                                       model_dec,
                                       model_epoch,
                                       max_delta_epoch,
-                                      self._options['query_radius'])
+                                      query_radius)
 
         # Do the actuall cross-matching.
         # NOTE: Do NOT add a where(self._get_sample_where(model_ra, model_dec)) to the
@@ -1171,10 +1186,14 @@ class XMatchPlanner(object):
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
 
-        self.log.info('Phase 3: adding non cross-matched targets.')
-
         meta = model._meta
         xmatch = meta.xmatch
+
+        self.log.info('Phase 3: adding non cross-matched targets.')
+
+        if 3 in xmatch.skip_phases:
+            self.log.warning('Skipping due to configuration.')
+            return
 
         table_name = meta.table_name
 
