@@ -101,7 +101,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
                 epoch_format='jyear', has_duplicates=False,
-                skip_unlinked=False, skip=False):
+                skip_unlinked=False, skip=False, join_weight=1):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -141,11 +141,19 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         Whether the table contains duplicates.
     skip : bool
         If `True`, the table will be used as a join node but will not be
-        cross-matched.
+        cross-matched. This is useful for testing and also if the table is
+        in a previous version of the configuration file and you are using the
+        ``base_version`` option but want to remove that table. It can also
+        be used when setting a ``join_path`` for a model but otherwise don't
+        want the table to be processed.
     skip_unlinked : bool
         If True, any row that cannot be directly linked to a record in the
         output table will be skipped. This option is ignored if the table
         is the first one to be processed.
+    join_weight : float
+        The weight used by `.XMatchPlanner.get_simple_paths` to determine
+        the cost of using this table as a join. Lower weights translate to
+        better chances of that join path to be selected.
 
     Returns
     -------
@@ -196,6 +204,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
 
     meta.xmatch.row_count = get_row_count(meta.database, meta.table_name,
                                           schema=meta.schema, approximate=True)
+
+    meta.xmatch.join_weight = join_weight
 
     return Model
 
@@ -353,10 +363,6 @@ class XMatchPlanner(object):
         (``ra``, ``dec``, ``radius``) of the region to which to limit the
         cross-match. All values must be in degrees. It can also be a list
         of tuples, in which case the union of all the regions will be sampled.
-    disable_seqscan : bool
-        Whether to disable sequential scans completely. Depending on the tables
-        to process and the database server configuration, this may sometimes
-        be needed to force the query planner to use the Q3C indexes.
 
     """
 
@@ -365,7 +371,7 @@ class XMatchPlanner(object):
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', allow_existing=False,
                  log_path='./xmatch_{version}.log', debug=False,
-                 show_sql=False, sample_region=None, disable_seqscan=False):
+                 show_sql=False, sample_region=None):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -402,8 +408,7 @@ class XMatchPlanner(object):
                          'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
-                         'epoch': epoch,
-                         'seqscan': 'OFF' if disable_seqscan else 'ON'}
+                         'epoch': epoch}
 
         self._check_models()
 
@@ -636,7 +641,23 @@ class XMatchPlanner(object):
                 ref_table_name = fk_model._meta.table_name
                 if ref_table_name not in self.model_graph.nodes:
                     continue
-                self.model_graph.add_edge(table_name, ref_table_name)
+
+                # Determines the join weight as the average of the
+                # weights of the joined nodes.
+                if hasattr(model._meta, 'xmatch'):
+                    model_weight = model._meta.xmatch.join_weight
+                else:
+                    model_weight = 1
+
+                if hasattr(fk_model._meta, 'xmatch'):
+                    fk_model_weight = fk_model._meta.xmatch.join_weight
+                else:
+                    fk_model_weight = 1
+
+                join_weight = 0.5 * (model_weight + fk_model_weight)
+
+                self.model_graph.add_edge(table_name, ref_table_name,
+                                          join_weight=join_weight)
 
             # A bit of a hack here. There is no FK between catalog_to_table
             # and catalog because it depends on catalogid and version. So
@@ -737,6 +758,11 @@ class XMatchPlanner(object):
         in which once an edge has been used for a join it cannot be used again.
         This produces only distint joins between the two nodes.
 
+        Weights can be defined by setting the ``join_weight`` value in
+        `.XMatchModel`. The weight for each edge is the average of the the
+        ``join_weight`` of the two nodes joined. The weight defaults to 1.
+        Lower weights translate to better chances of that join path to be selected.
+
         Parameters
         ----------
         source : str
@@ -770,7 +796,7 @@ class XMatchPlanner(object):
 
         while True:
             try:
-                spath = shortest_path(graph, source, dest)
+                spath = shortest_path(graph, source, dest, weight='join_weight')
                 paths.append(spath)
                 for node in spath[1:-1]:
                     graph.remove_node(node)
@@ -1256,3 +1282,23 @@ class XMatchPlanner(object):
             sample_conds |= fn.q3c_radial_query(ra_field, dec_field, ra, dec, radius)
 
         return sample_conds
+
+    def show_join_paths(self):
+        """Prints all the available joint paths.
+
+        This is useful before call `.run` to make sure the join paths to be
+        used are correct or adjust the table weights otherwise. Note that
+        the paths starting from the first model to be processed are ignored.
+
+        """
+
+        if len(self.process_order) == 1:
+            return
+
+        for table in self.process_order[1:]:
+            paths = self.get_simple_paths(table, Catalog._meta.table_name)
+            if paths:
+                for path in paths:
+                    if len(path) == 3:
+                        continue
+                    print(path)
