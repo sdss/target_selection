@@ -10,8 +10,9 @@ import contextlib
 import io
 import time
 
+import click
 import pandas
-from peewee import SQL, fn
+from peewee import SQL, DoesNotExist, fn
 
 
 class Timer:
@@ -196,3 +197,45 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
             database.execute_sql(f'SET {parameter} = {orig_value};')
             if log:
                 log.debug(f'{parameter} reset to {orig_value}.')
+
+
+def remove_version(database, version, schema='catalogdb', table='catalog'):
+    """Removes all rows in ``table`` and ``table_to_`` that match a version."""
+
+    models = []
+    for table_name in database.models:
+        if table_name != table and not table_name.startswith(table + '_to_'):
+            continue
+        model = database.models[table_name]
+        if not model.table_exists() or model._meta.schema != schema:
+            continue
+        models.append(model)
+
+    if len(models) == 0:
+        raise ValueError('No table matches the input parameters.')
+
+    print(f'Tables that will be truncated on {version!r}: ' +
+          ', '.join(model._meta.table_name for model in models))
+
+    Catalog = database.models[table]
+    Version = database.models['version']
+
+    try:
+        version_id = Version.get(version=version).id
+    except DoesNotExist:
+        raise ValueError(f'Version {version!r} does not exist.')
+
+    print(f'version_id={version_id}')
+
+    n_targets = Catalog.select().where(Catalog.version_id == version_id).count()
+    print(f'Number of targets found in {Catalog._meta.table_name}: {n_targets}')
+
+    if not click.confirm('Do you really want to proceed?'):
+        return
+
+    for model in models:
+        n_removed = model.delete().where(model.version_id == version_id).execute()
+        print(f'{model._meta.table_name}: {n_removed} rows removed.')
+
+    Version.delete().where(Version.id == version_id).execute()
+    print('Removed entry in \'version\'.')
