@@ -9,6 +9,7 @@
 import inspect
 import os
 import re
+import warnings
 
 import networkx
 import numpy
@@ -19,10 +20,12 @@ from peewee import fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
+from sdsstools import merge_config
 from sdsstools.color_print import color_text
 
 import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
+                                         TargetSelectionUserWarning,
                                          XMatchError)
 from target_selection.utils import Timer, get_epoch, sql_apply_pm
 
@@ -458,6 +461,11 @@ class XMatchPlanner(object):
                         epoch: 2015.5
                         skip: true
 
+        It is also possible to use a parameter ``base_version`` pointing to a
+        previous version string. In that case the previous version
+        configuration will be used as base and the new values will be merged
+        (the update happens recursively as with normal Python dictionaries).
+
         Note that only models that match the table names in ``tables`` will be
         passed to `.XMatchPlanner` to be processed; any other table will be
         used as an extra joining node unless it's listed in ``exclude``, in
@@ -510,7 +518,13 @@ class XMatchPlanner(object):
         config = yaml.load(open(config_file, 'r'), Loader=yaml.SafeLoader)
 
         assert version in config, f'version {version!r} not found in configuration.'
-        config = config[version]
+
+        base_version = config[version].pop('base_version', None)
+        if base_version:
+            config = merge_config(config[version], config[base_version])
+        else:
+
+            config = config[version]
 
         table_config = config.pop('tables', {}) or {}
         exclude = config.pop('exclude', []) or []
@@ -527,15 +541,25 @@ class XMatchPlanner(object):
             if table_name not in models:
                 continue
             table_params = table_config[table_name] or {}
-            xmatch_models[table_name] = XMatchModel(models[table_name],
-                                                    **table_params)
+            xmatch_models[table_name] = XMatchModel(models[table_name], **table_params)
 
         extra_nodes = [models[table_name] for table_name in models
                        if table_name not in xmatch_models]
 
         config.update(kwargs)
+
+        signature = inspect.signature(XMatchPlanner)
+
+        valid_kw = {}
+        for kw in config:
+            if kw not in signature.parameters:
+                warnings.warn(f'ignoring invalid configuration value {kw!r}.',
+                              TargetSelectionUserWarning)
+                continue
+            valid_kw[kw] = config[kw]
+
         return cls(database, xmatch_models.values(), version,
-                   extra_nodes=extra_nodes, **config)
+                   extra_nodes=extra_nodes, **valid_kw)
 
     def _check_models(self):
         """Checks the input models."""
