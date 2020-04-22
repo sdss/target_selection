@@ -377,6 +377,8 @@ class XMatchPlanner(object):
         self.log.header = ''
 
         if log_path:
+            if os.path.exists(log_path):
+                os.remove(log_path)
             if self.log.fh:
                 self.log.removeHandler(self.log.fh)
                 self.log.fh = None
