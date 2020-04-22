@@ -44,7 +44,7 @@ class Version(peewee.Model):
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField(null=False)
+    catalogid = peewee.BigIntegerField(primary_key=True, null=False)
     iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
@@ -52,7 +52,7 @@ class Catalog(peewee.Model):
     pmdec = peewee.FloatField(null=True)
     parallax = peewee.FloatField(null=True)
     lead = peewee.TextField(null=False)
-    version_id = peewee.IntegerField(null=False)
+    version_id = peewee.IntegerField(null=False, index=True)
 
 
 def get_relational_model(model, prefix='catalog_to_'):
@@ -74,16 +74,16 @@ def get_relational_model(model, prefix='catalog_to_'):
 
     class BaseModel(peewee.Model):
 
-        catalogid = peewee.BigIntegerField(null=False)
-        target_id = model_pk_class(null=False)
-        version_id = peewee.SmallIntegerField(null=False)
+        id = peewee.BigAutoField()
+        catalogid = peewee.BigIntegerField(null=False, index=True)
+        target_id = model_pk_class(null=False, index=True)
+        version_id = peewee.SmallIntegerField(null=False, index=True)
         distance = peewee.DoubleField(null=True)
         best = peewee.BooleanField(null=False)
 
         class Meta:
             database = meta.database
             schema = meta.schema
-            primary_key = False
 
     model_prefix = ''.join(x.capitalize() or '_'
                            for x in prefix.rstrip().split('_'))
