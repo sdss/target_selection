@@ -575,7 +575,6 @@ class XMatchPlanner(object):
         """Checks the input models."""
 
         catalog_tname = Catalog._meta.table_name
-        catalog_schema = Catalog._meta.schema
 
         remove_models = []
 
@@ -621,13 +620,6 @@ class XMatchPlanner(object):
                 else:
                     raise XMatchError(error_msg + ' This problem needs to be '
                                       'solved manually.')
-
-            if (self.database.get_primary_keys(catalog_tname, catalog_schema) or
-                    self.database.get_indexes(catalog_tname, catalog_schema)):
-
-                self.log.warning(f'{catalog_tname} has a primary key '
-                                 'or indexes. Consider dropping them before calling '
-                                 'run() to speed up insertion.')
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
