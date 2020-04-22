@@ -525,16 +525,7 @@ class XMatchPlanner(object):
         if config_file is None:
             config_file = os.path.dirname(target_selection.__file__) + '/config/xmatch.yml'
 
-        config = yaml.load(open(config_file, 'r'), Loader=yaml.SafeLoader)
-
-        assert version in config, f'version {version!r} not found in configuration.'
-
-        base_version = config[version].pop('base_version', None)
-        if base_version:
-            config = merge_config(config[version], config[base_version])
-        else:
-
-            config = config[version]
+        config = XMatchPlanner._read_config(config_file, version)
 
         table_config = config.pop('tables', {}) or {}
         exclude = config.pop('exclude', []) or []
@@ -570,6 +561,24 @@ class XMatchPlanner(object):
 
         return cls(database, xmatch_models.values(), version,
                    extra_nodes=extra_nodes, **valid_kw)
+
+    @staticmethod
+    def _read_config(file_, version):
+        """Reads the configuration file, recursively."""
+
+        config = yaml.load(open(file_, 'r'), Loader=yaml.SafeLoader)
+
+        assert version in config, f'version {version!r} not found in configuration.'
+
+        base_version = config[version].pop('base_version', None)
+        if base_version:
+            config = merge_config(config[version],
+                                  XMatchPlanner._read_config(file_, base_version))
+        else:
+
+            config = config[version]
+
+        return config
 
     def _check_models(self):
         """Checks the input models."""
