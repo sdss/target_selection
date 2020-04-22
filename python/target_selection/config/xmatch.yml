@@ -95,8 +95,8 @@
 
 '0.1.0-alpha.2':
     base_version: 0.1.0-alpha.1
-    key: resolution
-    log_path: xmatch_0.1.0-alpha.2.log
+    key: row_count
+    log_path: xmatch_{version}.log
     tables:
         allwise:
             ra_column: ra
@@ -104,7 +104,6 @@
             pmra_column: pmra
             pmdec_column: pmdec
             epoch: 2010.5589  # MJD 55400.0
-            parallax_column: par_pm
         gaia_dr2_source:
             join_weight: 0.1
             skip: True
