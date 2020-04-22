@@ -109,3 +109,40 @@
             skip: True
         gaia_unwise_agn:
             join_weight: 0.3
+
+'0.1.0-alpha.3':
+    base_version: 0.1.0-alpha.2
+    order:
+        - tic_v8
+        - legacy_survey_dr8
+        - sdss_dr13_photoobj
+        - skymapper_dr1_1
+        - kepler_input_10
+        - ps1_g18
+        - tycho2
+        - gaia_qso
+        - bhm_csc
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - allwise
+        - unwise
+        - catwise
+        - glimpse
+    key: null
+    tables:
+        legacy_survey_dr8:
+            skip_phases: [2]
+        allwise:
+            skip_phases: [3]
+            query_radius: 6
+        unwise:
+            skip_phases: [3]
+            query_radius: 6
+        catwise:
+            skip_phases: [3]
+            query_radius: 6
+        glimpse:
+            skip_phases: [3]
+            query_radius: 6
+        guvcat:
+            query_radius: 2
