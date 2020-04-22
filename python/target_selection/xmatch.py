@@ -1085,7 +1085,8 @@ class XMatchPlanner(object):
                      ).cte('unmatched')
 
         # Build the q3c expressions depending on whether there are PMs or not.
-        if model_epoch == catalog_epoch:
+        if (not isinstance(model_epoch, (peewee.Expression, peewee.Function)) and
+                model_epoch == catalog_epoch):
             q3c_dist = fn.q3c_dist(unmatched.c.ra,
                                    unmatched.c.dec,
                                    model_ra,
