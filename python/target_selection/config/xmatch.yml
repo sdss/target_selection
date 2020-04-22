@@ -96,6 +96,7 @@
 '0.1.0-alpha.2':
     base_version: 0.1.0-alpha.1
     key: resolution
+    log_path: xmatch_0.1.0-alpha.2.log
     tables:
         allwise:
             ra_column: ra
