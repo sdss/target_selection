@@ -942,9 +942,6 @@ class XMatchPlanner(object):
             RelationalModel.create_table()
             created = True
         else:
-            if RelationalModel.select().count() > 0:
-                self.log.warning(f'Relational table {rtname!r} is not empty!')
-
             created = False
 
         # Add foreign key field here. We want to avoid Peewee creating it
