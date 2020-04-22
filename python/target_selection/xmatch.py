@@ -397,6 +397,8 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.version = version
+        self.log.info(f'version = {self.version!r}; '
+                      f'code = {target_selection.__version__!r}.')
 
         # Sets the metadata of the Catalog and Version tables.
         Catalog._meta.schema = schema
