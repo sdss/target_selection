@@ -38,7 +38,7 @@ class Version(peewee.Model):
 
     id = peewee.AutoField()
     version = peewee.TextField()
-    code = peewee.TextField()
+    tag = peewee.TextField()
 
     class Meta:
         table_name = 'version'
@@ -398,7 +398,7 @@ class XMatchPlanner(object):
 
         self.version = version
         self.log.info(f'version = {self.version!r}; '
-                      f'code = {target_selection.__version__!r}.')
+                      f'tag = {target_selection.__version__!r}.')
 
         # Sets the metadata of the Catalog and Version tables.
         Catalog._meta.schema = schema
@@ -819,7 +819,7 @@ class XMatchPlanner(object):
                           f'{Version._meta.table_name!r}.')
 
         version, vcreated = Version.get_or_create(version=self.version,
-                                                  code=target_selection.__version__)
+                                                  tag=target_selection.__version__)
         self._version_id = version.id
         if vcreated:
             vmsg = 'Added version record '
