@@ -165,7 +165,7 @@ class BhmRmVar(BhmRmBaseCarton):
     priority = 1
 
     def build_query(self):
-       t = catalogdb.BHM_RM_v0.alias()
+        t = catalogdb.BHM_RM_v0.alias()
 
         query = (
             t.select(t.pk.alias('catalog_id'),
