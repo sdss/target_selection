@@ -97,6 +97,7 @@
     base_version: 0.1.0-alpha.1
     key: row_count
     log_path: xmatch_{version}.log
+    exclude: ['kepler_input_10']
     tables:
         allwise:
             ra_column: ra
