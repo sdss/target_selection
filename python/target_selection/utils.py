@@ -14,6 +14,13 @@ import click
 import pandas
 from peewee import SQL, DoesNotExist, fn
 
+from sdssdb.utils import vacuum
+
+
+__all__ = ['Timer', 'sql_apply_pm', 'sql_iauname', 'copy_pandas',
+           'get_epoch', 'set_config_parameter', 'remove_version',
+           'vacuum_outputs']
+
 
 class Timer:
     """Convenience context manager to time events.
@@ -199,7 +206,8 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
                 log.debug(f'{parameter} reset to {orig_value}.')
 
 
-def remove_version(database, version, schema='catalogdb', table='catalog'):
+def remove_version(database, version, schema='catalogdb',
+                   table='catalog', delete_version=True):
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
     models = []
@@ -237,5 +245,24 @@ def remove_version(database, version, schema='catalogdb', table='catalog'):
         n_removed = model.delete().where(model.version_id == version_id).execute()
         print(f'{model._meta.table_name}: {n_removed} rows removed.')
 
-    Version.delete().where(Version.id == version_id).execute()
-    print('Removed entry in \'version\'.')
+    if delete_version:
+        Version.delete().where(Version.id == version_id).execute()
+        print('Removed entry in \'version\'.')
+
+
+def vacuum_outputs(database, schema='catalogdb', table='catalog',
+                   relational_tables=True, verbose=False):
+    """Vacuums and analyses the output tables."""
+
+    tables = []
+    for table_name in database.models:
+        if table_name != table:
+            if not table_name.startswith(table + '_to_') or not relational_tables:
+                continue
+        model = database.models[table_name]
+        if not model.table_exists() or model._meta.schema != schema:
+            continue
+        tables.append(table_name)
+
+    for table_name in tables:
+        vacuum(database, table_name, schema=schema, verbose=verbose)
