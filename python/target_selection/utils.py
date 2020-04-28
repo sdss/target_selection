@@ -14,12 +14,10 @@ import click
 import pandas
 from peewee import SQL, DoesNotExist, fn
 
-from sdssdb.utils import vacuum
-
 
 __all__ = ['Timer', 'sql_apply_pm', 'sql_iauname', 'copy_pandas',
            'get_epoch', 'set_config_parameter', 'remove_version',
-           'vacuum_outputs']
+           'vacuum_outputs', 'get_configuration_values', 'vacuum_table']
 
 
 class Timer:
@@ -236,23 +234,45 @@ def remove_version(database, version, schema='catalogdb',
     print(f'version_id={version_id}')
 
     n_targets = Catalog.select().where(Catalog.version_id == version_id).count()
-    print(f'Number of targets found in {Catalog._meta.table_name}: {n_targets}')
+    print(f'Number of targets found in {Catalog._meta.table_name}: {n_targets:,}')
 
     if not click.confirm('Do you really want to proceed?'):
         return
 
     for model in models:
         n_removed = model.delete().where(model.version_id == version_id).execute()
-        print(f'{model._meta.table_name}: {n_removed} rows removed.')
+        print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
 
     if delete_version:
         Version.delete().where(Version.id == version_id).execute()
         print('Removed entry in \'version\'.')
 
 
-def vacuum_outputs(database, schema='catalogdb', table='catalog',
-                   relational_tables=True, verbose=False):
+def vacuum_table(database, table_name, vacuum=True, analyze=True):
+    """Vacuums and analyses a table."""
+
+    statement = (('VACUUM ' if vacuum else '') +
+                 ('ANALYZE ' if analyze else '') +
+                 table_name)
+
+    with database.atomic():
+
+        # Change isolation level to allow executing commands such as VACUUM.
+        connection = database.connection()
+        original_isolation_level = connection.isolation_level
+        connection.set_isolation_level(0)
+
+        database.execute_sql(statement)
+
+        connection.set_isolation_level(original_isolation_level)
+
+
+def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
+                   table='catalog', relational_tables=True):
     """Vacuums and analyses the output tables."""
+
+    assert vacuum or analyze, 'either vacuum or analyze need to be True.'
+    assert database.is_connection_usable(), 'connection is not usable.'
 
     tables = []
     for table_name in database.models:
@@ -265,4 +285,18 @@ def vacuum_outputs(database, schema='catalogdb', table='catalog',
         tables.append(table_name)
 
     for table_name in tables:
-        vacuum(database, table_name, schema=schema, verbose=verbose)
+        table_name = table_name if schema is None else schema + '.' + table_name
+        vacuum_table(database, table_name, vacuum=vacuum, analyze=analyze)
+
+
+def get_configuration_values(database, parameters):
+    """Returns a dictionary of datbase configuration parameter to value."""
+
+    values = {}
+
+    with database.atomic():
+        for parameter in parameters:
+            value = database.execute_sql(f'SHOW {parameter}').fetchone()[0]
+            values[parameter] = value
+
+    return values
