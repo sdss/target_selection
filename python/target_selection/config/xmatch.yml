@@ -1,7 +1,7 @@
 '0.1.0-alpha.1':
     order: hierarchical
     key: resolution
-    query_radius: 0.000277778  # 1 arcsec
+    query_radius: 1.
     schema: catalogdb
     output_table: catalog
     start_node: tic_v8
@@ -130,7 +130,15 @@
         - catwise
         - glimpse
     key: null
+    exclude: null
     tables:
+        tic_v8:
+            join_weight: 0.1
+        gaia_dr2_source:
+            join_weight: 0.2
+            skip: True
+        gaia_unwise_agn:
+            join_weight: 0.3
         legacy_survey_dr8:
             skip_phases: [2]
         allwise:
@@ -146,4 +154,7 @@
             skip_phases: [3]
             query_radius: 6
         guvcat:
-            query_radius: 2
+            query_radius: 4.5
+        kepler_input_10:
+            ra_column: kic_ra_deg
+            dec_column: kic_dec
