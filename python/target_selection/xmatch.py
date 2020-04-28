@@ -153,7 +153,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         to the `.XMatchPlanner` documentation for definitions on what each
         phase does.
     query_radius : float
-        The radius, in degrees, to use in the radial query for cross-matching.
+        The radius, in arcsec, to use in the radial query for cross-matching.
         If not provided defaults to the `.XMatchPlanner` value.
     join_weight : float
         The weight used by `.XMatchPlanner.get_simple_paths` to determine
@@ -343,7 +343,7 @@ class XMatchPlanner(object):
         If specified, the name of the table that will be inserted first
         regarding of the above sorting process.
     query_radius : float
-        The radius, in degrees, for cross-matching between existing targets.
+        The radius, in arcsec, for cross-matching between existing targets.
         Used in phase 2. Defaults to 1 arcsec.
     schema : str
         The schema in which all the tables to cross-match live (multiple
@@ -415,7 +415,7 @@ class XMatchPlanner(object):
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
-        self._options = {'query_radius': query_radius or 1 / 3600.,
+        self._options = {'query_radius': query_radius or 1.,
                          'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
@@ -1111,12 +1111,7 @@ class XMatchPlanner(object):
                                    Catalog.dec,
                                    model_ra,
                                    model_dec,
-                                   query_radius)
-        else:
-            q3c_dist = fn.q3c_dist_pm(Catalog.ra,
-                                      Catalog.dec,
-                                      Catalog.pmra,
-                                      Catalog.pmdec,
+                                      query_radius / 3600.)
                                       1,  # Catalog pmra is pmra*cos by definition.
                                       catalog_epoch,
                                       model_ra,
@@ -1130,9 +1125,7 @@ class XMatchPlanner(object):
                                       catalog_epoch,
                                       model_ra,
                                       model_dec,
-                                      model_epoch,
-                                      max_delta_epoch,
-                                      query_radius)
+                                   query_radius / 3600.)
 
         # We'll partition over each group of targets that are within
         # radius of a catalogid and mark the one with the smallest
