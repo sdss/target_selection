@@ -27,7 +27,8 @@ import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          TargetSelectionUserWarning,
                                          XMatchError)
-from target_selection.utils import Timer, get_epoch, sql_apply_pm, vacuum_outputs
+from target_selection.utils import (Timer, get_configuration_values, get_epoch,
+                                    sql_apply_pm, vacuum_outputs, vacuum_table)
 
 
 EPOCH = 2015.5
@@ -1060,15 +1061,7 @@ class XMatchPlanner(object):
 
                 self.log.debug(f'Inserted {nids} records in {timer.interval:.3f} s.')
 
-                paths_processed.append(path)
-
-        if len(paths_processed) == 0:
-            self.log.warning('No join paths were found using tables that '
-                             'had already been cross-matched. You should '
-                             'review your processing order.')
-            return False
-
-        return True
+        self._analyze(rel_model)
 
     def _run_phase_2(self, model, rel_model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1173,6 +1166,7 @@ class XMatchPlanner(object):
         self.log.debug(f'Cross-matched {n_catalogid} catalogids with {table_name!r}. '
                        f'Run in {timer.interval:.3f} s.')
 
+        self._analyze(rel_model)
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
 
@@ -1249,7 +1243,7 @@ class XMatchPlanner(object):
                 n_rows = insert_query.execute()
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
-        self.log.debug(f'Inserted {n_rows} rows in {timer.elapsed:.3f} s.')
+        self._analyze(rel_model, catalog=True)
 
     def _get_sql(self, query):
         """Returns coulourised SQL text for logging."""
@@ -1300,3 +1294,19 @@ class XMatchPlanner(object):
                     if len(path) == 3:
                         continue
                     print(path)
+
+    def _analyze(self, rel_model, catalog=False):
+        """Analyses a relational model after insertion."""
+
+        schema = rel_model._meta.schema
+        table_name = rel_model._meta.table_name
+
+        self.log.debug(f'Running ANALYZE on {table_name}.')
+        vacuum_table(self.database, f'{schema}.{table_name}', vacuum=False, analyze=True)
+
+        if catalog:
+            cat_schema = Catalog._meta.schema
+            cat_table_name = Catalog._meta.table_name
+            self.log.debug(f'Running ANALYZE on {cat_table_name}.')
+            vacuum_table(self.database, f'{cat_schema}.{cat_table_name}',
+                         vacuum=False, analyze=True)
