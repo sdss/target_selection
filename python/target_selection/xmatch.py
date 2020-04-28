@@ -157,7 +157,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         The radius, in arcsec, to use in the radial query for cross-matching.
         If not provided defaults to the `.XMatchPlanner` value.
     join_weight : float
-        The weight used by `.XMatchPlanner.get_simple_paths` to determine
+        The weight used by `.XMatchPlanner.get_join_paths` to determine
         the cost of using this table as a join. Lower weights translate to
         better chances of that join path to be selected.
 
@@ -286,7 +286,7 @@ class XMatchPlanner(object):
       existing cross-match to targets already ingested into the output table.
       To do that we build all possible joins between the model and the output
       table. If multiple joins are possible via a given table only the shortest
-      is used (see `.get_simple_paths`). For all matched targets we insert
+      is used (see `.get_join_paths`). For all matched targets we insert
       entries in the relational table. The *lead* of the original entries is
       not changed.
 
@@ -422,7 +422,13 @@ class XMatchPlanner(object):
                          'sample_region': sample_region,
                          'epoch': epoch}
 
+        if self._options['sample_region']:
+            sample_region = self._options['sample_region']
+            self.log.warning(f'Using sample region {sample_region!r}.')
+
         self._check_models()
+
+        self._log_db_configuration()
 
         self.model_graph = None
         self.update_model_graph()
@@ -452,7 +458,7 @@ class XMatchPlanner(object):
             '0.1.0':
                 order: hierarchical
                 key: resolution
-                query_radius: 0.000277778  # 1 arcsec
+                query_radius: 1.
                 schema: catalogdb
                 output_table: catalog
                 start_node: tic_v8
@@ -624,8 +630,9 @@ class XMatchPlanner(object):
         if Catalog.table_exists():
 
             version_id = Version.select().where(Version.version == self.version).scalar()
-            if (version_id and Catalog.select()
-                                      .where(Catalog.version_id == version_id).first()):
+            if (version_id and Catalog.select(fn.COUNT(SQL('1')))
+                                      .where(Catalog.version_id == version_id)
+                                      .limit(1).scalar()):
 
                 error_msg = (f'{catalog_tname!r} contains '
                              'records for this version of cross-matching '
@@ -636,6 +643,33 @@ class XMatchPlanner(object):
                 else:
                     raise XMatchError(error_msg + ' This problem needs to be '
                                       'solved manually.')
+
+    def _log_db_configuration(self):
+        """Logs some key database configuration parameters."""
+
+        parameters = ['shared_buffers',
+                      'effective_cache_size',
+                      'wal_buffers',
+                      'effective_io_concurrency',
+                      'work_mem',
+                      'max_worker_processes',
+                      'random_page_cost',
+                      'seq_page_cost',
+                      'cpu_index_tuple_cost',
+                      'cpu_operator_cost',
+                      'default_statistics_target',
+                      'temp_buffers',
+                      'plan_cache_mode',
+                      'geqo_effort',
+                      'force_parallel_mode',
+                      'enable_seqscan',
+                      'enable_nestloop']
+
+        values = get_configuration_values(self.database, parameters)
+
+        self.log.debug('Current database configuration parameters.')
+        for parameter in values:
+            self.log.debug(f'{parameter} = {values[parameter]}')
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
@@ -692,6 +726,7 @@ class XMatchPlanner(object):
 
         if isinstance(order, (list, tuple)):
             self.log.info(f'processing order: {order}')
+            self.process_order = order
             return order
 
         assert order in ['hierarchical', 'global'], f'invalid order value {order!r}.'
@@ -762,29 +797,27 @@ class XMatchPlanner(object):
 
         return ordered_tables
 
-    def get_simple_paths(self, source, dest, allow_relational_table=True,
-                         return_models=False):
+    def get_join_paths(self, source, return_models=False):
         """Determines all possible join path between two tables.
 
         Instead of returning all possible simple paths between the ``source``
-        and ``dest`` tables, this algorithm follows a "scorched earth" approach
+        and output table, this algorithm follows a "scorched earth" approach
         in which once an edge has been used for a join it cannot be used again.
-        This produces only distint joins between the two nodes.
+        This produces only distint joins between the two nodes. Paths that
+        include only the source and destination through their relational table
+        are ignored, as are paths in which the last node before the output
+        table has not yet been processed.
 
         Weights can be defined by setting the ``join_weight`` value in
         `.XMatchModel`. The weight for each edge is the average of the the
         ``join_weight`` of the two nodes joined. The weight defaults to 1.
-        Lower weights translate to better chances of that join path to be selected.
+        Lower weights translate to better chances of that join path to be
+        selected.
 
         Parameters
         ----------
         source : str
             The initial table for the path.
-        dest : str
-            The final table for the path.
-        allow_relational_tables : bool, optional
-            If `False`, the path that contains only the initial and final
-            tables joined via their relational table is not included.
         return_models : bool
             If `True`, returns each path as a list of models. Otherwise returns
             the table names.
@@ -800,17 +833,21 @@ class XMatchPlanner(object):
 
         graph = self.model_graph.copy()
 
-        if not allow_relational_table:
-            rel_table_name = Catalog._meta.table_name + '_to_' + source
-            if rel_table_name in graph:
-                graph.remove_node(rel_table_name)
+        dest = Catalog._meta.table_name
+        porder = self.process_order
+
+        rel_table_name = Catalog._meta.table_name + '_to_' + source
+        if rel_table_name in graph:
+            graph.remove_node(rel_table_name)
 
         paths = []
 
         while True:
             try:
                 spath = shortest_path(graph, source, dest, weight='join_weight')
-                paths.append(spath)
+                if (spath[-3] in porder and
+                        porder.index(spath[-3]) < porder.index(source)):
+                    paths.append(spath)
                 for node in spath[1:-1]:
                     graph.remove_node(node)
             except networkx.NetworkXNoPath:
@@ -825,12 +862,15 @@ class XMatchPlanner(object):
 
         return paths
 
-    def run(self, vacuum=False):
+    def run(self, vacuum=False, analyze=False):
         """Runs the cross-matching process."""
 
-        if vacuum:
-            self.log.info('Vacuuming tables.')
-            vacuum_outputs(self.database, schema=Catalog._meta.schema,
+        if vacuum or analyze:
+            cmd = ' '.join(('VACUUM' if vacuum else '',
+                            'ANALYZE' if analyze else '')).strip()
+            self.log.info(f'Running {cmd} on output tables.')
+            vacuum_outputs(self.database, vacuum=vacuum, analyze=analyze,
+                           schema=Catalog._meta.schema,
                            table=Catalog._meta.table_name)
 
         # Make sure the output table exists.
@@ -851,10 +891,6 @@ class XMatchPlanner(object):
 
         self.extra_nodes[Catalog._meta.table_name] = Catalog
         self.update_model_graph(silent=True)
-
-        if self._options['sample_region']:
-            sample_region = self._options['sample_region']
-            self.log.warning(f'Using sample region {sample_region!r}.')
 
         with Timer() as timer:
             for table_name in self.process_order:
@@ -886,7 +922,7 @@ class XMatchPlanner(object):
         if rel_model_created:
             self.log.debug(f'Created relational table {rel_table_name!r}.')
         else:
-            self.log.debug(f'Relational table {rel_table_name!r} already existed.')
+            self.log.debug(f'Relational table {rel_table_name!r} already exists.')
 
         if is_first_model:
             self._run_phase_3(model, rel_model)
@@ -998,14 +1034,15 @@ class XMatchPlanner(object):
         table_name = model._meta.table_name
         rel_table_name = rel_model._meta.table_name
 
+        model_pk = model._meta.primary_key
+
         self.log.info('Phase 1: linking existing targets.')
 
         if 1 in model._meta.xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
             return
 
-        join_paths = self.get_simple_paths(table_name, Catalog._meta.table_name,
-                                           allow_relational_table=False)
+        join_paths = self.get_join_paths(table_name)
 
         if len(join_paths) == 0:
             self.log.debug(f'No paths found between {table_name!r} and output table.')
@@ -1014,52 +1051,47 @@ class XMatchPlanner(object):
         self.log.debug(f'Found {len(join_paths)} paths between '
                        f'{table_name!r} and output table.')
 
-        # Go through the list following the same order as process_order to ensure
-        # that the cross-matching has already happened for those tables.
-        paths_processed = []
+        for n_path, path in enumerate(join_paths):
 
-        for through_table in self.process_order:
-            # Loop over the paths that contain the through table. Because of the
-            # scorched earth mode of the path-finding algorithm, there can only
-            # be 0 or 1 paths that contain through_table.
-            for path in [pth for pth in join_paths if (through_table in pth and
-                                                       pth not in paths_processed)]:
+            join_models = [self.model_graph.nodes[node]['model'] for node in path]
 
-                join_models = [self.model_graph.nodes[node]['model'] for node in path]
+            with Timer() as timer:
 
-                with Timer() as timer:
+                with self.database.atomic():
 
-                    with self.database.atomic():
+                    query = (self._build_join(join_models)
+                             .select(model_pk,
+                                     Catalog.catalogid,
+                                     peewee.Value(self._version_id),
+                                     peewee.SQL('true'))
+                             .where(Catalog.version_id == self._version_id))
 
-                        query = (self._build_join(join_models)
-                                 .select(model._meta.primary_key,
-                                         Catalog.catalogid,
-                                         peewee.Value(self._version_id),
-                                         peewee.SQL('true'))
-                                 # Exclude targets that have already been linked
-                                 # with a different join path
-                                 .where(join_models[0]._meta.primary_key.not_in(
-                                     rel_model.select(rel_model.target_id)
-                                              .where(rel_model.version_id == self._version_id)))
-                                 .where(Catalog.version_id == self._version_id))
+                    # If this is not the first path, make sure we don't
+                    # double cross-link targets.
+                    if n_path > 0:
+                        query = (query.where(
+                            ~fn.EXISTS(rel_model
+                                       .select(SQL('1'))
+                                       .where(rel_model.version_id == self._version_id,
+                                              rel_model.target_id == model_pk))))
 
-                        # In query we do not include a Q3C where for the sample region
-                        # because Catalog for this version should already be sample
-                        # region limited.
+                    # In query we do not include a Q3C where for the sample region
+                    # because Catalog for this version should already be sample
+                    # region limited.
 
-                        insert_query = rel_model.insert_from(
-                            query, fields=[rel_model.target_id,
-                                           rel_model.catalogid,
-                                           rel_model.version_id,
-                                           rel_model.best]).returning()
+                    insert_query = rel_model.insert_from(
+                        query, fields=[rel_model.target_id,
+                                       rel_model.catalogid,
+                                       rel_model.version_id,
+                                       rel_model.best]).returning()
 
-                        self.log.debug(f'Inserting linked targets into '
-                                       f'{rel_table_name!r} with join path {path}'
-                                       f'{self._get_sql(insert_query)}')
+                    self.log.debug(f'Inserting linked targets into '
+                                   f'{rel_table_name!r} with join path {path}'
+                                   f'{self._get_sql(insert_query)}')
 
-                        nids = insert_query.execute()
+                    nids = insert_query.execute()
 
-                self.log.debug(f'Inserted {nids} records in {timer.interval:.3f} s.')
+            self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
 
         self._analyze(rel_model)
 
@@ -1093,80 +1125,103 @@ class XMatchPlanner(object):
         #     model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
         max_delta_epoch = 50.
 
-        # Build the q3c expressions depending on whether there are PMs or not.
-        if (not isinstance(model_epoch, (peewee.Expression, peewee.Function)) and
-                model_epoch == catalog_epoch):
-            q3c_dist = fn.q3c_dist(Catalog.ra,
-                                   Catalog.dec,
-                                   model_ra,
-                                   model_dec)
-            q3c_join = fn.q3c_join(Catalog.ra,
-                                   Catalog.dec,
-                                   model_ra,
-                                   model_dec,
+        # Get Catalog targets that haven't been cross-matched in phase 1.
+        c_unmatched = (Catalog
+                       .select()
+                       .where(Catalog.version_id == self._version_id)
+                       ).cte('c_unmatched')
+
+        # Build the q3c join expressions depending on whether there are PMs or not.
+
+        use_pm = (isinstance(model_epoch, (peewee.Expression, peewee.Function)) or
+                  model_epoch != catalog_epoch)
+
+        if use_pm:
+            q3c_join = fn.q3c_join_pm(c_unmatched.c.ra,
+                                      c_unmatched.c.dec,
+                                      c_unmatched.c.pmra,
+                                      c_unmatched.c.pmdec,
+                                      1,
+                                      catalog_epoch,
+                                      model_ra,
+                                      model_dec,
+                                      model_epoch,
+                                      max_delta_epoch,
                                       query_radius / 3600.)
+            q3c_dist = fn.q3c_dist_pm(c_unmatched.c.ra,
+                                      c_unmatched.c.dec,
+                                      c_unmatched.c.pmra,
+                                      c_unmatched.c.pmdec,
                                       1,  # Catalog pmra is pmra*cos by definition.
                                       catalog_epoch,
                                       model_ra,
                                       model_dec,
                                       model_epoch)
-            q3c_join = fn.q3c_join_pm(Catalog.ra,
-                                      Catalog.dec,
-                                      Catalog.pmra,
-                                      Catalog.pmdec,
-                                      1,
-                                      catalog_epoch,
-                                      model_ra,
-                                      model_dec,
+        else:
+            q3c_join = fn.q3c_join(c_unmatched.c.ra,
+                                   c_unmatched.c.dec,
+                                   model_ra,
+                                   model_dec,
                                    query_radius / 3600.)
+            q3c_dist = fn.q3c_dist(c_unmatched.c.ra,
+                                   c_unmatched.c.dec,
+                                   model_ra,
+                                   model_dec)
 
-        # We'll partition over each group of targets that are within
-        # radius of a catalogid and mark the one with the smallest
-        # distance to the Catalog target as best.
-        partition = (fn.first_value(model_pk)
-                     .over(partition_by=[Catalog.catalogid],
-                           order_by=[q3c_dist.asc()]))
-        best = peewee.Value(partition == model_pk)
-
-        # Do the actuall cross-matching.
-        # NOTE: Do NOT add a where(self._get_sample_where(model_ra, model_dec)) to the
-        # query. This screws the query planning and it's not needed since Catalog
-        # already only contains targets within the sample region(s).
-        xmatched = (Catalog.select(Catalog.catalogid,
-                                   model_pk.alias('target_id'),
-                                   peewee.Value(self._version_id),
-                                   q3c_dist.alias('distance'),
-                                   best.alias('best'))
+        # Do the actual cross-matching. Get the cross-matched catalogid and
+        # model target pk (target_id), and their distance.
+        xmatched = (c_unmatched
+                    .select(c_unmatched.c.catalogid,
+                            model_pk.alias('target_id'),
+                            q3c_dist.alias('distance'))
                     .join(model, peewee.JOIN.CROSS)
-                    .where(~fn.EXISTS(rel_model
-                                      .select(SQL('1'))
-                                      .where(rel_model.catalogid == Catalog.catalogid)))
-                    .where(~fn.EXISTS(rel_model
-                                      .select(SQL('1'))
-                                      .where(rel_model.target_id == model_pk,
-                                             rel_model.version_id == self._version_id)))
-                    .where(q3c_join))
+                    .where(q3c_join)
+                    ).cte('xmatched')
 
+        # We'll partition over each group of targets that match the same
+        # catalogid and mark the one with the smallest distance to it as best.
+        partition = (fn.first_value(xmatched.c.target_id)
+                     .over(partition_by=[xmatched.c.catalogid],
+                           order_by=[xmatched.c.distance.asc()]))
+        best = peewee.Value(partition == xmatched.c.target_id)
+
+        # Select the values to insert. Remove target_ids that were already
+        # present in the relational table due to phase 1.
+        insert_query = (xmatched
+                        .select(xmatched.c.catalogid,
+                                xmatched.c.target_id,
+                                peewee.Value(self._version_id),
+                                xmatched.c.distance,
+                                best.alias('best'))
+                        .where(~fn.EXISTS(rel_model
+                                          .select(SQL('1'))
+                                          .where(rel_model.version_id == self._version_id,
+                                                 (rel_model.target_id == xmatched.c.target_id) |
+                                                 (rel_model.catalogid == xmatched.c.catalogid)))))
+
+        # Insert into relational model.
         insert_query = rel_model.insert_from(
-            xmatched, fields=[rel_model.catalogid,
-                              rel_model.target_id,
-                              rel_model.version_id,
-                              rel_model.distance,
-                              rel_model.best]).returning()
+            insert_query, fields=[rel_model.catalogid,
+                                  rel_model.target_id,
+                                  rel_model.version_id,
+                                  rel_model.distance,
+                                  rel_model.best]
+        ).returning().with_cte(c_unmatched, xmatched)
 
         with Timer() as timer:
 
             with self.database.atomic():
 
                 self.log.debug('Inserting cross-matched targets into '
-                               f'{rel_table_name!r}{self._get_sql(insert_query)}')
+                               f'{rel_table_name}{self._get_sql(insert_query)}')
 
                 n_catalogid = insert_query.execute(self.database)
 
-        self.log.debug(f'Cross-matched {n_catalogid} catalogids with {table_name!r}. '
+        self.log.debug(f'Cross-matched {n_catalogid:,} catalogids with {table_name!r}. '
                        f'Run in {timer.interval:.3f} s.')
 
         self._analyze(rel_model)
+
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
 
@@ -1180,6 +1235,9 @@ class XMatchPlanner(object):
             return
 
         table_name = meta.table_name
+
+        rel_table_name = rel_model._meta.table_name
+        catalog_table_name = Catalog._meta.table_name
 
         model_fields = self._get_model_fields(model)
 
@@ -1199,8 +1257,8 @@ class XMatchPlanner(object):
                              peewee.SQL('true'))
                      .where(~fn.EXISTS(rel_model
                             .select(SQL('1'))
-                            .where(rel_model.target_id == model_pk)
-                            .where(rel_model.version_id == self._version_id)))
+                            .where(rel_model.target_id == model_pk,
+                                   rel_model.version_id == self._version_id)))
                      .where(self._get_sample_where(model_ra, model_dec)))
 
         with Timer() as timer:
@@ -1213,10 +1271,12 @@ class XMatchPlanner(object):
                      rel_model.version_id,
                      rel_model.best]).returning()
 
-                self.log.debug('Inserting data into relational table'
+                self.log.debug(f'Inserting data into {rel_table_name}'
                                f'{self._get_sql(rel_insert)}')
 
-                rel_insert.execute()
+                n_rows = rel_insert.execute()
+                self.log.debug(f'Insertion into {rel_table_name} completed '
+                               f'with {n_rows:,} rows in {timer.elapsed:.3f} s.')
 
                 subq = (rel_model
                         .select(rel_model.catalogid,
@@ -1239,10 +1299,13 @@ class XMatchPlanner(object):
                      Catalog.lead,
                      Catalog.version_id]).returning()
 
-                self.log.debug(f'Running INSERT query{self._get_sql(insert_query)}')
+                self.log.debug(f'Running INSERT query into {catalog_table_name}'
+                               f'{self._get_sql(insert_query)}')
                 n_rows = insert_query.execute()
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
+        self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
+
         self._analyze(rel_model, catalog=True)
 
     def _get_sql(self, query):
@@ -1288,11 +1351,9 @@ class XMatchPlanner(object):
             return
 
         for table in self.process_order[1:]:
-            paths = self.get_simple_paths(table, Catalog._meta.table_name)
+            paths = self.get_join_paths(table)
             if paths:
                 for path in paths:
-                    if len(path) == 3:
-                        continue
                     print(path)
 
     def _analyze(self, rel_model, catalog=False):
