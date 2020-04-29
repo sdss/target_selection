@@ -32,6 +32,7 @@ from target_selection.utils import (Timer, get_configuration_values, get_epoch,
 
 
 EPOCH = 2015.5
+QUERY_RADIUS = 1.
 
 
 class Version(peewee.Model):
@@ -416,7 +417,7 @@ class XMatchPlanner(object):
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
-        self._options = {'query_radius': query_radius or 1.,
+        self._options = {'query_radius': query_radius or QUERY_RADIUS,
                          'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
