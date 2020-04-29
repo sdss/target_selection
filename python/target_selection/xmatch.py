@@ -1258,21 +1258,25 @@ class XMatchPlanner(object):
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
 
+        # Create a CTE for the sample region.
+        sample = (model
+                  .select(model_pk.alias('target_id'))
+                  .where(self._get_sample_where(model_ra, model_dec))).cte('sample')
+
         # Get the max catalogid currently in the table for the version.
         if not self._max_cid:
             self.log.debug('Getting max. catalogid.')
             self._max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
 
-        unmatched = (model
+        unmatched = (sample
                      .select(fn.row_number().over() + self._max_cid,
-                             model_pk,
+                             sample.c.target_id,
                              peewee.Value(self._version_id),
                              peewee.SQL('true'))
                      .where(~fn.EXISTS(rel_model
                             .select(SQL('1'))
-                            .where(rel_model.target_id == model_pk,
-                                   rel_model.version_id == self._version_id)))
-                     .where(self._get_sample_where(model_ra, model_dec)))
+                            .where(rel_model.target_id == sample.c.target_id,
+                                   rel_model.version_id == self._version_id))))
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1282,7 +1286,7 @@ class XMatchPlanner(object):
                     [rel_model.catalogid,
                      rel_model.target_id,
                      rel_model.version_id,
-                     rel_model.best]).returning()
+                     rel_model.best]).returning().with_cte(sample)
 
                 self.log.debug(f'Inserting data into {rel_table_name}'
                                f'{self._get_sql(rel_insert)}')
