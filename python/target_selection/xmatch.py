@@ -866,7 +866,16 @@ class XMatchPlanner(object):
         return paths
 
     def run(self, vacuum=False, analyze=False):
-        """Runs the cross-matching process."""
+        """Runs the cross-matching process.
+
+        Parameters
+        ----------
+        vacuum : bool
+            Vacuum all output tables before processing models.
+        analyze : bool
+            Analyze all output tables before processing models.
+
+        """
 
         if vacuum or analyze:
             cmd = ' '.join(('VACUUM' if vacuum else '',
