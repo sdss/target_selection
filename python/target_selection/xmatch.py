@@ -933,9 +933,9 @@ class XMatchPlanner(object):
         rel_model, rel_model_created = self._create_relational_model(model)
         rel_table_name = rel_model._meta.table_name
         if rel_model_created:
-            self.log.debug(f'Created relational table {rel_table_name!r}.')
+            self.log.debug(f'Created relational table {rel_table_name}.')
         else:
-            self.log.debug(f'Relational table {rel_table_name!r} already exists.')
+            self.log.debug(f'Relational table {rel_table_name} already exists.')
 
         if is_first_model:
             self._run_phase_3(model, rel_model)
@@ -1058,11 +1058,11 @@ class XMatchPlanner(object):
         join_paths = self.get_join_paths(table_name)
 
         if len(join_paths) == 0:
-            self.log.debug(f'No paths found between {table_name!r} and output table.')
+            self.log.debug(f'No paths found between {table_name} and output table.')
             return False
 
         self.log.debug(f'Found {len(join_paths)} paths between '
-                       f'{table_name!r} and output table.')
+                       f'{table_name} and output table.')
 
         for n_path, path in enumerate(join_paths):
 
@@ -1099,7 +1099,7 @@ class XMatchPlanner(object):
                                        rel_model.best]).returning()
 
                     self.log.debug(f'Inserting linked targets into '
-                                   f'{rel_table_name!r} with join path {path}'
+                                   f'{rel_table_name} with join path {path}'
                                    f'{self._get_sql(insert_query)}')
 
                     nids = insert_query.execute()
@@ -1230,7 +1230,7 @@ class XMatchPlanner(object):
 
                 n_catalogid = insert_query.execute(self.database)
 
-        self.log.debug(f'Cross-matched {n_catalogid:,} catalogids with {table_name!r}. '
+        self.log.debug(f'Cross-matched {n_catalogid:,} catalogids with {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
         self._analyze(rel_model)
