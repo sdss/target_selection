@@ -210,8 +210,10 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.skip_phases = skip_phases or []
     meta.xmatch.query_radius = query_radius
 
-    meta.xmatch.row_count = get_row_count(meta.database, meta.table_name,
-                                          schema=meta.schema, approximate=True)
+    meta.xmatch.row_count = int(get_row_count(meta.database,
+                                              meta.table_name,
+                                              schema=meta.schema,
+                                              approximate=True))
 
     meta.xmatch.join_weight = join_weight
 
