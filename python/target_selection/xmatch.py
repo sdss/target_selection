@@ -1230,7 +1230,8 @@ class XMatchPlanner(object):
 
                 n_catalogid = insert_query.execute(self.database)
 
-        self.log.debug(f'Cross-matched {n_catalogid:,} catalogids with {table_name}. '
+        self.log.debug(f'Cross-matched {Catalog._meta.table_name} with '
+                       f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
         self._analyze(rel_model)
