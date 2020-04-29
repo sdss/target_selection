@@ -80,8 +80,8 @@ def get_relational_model(model, prefix='catalog_to_'):
 
         id = peewee.BigAutoField()
         catalogid = peewee.BigIntegerField(null=False, index=True)
-        target_id = model_pk_class(null=False, index=True)
-        version_id = peewee.SmallIntegerField(null=False, index=True)
+        target_id = model_pk_class(null=False)
+        version_id = peewee.SmallIntegerField(null=False)
         distance = peewee.DoubleField(null=True)
         best = peewee.BooleanField(null=False)
 
