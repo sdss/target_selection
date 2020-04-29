@@ -1298,7 +1298,6 @@ class XMatchPlanner(object):
                                 peewee.Value(self._version_id))
                         .where(~fn.EXISTS(Catalog.select(SQL('1'))
                                           .where(Catalog.catalogid == rel_model.catalogid)))
-                        .where(rel_model.version_id == self._version_id)
                         .join(model, on=(rel_model.target_id == model_pk)))
 
                 insert_query = Catalog.insert_from(
