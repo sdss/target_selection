@@ -89,7 +89,7 @@ def get_relational_model(model, prefix='catalog_to_'):
         class Meta:
             database = meta.database
             schema = meta.schema
-            indexes = [(('target_id', 'version_id'), False)]
+            indexes = [(('version_id', 'target_id'), False)]
 
     model_prefix = ''.join(x.capitalize() or '_'
                            for x in prefix.rstrip().split('_'))
