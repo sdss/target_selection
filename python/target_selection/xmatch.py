@@ -918,6 +918,7 @@ class XMatchPlanner(object):
         self.log.header = f'[{table_name.upper()}] '
 
         self.log.info(f'Processing table {table_name}.')
+        self._log_table_configuration(model)
 
         if model._meta.xmatch.has_duplicates:
             raise TargetSelectionNotImplemented(
@@ -1383,3 +1384,27 @@ class XMatchPlanner(object):
             self.log.debug(f'Running ANALYZE on {cat_table_name}.')
             vacuum_table(self.database, f'{cat_schema}.{cat_table_name}',
                          vacuum=False, analyze=True)
+
+    def _log_table_configuration(self, model):
+        """Logs the configuration used to cross-match a table."""
+
+        xmatch = model._meta.xmatch
+
+        parameters = ['ra_column', 'dec_column', 'pmra_column', 'pmdec_column',
+                      'is_pmra_cos', 'parallax_column', 'epoch', 'epoch_column',
+                      'epoch_format', 'has_duplicates', 'skip', 'skip_phases',
+                      'query_radius', 'row_count', 'resolution', 'join_weight']
+
+        self.log.debug('Table cross-matching parameters:')
+
+        for parameter in parameters:
+
+            value = getattr(xmatch, parameter, None)
+
+            if parameter == 'query_radius':
+                value = value or QUERY_RADIUS
+
+            if value is True or value is False or value is None:
+                value = str(value).lower()
+
+            self.log.debug(f'{parameter}: {value}')
