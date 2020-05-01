@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import inspect
+import logging
 import os
 import re
 import warnings
@@ -388,12 +389,13 @@ class XMatchPlanner(object):
 
         if log_path:
             log_path = os.path.realpath(log_path)
-            if os.path.exists(log_path):
-                os.remove(log_path)
+            # Add a non-rotating file logger.
             if self.log.fh:
                 self.log.removeHandler(self.log.fh)
-                self.log.fh = None
-            self.log.start_file_logger(log_path.format(version=version))
+            self.log.fh = logging.FileHandler(log_path.format(version=version),
+                                              mode='a')
+            self.log.fh.setLevel(logging.DEBUG)
+            self.log.addHandler(self.log.fh)
 
         if debug is True:
             self.log.sh.setLevel(0)
