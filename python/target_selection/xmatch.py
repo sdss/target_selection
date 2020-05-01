@@ -1128,10 +1128,9 @@ class XMatchPlanner(object):
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
 
-        query_radius = xmatch.query_radius or self._options['query_radius']
-
-        model_epoch = get_epoch(model)
         catalog_epoch = self._options['epoch']
+
+        query_radius = self._options['query_radius']
 
         # TODO: find a way to get this delta that is not too time consuming.
         # self.log.debug('Determining maximum delta epoch between tables.')
@@ -1139,88 +1138,96 @@ class XMatchPlanner(object):
         #     model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
         max_delta_epoch = 50.
 
-        # Get Catalog targets that haven't been cross-matched in phase 1.
-        c_unmatched = (Catalog
-                       .select()
-                       .where(Catalog.version_id == self._version_id)
-                       ).cte('c_unmatched')
-
-        # Build the q3c join expressions depending on whether there are PMs or not.
-
+        # Should we use proper motions?
+        model_epoch = get_epoch(model)
         use_pm = (isinstance(model_epoch, (peewee.Expression, peewee.Function)) or
                   model_epoch != catalog_epoch)
 
-        if use_pm:
-            q3c_join = fn.q3c_join_pm(c_unmatched.c.ra,
-                                      c_unmatched.c.dec,
-                                      c_unmatched.c.pmra,
-                                      c_unmatched.c.pmdec,
-                                      1,
-                                      catalog_epoch,
-                                      model_ra,
-                                      model_dec,
-                                      model_epoch,
-                                      max_delta_epoch,
-                                      query_radius / 3600.)
-            q3c_dist = fn.q3c_dist_pm(c_unmatched.c.ra,
-                                      c_unmatched.c.dec,
-                                      c_unmatched.c.pmra,
-                                      c_unmatched.c.pmdec,
-                                      1,  # Catalog pmra is pmra*cos by definition.
-                                      catalog_epoch,
-                                      model_ra,
-                                      model_dec,
-                                      model_epoch)
-        else:
-            q3c_join = fn.q3c_join(c_unmatched.c.ra,
-                                   c_unmatched.c.dec,
-                                   model_ra,
-                                   model_dec,
-                                   query_radius / 3600.)
-            q3c_dist = fn.q3c_dist(c_unmatched.c.ra,
-                                   c_unmatched.c.dec,
-                                   model_ra,
-                                   model_dec)
+        # Determine which of the two tables is smaller. Q3C really wants the
+        # larger table last.
+        self.log.debug('Finding larger table.')
+        idx = self._get_larger_table(Catalog, model)
 
-        # Do the actual cross-matching. Get the cross-matched catalogid and
-        # model target pk (target_id), and their distance.
-        xmatched = (c_unmatched
-                    .select(c_unmatched.c.catalogid,
-                            model_pk.alias('target_id'),
-                            q3c_dist.alias('distance'))
+        if idx == 0:  # Catalog is larger
+
+            self.log.debug('Output table is larger than input catalogue.')
+
+            if use_pm:
+
+                model_pmra = meta.fields[xmatch.pmra_column]
+                model_pmdec = meta.fields[xmatch.pmdec_column]
+                model_is_pmra_cos = int(xmatch.is_pmra_cos)
+
+                q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
+                                          model_pmra, model_pmdec,
+                                          model_is_pmra_cos, model_epoch,
+                                          Catalog.ra, Catalog.dec, EPOCH)
+                q3c_join = fn.q3c_join_pm(model_ra, model_dec,
+                                          model_pmra, model_pmdec,
+                                          model_is_pmra_cos, model_epoch,
+                                          Catalog.ra, Catalog.dec,
+                                          EPOCH, max_delta_epoch,
+                                          query_radius / 3600.)
+            else:
+
+                q3c_dist = fn.q3c_dist(model_ra, model_dec, Catalog.ra, Catalog.dec)
+                q3c_join = fn.q3c_join(model_ra, model_dec, Catalog.ra, Catalog.dec,
+                                       query_radius / 3600.)
+
+        else:  # Model is larger
+
+            self.log.debug('Input catalogue is larger than output table.')
+
+            if use_pm:
+                q3c_dist = fn.q3c_dist_pm(Catalog.ra, Catalog.dec,
+                                          Catalog.pmra, Catalog.pmdec,
+                                          1, catalog_epoch,
+                                          model_ra, model_dec, model_epoch)
+                q3c_join = fn.q3c_join_pm(Catalog.ra, Catalog.dec,
+                                          Catalog.pmra, Catalog.pmdec,
+                                          1, catalog_epoch,
+                                          model_ra, model_dec,
+                                          model_epoch, max_delta_epoch,
+                                          query_radius / 3600.)
+            else:
+                q3c_dist = fn.q3c_dist(Catalog.ra, Catalog.dec, model_ra, model_dec)
+                q3c_join = fn.q3c_join(Catalog.ra, Catalog.dec, model_ra, model_dec,
+                                       query_radius / 3600.)
+
+        # We'll partition over each group of targets that are within
+        # radius of a catalogid and mark the one with the smallest
+        # distance to the Catalog target as best.
+        partition = (fn.first_value(model_pk)
+                     .over(partition_by=[Catalog.catalogid],
+                           order_by=[q3c_dist.asc()]))
+        best = peewee.Value(partition == model_pk)
+
+        # Do the actual cross-matching.
+        # NOTE: Do NOT add a where(self._get_sample_where(model_ra, model_dec)) to the
+        # query. This screws the query planning and it's not needed since Catalog
+        # already only contains targets within the sample region(s).
+        xmatched = (Catalog.select(Catalog.catalogid,
+                                   model_pk.alias('target_id'),
+                                   peewee.Value(self._version_id),
+                                   q3c_dist.alias('distance'),
+                                   best.alias('best'))
                     .join(model, peewee.JOIN.CROSS)
                     .where(q3c_join)
-                    ).cte('xmatched')
+                    # .where(self._get_sample_where(model_ra, model_dec))
+                    .where(~fn.EXISTS(rel_model
+                                      .select(SQL('1'))
+                                      .where(rel_model.catalogid == Catalog.catalogid)))
+                    .where(~fn.EXISTS(rel_model
+                                      .select(SQL('1'))
+                                      .where(rel_model.version_id == self._version_id,
+                                             rel_model.target_id == model_pk))))
 
-        # We'll partition over each group of targets that match the same
-        # catalogid and mark the one with the smallest distance to it as best.
-        partition = (fn.first_value(xmatched.c.target_id)
-                     .over(partition_by=[xmatched.c.catalogid],
-                           order_by=[xmatched.c.distance.asc()]))
-        best = peewee.Value(partition == xmatched.c.target_id)
-
-        # Select the values to insert. Remove target_ids that were already
-        # present in the relational table due to phase 1.
-        insert_query = (xmatched
-                        .select(xmatched.c.catalogid,
-                                xmatched.c.target_id,
-                                peewee.Value(self._version_id),
-                                xmatched.c.distance,
-                                best.alias('best'))
-                        .where(~fn.EXISTS(rel_model
-                                          .select(SQL('1'))
-                                          .where(rel_model.version_id == self._version_id,
-                                                 (rel_model.target_id == xmatched.c.target_id) |
-                                                 (rel_model.catalogid == xmatched.c.catalogid)))))
-
-        # Insert into relational model.
         insert_query = rel_model.insert_from(
-            insert_query, fields=[rel_model.catalogid,
-                                  rel_model.target_id,
-                                  rel_model.version_id,
-                                  rel_model.distance,
-                                  rel_model.best]
-        ).returning().with_cte(c_unmatched, xmatched)
+            xmatched, fields=[rel_model.catalogid,
+                              rel_model.target_id,
+                              rel_model.version_id,
+                              rel_model.distance,
+                              rel_model.best]).returning()
 
         with Timer() as timer:
 
@@ -1413,3 +1420,16 @@ class XMatchPlanner(object):
                 value = str(value).lower()
 
             self.log.debug(f'{parameter}: {value}')
+
+    def _get_larger_table(self, Catalog, Model):
+        """Determines which table is larger."""
+
+        if self._catalog_count is None:
+            self._catalog_count = (Catalog.select()
+                                   .where(Catalog.version_id == self._version_id)
+                                   .count())
+
+        # Use approximate count
+        model_count = Model._meta.xmatch.row_count
+
+        return 0 if self._catalog_count > model_count else 1
