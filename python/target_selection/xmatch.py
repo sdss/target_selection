@@ -1150,7 +1150,7 @@ class XMatchPlanner(object):
         # larger table last.
         idx = self._get_larger_table(Catalog, model)
 
-        if idx == 0:  # Catalog is larger
+        if idx == 0 or self._options['sample_region']:  # Catalog is larger
 
             self.log.debug(f'{Catalog._meta.table_name} has more targets '
                            f'than {model._meta.table_name}.')
