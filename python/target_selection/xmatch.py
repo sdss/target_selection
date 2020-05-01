@@ -1432,7 +1432,10 @@ class XMatchPlanner(object):
             if value is True or value is False or value is None:
                 value = str(value).lower()
 
-            self.log.debug(f'{parameter}: {value}')
+            if parameter == 'row_count':
+                self.log.debug(f'{parameter}: {value:,}')
+            else:
+                self.log.debug(f'{parameter}: {value}')
 
     def _get_larger_table(self, Catalog, Model):
         """Determines which table is larger."""
