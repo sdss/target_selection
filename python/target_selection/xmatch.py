@@ -437,6 +437,7 @@ class XMatchPlanner(object):
 
         self._version_id = None
         self._max_cid = None
+        self._catalog_count = 0
 
     @classmethod
     def read(cls, in_models, version, config_file=None, **kwargs):
@@ -1329,6 +1330,8 @@ class XMatchPlanner(object):
                 n_rows = insert_query.execute()
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
+        self._catalog_count += n_rows
+
         self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
 
         self._analyze(rel_model, catalog=True)
