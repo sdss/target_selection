@@ -1145,12 +1145,12 @@ class XMatchPlanner(object):
 
         # Determine which of the two tables is smaller. Q3C really wants the
         # larger table last.
-        self.log.debug('Finding larger table.')
         idx = self._get_larger_table(Catalog, model)
 
         if idx == 0:  # Catalog is larger
 
-            self.log.debug('Output table is larger than input catalogue.')
+            self.log.debug(f'{Catalog._meta.table_name} has more targets '
+                           f'than {model._meta.table_name}.')
 
             if use_pm:
 
@@ -1176,7 +1176,8 @@ class XMatchPlanner(object):
 
         else:  # Model is larger
 
-            self.log.debug('Input catalogue is larger than output table.')
+            self.log.debug(f'{model._meta.table_name} has more targets '
+                           f'than {Catalog._meta.table_name}.')
 
             if use_pm:
                 q3c_dist = fn.q3c_dist_pm(Catalog.ra, Catalog.dec,
