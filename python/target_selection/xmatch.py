@@ -105,8 +105,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
                 epoch_format='jyear', has_duplicates=False,
-                skip=False, skip_phases=None, query_radius=None,
-                join_weight=1):
+                has_missing_coordinates=False, skip=False,
+                skip_phases=None, query_radius=None, join_weight=1):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -144,6 +144,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
         date (``'jd'``).
     has_duplicates : bool
         Whether the table contains duplicates.
+    has_missing_coordinates : bool
+        Whether the catalogue contains rows in which the RA/Dec are null.
     skip : bool
         If `True`, the table will be used as a join node but will not be
         cross-matched. This is useful for testing and also if the table is
@@ -207,6 +209,7 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.epoch_format = epoch_format
 
     meta.xmatch.has_duplicates = has_duplicates
+    meta.xmatch.has_missing_coordinates = has_missing_coordinates
     meta.xmatch.skip = skip
     meta.xmatch.skip_phases = skip_phases or []
     meta.xmatch.query_radius = query_radius
@@ -1214,7 +1217,6 @@ class XMatchPlanner(object):
                                    best.alias('best'))
                     .join(model, peewee.JOIN.CROSS)
                     .where(q3c_join)
-                    .where(model_ra.is_null(False), model_dec.is_null(False))
                     .where(~fn.EXISTS(rel_model
                                       .select(SQL('1'))
                                       .where(rel_model.catalogid == Catalog.catalogid)))
@@ -1222,6 +1224,9 @@ class XMatchPlanner(object):
                                       .select(SQL('1'))
                                       .where(rel_model.version_id == self._version_id,
                                              rel_model.target_id == model_pk))))
+
+        if xmatch.has_missing_coordinates and use_pm:
+            xmatched = xmatched.where(model_ra.is_null(False), model_dec.is_null(False))
 
         insert_query = rel_model.insert_from(
             xmatched, fields=[rel_model.catalogid,
@@ -1271,8 +1276,12 @@ class XMatchPlanner(object):
         # Create a CTE for the sample region.
         sample = (model
                   .select(model_pk.alias('target_id'))
-                  .where(model_ra.is_null(False), model_dec.is_null(False))
-                  .where(self._get_sample_where(model_ra, model_dec))).cte('sample')
+                  .where(self._get_sample_where(model_ra, model_dec)))
+
+        if xmatch.has_missing_coordinates:
+            sample = sample.where(model_ra.is_null(False), model_dec.is_null(False))
+
+        sample = sample.cte('sample')
 
         # Get the max catalogid currently in the table for the version.
         if not self._max_cid:

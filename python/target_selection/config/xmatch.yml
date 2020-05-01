@@ -179,6 +179,8 @@
         - catwise
         - glimpse
     tables:
+        tycho2:
+            has_missing_coordinates: true
         bhm_rm_v0:
             ra_column: ra
             dec_column: dec
