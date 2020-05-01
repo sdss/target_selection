@@ -1213,7 +1213,7 @@ class XMatchPlanner(object):
                                    best.alias('best'))
                     .join(model, peewee.JOIN.CROSS)
                     .where(q3c_join)
-                    # .where(self._get_sample_where(model_ra, model_dec))
+                    .where(model_ra.is_null(False), model_dec.is_null(False))
                     .where(~fn.EXISTS(rel_model
                                       .select(SQL('1'))
                                       .where(rel_model.catalogid == Catalog.catalogid)))
@@ -1270,6 +1270,7 @@ class XMatchPlanner(object):
         # Create a CTE for the sample region.
         sample = (model
                   .select(model_pk.alias('target_id'))
+                  .where(model_ra.is_null(False), model_dec.is_null(False))
                   .where(self._get_sample_where(model_ra, model_dec))).cte('sample')
 
         # Get the max catalogid currently in the table for the version.
