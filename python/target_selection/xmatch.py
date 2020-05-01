@@ -356,10 +356,6 @@ class XMatchPlanner(object):
         will be created.
     output_table : str
         The name of the output table. Defaults to ``catalog``.
-    allow_existing : bool
-        By default instantiation will fail if the output table already exists
-        and contains entries associated with this cross-matching version. This
-        option allows to continue but should be used only for testing.
     log_path : str
         The path to which to log or `False` to disable file logging.
     debug : bool or int
@@ -380,9 +376,8 @@ class XMatchPlanner(object):
     def __init__(self, database, models, version, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
-                 output_table='catalog', allow_existing=False,
-                 log_path='./xmatch_{version}.log', debug=False,
-                 show_sql=False, sample_region=None):
+                 output_table='catalog', log_path='./xmatch_{version}.log',
+                 debug=False, show_sql=False, sample_region=None):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -422,7 +417,6 @@ class XMatchPlanner(object):
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
 
         self._options = {'query_radius': query_radius or QUERY_RADIUS,
-                         'allow_existing': allow_existing,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
                          'epoch': epoch}
@@ -638,16 +632,9 @@ class XMatchPlanner(object):
             if (version_id and Catalog.select(fn.COUNT(SQL('1')))
                                       .where(Catalog.version_id == version_id)
                                       .limit(1).scalar()):
-
-                error_msg = (f'{catalog_tname!r} contains '
-                             'records for this version of cross-matching '
-                             f'({self.version}).')
-
-                if self._options['allow_existing']:
-                    self.log.warning(error_msg)
-                else:
-                    raise XMatchError(error_msg + ' This problem needs to be '
-                                      'solved manually.')
+                self.log.warning(f'{catalog_tname!r} contains '
+                                 'records for this version of cross-matching '
+                                 f'({self.version}).')
 
     def _log_db_configuration(self):
         """Logs some key database configuration parameters."""
@@ -867,17 +854,26 @@ class XMatchPlanner(object):
 
         return paths
 
-    def run(self, vacuum=False, analyze=False):
+    def run(self, vacuum=False, analyze=False, from_=None):
         """Runs the cross-matching process.
 
         Parameters
         ----------
         vacuum : bool
-            Vacuum all output tables before processing models.
+            Vacuum all output tables before processing new catalogues.
         analyze : bool
-            Analyze all output tables before processing models.
+            Analyze all output tables before processing new catalogues.
+        from_ : str
+            Table from which to start running the process. Useful in reruns
+            to skip tables already processed.
 
         """
+
+        # If from_, we don't know how many targets are in the output table
+        # so we set self._catalog_count to None and _get_larger_table
+        # will take care of it.
+        if from_:
+            self._catalog_count = None
 
         if vacuum or analyze:
             cmd = ' '.join(('VACUUM' if vacuum else '',
@@ -889,6 +885,10 @@ class XMatchPlanner(object):
 
         # Make sure the output table exists.
         if not Catalog.table_exists():
+            # Add Q3C index for Catalog
+            Catalog.index(SQL(f'CREATE INDEX ON '
+                              f'{Catalog._meta.schema}.{Catalog._meta.table_name} '
+                              f'(q3c_ang2ipix(ra, dec))'))
             self.database.create_tables([Catalog, Version])
             self.log.info(f'Created tables {Catalog._meta.table_name!r} and '
                           f'{Version._meta.table_name!r}.')
@@ -908,6 +908,10 @@ class XMatchPlanner(object):
 
         with Timer() as timer:
             for table_name in self.process_order:
+                if (from_ and
+                        self.process_order.index(table_name) < self.process_order.index(from_)):
+                    self.log.warning(f'Skipping table {table_name}.')
+                    continue
                 model = self.models[table_name]
                 self.process_model(model)
 
@@ -1079,16 +1083,11 @@ class XMatchPlanner(object):
                                      Catalog.catalogid,
                                      peewee.Value(self._version_id),
                                      peewee.SQL('true'))
-                             .where(Catalog.version_id == self._version_id))
-
-                    # If this is not the first path, make sure we don't
-                    # double cross-link targets.
-                    if n_path > 0:
-                        query = (query.where(
-                            ~fn.EXISTS(rel_model
-                                       .select(SQL('1'))
-                                       .where(rel_model.version_id == self._version_id,
-                                              rel_model.target_id == model_pk))))
+                             .where(Catalog.version_id == self._version_id)
+                             .where(~fn.EXISTS(rel_model
+                                               .select(SQL('1'))
+                                               .where(rel_model.version_id == self._version_id,
+                                                      rel_model.target_id == model_pk))))
 
                     # In query we do not include a Q3C where for the sample region
                     # because Catalog for this version should already be sample
