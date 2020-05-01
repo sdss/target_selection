@@ -1127,7 +1127,7 @@ class XMatchPlanner(object):
 
         catalog_epoch = self._options['epoch']
 
-        query_radius = self._options['query_radius']
+        query_radius = xmatch.query_radius or self._options['query_radius']
 
         # TODO: find a way to get this delta that is not too time consuming.
         # self.log.debug('Determining maximum delta epoch between tables.')
@@ -1144,10 +1144,9 @@ class XMatchPlanner(object):
         # larger table last.
         idx = self._get_larger_table(Catalog, model)
 
-        if idx == 0 or self._options['sample_region']:  # Catalog is larger
+        if idx == 0:  # Catalog is larger
 
-            self.log.debug(f'{Catalog._meta.table_name} has more targets '
-                           f'than {model._meta.table_name}.')
+            self.log.debug(f'Cross-matching model against {Catalog._meta.table_name}.')
 
             if use_pm:
 
@@ -1173,8 +1172,7 @@ class XMatchPlanner(object):
 
         else:  # Model is larger
 
-            self.log.debug(f'{model._meta.table_name} has more targets '
-                           f'than {Catalog._meta.table_name}.')
+            self.log.debug(f'Cross-matching {Catalog._meta.table_name} against model.')
 
             if use_pm:
                 q3c_dist = fn.q3c_dist_pm(Catalog.ra, Catalog.dec,
@@ -1192,42 +1190,55 @@ class XMatchPlanner(object):
                 q3c_join = fn.q3c_join(Catalog.ra, Catalog.dec, model_ra, model_dec,
                                        query_radius / 3600.)
 
-        # We'll partition over each group of targets that are within
-        # radius of a catalogid and mark the one with the smallest
-        # distance to the Catalog target as best.
-        partition = (fn.first_value(model_pk)
-                     .over(partition_by=[Catalog.catalogid],
-                           order_by=[q3c_dist.asc()]))
-        best = peewee.Value(partition == model_pk)
-
-        # Do the actual cross-matching.
-        # NOTE: Do NOT add a where(self._get_sample_where(model_ra, model_dec)) to the
-        # query. This screws the query planning and it's not needed since Catalog
-        # already only contains targets within the sample region(s).
-        xmatched = (Catalog.select(Catalog.catalogid,
-                                   model_pk.alias('target_id'),
-                                   peewee.Value(self._version_id),
-                                   q3c_dist.alias('distance'),
-                                   best.alias('best'))
+        # Get the cross-matched catalogid and model target
+        # pk (target_id), and their distance.
+        xmatched = (Catalog
+                    .select(Catalog.catalogid,
+                            model_pk.alias('target_id'),
+                            q3c_dist.alias('distance'))
                     .join(model, peewee.JOIN.CROSS)
-                    .where(q3c_join)
-                    .where(~fn.EXISTS(rel_model
-                                      .select(SQL('1'))
-                                      .where(rel_model.catalogid == Catalog.catalogid)))
-                    .where(~fn.EXISTS(rel_model
-                                      .select(SQL('1'))
-                                      .where(rel_model.version_id == self._version_id,
-                                             rel_model.target_id == model_pk))))
+                    .where(Catalog.version_id == self._version_id)
+                    .where(q3c_join))
 
         if xmatch.has_missing_coordinates and use_pm:
-            xmatched = xmatched.where(model_ra.is_null(False), model_dec.is_null(False))
+            insert_query = xmatched.where(model_ra.is_null(False),
+                                          model_dec.is_null(False))
 
+        xmatched = xmatched.cte('xmatched')
+
+        # We'll partition over each group of targets that match the same
+        # catalogid and mark the one with the smallest distance to it as best.
+        partition = (fn.first_value(xmatched.c.target_id)
+                     .over(partition_by=[xmatched.c.catalogid],
+                           order_by=[xmatched.c.distance.asc()]))
+        best = peewee.Value(partition == xmatched.c.target_id)
+
+        # Select the values to insert. Remove target_ids that were already
+        # present in the relational table due to phase 1.
+        insert_query = (xmatched
+                        .select(xmatched.c.catalogid,
+                                xmatched.c.target_id,
+                                peewee.Value(self._version_id),
+                                xmatched.c.distance,
+                                best.alias('best'))
+                        # We do two NOT EXISTS instead of a single one to fully
+                        # take advantage of the indexes on catalogid and
+                        # (version_id, target_id).
+                        .where(~fn.EXISTS(rel_model
+                                          .select(SQL('1'))
+                                          .where(rel_model.catalogid == xmatched.c.catalogid)))
+                        .where(~fn.EXISTS(rel_model
+                                          .select(SQL('1'))
+                                          .where(rel_model.version_id == self._version_id,
+                                                 rel_model.target_id == xmatched.c.target_id))))
+
+        # Insert into relational model.
         insert_query = rel_model.insert_from(
-            xmatched, fields=[rel_model.catalogid,
-                              rel_model.target_id,
-                              rel_model.version_id,
-                              rel_model.distance,
-                              rel_model.best]).returning()
+            insert_query, fields=[rel_model.catalogid,
+                                  rel_model.target_id,
+                                  rel_model.version_id,
+                                  rel_model.distance,
+                                  rel_model.best]).returning().with_cte(xmatched)
 
         with Timer() as timer:
 
