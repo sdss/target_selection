@@ -628,7 +628,6 @@ class XMatchPlanner(object):
 
         # Check if Catalog already has entries for this xmatch version.
         if Catalog.table_exists():
-
             version_id = Version.select().where(Version.version == self.version).scalar()
             if (version_id and Catalog.select(fn.COUNT(SQL('1')))
                                       .where(Catalog.version_id == version_id)
