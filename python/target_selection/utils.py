@@ -241,6 +241,7 @@ def remove_version(database, version, schema='catalogdb',
 
     for model in models:
         n_removed = model.delete().where(model.version_id == version_id).execute()
+        vacuum_table(database, f'{model._meta.schema}.{model._meta.table_name}')
         print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
 
     if delete_version:
