@@ -9,6 +9,7 @@
 import inspect
 import os
 import re
+import types
 import warnings
 
 import networkx
@@ -172,11 +173,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
 
     """
 
-    class XMatchMeta:
-        pass
-
     meta = Model._meta
-    meta.xmatch = XMatchMeta()
+    meta.xmatch = types.SimpleNamespace()
 
     meta.xmatch.resolution = resolution or numpy.nan
 
