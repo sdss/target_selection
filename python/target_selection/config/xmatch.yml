@@ -235,6 +235,7 @@
             is_pmra_cos: true
             parallax_column: plx
             epoch: 2015.5
+            join_weight: 0.1
         gaia_dr2_source:
             ra_column: ra
             dec_column: dec
