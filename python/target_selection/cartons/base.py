@@ -7,27 +7,17 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import abc
-import logging
 
 import numpy
 import peewee
 from astropy import table
-from playhouse.migrate import PostgresqlMigrator, migrate
 
-from sdssdb.peewee.sdss5db import BaseModel, catalogdb, database, targetdb
+from sdssdb.peewee.sdss5db import catalogdb, database, targetdb
+from sdsstools.color_print import color_text
 
-from .. import config, log, manager
-
-
-# For now use Gaia but eventually change to Catalog and Catalog.catalogid.
-catalog_model = catalogdb.Gaia_DR2
-catalogid_field = catalogdb.Gaia_DR2.source_id
-
-default_fields = {'ra': catalogdb.Gaia_DR2.ra,
-                  'dec': catalogdb.Gaia_DR2.dec,
-                  'pmra': catalogdb.Gaia_DR2.pmra,
-                  'pmdec': catalogdb.Gaia_DR2.pmdec,
-                  'epoch': catalogdb.Gaia_DR2.ref_epoch.alias('epoch')}
+from target_selection import config, log, manager
+from target_selection.exceptions import TargetSelectionError
+from target_selection.utils import Timer
 
 
 class BaseCarton(metaclass=abc.ABCMeta):
@@ -43,7 +33,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         The version of the target selection.
     schema : str
         Schema in which the temporary table with the results of the
-        query will be created.
+        query will be created. If `None`, tries to use the ``schema`` parameter
+        from the configuration file for this version of target selection. If
+        the parameter is not set, defaults to ``'sandbox'``.
     table_name : str
         The name of the temporary table. Defaults to ``temp_<name>`` where
         ``<name>`` is the target class name.
@@ -83,73 +75,61 @@ class BaseCarton(metaclass=abc.ABCMeta):
     tile_region = None
     tile_num = None
 
-    orm = 'peewee'
-
-    def __init__(self, targeting_version, schema='sandbox', table_name=None):
-
-        self.targeting_version = targeting_version
-
-        self.database = targetdb.database
-        self.schema = 'sandbox'
-        self.table_name = table_name or f'temp_{self.name}'
-
-        self.has_run = False
-
-        if self.targeting_version in config:
-            self.config = config[self.targeting_version].get(self.name, None)
-        else:
-            self.config = None
-
-        if not self.orm == 'peewee':
-            raise NotImplementedError('not implemented for SQLAlchemy.')
-
-        assert self.database.connected, 'database is not connected.'
+    def __init__(self, targeting_version, schema=None, table_name=None):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
 
-    def log(self, message, level=logging.INFO):
-        """Logs a message with a header of the current target class name."""
+        self.version = targeting_version
 
-        message = f'({self.name}): {message}'
-        log.log(level, message)
+        if self.version not in config:
+            raise TargetSelectionError(f'({self.name}): cannot find version '
+                                       f'{self.version!r} in config.')
 
-    def _check_targetdb(self):
-        """Checks that target, cadence, and survey are present in targetdb."""
+        self.config = config[self.version].get(self.name, None)
 
         try:
-            program = targetdb.Program.get(label=self.name)
-        except peewee.DoesNotExist:
-            raise RuntimeError(f'program {self.name!r} does not exist in targetdb.program.')
+            self.xmatch_version = config[self.version]['xmatch_version']
+        except KeyError:
+            raise TargetSelectionError(f'({self.name}): xmatch_version '
+                                       'not found in config.')
 
-        if self.survey:
-            assert program.survey and program.survey.label == self.survey, \
-                f'{self.survey!r} not present in targetdb.survey.'
-        else:
-            assert program.survey is None, 'targetdb.survey should be empty but is not.'
+        self.database = targetdb.database
+        assert self.database.connected, 'database is not connected.'
 
-        # TODO: uncomment this when the cadences are set in the DB.
-        # if self.candece:
-        #     assert (targetdb.Cadence
-        #             .select()
-        #             .where(targetdb.Cadence.label == self.cadence)
-        #             .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
+        self.schema = schema or self.config.get('schema', None) or 'sandbox'
+        self.table_name = table_name or f'temp_{self.name}'
 
-        assert program.category and program.category.label == self.category, \
-            f'{self.category!r} not present in targetdb.category.'
+        if self.cadence:
+            assert (targetdb.Cadence
+                    .select()
+                    .where(targetdb.Cadence.label == self.cadence)
+                    .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
+
+        self.has_run = False
+        log.header = f'({self.name}): '
 
     @abc.abstractmethod
-    def build_query(self):
+    def build_query(self, version_id):
         """Builds and returns the query.
 
         The ORM query for the target class. Note that this must be the
         *un-executed* query, which will be executed in `.run`. The select
-        statement must be run on ``targetdb.catalog`` and needs to include,
+        statement must be run on ``catalogdb.catalog`` and needs to include,
         at least, ``catalogid``. Additional columns such as
         ``ra, dec, pmra, pmdec`` can be specified but are otherwise completed
         when calling `.run`. Magnitude columns can be included and propagated
         to ``targetdb`` but must be aliased as ``magnitude_<band>`` where
         ``<band>`` must be one of the columns in ``targetdb.magnitude``.
+
+        The query returned must include a filter for ``version_id`` on
+        ``catalogdb.catalog``. Normally this is applied to the ``Catalog``
+        select as ``.where(Catalog.version_id == version_id)``.
+
+        Parameters
+        ----------
+        version_id : int
+            The id of the cross-match version to use.
 
         Returns
         -------
@@ -180,10 +160,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """Returns a Peewee model with the columns returned by a query."""
 
         if query is None:
-            query = self.build_query()
+            version_id = catalogdb.Version.get(version=self.xmatch_version).id
+            query = self.build_query(version_id)
 
-        class Model(BaseModel):
+        class Model(peewee.Model):
+
+            catalogid = peewee.BigIntegerField(primary_key=True)
+            selected = peewee.BooleanField()
+            cadence = peewee.TextField(null=True)
+
             class Meta:
+                database = self.database
                 table_name = self.table_name
                 schema = self.schema
                 primary_key = False
@@ -194,6 +181,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             field_name, resolved_field = self._resolve_field(field)
             is_primary_key = resolved_field.primary_key
+
+            if field_name in Model._meta.fields:
+                continue
 
             new_field = resolved_field.__class__(primary_key=is_primary_key,
                                                  null=not is_primary_key)
@@ -206,7 +196,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         return Model
 
     def run(self, tile=None, tile_num=None, progress_bar=True,
-            call_post_process=True, **post_process_kawrgs):
+            **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
@@ -229,8 +219,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
             when tiling.
         progress_bar : bool
             Use a progress bar when tiling.
-        call_post_process : bool
-            Whether to call the post-process routine.
         post_process_args : dict
             Keyword arguments to be passed to `.post_process`.
 
@@ -244,31 +232,49 @@ class BaseCarton(metaclass=abc.ABCMeta):
         tile = tile or self.tile
         tile_num = tile_num or self.tile_num
 
-        # Check to make sure that the program entries exist in targetdb.
-        self._check_targetdb()
-
         if database.table_exists(self.table_name, schema=self.schema):
             raise RuntimeError(f'temporary table {self.table_name} already exists.')
 
-        self.log('building query ...')
-        query = self.build_query()
+        log.info('building query ...')
+        version_id = catalogdb.Version.get(version=self.xmatch_version).id
+        query = self.build_query(version_id)
 
-        # Tweak the query. Start by making sure the catalogid column is selected.
-        if catalogid_field not in query._returning:
-            raise RuntimeError(f'{catalogid_field} not being returned in query.')
+        # Make sure the catalogid column is selected.
+        if catalogdb.Catalog.catalogid not in query._returning:
+            raise RuntimeError(f'catalogid is not being returned in query.')
 
         # Dynamically create a model for the results table.
         ResultsModel = self.get_model_from_query(query)
 
         # Create sandbox table.
         database.create_tables([ResultsModel])
-        self.log(f'created table {self.table_name}', logging.DEBUG)
+        log.debug(f'created table {self.table_name!r}')
 
-        self.log(f'running query with tile={tile}', logging.DEBUG)
+        # Make the "selected" column detault to true. We cannot do this in
+        # Peewee because field defaults are implemented only on the Python
+        # side.
+        with self.database.atomic():
+            self.database.execute_sql(
+                f'ALTER TABLE {self.schema}.{self.table_name} '
+                'ALTER COLUMN selected SET DEFAULT true;')
+
+        log.debug(f'running query with tile={tile}')
+
+        insert_fields = [ResultsModel._meta.fields[field]
+                         for field in ResultsModel._meta.fields
+                         if field not in ['selected', 'cadence']]
 
         if tile is False:
 
-            ResultsModel.insert_from(query, ResultsModel._meta.fields).execute()
+            log.debug(f'INSERT INTO {ResultsModel._meta.table_name}: ' +
+                      color_text(str(query), 'darkgrey'))
+
+            with self.database.atomic():
+                with Timer() as timer:
+                    n_rows = (ResultsModel
+                              .insert_from(query, insert_fields)
+                              .returning()
+                              .execute())
 
         else:
 
@@ -278,9 +284,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 ra_space = numpy.linspace(0, 360, num=tile_num)
                 dec_space = numpy.linspace(-90, 90, num=tile_num)
             else:
-                ra_space = numpy.linspace(self.tile_region[0], self.tile_region[2],
+                ra_space = numpy.linspace(self.tile_region[0],
+                                          self.tile_region[2],
                                           num=tile_num)
-                dec_space = numpy.linspace(self.tile_region[1], self.tile_region[3],
+                dec_space = numpy.linspace(self.tile_region[1],
+                                           self.tile_region[3],
                                            num=tile_num)
 
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
@@ -289,55 +297,60 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 counter = manager.counter(total=n_tiles, desc=self.name, unit='ticks')
                 counter.update(0)
 
-            nn = 1
-            for ii in range(len(ra_space) - 1):
-                for jj in range(len(dec_space) - 1):
+            with self.database.atomic():
+                with Timer() as timer:
 
-                    ra0 = ra_space[ii]
-                    ra1 = ra_space[ii + 1]
-                    dec0 = dec_space[jj]
-                    dec1 = dec_space[jj + 1]
+                    nn = 1
+                    for ii in range(len(ra_space) - 1):
+                        for jj in range(len(dec_space) - 1):
 
-                    polygon = (f'(({ra0:.1f}, {dec0:.1f}), ({ra0:.1f}, {dec1:.1f}), '
-                               f'({ra1:.1f}, {dec1:.1f}), ({ra1:.1f}, {dec0:.1f}))')
+                            ra0 = ra_space[ii]
+                            ra1 = ra_space[ii + 1]
+                            dec0 = dec_space[jj]
+                            dec1 = dec_space[jj + 1]
 
-                    if isinstance(query, peewee. ModelSelect):
-                        query_model = query.model
-                    else:
-                        query_model = query._cte_list[0].c
+                            polygon = (f'(({ra0:.1f}, {dec0:.1f}), '
+                                       f'({ra0:.1f}, {dec1:.1f}), '
+                                       f'({ra1:.1f}, {dec1:.1f}), '
+                                       f'({ra1:.1f}, {dec0:.1f}))')
 
-                    tile_query = query.where(
-                        peewee.fn.q3c_poly_query(query_model.ra, query_model.dec,
-                                                 peewee.SQL(f'\'{polygon}\'::polygon')))
+                            if isinstance(query, peewee. ModelSelect):
+                                query_model = query.model
+                            else:
+                                query_model = query._cte_list[0].c
 
-                    self.log(f'tile {nn}/{n_tiles}: {polygon}', logging.DEBUG)
+                            tile_query = query.where(
+                                peewee.fn.q3c_poly_query(
+                                    query_model.ra,
+                                    query_model.dec,
+                                    peewee.SQL(f'\'{polygon}\'::polygon')))
 
-                    ResultsModel.insert_from(tile_query, ResultsModel._meta.fields).execute()
+                            log.debug(f'tile {nn}/{n_tiles}: {polygon}')
 
-                    nn += 1
+                            n_rows = (ResultsModel
+                                      .insert_from(tile_query, insert_fields)
+                                      .returning()
+                                      .execute())
 
-                    if progress_bar:
-                        counter.update()
+                            nn += 1
 
-        # Add the selected column.
-        selected_field = peewee.BooleanField(default=True, null=False)
-        migrator = PostgresqlMigrator(database)
-        migrate(migrator.set_search_path(self.schema),
-                migrator.add_column(self.table_name, 'selected', selected_field))
-        ResultsModel._meta.add_field('selected', selected_field)
+                            if progress_bar:
+                                counter.update()
 
-        if call_post_process:
-            mask = self.post_process(ResultsModel, **post_process_kawrgs)
-            if mask is True:
-                self.log('post-processing returned True. Selecting all records.')
-                pass  # No need to do anything
-            else:
-                assert len(mask) > 0, 'the post-process list is empty'
-                self.log(f'selecting {len(mask)} records.')
-                (ResultsModel
-                 .update({ResultsModel.selected: False})
-                 .where(ResultsModel._meta.primary_key.not_in(mask))
-                 .execute())
+        log.info(f'inserted {n_rows:,} rows into {self.table_name} '
+                 f'in {timer.interval:.3f} s.')
+
+        mask = self.post_process(ResultsModel, **post_process_kawrgs)
+        if mask is True:
+            log.debug('post-processing returned True. Selecting all records.')
+            pass  # No need to do anything
+        else:
+            assert len(mask) > 0, 'the post-process list is empty'
+            log.debug(f'selecting {len(mask)} records.')
+            (ResultsModel
+             .update({ResultsModel.selected: False})
+             .where(ResultsModel._meta.primary_key.not_in(mask))
+             .execute())
 
         self.has_run = True
 
@@ -350,6 +363,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         carton query. It receives the model for the temporary table and can
         perform any operation as long as it returns a tuple with the list of
         catalogids that should be selected.
+
+        This method can also be used to set the ``cadence`` column in the
+        temporary table. This column will be used to set the target cadence if
+        the carton `.cadence` attribute is not set.
 
         Parameters
         ----------
@@ -389,7 +406,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         """
 
-        filename = filename or f'{self.name}_{self.targeting_version}.fits'
+        filename = filename or f'{self.name}_{self.version}.fits'
 
         log.debug(f'({self.name}): writing table to {filename}.')
 
