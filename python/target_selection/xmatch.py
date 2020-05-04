@@ -17,7 +17,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, fn
+from peewee import SQL, Select, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils import get_row_count
@@ -623,10 +623,16 @@ class XMatchPlanner(object):
 
         # Check if Catalog already has entries for this xmatch version.
         if Catalog.table_exists():
-            version_id = Version.select().where(Version.version == self.version).scalar()
-            if (version_id and Catalog.select(fn.COUNT(SQL('1')))
-                                      .where(Catalog.version_id == version_id)
-                                      .limit(1).scalar()):
+            version_id = (Version.select()
+                          .where(Version.version == self.version)
+                          .scalar())
+            exists = (peewee.Select(
+                columns=[fn.EXISTS(Catalog
+                                   .select(SQL('1'))
+                                   .where(Catalog.version_id == version_id))])
+                      .tuples()
+                      .execute(self.database))[0][0]
+            if version_id and exists:
                 self.log.warning(f'{catalog_tname!r} contains '
                                  'records for this version of cross-matching '
                                  f'({self.version}).')
