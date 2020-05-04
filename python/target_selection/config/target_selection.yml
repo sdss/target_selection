@@ -1,6 +1,9 @@
 
 '0.1.0':
-    xmatch_version: 0.1.0
+    xmatch_version: 0.1.0-alpha.4
+    cartons:
+        - guide
+    schema: sandbox
     guide:
         g_min: 13
         g_max: 17
