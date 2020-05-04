@@ -901,6 +901,11 @@ class XMatchPlanner(object):
         self.extra_nodes[Catalog._meta.table_name] = Catalog
         self.update_model_graph(silent=True)
 
+        if vcreated or from_ is None:
+            self._catalog_count = 0
+        else:
+            self._get_catalog_row_count()
+
         with Timer() as timer:
             for table_name in self.process_order:
                 if (from_ and
@@ -1443,12 +1448,38 @@ class XMatchPlanner(object):
     def _get_larger_table(self, Catalog, Model):
         """Determines which table is larger."""
 
-        if self._catalog_count is None:
-            self._catalog_count = (Catalog.select()
-                                   .where(Catalog.version_id == self._version_id)
-                                   .count())
-
         # Use approximate count
         model_count = Model._meta.xmatch.row_count
 
         return 0 if self._catalog_count > model_count else 1
+
+    def _get_catalog_row_count(self):
+        """Determines catalog row count for a version."""
+
+        # This requires the following function to have been defined in the
+        # database.
+        #
+        # CREATE FUNCTION row_estimator(query text) RETURNS bigint
+        #    LANGUAGE plpgsql AS
+        # $$DECLARE
+        #    plan jsonb;
+        # BEGIN
+        #    EXECUTE 'EXPLAIN (FORMAT JSON) ' || query INTO plan;
+        #
+        #    RETURN (plan->0->'Plan'->>'Plan Rows')::bigint;
+        # END;$$;
+        #
+        #    RETURN (plan->0->'Plan'->>'Plan Rows')::bigint;
+        # END;$$;
+
+        self.log.debug(f'Determining row count for {Catalog._meta.table_name}.')
+
+        self._catalog_count = (Select(columns=[
+            fn.row_estimator(str(Catalog
+                                 .select(SQL('*'))
+                                 .where(Catalog.version_id == self._version_id)))
+        ]).tuples().execute(self.database)[0][0])
+
+        self.log.debug(f'{Catalog._meta.table_name} contains approximately '
+                       f'{self._catalog_count} rows for '
+                       f'version_id={self._version_id}.')
