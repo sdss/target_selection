@@ -384,6 +384,9 @@ class XMatchPlanner(object):
 
         if log_path:
             log_path = os.path.realpath(log_path)
+            if self.log.fh:
+                self.log.removeHandler(self.log.fh)
+                self.log.fh = None
             self.log.start_file_logger(log_path.format(version=version),
                                        rotating=False, mode='a')
 
