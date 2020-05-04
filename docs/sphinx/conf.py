@@ -114,7 +114,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'peewee': ('http://docs.peewee-orm.com/en/latest/', None),
                        'sdssdb': ('http://sdssdb.readthedocs.org/en/stable/', None)}
 
-autodoc_mock_imports = ['_tkinter']
+autodoc_mock_imports = ['_tkinter', 'sdssdb.peewee.sdss5db']
 autodoc_member_order = 'groupwise'
 
 napoleon_use_rtype = False
