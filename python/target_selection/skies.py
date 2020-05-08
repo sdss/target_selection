@@ -201,25 +201,25 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
         Name of the table to query, optionally schema-qualified.
     output : str
         Path to the HDF5 file to write.
-    append : bool, optional
+    append : bool
         If `True`, appends to the output file if it exists. Otherwise
         overwrites it.
-    tile_nside : int, optional
+    tile_nside : int
         The HEALPix nside to use to tile the all-sky catalogue.
-    candidate_nside : int, optional
+    candidate_nside : int
         The HEALPix nside used to identify candidate pixels in each tile.
         Candidates are then checked to confirm that their closest neighbour
         is at least ``min_separation`` arcsec away.
-    min_separation : int, optional
+    min_separation : int
         The minimum separation, in arcsec, between skies and their closest
         neighbour in the catalogue.
     n_cpus : int
         Number of CPUs to use in parallel. If `None`, defaults to the number
         of cores.
-    downsample : bool or int, optional
+    downsample : bool or int
         The total number of skies to retrieve for each tile. If `False`,
         returns all candidate skies.
-    downsample_nside : int, optional
+    downsample_nside : int
         The HEALPix nside used for downsampling. If ``downsample=True``, the
         resulting valid skies will be grouped by HEALPix pixels of this
         resolution. For each pixel a random sample will be drawn so that the

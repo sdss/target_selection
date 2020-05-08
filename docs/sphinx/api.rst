@@ -1,7 +1,7 @@
 
 .. _api:
 
-API Reference
+Low-level API
 =============
 
 Carton
@@ -19,6 +19,12 @@ XMatch
 
 .. automodule:: target_selection.xmatch
    :members: XMatchModel, XMatchPlanner
+
+Skies
+-----
+
+.. automodule:: target_selection.skies
+   :members: create_sky_catalogue, nested_regrade
 
 Utils
 -----
