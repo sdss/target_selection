@@ -10,9 +10,11 @@ import multiprocessing
 from functools import partial
 
 import healpy
+import matplotlib.pyplot as plt
 import numpy
 import pandas
 from astropy.coordinates import SkyCoord, match_coordinates_sky
+from matplotlib.patches import Ellipse
 from peewee import PostgresqlDatabase
 
 from target_selection import manager
@@ -134,6 +136,8 @@ def _process_tile(pix, database_params=None, query=None,
     candidates['sep_neighbour'] = sep_arcsec
 
     valid_skies = candidates[candidates['sep_neighbour'] > min_separation].loc[:]
+
+    # Add the tile pixel order
 
     if not downsample:
         return valid_skies
@@ -260,3 +264,136 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
             pbar.update()
 
     hdf.close()
+
+
+def plot_sky_density(file_or_data, nside, nside_plot=32, **kwargs):
+    """Plots the number of skies as a HEALPix map.
+
+    Parameters
+    ----------
+    file_or_data : str or ~pandas.DataFrame
+        A HDF5 file with the sky catalogue or a Pandas data frame with the
+        data. It is assumed that the file or data frame contains at least a
+        column ``pix_X``, where ``X`` is the order corresponding to ``nside``.
+    nside : int
+        The HEALPix nside for the skies.
+    nside_plot : int
+        The HEALPix nside in which the data will be plotted.
+    kwargs : dict
+        Other keyword parameters to pass to healpy's
+        `~healpy.visufunc.mollview`.
+
+    Returns
+    -------
+    figure : `~matplotlib.figure.Figure`
+        The Matplotlib figure with the plot.
+
+    """
+
+    if isinstance(file_or_data, str):
+        data = pandas.read_hdf(file_or_data)
+    else:
+        data = file_or_data
+
+    k = int(numpy.log2(nside))
+    k_plot = int(numpy.log2(nside_plot))
+
+    pix_plot = f'pix_{k_plot}'
+    pix = f'pix_{k}'
+
+    data[pix_plot] = nested_regrade(data[pix], nside, nside_plot)
+    count = data.groupby(pix_plot).count()
+
+    hmap = numpy.arange(healpy.nside2npix(nside_plot), dtype=numpy.float32)
+    hmap[:] = healpy.UNSEEN
+    hmap[count.index] = count[pix]
+
+    figure = plt.figure()
+    healpy.mollview(hmap, fig=figure.number, nest=True, **kwargs)
+
+    return figure
+
+
+def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
+               show_sky_buffer=False, buffer_radius=10.):
+    """Plots the skies (and optionally targets) in a regions.
+
+    Parameters
+    ----------
+    file_or_data : str or ~pandas.DataFrame
+        A HDF5 file with the sky catalogue or a Pandas data frame with the
+        data, including columns labelled ``ra`` and ``dec``.
+    ra : float
+        The right ascension of the centre of the field.
+    dec : float
+        The declination of the centre of the field.
+    raidus : float
+        The FOV radius, in degrees.
+    targets : list
+        A target list or array as ``(ra, dec)``.
+    show_sky_buffer : bool
+        Plots the buffer regions around each sky.
+    buffer_radius : float
+        The sky buffer radius, in arcsec.
+
+    Returns
+    -------
+    figure : `~matplotlib.figure.Figure`
+        The Matplotlib figure with the plot.
+
+    """
+
+    if isinstance(file_or_data, str):
+        data = pandas.read_hdf(file_or_data)
+    else:
+        data = file_or_data
+
+    fig, ax = plt.subplots()
+
+    cos_factor = numpy.cos(numpy.radians(dec))
+
+    FOV = Ellipse((ra, dec), radius * 2 / cos_factor,
+                  radius * 2, linewidth=2, color='None',
+                  ec='k')
+    ax.add_patch(FOV)
+
+    # Plot skies
+    centre = SkyCoord(ra=ra, dec=dec, unit='deg')
+    sky_coords = SkyCoord(ra=data.ra.to_numpy(), dec=data.dec.to_numpy(), unit='deg')
+    skies = data[sky_coords.separation(centre).value < radius]
+
+    ax.scatter(skies.ra, skies.dec,
+               marker='o', s=0.2, color='b', zorder=10, label='Skies')
+
+    if show_sky_buffer:
+        for _, sky in skies.iterrows():
+            buffer = Ellipse((sky.ra, sky.dec),
+                             buffer_radius / 3600. * 2,
+                             buffer_radius / 3600. * 2,
+                             color='y', ec='None',
+                             alpha=0.2, zorder=0)
+            ax.add_patch(buffer)
+
+    # Plot targets
+    if targets is not None:
+        targets = numpy.array(targets)
+        target_coords = SkyCoord(ra=targets[:, 0], dec=targets[:, 1], unit='deg')
+        targets = targets[target_coords.separation(centre).value < radius]
+
+        ax.scatter(targets[:, 0], targets[:, 1], marker='x', s=0.2,
+                   color='r', zorder=20, label='Targets')
+
+    ax.legend(loc='upper right')
+
+    ax.set_xlim(ra - radius / cos_factor - 0.1,
+                ra + radius / cos_factor + 0.1)
+    ax.set_ylim(dec - radius - 0.1, dec + radius + 0.1)
+
+    ax.set_xlabel('Right Ascension [deg]')
+    ax.set_ylabel('Declination [deg]')
+
+    ax.set_aspect(1 / cos_factor)
+
+    fig.tight_layout()
+
+    return fig

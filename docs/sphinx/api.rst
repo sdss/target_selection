@@ -24,7 +24,7 @@ Skies
 -----
 
 .. automodule:: target_selection.skies
-   :members: create_sky_catalogue, nested_regrade
+   :members: create_sky_catalogue, nested_regrade, plot_sky_density
 
 Utils
 -----
