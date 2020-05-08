@@ -193,6 +193,8 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     - The process is parallelised for each tile and the results are compiled
       in a single Pandas data frame that is saved to an HDF5 file.
 
+    All pixel values use the nested ordering.
+
     Parameters
     ----------
     database : .PeeweeDatabaseConnection
