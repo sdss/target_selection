@@ -29,7 +29,8 @@ from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          TargetSelectionUserWarning,
                                          XMatchError)
 from target_selection.utils import (Timer, get_configuration_values, get_epoch,
-                                    sql_apply_pm, vacuum_outputs, vacuum_table)
+                                    set_config_parameter, sql_apply_pm,
+                                    vacuum_outputs, vacuum_table)
 
 
 EPOCH = 2015.5
@@ -370,6 +371,9 @@ class XMatchPlanner(object):
         (``ra``, ``dec``, ``radius``) of the region to which to limit the
         cross-match. All values must be in degrees. It can also be a list
         of tuples, in which case the union of all the regions will be sampled.
+    disable_seqscan: bool
+        If `True`, disables the use of sequential scans in the database. This
+        only applies to phase 2.
 
     """
 
@@ -377,7 +381,8 @@ class XMatchPlanner(object):
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{version}.log',
-                 debug=False, show_sql=False, sample_region=None):
+                 debug=False, show_sql=False, sample_region=None,
+                 disable_seqscan=False):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -417,7 +422,8 @@ class XMatchPlanner(object):
         self._options = {'query_radius': query_radius or QUERY_RADIUS,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
-                         'epoch': epoch}
+                         'epoch': epoch,
+                         'disable_seqscan': disable_seqscan}
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -661,11 +667,17 @@ class XMatchPlanner(object):
                       'enable_seqscan',
                       'enable_nestloop']
 
+        disable_seqscan = 'off' if self._options['disable_seqscan'] else 'on'
+
         values = get_configuration_values(self.database, parameters)
 
         self.log.debug('Current database configuration parameters.')
         for parameter in values:
-            self.log.debug(f'{parameter} = {values[parameter]}')
+            log_str = f'{parameter} = {values[parameter]}'
+            if parameter == 'enable_seqscan':
+                self.log.debug(f'{log_str} (disable_seqscan={disable_seqscan})')
+            else:
+                self.log.debug(log_str)
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
@@ -1266,14 +1278,19 @@ class XMatchPlanner(object):
                                   rel_model.distance,
                                   rel_model.best]).returning().with_cte(xmatched)
 
+        enable_seqscan = 'on' if not self._options['disable_seqscan'] else 'off'
+
         with Timer() as timer:
 
             with self.database.atomic():
 
-                self.log.debug('Inserting cross-matched targets into '
-                               f'{rel_table_name}{self._get_sql(insert_query)}')
+                with set_config_parameter(self.database, 'enable_seqscan',
+                                          enable_seqscan, reset=True, log=self.log):
 
-                n_catalogid = insert_query.execute(self.database)
+                    self.log.debug('Inserting cross-matched targets into '
+                                   f'{rel_table_name}{self._get_sql(insert_query)}')
+
+                    n_catalogid = insert_query.execute(self.database)
 
         self.log.debug(f'Cross-matched {Catalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '
