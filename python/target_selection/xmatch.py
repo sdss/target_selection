@@ -1202,21 +1202,24 @@ class XMatchPlanner(object):
                 q3c_join = fn.q3c_join(Catalog.ra, Catalog.dec, model_ra, model_dec,
                                        query_radius / 3600.)
 
-        # Get the cross-matched catalogid and model target
-        # pk (target_id), and their distance.
+        # Get the cross-matched catalogid and model target pk (target_id),
+        # and their distance. We need to use a materialised CTE here to
+        # make sure the Q3C index is actually applied.
         xmatched = (Catalog
                     .select(Catalog.catalogid,
                             model_pk.alias('target_id'),
-                            q3c_dist.alias('distance'))
+                            q3c_dist.alias('distance'),
+                            Catalog.version_id)
                     .join(model, peewee.JOIN.CROSS)
-                    .where(Catalog.version_id == self._version_id)
                     .where(q3c_join))
 
+        # This may break the use of the index but I think it's needed if
+        # the model is the second table in q3c_join and has empty RA/Dec.
         if xmatch.has_missing_coordinates and use_pm:
-            insert_query = xmatched.where(model_ra.is_null(False),
-                                          model_dec.is_null(False))
+            xmatched = xmatched.where(model_ra.is_null(False),
+                                      model_dec.is_null(False))
 
-        xmatched = xmatched.cte('xmatched')
+        xmatched = xmatched.cte('xmatched', materialized=True)
 
         # We'll partition over each group of targets that match the same
         # catalogid and mark the one with the smallest distance to it as best.
@@ -1233,6 +1236,7 @@ class XMatchPlanner(object):
                                 peewee.Value(self._version_id),
                                 xmatched.c.distance,
                                 best.alias('best'))
+                        .where(xmatched.c.version_id == self._version_id)
                         # We do two NOT EXISTS instead of a single one to fully
                         # take advantage of the indexes on catalogid and
                         # (version_id, target_id).
@@ -1243,6 +1247,16 @@ class XMatchPlanner(object):
                                           .select(SQL('1'))
                                           .where(rel_model.version_id == self._version_id,
                                                  rel_model.target_id == xmatched.c.target_id))))
+
+        # TODO: this is probably non-optimal because we are doing a cross-match
+        # of all of catalog against the model and catalog contains multiple
+        # versions that we don't filter out until insert_query. But we cannot
+        # add the filter in the CTE without breaking the index. A solution may
+        # be to create a temporary table temp_catalog at the beginning of the
+        # processing with a Q3C index and do everything there. Then we insert
+        # all the rows in the real catalog table. This allows us to remove all
+        # the filters on version_id because in the temporary table there is
+        # only the current version being processed.
 
         # Insert into relational model.
         insert_query = rel_model.insert_from(
