@@ -323,7 +323,7 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
         The right ascension of the centre of the field.
     dec : float
         The declination of the centre of the field.
-    raidus : float
+    radius : float
         The FOV radius, in degrees.
     targets : list
         A target list or array as ``(ra, dec)``.
