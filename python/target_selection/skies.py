@@ -381,8 +381,8 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
     ax.legend(loc='upper right')
 
-    ax.set_xlim(ra - radius / cos_factor - 0.1,
-                ra + radius / cos_factor + 0.1)
+    ax.set_xlim(ra - (radius - 0.1) / cos_factor,
+                ra + (radius + 0.1) / cos_factor)
     ax.set_ylim(dec - radius - 0.1, dec + radius + 0.1)
 
     ax.set_xlabel('Right Ascension [deg]')
