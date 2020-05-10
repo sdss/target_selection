@@ -137,8 +137,6 @@ def _process_tile(pix, database_params=None, query=None,
 
     valid_skies = candidates[candidates['sep_neighbour'] > min_separation].loc[:]
 
-    # Add the tile pixel order
-
     if not downsample:
         return valid_skies
 
@@ -158,8 +156,6 @@ def _process_tile(pix, database_params=None, query=None,
                                                             if len(x) > n_skies_per_pix
                                                             else len(x))))
                                .reset_index(drop=True))
-
-    # valid_skies_downsampled.drop(columns='down_pix', inplace=True)
 
     return valid_skies_downsampled
 
