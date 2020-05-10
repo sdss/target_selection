@@ -117,7 +117,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'matplotlib': ('https://matplotlib.org/', None),
                        'healpy': ('https://healpy.readthedocs.io/en/latest', None)}
 
-autodoc_mock_imports = ['_tkinter', 'sdssdb.peewee.sdss5db']
+autodoc_mock_imports = ['tkinter', 'sdssdb.peewee.sdss5db']
 autodoc_member_order = 'groupwise'
 
 napoleon_use_rtype = False
