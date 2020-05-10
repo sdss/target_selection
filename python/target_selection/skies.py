@@ -240,7 +240,8 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     assert database.connected, 'database is not connected.'
 
     query = (f'SELECT {ra_column}, {dec_column} FROM {table} '
-             f'WHERE healpix_ang2ipix_nest({tile_nside}, {ra_column}, {dec_column}) = {{pix}};')
+             f'WHERE healpix_ang2ipix_nest('
+             f'{tile_nside}, {ra_column}, {dec_column}) = {{pix}};')
 
     n_tiles = healpy.nside2npix(tile_nside)
     pbar = manager.counter(total=n_tiles, desc='Tiles', unit='tiles')
