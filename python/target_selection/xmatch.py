@@ -88,7 +88,6 @@ def get_relational_model(model, prefix='catalog_to_'):
 
     class BaseModel(peewee.Model):
 
-        id = peewee.BigAutoField()
         catalogid = peewee.BigIntegerField(null=False, index=True)
         target_id = model_pk_class(null=False, index=True)
         version_id = peewee.SmallIntegerField(null=False)
@@ -98,6 +97,7 @@ def get_relational_model(model, prefix='catalog_to_'):
         class Meta:
             database = meta.database
             schema = meta.schema
+            primary_key = peewee.CompositeKey('catalogid', 'target_id', 'version_id')
             indexes = [(('version_id', 'target_id'), False)]
 
     model_prefix = ''.join(x.capitalize() or '_'

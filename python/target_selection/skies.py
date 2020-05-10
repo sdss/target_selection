@@ -137,8 +137,6 @@ def _process_tile(pix, database_params=None, query=None,
 
     valid_skies = candidates[candidates['sep_neighbour'] > min_separation].loc[:]
 
-    # Add the tile pixel order
-
     if not downsample:
         return valid_skies
 
@@ -158,8 +156,6 @@ def _process_tile(pix, database_params=None, query=None,
                                                             if len(x) > n_skies_per_pix
                                                             else len(x))))
                                .reset_index(drop=True))
-
-    # valid_skies_downsampled.drop(columns='down_pix', inplace=True)
 
     return valid_skies_downsampled
 
@@ -244,7 +240,8 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     assert database.connected, 'database is not connected.'
 
     query = (f'SELECT {ra_column}, {dec_column} FROM {table} '
-             f'WHERE healpix_ang2ipix_nest({tile_nside}, {ra_column}, {dec_column}) = {{pix}};')
+             f'WHERE healpix_ang2ipix_nest('
+             f'{tile_nside}, {ra_column}, {dec_column}) = {{pix}};')
 
     n_tiles = healpy.nside2npix(tile_nside)
     pbar = manager.counter(total=n_tiles, desc='Tiles', unit='tiles')
@@ -327,7 +324,7 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
         The right ascension of the centre of the field.
     dec : float
         The declination of the centre of the field.
-    raidus : float
+    radius : float
         The FOV radius, in degrees.
     targets : list
         A target list or array as ``(ra, dec)``.
@@ -385,8 +382,8 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
     ax.legend(loc='upper right')
 
-    ax.set_xlim(ra - radius / cos_factor - 0.1,
-                ra + radius / cos_factor + 0.1)
+    ax.set_xlim(ra - (radius - 0.1) / cos_factor,
+                ra + (radius + 0.1) / cos_factor)
     ax.set_ylim(dec - radius - 0.1, dec + radius + 0.1)
 
     ax.set_xlabel('Right Ascension [deg]')
