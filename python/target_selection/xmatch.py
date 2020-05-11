@@ -42,7 +42,7 @@ class Version(peewee.Model):
     """Model for the version table."""
 
     id = peewee.AutoField()
-    version = peewee.TextField()
+    plan = peewee.TextField()
     tag = peewee.TextField()
 
     class Meta:
@@ -242,8 +242,8 @@ class XMatchPlanner(object):
     The output table contains a sequential integer identifier for each unique
     target (``catalogid``), along with the following columns: ``ra``, ``dec``,
     ``pmra``, ``pmdec``, ``parallax``, ``lead``, and ``version_id``.
-    ``version_id`` relates the record with the ``version`` table which contains
-    the cross-matching version and the version of the code used when it was
+    ``version_id`` relates the record in the ``version`` table which contains
+    the cross-matching plan and the tag of the code used when it was
     run. ``lead`` indicates from which one of the input catalogues the
     coordinates were obtained.
 
@@ -336,8 +336,8 @@ class XMatchPlanner(object):
     models : list
         The list of `.XMatchModel` classes to be cross-matched. If the model
         correspond to a non-existing table it will be silently ignored.
-    version : str
-        The cross-matching version.
+    plan : str
+        The cross-matching plan version.
     extra_nodes : list
         List of PeeWee models to be used as extra nodes for joins (i.e.,
         already established cross-matches between catalogues). This models
@@ -386,10 +386,10 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, database, models, version, extra_nodes=[],
+    def __init__(self, database, models, plan, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
-                 output_table='catalog', log_path='./xmatch_{version}.log',
+                 output_table='catalog', log_path='./xmatch_{plan}.log',
                  debug=False, show_sql=False, sample_region=None,
                  disable_seqscan=False):
 
@@ -401,7 +401,7 @@ class XMatchPlanner(object):
             if self.log.fh:
                 self.log.removeHandler(self.log.fh)
                 self.log.fh = None
-            self.log.start_file_logger(log_path.format(version=version),
+            self.log.start_file_logger(log_path.format(plan=plan),
                                        rotating=False, mode='a')
 
         if debug is True:
@@ -416,8 +416,8 @@ class XMatchPlanner(object):
         self.database = database
         assert self.database.connected, 'database is not connected.'
 
-        self.version = version
-        self.log.info(f'version = {self.version!r}; '
+        self.plan = plan
+        self.log.info(f'plan = {self.plan!r}; '
                       f'tag = {target_selection.__version__!r}.')
 
         self._prepare_models()
@@ -436,7 +436,6 @@ class XMatchPlanner(object):
             self.log.warning(f'Using sample region {sample_region!r}.')
 
         self._check_models()
-
         self._log_db_configuration()
 
         self.model_graph = None
@@ -450,11 +449,11 @@ class XMatchPlanner(object):
         self._catalog_count = 0
 
     @classmethod
-    def read(cls, in_models, version, config_file=None, **kwargs):
+    def read(cls, in_models, plan, config_file=None, **kwargs):
         """Instantiates `.XMatchPlanner` from a configuration file.
 
-        The YAML configuration file must organised by version string (multiple
-        versions can live in the same file). Any parameter that
+        The YAML configuration file must organised by plan string (multiple
+        plans can live in the same file). Any parameter that
         `.XMatchPlanner` accepts can be passed via the configuration file.
         Additionally, the configuration file accepts the two extra parameters:
         ``exclude``, a list of table names that will be ignored (this is useful
@@ -494,10 +493,10 @@ class XMatchPlanner(object):
                         epoch: 2015.5
                         skip: true
 
-        It is also possible to use a parameter ``base_version`` pointing to a
-        previous version string. In that case the previous version
-        configuration will be used as base and the new values will be merged
-        (the update happens recursively as with normal Python dictionaries).
+        It is also possible to use a parameter ``base_plan`` pointing to a
+        previous plan string. In that case the previous plan configuration
+        will be used as base and the new values will be merged (the update
+        happens recursively as with normal Python dictionaries).
 
         Note that only models that match the table names in ``tables`` will be
         passed to `.XMatchPlanner` to be processed; any other table will be
@@ -516,12 +515,12 @@ class XMatchPlanner(object):
             containing the models. In the latter case, the models must have
             been imported so that they are available via the ``models``
             attribute.
-        version : str
-            The cross-matching version.
+        plan : str
+            The cross-matching plan.
         config_file : str
             The path to the configuration file to use. Defaults to
             ``config/xmatch.yml``. The file must contain a hash with the
-            cross-match version.
+            cross-match plan.
         kwargs : dict
             User arguments that will override the configuration file values.
 
@@ -548,7 +547,7 @@ class XMatchPlanner(object):
         if config_file is None:
             config_file = os.path.dirname(target_selection.__file__) + '/config/xmatch.yml'
 
-        config = XMatchPlanner._read_config(config_file, version)
+        config = XMatchPlanner._read_config(config_file, plan)
 
         table_config = config.pop('tables', {}) or {}
         exclude = config.pop('exclude', []) or []
@@ -583,24 +582,24 @@ class XMatchPlanner(object):
                 continue
             valid_kw[kw] = config[kw]
 
-        return cls(database, xmatch_models.values(), version,
+        return cls(database, xmatch_models.values(), plan,
                    extra_nodes=extra_nodes, **valid_kw)
 
     @staticmethod
-    def _read_config(file_, version):
+    def _read_config(file_, plan):
         """Reads the configuration file, recursively."""
 
         config = yaml.load(open(file_, 'r'), Loader=yaml.SafeLoader)
 
-        assert version in config, f'version {version!r} not found in configuration.'
+        assert plan in config, f'plan {plan!r} not found in configuration.'
 
-        base_version = config[version].pop('base_version', None)
-        if base_version:
-            config = merge_config(config[version],
-                                  XMatchPlanner._read_config(file_, base_version))
+        base_plan = config[plan].pop('base_plan', None)
+        if base_plan:
+            config = merge_config(config[plan],
+                                  XMatchPlanner._read_config(file_, base_plan))
         else:
 
-            config = config[version]
+            config = config[plan]
 
         return config
 
@@ -868,7 +867,7 @@ class XMatchPlanner(object):
         Catalog._meta.schema = self.schema
         Catalog._meta.table_name = self.output_table
 
-        md5 = hashlib.md5(self.version.encode()).hexdigest()[:0:16]
+        md5 = hashlib.md5(self.plan.encode()).hexdigest()[:0:16]
         self._temp_table = self.output_table + '_' + md5
 
         TempCatalog._meta.schema = self.schema
@@ -877,7 +876,7 @@ class XMatchPlanner(object):
         Version._meta.schema = self.schema
 
     def _check_version(self, model, force=False):
-        """Checks if a model contains a version."""
+        """Checks if a model contains a plan version."""
 
         vexists = (peewee.Select(
             columns=[fn.EXISTS(model
@@ -889,7 +888,7 @@ class XMatchPlanner(object):
         if vexists:
 
             msg = (f'{model._meta.table_name!r} contains records for this '
-                   f'version of cross-matching ({self.version}).')
+                   f'cross-matching plan ({self.plan}).')
 
             if force:
                 self.log.warning(msg)
@@ -906,7 +905,7 @@ class XMatchPlanner(object):
             self.database.create_tables([Version])
             self.log.info(f'Created table {Version._meta.table_name}.')
 
-        version, vcreated = Version.get_or_create(version=self.version,
+        version, vcreated = Version.get_or_create(plan=self.plan,
                                                   tag=target_selection.__version__)
 
         self._version_id = version.id
@@ -916,7 +915,7 @@ class XMatchPlanner(object):
         else:
             vmsg = 'Using version record '
 
-        self.log.info(vmsg + f'({self._version_id}, {self.version}, '
+        self.log.info(vmsg + f'({self._version_id}, {self.plan}, '
                              f'{target_selection.__version__}).')
 
         # Make sure the output table exists.
@@ -1120,7 +1119,7 @@ class XMatchPlanner(object):
 
         if temp:
             RelationalModel._meta.temporary = True
-            md5 = hashlib.md5(self.version.encode()).hexdigest()[:0:16]
+            md5 = hashlib.md5(self.plan.encode()).hexdigest()[:0:16]
             RelationalModel._meta.table_name += ('_' + md5)
         else:
             # Add an index on (version_id, target_id)
@@ -1138,7 +1137,7 @@ class XMatchPlanner(object):
         # as a constraint and index if the table is created because that would
         # slow down inserts. We'll created them manually with add_fks.
         # Note that we do not create an FK between the relational model and
-        # Catalog because the relationship is only unique on (catalogid, version).
+        # Catalog because the relationship is only unique on (catalogid, version_id).
         RelationalModel._meta.add_field(
             'target',
             peewee.ForeignKeyField(model, column_name='target_id', backref='+'))
@@ -1213,7 +1212,7 @@ class XMatchPlanner(object):
                      .distinct(model_pk))
 
             # In query we do not include a Q3C where for the sample region
-            # because Catalog for this version should already be sample
+            # because Catalog for this plan should already be sample
             # region limited.
 
             with Timer() as timer:
