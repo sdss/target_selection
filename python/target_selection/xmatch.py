@@ -658,7 +658,7 @@ class XMatchPlanner(object):
                       'enable_seqscan',
                       'enable_nestloop']
 
-        disable_seqscan = 'off' if self._options['disable_seqscan'] else 'on'
+        disable_seqscan = 'true' if self._options['disable_seqscan'] else 'false'
 
         values = get_configuration_values(self.database, parameters)
 
@@ -666,7 +666,7 @@ class XMatchPlanner(object):
         for parameter in values:
             log_str = f'{parameter} = {values[parameter]}'
             if parameter == 'enable_seqscan':
-                self.log.debug(f'{log_str} (disable_seqscan={disable_seqscan})')
+                self.log.debug(f'{log_str} (disable_seqscan = {disable_seqscan})')
             else:
                 self.log.debug(log_str)
 
@@ -1207,6 +1207,32 @@ class XMatchPlanner(object):
             with Timer() as timer:
 
                 with self.database.atomic():
+
+                    query = (self._build_join(join_models)
+                             .select(model_pk,
+                                     Catalog.catalogid,
+                                     peewee.Value(self._version_id),
+                                     peewee.SQL('true'))
+                             .where(Catalog.version_id == self._version_id)
+                             .where(~fn.EXISTS(rel_model
+                                               .select(SQL('1'))
+                                               .where(rel_model.version_id == self._version_id,
+                                                      rel_model.target_id == model_pk)))
+                             # We can have join catalogues that produce more than
+                             # one result for each target. In the future we may
+                             # want to order by something that selects the best
+                             # candidate.
+                             .distinct(model_pk))
+
+                    # In query we do not include a Q3C where for the sample region
+                    # because Catalog for this version should already be sample
+                    # region limited.
+
+                    insert_query = rel_model.insert_from(
+                        query, fields=[rel_model.target_id,
+                                       rel_model.catalogid,
+                                       rel_model.version_id,
+                                       rel_model.best]).returning()
 
                     self.log.debug(f'Inserting linked targets into '
                                    f'{rel_table_name} with join path {path}'
