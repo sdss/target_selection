@@ -446,7 +446,6 @@ class XMatchPlanner(object):
 
         self._version_id = None
         self._max_cid = None
-        self._catalog_count = 0
 
     @classmethod
     def read(cls, in_models, plan, config_file=None, **kwargs):
@@ -986,12 +985,6 @@ class XMatchPlanner(object):
 
         """
 
-        # If from_, we don't know how many targets are in the output table
-        # so we set self._catalog_count to None and _get_larger_table
-        # will take care of it.
-        if from_:
-            self._catalog_count = None
-
         if vacuum or analyze:
             cmd = ' '.join(('VACUUM' if vacuum else '',
                             'ANALYZE' if analyze else '')).strip()
@@ -1268,9 +1261,8 @@ class XMatchPlanner(object):
 
         # Determine which of the two tables is smaller. Q3C really wants the
         # larger table last.
-        idx = self._get_larger_table(Catalog, model)
 
-        if idx == 0:  # Catalog is larger
+        if self._temp_count > meta.xmatch.row_count:  # TempCatalog is larger
 
             self.log.debug(f'Cross-matching model against temporary table.')
 
@@ -1474,7 +1466,7 @@ class XMatchPlanner(object):
                 n_rows = insert_query.execute()
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
-        self._catalog_count += n_rows
+        self._temp_count += n_rows
 
         self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
 
@@ -1612,11 +1604,3 @@ class XMatchPlanner(object):
                 self.log.debug(f'{parameter}: {value:,}')
             else:
                 self.log.debug(f'{parameter}: {value}')
-
-    def _get_larger_table(self, Catalog, Model):
-        """Determines which table is larger."""
-
-        # Use approximate count
-        model_count = Model._meta.xmatch.row_count
-
-        return 0 if self._catalog_count > model_count else 1
