@@ -98,7 +98,6 @@ def get_relational_model(model, prefix='catalog_to_'):
             database = meta.database
             schema = meta.schema
             primary_key = peewee.CompositeKey('catalogid', 'target_id', 'version_id')
-            indexes = [(('version_id', 'target_id'), False)]
 
     model_prefix = ''.join(x.capitalize() or '_'
                            for x in prefix.rstrip().split('_'))
@@ -1039,10 +1038,12 @@ class XMatchPlanner(object):
         else:
             is_first_model = False
 
-        rel_model, rel_model_created = self._create_relational_model(model)
+        # Create a temporary relational table
+        rel_model, rel_model_created = self._create_relational_model(model, temp=True)
         rel_table_name = rel_model._meta.table_name
+
         if rel_model_created:
-            self.log.debug(f'Created relational table {rel_table_name}.')
+            self.log.debug(f'Created temporary relational table {rel_table_name}.')
         else:
             self.log.debug(f'Relational table {rel_table_name} already exists.')
 
@@ -1052,6 +1053,9 @@ class XMatchPlanner(object):
             self._run_phase_1(model, rel_model)
             self._run_phase_2(model, rel_model)
             self._run_phase_3(model, rel_model)
+
+        # Copy the temporary relational data to the real table
+        self._copy_temporary_data(model, rel_model)
 
         self.log.header = ''
 
@@ -1102,7 +1106,7 @@ class XMatchPlanner(object):
 
         return model_fields
 
-    def _create_relational_model(self, model):
+    def _create_relational_model(self, model, temp=False):
         """Creates a relational table for a given model.
 
         Returns the relational model and `True` if the table was created or
@@ -1113,6 +1117,15 @@ class XMatchPlanner(object):
         cat_table = Catalog._meta.table_name
 
         RelationalModel = get_relational_model(model, prefix=cat_table + '_to_')
+
+        if temp:
+            RelationalModel._meta.temporary = True
+            md5 = hashlib.md5(self.version.encode()).hexdigest()[:0:16]
+            RelationalModel._meta.table_name += ('_' + md5)
+        else:
+            # Add an index on (version_id, target_id)
+            RelationalModel._meta.indexes.append((('version_id', 'target_id'), False))
+
         rtname = RelationalModel._meta.table_name
 
         if not RelationalModel.table_exists():
@@ -1168,11 +1181,11 @@ class XMatchPlanner(object):
 
         if len(join_paths) == 0:
             self.log.debug(f'No paths found between {table_name} and '
-                           'temporary table.')
+                           'temporary output table.')
             return False
 
         self.log.debug(f'Found {len(join_paths)} paths between '
-                       f'{table_name} and temporary table.')
+                       f'{table_name} and temporary output table.')
 
         for n_path, path in enumerate(join_paths):
 
@@ -1189,44 +1202,23 @@ class XMatchPlanner(object):
                              peewee.Value(self._version_id),
                              peewee.SQL('true'))
                      .where(Catalog.version_id == self._version_id)
-                     .where(~fn.EXISTS(rel_model
-                                       .select(SQL('1'))
-                                       .where(rel_model.version_id == self._version_id,
-                                              rel_model.target_id == model_pk))))
+                     .where(~fn.EXISTS(
+                         rel_model
+                         .select(SQL('1'))
+                         .where(rel_model.target_id == model_pk)))
+                     # We can have join catalogues that produce more than
+                     # one result for each target. In the future we may
+                     # want to order by something that selects the best
+                     # candidate.
+                     .distinct(model_pk))
 
             # In query we do not include a Q3C where for the sample region
             # because Catalog for this version should already be sample
             # region limited.
 
-            insert_query = rel_model.insert_from(
-                query, fields=[rel_model.target_id,
-                               rel_model.catalogid,
-                               rel_model.version_id,
-                               rel_model.best]).returning()
-
             with Timer() as timer:
 
                 with self.database.atomic():
-
-                    query = (self._build_join(join_models)
-                             .select(model_pk,
-                                     Catalog.catalogid,
-                                     peewee.Value(self._version_id),
-                                     peewee.SQL('true'))
-                             .where(Catalog.version_id == self._version_id)
-                             .where(~fn.EXISTS(rel_model
-                                               .select(SQL('1'))
-                                               .where(rel_model.version_id == self._version_id,
-                                                      rel_model.target_id == model_pk)))
-                             # We can have join catalogues that produce more than
-                             # one result for each target. In the future we may
-                             # want to order by something that selects the best
-                             # candidate.
-                             .distinct(model_pk))
-
-                    # In query we do not include a Q3C where for the sample region
-                    # because Catalog for this version should already be sample
-                    # region limited.
 
                     insert_query = rel_model.insert_from(
                         query, fields=[rel_model.target_id,
@@ -1241,8 +1233,6 @@ class XMatchPlanner(object):
                     nids = insert_query.execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
-
-        self._analyze(rel_model)
 
     def _run_phase_2(self, model, rel_model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1365,26 +1355,11 @@ class XMatchPlanner(object):
                                 peewee.Value(self._version_id),
                                 xmatched.c.distance,
                                 best.alias('best'))
-                        # We do two NOT EXISTS instead of a single one to fully
-                        # take advantage of the indexes on catalogid and
-                        # (version_id, target_id).
-                        .where(~fn.EXISTS(rel_model
-                                          .select(SQL('1'))
-                                          .where(rel_model.catalogid == xmatched.c.catalogid)))
-                        .where(~fn.EXISTS(rel_model
-                                          .select(SQL('1'))
-                                          .where(rel_model.version_id == self._version_id,
-                                                 rel_model.target_id == xmatched.c.target_id))))
-
-        # TODO: this is probably non-optimal because we are doing a cross-match
-        # of all of catalog against the model and catalog contains multiple
-        # versions that we don't filter out until insert_query. But we cannot
-        # add the filter in the CTE without breaking the index. A solution may
-        # be to create a temporary table temp_catalog at the beginning of the
-        # processing with a Q3C index and do everything there. Then we insert
-        # all the rows in the real catalog table. This allows us to remove all
-        # the filters on version_id because in the temporary table there is
-        # only the current version being processed.
+                        .where(~fn.EXISTS(
+                            rel_model
+                            .select(SQL('1'))
+                            .where(rel_model.target_id == xmatched.c.target_id,
+                                   rel_model.catalogid == xmatched.c.catalogid))))
 
         # Insert into relational model.
         insert_query = rel_model.insert_from(
@@ -1411,8 +1386,6 @@ class XMatchPlanner(object):
         self.log.debug(f'Cross-matched {Catalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {self._temp_table}. '
                        f'Run in {timer.interval:.3f} s.')
-
-        self._analyze(rel_model)
 
     def _run_phase_3(self, model, rel_model):
         """Add non-matched targets to Catalog and the relational table."""
@@ -1441,7 +1414,8 @@ class XMatchPlanner(object):
                   .where(self._get_sample_where(model_ra, model_dec)))
 
         if xmatch.has_missing_coordinates:
-            sample = sample.where(model_ra.is_null(False), model_dec.is_null(False))
+            sample = sample.where(model_ra.is_null(False),
+                                  model_dec.is_null(False))
 
         sample = sample.cte('sample')
 
@@ -1457,8 +1431,7 @@ class XMatchPlanner(object):
                              peewee.SQL('true'))
                      .where(~fn.EXISTS(rel_model
                             .select(SQL('1'))
-                            .where(rel_model.target_id == sample.c.target_id,
-                                   rel_model.version_id == self._version_id))))
+                            .where(rel_model.target_id == sample.c.target_id))))
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1503,6 +1476,29 @@ class XMatchPlanner(object):
 
         self._max_cid += n_rows  # Avoid having to calculate max_cid again
         self._catalog_count += n_rows
+
+        self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
+
+    def _copy_temporary_data(self, model, temp_rel_model):
+        """Copies the temporary data to the final relational table."""
+
+        self.log.info('Copying temporary relational data.')
+
+        rel_model = self._create_relational_model(model)
+        rel_tname = rel_model._meta.table_name
+
+        with Timer() as timer:
+            with self.database.atomic():
+
+                insert_query = TempCatalog.insert_from(
+                    temp_rel_model.select()).returning()
+
+                self.log.debug(f'Running INSERT query into {rel_tname}'
+                               f'{self._get_sql(insert_query)}')
+
+                n_rows = insert_query.execute()
+
+                temp_rel_model.drop_table()
 
         self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
 
