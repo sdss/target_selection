@@ -1115,6 +1115,7 @@ class XMatchPlanner(object):
             RelationalModel._meta.primary_key = False
             md5 = hashlib.md5(self.plan.encode()).hexdigest()[:0:16]
             RelationalModel._meta.table_name += ('_' + md5)
+            RelationalModel._meta.indexes.append((('catalogid', 'target_id'), False))
         else:
             # Add an index on (version_id, target_id)
             RelationalModel._meta.indexes.append((('version_id', 'target_id'), False))
@@ -1194,7 +1195,6 @@ class XMatchPlanner(object):
                              Catalog.catalogid,
                              peewee.Value(self._version_id),
                              peewee.SQL('true'))
-                     .where(Catalog.version_id == self._version_id)
                      .where(~fn.EXISTS(
                          rel_model
                          .select(SQL('1'))
@@ -1350,8 +1350,8 @@ class XMatchPlanner(object):
                         .where(~fn.EXISTS(
                             rel_model
                             .select(SQL('1'))
-                            .where(rel_model.target_id == xmatched.c.target_id,
-                                   rel_model.catalogid == xmatched.c.catalogid))))
+                            .where(rel_model.catalogid == xmatched.c.catalogid,
+                                   rel_model.target_id == xmatched.c.target_id))))
 
         # Insert into relational model.
         insert_query = rel_model.insert_from(
@@ -1400,30 +1400,24 @@ class XMatchPlanner(object):
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
 
-        # Create a CTE for the sample region.
-        sample = (model
-                  .select(model_pk.alias('target_id'))
-                  .where(self._get_sample_where(model_ra, model_dec)))
-
-        if xmatch.has_missing_coordinates:
-            sample = sample.where(model_ra.is_null(False),
-                                  model_dec.is_null(False))
-
-        sample = sample.cte('sample')
-
         # Get the max catalogid currently in the table for the version.
         if not self._max_cid:
             self.log.debug('Getting max. catalogid.')
             self._max_cid = Catalog.select(fn.MAX(Catalog.catalogid)).scalar() or 0
 
-        unmatched = (sample
+        unmatched = (model
                      .select(fn.row_number().over() + self._max_cid,
-                             sample.c.target_id,
+                             model_pk.alias('target_id'),
                              peewee.Value(self._version_id),
                              peewee.SQL('true'))
+                     .where(self._get_sample_where(model_ra, model_dec))
                      .where(~fn.EXISTS(rel_model
                             .select(SQL('1'))
-                            .where(rel_model.target_id == sample.c.target_id))))
+                            .where(rel_model.target_id == model_pk))))
+
+        if xmatch.has_missing_coordinates:
+            unmatched = unmatched.where(model_ra.is_null(False),
+                                        model_dec.is_null(False))
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1433,7 +1427,7 @@ class XMatchPlanner(object):
                     [rel_model.catalogid,
                      rel_model.target_id,
                      rel_model.version_id,
-                     rel_model.best]).returning().with_cte(sample)
+                     rel_model.best]).returning()
 
                 self.log.debug(f'Inserting data into {rel_table_name}'
                                f'{self._get_sql(rel_insert)}')
