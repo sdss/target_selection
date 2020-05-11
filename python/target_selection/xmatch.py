@@ -667,7 +667,7 @@ class XMatchPlanner(object):
                       'enable_seqscan',
                       'enable_nestloop']
 
-        disable_seqscan = 'off' if self._options['disable_seqscan'] else 'on'
+        disable_seqscan = 'true' if self._options['disable_seqscan'] else 'false'
 
         values = get_configuration_values(self.database, parameters)
 
@@ -675,7 +675,7 @@ class XMatchPlanner(object):
         for parameter in values:
             log_str = f'{parameter} = {values[parameter]}'
             if parameter == 'enable_seqscan':
-                self.log.debug(f'{log_str} (disable_seqscan={disable_seqscan})')
+                self.log.debug(f'{log_str} (disable_seqscan = {disable_seqscan})')
             else:
                 self.log.debug(log_str)
 
