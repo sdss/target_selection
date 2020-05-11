@@ -1112,6 +1112,7 @@ class XMatchPlanner(object):
 
         if temp:
             RelationalModel._meta.temporary = True
+            RelationalModel._meta.primary_key = False
             md5 = hashlib.md5(self.plan.encode()).hexdigest()[:0:16]
             RelationalModel._meta.table_name += ('_' + md5)
         else:
