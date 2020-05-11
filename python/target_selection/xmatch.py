@@ -1108,7 +1108,12 @@ class XMatchPlanner(object):
                              .where(~fn.EXISTS(rel_model
                                                .select(SQL('1'))
                                                .where(rel_model.version_id == self._version_id,
-                                                      rel_model.target_id == model_pk))))
+                                                      rel_model.target_id == model_pk)))
+                             # We can have join catalogues that produce more than
+                             # one result for each target. In the future we may
+                             # want to order by something that selects the best
+                             # candidate.
+                             .distinct(model_pk))
 
                     # In query we do not include a Q3C where for the sample region
                     # because Catalog for this version should already be sample
