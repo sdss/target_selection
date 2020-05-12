@@ -29,7 +29,8 @@ from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          TargetSelectionUserWarning,
                                          XMatchError)
 from target_selection.utils import (Timer, get_configuration_values, get_epoch,
-                                    sql_apply_pm, vacuum_outputs, vacuum_table)
+                                    set_config_parameter, sql_apply_pm,
+                                    vacuum_outputs, vacuum_table)
 
 
 EPOCH = 2015.5
@@ -80,7 +81,6 @@ def get_relational_model(model, prefix='catalog_to_'):
 
     class BaseModel(peewee.Model):
 
-        id = peewee.BigAutoField()
         catalogid = peewee.BigIntegerField(null=False, index=True)
         target_id = model_pk_class(null=False)
         version_id = peewee.SmallIntegerField(null=False)
@@ -90,6 +90,7 @@ def get_relational_model(model, prefix='catalog_to_'):
         class Meta:
             database = meta.database
             schema = meta.schema
+            primary_key = peewee.CompositeKey('catalogid', 'target_id', 'version_id')
             indexes = [(('version_id', 'target_id'), False)]
 
     model_prefix = ''.join(x.capitalize() or '_'
@@ -370,6 +371,9 @@ class XMatchPlanner(object):
         (``ra``, ``dec``, ``radius``) of the region to which to limit the
         cross-match. All values must be in degrees. It can also be a list
         of tuples, in which case the union of all the regions will be sampled.
+    disable_seqscan: bool
+        If `True`, disables the use of sequential scans in the database. This
+        only applies to phase 2.
 
     """
 
@@ -377,7 +381,8 @@ class XMatchPlanner(object):
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{version}.log',
-                 debug=False, show_sql=False, sample_region=None):
+                 debug=False, show_sql=False, sample_region=None,
+                 disable_seqscan=False):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -417,7 +422,8 @@ class XMatchPlanner(object):
         self._options = {'query_radius': query_radius or QUERY_RADIUS,
                          'show_sql': show_sql,
                          'sample_region': sample_region,
-                         'epoch': epoch}
+                         'epoch': epoch,
+                         'disable_seqscan': disable_seqscan}
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -661,11 +667,17 @@ class XMatchPlanner(object):
                       'enable_seqscan',
                       'enable_nestloop']
 
+        disable_seqscan = 'true' if self._options['disable_seqscan'] else 'false'
+
         values = get_configuration_values(self.database, parameters)
 
         self.log.debug('Current database configuration parameters.')
         for parameter in values:
-            self.log.debug(f'{parameter} = {values[parameter]}')
+            log_str = f'{parameter} = {values[parameter]}'
+            if parameter == 'enable_seqscan':
+                self.log.debug(f'{log_str} (disable_seqscan = {disable_seqscan})')
+            else:
+                self.log.debug(log_str)
 
     def update_model_graph(self, silent=False):
         """Updates the model graph using models as nodes and fks as edges."""
@@ -1096,7 +1108,12 @@ class XMatchPlanner(object):
                              .where(~fn.EXISTS(rel_model
                                                .select(SQL('1'))
                                                .where(rel_model.version_id == self._version_id,
-                                                      rel_model.target_id == model_pk))))
+                                                      rel_model.target_id == model_pk)))
+                             # We can have join catalogues that produce more than
+                             # one result for each target. In the future we may
+                             # want to order by something that selects the best
+                             # candidate.
+                             .distinct(model_pk))
 
                     # In query we do not include a Q3C where for the sample region
                     # because Catalog for this version should already be sample
@@ -1202,21 +1219,24 @@ class XMatchPlanner(object):
                 q3c_join = fn.q3c_join(Catalog.ra, Catalog.dec, model_ra, model_dec,
                                        query_radius / 3600.)
 
-        # Get the cross-matched catalogid and model target
-        # pk (target_id), and their distance.
+        # Get the cross-matched catalogid and model target pk (target_id),
+        # and their distance. We need to use a materialised CTE here to
+        # make sure the Q3C index is actually applied.
         xmatched = (Catalog
                     .select(Catalog.catalogid,
                             model_pk.alias('target_id'),
-                            q3c_dist.alias('distance'))
+                            q3c_dist.alias('distance'),
+                            Catalog.version_id)
                     .join(model, peewee.JOIN.CROSS)
-                    .where(Catalog.version_id == self._version_id)
                     .where(q3c_join))
 
+        # This may break the use of the index but I think it's needed if
+        # the model is the second table in q3c_join and has empty RA/Dec.
         if xmatch.has_missing_coordinates and use_pm:
-            insert_query = xmatched.where(model_ra.is_null(False),
-                                          model_dec.is_null(False))
+            xmatched = xmatched.where(model_ra.is_null(False),
+                                      model_dec.is_null(False))
 
-        xmatched = xmatched.cte('xmatched')
+        xmatched = xmatched.cte('xmatched', materialized=True)
 
         # We'll partition over each group of targets that match the same
         # catalogid and mark the one with the smallest distance to it as best.
@@ -1233,6 +1253,7 @@ class XMatchPlanner(object):
                                 peewee.Value(self._version_id),
                                 xmatched.c.distance,
                                 best.alias('best'))
+                        .where(xmatched.c.version_id == self._version_id)
                         # We do two NOT EXISTS instead of a single one to fully
                         # take advantage of the indexes on catalogid and
                         # (version_id, target_id).
@@ -1244,6 +1265,16 @@ class XMatchPlanner(object):
                                           .where(rel_model.version_id == self._version_id,
                                                  rel_model.target_id == xmatched.c.target_id))))
 
+        # TODO: this is probably non-optimal because we are doing a cross-match
+        # of all of catalog against the model and catalog contains multiple
+        # versions that we don't filter out until insert_query. But we cannot
+        # add the filter in the CTE without breaking the index. A solution may
+        # be to create a temporary table temp_catalog at the beginning of the
+        # processing with a Q3C index and do everything there. Then we insert
+        # all the rows in the real catalog table. This allows us to remove all
+        # the filters on version_id because in the temporary table there is
+        # only the current version being processed.
+
         # Insert into relational model.
         insert_query = rel_model.insert_from(
             insert_query, fields=[rel_model.catalogid,
@@ -1252,14 +1283,19 @@ class XMatchPlanner(object):
                                   rel_model.distance,
                                   rel_model.best]).returning().with_cte(xmatched)
 
+        enable_seqscan = 'on' if not self._options['disable_seqscan'] else 'off'
+
         with Timer() as timer:
 
             with self.database.atomic():
 
-                self.log.debug('Inserting cross-matched targets into '
-                               f'{rel_table_name}{self._get_sql(insert_query)}')
+                with set_config_parameter(self.database, 'enable_seqscan',
+                                          enable_seqscan, reset=True, log=self.log):
 
-                n_catalogid = insert_query.execute(self.database)
+                    self.log.debug('Inserting cross-matched targets into '
+                                   f'{rel_table_name}{self._get_sql(insert_query)}')
+
+                    n_catalogid = insert_query.execute(self.database)
 
         self.log.debug(f'Cross-matched {Catalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '

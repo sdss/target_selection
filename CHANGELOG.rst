@@ -9,7 +9,8 @@ Change Log
 * Xmatch: add several indexes to ``Catalog`` and the relational tables.
 * XMatch: support weights to determine the join paths.
 * Xmatch: Fix bug that prevented proper motions to be used in cross-matching.
-# Xmatch: In phase 2, determine what table is larger and define ``q3c_join`` accordingly.
+* Xmatch: In phase 2, determine what table is larger and define ``q3c_join`` accordingly.
+* Code to create `.create_sky_catalogue <sky catalogues>`.
 
 * :release:`0.1.0-alpha.1 <2020-04-21>`
 * Basic framework. Cross-matching tools work. Target selection tools still incomplete.

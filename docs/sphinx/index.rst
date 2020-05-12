@@ -12,7 +12,7 @@ Contents
 
 .. toctree::
 
-  What's new in target_selection? <changelog>
+  Changelog <changelog>
   cross-match
   api
 
