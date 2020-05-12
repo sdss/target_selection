@@ -10,7 +10,7 @@
 import peewee
 import sdssdb
 
-from sdssdb.peewee.sdss5db import catalogdb
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0) # , CatalogToBHM_RM_v0)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.cartons.skymask import SkyMask
@@ -28,7 +28,7 @@ import pkg_resources
 gaia_epoch = 2015.5
 
 '''
-t = catalogdb.BHM_RM_v0.alias()
+t = BHM_RM_v0.alias()
 for f in t._meta.fields:
     print (f)
 '''
@@ -94,14 +94,19 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
     priority = 1
 
     def build_query(self):
-        t = catalogdb.BHM_RM_v0.alias()
+        c = Catalog.alias()
+        t = BHM_RM_v0.alias()
+        c2t = CatalogToBHM_RM_v0.alias()
 
         query = (
-            t.select(t.pk.alias('catalog_id'),
-                     t.ra,
-                     t.dec,
-                     t.mi.alias('mag_i')
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    t.mi.alias('mag_i')
             )
+            .join(c2t)
+            .join(t)
             .where((t.skewt_qso == 1) &
                    (t.mi <  self.config['i_mag_max']) &
                    (t.mi >  self.config['i_mag_min']) &
@@ -128,14 +133,19 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     priority = 1
 
     def build_query(self):
-        t = catalogdb.BHM_RM_v0.alias()
+        c = Catalog.alias()
+        t = BHM_RM_v0.alias()
+        c2t = CatalogToBHM_RM_v0.alias()
 
         query = (
-            t.select(t.pk.alias('catalog_id'),
-                     t.ra,
-                     t.dec,
-                     t.mi.alias('mag_i')
-            )
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    t.mi.alias('mag_i')
+             )
+            .join(c2t)
+            .join(t)
             .where((t.specz > self.config['specz_min']) &
                    (t.mi <  self.config['i_mag_max']) &
                    (t.mi >  self.config['i_mag_min'])))
@@ -165,14 +175,19 @@ class BhmRmVar(BhmRmBaseCarton):
     priority = 1
 
     def build_query(self):
-        t = catalogdb.BHM_RM_v0.alias()
+        c = Catalog.alias()
+        t = BHM_RM_v0.alias()
+        c2t = CatalogToBHM_RM_v0.alias()
 
         query = (
-            t.select(t.pk.alias('catalog_id'),
-                     t.ra,
-                     t.dec,
-                     t.mi.alias('mag_i'),
-            )
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    t.mi.alias('mag_i')
+             )
+            .join(c2t)
+            .join(t)
             .where(
                 (
                     (
@@ -216,14 +231,19 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
     priority = 1
 
     def build_query(self):
-        t = catalogdb.BHM_RM_v0.alias()
+        c = Catalog.alias()
+        t = BHM_RM_v0.alias()
+        c2t = CatalogToBHM_RM_v0.alias()
 
         query = (
-            t.select(t.pk.alias('catalog_id'),
-                     t.ra,
-                     t.dec,
-                     t.mi.alias('mag_i')
-            )
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    t.mi.alias('mag_i')
+             )
+            .join(c2t)
+            .join(t)
             .where((t.photo_bitmask.bin_and(self.config['photo_bitmask']) != 0 ) &
                    (t.mi <  self.config['i_mag_max']) &
                    (t.mi >  self.config['i_mag_min']) &

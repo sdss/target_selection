@@ -10,7 +10,11 @@
 import peewee
 import sdssdb
 
-from sdssdb.peewee.sdss5db import catalogdb
+#from sdssdb.peewee.sdss5db import catalogdb
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_Spiders_AGN_Superset, Legacy_Survey_DR8)
+#, CatalogToLegacy_Survey_DR8)
+#waiting_for_psdr2# ,  PanStarrsDr2)
+#waiting_for_psdr2# ,  CatalogToPanStarrsDr2)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.cartons.skymask import SkyMask
@@ -24,9 +28,9 @@ import pkg_resources
 # example to get the listing of fields from a PeeWee model
 print(catalogdb.ErositaAGNMock._meta.fields)
 
-sp = catalogdb.BHM_Spiders_AGN_Superset.alias()
-ls = catalogdb.Legacy_Survey_DR8.alias()
-q14 = catalogdb.SDSS_DR14_QSO.alias()
+sp = BHM_Spiders_AGN_Superset.alias()
+ls = Legacy_Survey_DR8.alias()
+q14 = SDSS_DR14_QSO.alias()
 
 
 for f in sp._meta.fields:
@@ -117,25 +121,29 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
         #exec(f'tab = catalogdb.{params["catalogdb_table"]}')
         #assert tab is not None, 'Failed to locate catalogdb table'
 
-        x = catalogdb.BHM_Spiders_AGN_Superset.alias()
-        ls = catalogdb.Legacy_Survey_DR8.alias()
+        c = Catalog.alias()
+        x = BHM_Spiders_AGN_Superset.alias()
+        ls = Legacy_Survey_DR8.alias()
+        c2ls = CatalogToLegacy_Survey_DR8.alias()
 
         flux_r_max =  AB2nMgy(self.config['r_mag_min'])
         flux_r_min =  AB2nMgy(self.config['r_mag_max'])
         flux_z_min =  AB2nMgy(self.config['z_mag_max'])
 
         query = (
-            x.select(x.ls_id.alias('catalog_id'),
-                      x.opt_ra.alias('ra'),
-                      x.opt_dec.alias('dec'),
-                      x.opt_pmra.alias('pmra'),
-                      x.opt_pmdec.alias('pmdec'),
-                      x.opt_epoch.alias('epoch'),
-                      x.target_priority.alias('priority'),
-                      ls.fiberflux_g.alias('lsfiberflux_g'),
-                      ls.fiberflux_r.alias('lsfiberflux_r'),
-                      ls.fiberflux_z.alias('lsfiberflux_z'))
-            .join(ls)   # assume this is an inner join
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    c.pmra,
+                    c.pmdec,
+                    x.target_priority.alias('priority'),
+                    ls.fiberflux_g.alias('lsfiberflux_g'),
+                    ls.fiberflux_r.alias('lsfiberflux_r'),
+                    ls.fiberflux_z.alias('lsfiberflux_z'))
+            .join(c2ls)
+            .join(ls)
+            .join(x)
             .where(
                 (ls.fibertotflux_r < flux_r_max) &
                 ((ls.fiberflux_r   > flux_r_min) | (ls.fiberflux_z > flux_z_min) ) &
@@ -151,55 +159,59 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
 
 
 
-class BhmSpidersAgnWidePsCarton(BhmSpidersWideBaseCarton):
-
-    '''
-    spiders_agn_wide_ps:
-
-    SELECT * from bhm_spiders_agn_superset AS x
-    INNER JOIN panstarrs_dr2 AS ps ON x.ps1_dr2_objid = ls.ls_id
-    WHERE x.ero_version = "version_code_TBD"
-    AND WHERE x.ero_det_like > X.X
-    AND WHERE x.xmatch_metric > 0.x
-    AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
-    AND WHERE ls.fiberflux_r < CCC.C
-    '''
-
-    name = 'bhm_spiders_agn_wide_ls'
-    cadence = 'bhm_spiders_1x4'
-
-    def build_query(self):
-
-        x = catalogdb.BHM_Spiders_AGN_Superset.alias()
-        ps = catalogdb.PanStarrsDr2.alias()
-
-        flux_r_max =  AB2nMgy(self.config['r_mag_min'])
-        flux_r_min =  AB2nMgy(self.config['r_mag_max'])
-        flux_z_min =  AB2nMgy(self.config['z_mag_max'])
-
-        query = (
-            x.select(x.ls_id.alias('catalog_id'),
-                      x.opt_ra.alias('ra'),
-                      x.opt_dec.alias('dec'),
-                      x.opt_pmra.alias('pmra'),
-                      x.opt_pmdec.alias('pmdec'),
-                      x.opt_epoch.alias('epoch'),
-                      x.target_priority.alias('priority'),
-                      ls.fiberflux_g.alias('lsfiberflux_g'),
-                      ls.fiberflux_r.alias('lsfiberflux_r'),
-                      ls.fiberflux_z.alias('lsfiberflux_z'))
-            .join(ps) # assume this is an inner join
-            .where(
-                (ps.fibertotflux_r < flux_r_max) &
-                ((ps.fiberflux_r   > flux_r_min) | (ps.fiberflux_z > flux_z_min) ) &
-                (tab.ero_det_like > self.config['det_like_min']) &
-                (tab.xmatch_metric > self.config['p_any_min'])
-            )
-        )
-
-        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
-
-        return query
+#waiting_for_psdr2# class BhmSpidersAgnWidePsCarton(BhmSpidersWideBaseCarton):
+#waiting_for_psdr2#
+#waiting_for_psdr2#     '''
+#waiting_for_psdr2#     spiders_agn_wide_ps:
+#waiting_for_psdr2#
+#waiting_for_psdr2#     SELECT * from bhm_spiders_agn_superset AS x
+#waiting_for_psdr2#     INNER JOIN panstarrs_dr2 AS ps ON x.ps1_dr2_objid = ls.ls_id
+#waiting_for_psdr2#     WHERE x.ero_version = "version_code_TBD"
+#waiting_for_psdr2#     AND WHERE x.ero_det_like > X.X
+#waiting_for_psdr2#     AND WHERE x.xmatch_metric > 0.x
+#waiting_for_psdr2#     AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
+#waiting_for_psdr2#     AND WHERE ls.fiberflux_r < CCC.C
+#waiting_for_psdr2#     '''
+#waiting_for_psdr2#
+#waiting_for_psdr2#     name = 'bhm_spiders_agn_wide_ls'
+#waiting_for_psdr2#     cadence = 'bhm_spiders_1x4'
+#waiting_for_psdr2#
+#waiting_for_psdr2#     def build_query(self):
+#waiting_for_psdr2#
+#waiting_for_psdr2#         c = Catalog.alias()
+#waiting_for_psdr2#         x = BHM_Spiders_AGN_Superset.alias()
+#waiting_for_psdr2#         ps = PanStarrsDr2.alias()
+#waiting_for_psdr2#         c2ps = CatalogToPanStarrsDr2.alias()
+#waiting_for_psdr2#
+#waiting_for_psdr2#         flux_r_max =  AB2Jy(self.config['r_mag_min'])
+#waiting_for_psdr2#         flux_r_min =  AB2Jy(self.config['r_mag_max'])
+#waiting_for_psdr2#         flux_z_min =  AB2Jy(self.config['z_mag_max'])
+#waiting_for_psdr2#
+#waiting_for_psdr2#         query = (
+#waiting_for_psdr2#             c
+#waiting_for_psdr2#             .select(c.catalogid,
+#waiting_for_psdr2#                     c.ra,
+#waiting_for_psdr2#                     c.dec,
+#waiting_for_psdr2#                     c.pmra,
+#waiting_for_psdr2#                     c.pmdec,
+#waiting_for_psdr2#                     x.target_priority.alias('priority'),
+#waiting_for_psdr2#                     ps.g_stk_aper_flux.alias('psaperflux_g'),
+#waiting_for_psdr2#                     ps.r_stk_aper_flux.alias('psaperflux_r'),
+#waiting_for_psdr2#                     ps.i_stk_aper_flux.alias('psaperflux_i'),
+#waiting_for_psdr2#                     ps.z_stk_aper_flux.alias('psaperflux_z'))
+#waiting_for_psdr2#             .join(ps)
+#waiting_for_psdr2#             .join(c2ps)
+#waiting_for_psdr2#             .where(
+#waiting_for_psdr2#                 (ps.r_stk_aper_flux < flux_r_max) &
+#waiting_for_psdr2#                 ((ps.r_stk_aper_flux > flux_r_min) | (ps.z_stk_aper_flux > flux_z_min) ) &
+#waiting_for_psdr2#                 (tab.ero_det_like > self.config['det_like_min']) &
+#waiting_for_psdr2#                 (tab.xmatch_metric > self.config['p_any_min'])
+#waiting_for_psdr2#             )
+#waiting_for_psdr2#         )
+#waiting_for_psdr2#
+#waiting_for_psdr2#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+#waiting_for_psdr2#
+#waiting_for_psdr2#         return query
 
 
 
