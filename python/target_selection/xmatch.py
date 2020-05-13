@@ -1166,6 +1166,8 @@ class XMatchPlanner(object):
 
         if use_pm:
 
+            self.log.debug('Determining maximum epoch delta between catalogues.')
+
             if isinstance(model_epoch, (int, float)):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
             else:
@@ -1173,6 +1175,8 @@ class XMatchPlanner(object):
                     model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
 
             max_delta_epoch += 1.  # Add a year just to be sure it's an upper bound.
+
+            self.log.debug(f'Maximum epoch delta: {max_delta_epoch} (+ 1 year).')
 
         # Determine which of the two tables is smaller. Q3C really wants the
         # larger table last.
