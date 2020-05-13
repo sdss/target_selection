@@ -1249,16 +1249,21 @@ class XMatchPlanner(object):
 
         query_radius = xmatch.query_radius or self._options['query_radius']
 
-        # TODO: find a way to get this delta that is not too time consuming.
-        # self.log.debug('Determining maximum delta epoch between tables.')
-        # max_delta_epoch = peewee.Value(
-        #     model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
-        max_delta_epoch = 50.
-
         # Should we use proper motions?
         model_epoch = get_epoch(model)
+
         use_pm = (isinstance(model_epoch, (peewee.Expression, peewee.Function)) or
                   model_epoch != catalog_epoch)
+
+        if use_pm:
+
+            if isinstance(model_epoch, (int, float)):
+                max_delta_epoch = float(abs(model_epoch - catalog_epoch))
+            else:
+                max_delta_epoch = float(
+                    model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
+
+            max_delta_epoch += 1.  # Add a year just to be sure it's an upper bound.
 
         # Determine which of the two tables is smaller. Q3C really wants the
         # larger table last.
@@ -1277,12 +1282,12 @@ class XMatchPlanner(object):
                                           model_pmra, model_pmdec,
                                           model_is_pmra_cos, model_epoch,
                                           TempCatalog.ra, TempCatalog.dec,
-                                          EPOCH)
+                                          catalog_epoch)
                 q3c_join = fn.q3c_join_pm(model_ra, model_dec,
                                           model_pmra, model_pmdec,
                                           model_is_pmra_cos, model_epoch,
                                           TempCatalog.ra, TempCatalog.dec,
-                                          EPOCH, max_delta_epoch,
+                                          catalog_epoch, max_delta_epoch,
                                           query_radius / 3600.)
             else:
 
