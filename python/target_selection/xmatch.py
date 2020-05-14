@@ -20,7 +20,7 @@ from networkx.algorithms import shortest_path
 from peewee import SQL, Select, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
-from sdssdb.utils import get_row_count
+from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
 from sdsstools.color_print import color_text
 
