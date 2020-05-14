@@ -22,9 +22,16 @@
         ismock: false
         catalogdb_table: 'BhmSpidersAgnSuperset'
         value_boost: 1.0
+        ero_version: 'efeds_c940_V2T'
         mag_r_min: 17.0
         mag_r_max: 22.5
-        det_like_0_min: 6.0
+        mag_z_max: 21.5
+        det_like_min: 8.0
+        p_any_min: 0.1
+        lr_min: 0.2
+        veto_join_radius: 1.0
+        veto_sn_thresh: 1.00000000
+        veto_z_err_thresh: 0.002
     bhm_spiders_agn_deep:
         ismock: false
         catalogdb_table: 'BhmSpidersAgnSuperset'

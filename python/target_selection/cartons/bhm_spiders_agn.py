@@ -8,11 +8,29 @@
 # derived from guide.py
 
 import peewee
+from peewee import JOIN
 import sdssdb
 
-#from sdssdb.peewee.sdss5db import catalogdb
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_Spiders_AGN_Superset, Legacy_Survey_DR8)
-#, CatalogToLegacy_Survey_DR8)
+##database = sdssdb.connection.PeeweeDatabaseConnection('sdss5db')
+##database.set_profile('operations')
+##database.connected
+
+from sdssdb.peewee.sdss5db.catalogdb import database
+database.set_profile('tunnel_operations')
+database.connected
+
+
+
+
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             BHM_Spiders_AGN_Superset,
+                                             Legacy_Survey_DR8,
+                                             BHM_eFEDS_Veto,
+                                             )
+
+from sdssdb.peewee.sdss5db.catalogdb import (CatalogToLegacy_Survey_DR8, )
+
+
 #waiting_for_psdr2# ,  PanStarrsDr2)
 #waiting_for_psdr2# ,  CatalogToPanStarrsDr2)
 
@@ -28,17 +46,20 @@ import pkg_resources
 # example to get the listing of fields from a PeeWee model
 print(catalogdb.ErositaAGNMock._meta.fields)
 
-sp = BHM_Spiders_AGN_Superset.alias()
+x = BHM_Spiders_AGN_Superset.alias()
 ls = Legacy_Survey_DR8.alias()
-q14 = SDSS_DR14_QSO.alias()
+#q14 = SDSS_DR14_QSO.alias()
+c = Catalog.alias()
 
 
-for f in sp._meta.fields:
+for f in c._meta.fields:
+    print (f)
+for f in x._meta.fields:
     print (f)
 for f in ls._meta.fields:
     print (f)
-for f in q14._meta.fields:
-    print (f)
+#for f in q14._meta.fields:
+#    print (f)
 
 '''
 ####
@@ -52,30 +73,16 @@ for f in q14._meta.fields:
 
 
 
-class BhmSpidersWideBaseCarton(BaseCarton):
-    ''' Parent class that provides the mask slections for any SPIDER-wide catalogue'''
+class BhmSpidersBaseCarton(BaseCarton):
+    ''' Parent class that provides the mask selections for any SPIDERs catalogue'''
 
-    name = 'bhm_spiders_wide'
+    name = 'bhm_spiders'
     category = 'science'
     survey = 'BHM'
     tile = False
 
     # list of skymasks - move to the config file?
     skymasks = [
-        SkyMask(filename=pkg_resources.resource_filename(
-            __name__,
-            'masks/eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply'),
-                name="spiders_wide",
-                masktype="mangle",
-                sense="include",
-        ),
-        SkyMask(filename=pkg_resources.resource_filename(
-            __name__,
-            'masks/rsFields-annotated-lco-deep_proc.ply'),
-                name="spiders_deep",
-                masktype="mangle",
-                sense="exclude",
-        ),
     ]
 
 
@@ -98,6 +105,32 @@ class BhmSpidersWideBaseCarton(BaseCarton):
 
 
 
+class BhmSpidersWideBaseCarton(BhmSpidersBaseCarton):
+    ''' Parent class that provides the mask slections for any SPIDER-wide catalogue'''
+
+    name = 'bhm_spiders_wide'
+    category = 'science'
+    survey = 'BHM'
+    tile = False
+
+    # list of skymasks
+    skymasks = [
+        SkyMask(filename=pkg_resources.resource_filename(
+            __name__,
+            'masks/eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply'),
+                name="spiders_wide",
+                masktype="mangle",
+                sense="include",
+        ),
+        SkyMask(filename=pkg_resources.resource_filename(
+            __name__,
+            'masks/rsFields-annotated-lco-deep_proc.ply'),
+                name="spiders_deep",
+                masktype="mangle",
+                sense="exclude",
+        ),
+    ]
+
 
 class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
 
@@ -110,17 +143,13 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
     AND WHERE x.ero_det_like > X.X
     AND WHERE x.xmatch_metric > 0.x
     AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
-    AND WHERE ls.fiberflux_r < CCC.C
+    AND WHERE ls.fibertotflux_r < CCC.C
     '''
 
     name = 'bhm_spiders_agn_wide_ls'
     cadence = 'bhm_spiders_1x4'
 
     def build_query(self):
-        # get the table name from the config - maybe replace this with a list of options
-        #exec(f'tab = catalogdb.{params["catalogdb_table"]}')
-        #assert tab is not None, 'Failed to locate catalogdb table'
-
         c = Catalog.alias()
         x = BHM_Spiders_AGN_Superset.alias()
         ls = Legacy_Survey_DR8.alias()
@@ -145,8 +174,10 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
             .join(ls)
             .join(x)
             .where(
+                (x.ero_version == self.config['ero_version'] ) &
                 (ls.fibertotflux_r < flux_r_max) &
-                ((ls.fiberflux_r   > flux_r_min) | (ls.fiberflux_z > flux_z_min) ) &
+                ((ls.fiberflux_r   > flux_r_min) |
+                 (ls.fiberflux_z > flux_z_min) ) &
                 (x.ero_det_like > self.config['det_like_min']) &
                 (x.xmatch_metric > self.config['p_any_min'])
             )
@@ -155,6 +186,112 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
 
         return query
+
+
+
+
+
+class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
+
+    '''
+    SELECT * from bhm_spiders_agn_superset AS x
+    INNER JOIN legacy_survey_dr8 AS ls ON  x.ls_id = ls.ls_id
+    LEFT JOIN bhm_efeds_veto AS v ON q3c_join(x.opt_ra,x.opt_dec,v.plug_ra,v.plug_dec,1.0)
+    WHERE x.ero_version = "efeds_c940_V2T"
+    AND WHERE x.ero_det_like > X.X
+    AND WHERE (ls.fiberflux_r > D.D OR
+               ls.fiberflux_z > E.E)                           # faint limits
+    AND WHERE ls.fibertotflux_r < CCC.C                        # bright limit - use total flux
+    AND WHERE (v.plug_ra = NULL OR
+               v.sn_median_all < 1.x OR
+               v.zwarning > 0 OR
+               v.z_err > 2e-3 OR
+               v.z_err <= 0.0)
+    '''
+
+    name = 'bhm_spiders_agn_efeds'
+    cadence = 'bhm_spiders_1x8'
+
+    # list of skymasks - possibly not needed for eFEDS
+    skymasks = [ ]
+
+    config = {
+        'ero_version':'efeds_c940_V2T',
+        'mag_r_min': 17.0,
+        'mag_r_max': 22.5,
+        'mag_z_max': 21.5,
+        'det_like_min': 6.0,
+        'p_any_min': 0.1,
+        'lr_min': 0.2,
+        'veto_join_radius': 1.0,
+        'veto_sn_thresh': 1.0000,
+        'veto_z_err_thresh': 0.002,
+    }
+
+    def build_query(self):
+
+        c = Catalog.alias()
+        x = BHM_Spiders_AGN_Superset.alias()
+        ls = Legacy_Survey_DR8.alias()
+        c2ls = CatalogToLegacy_Survey_DR8.alias()
+        v = BHM_eFEDS_Veto.alias()
+
+        flux_r_max =  AB2nMgy(self.config['r_mag_min'])
+        flux_r_min =  AB2nMgy(self.config['r_mag_max'])
+        flux_z_min =  AB2nMgy(self.config['z_mag_max'])
+
+        query = (
+            c
+            .select(c.catalogid,
+                    c.ra,
+                    c.dec,
+                    c.pmra,
+                    c.pmdec,
+                    x.target_priority.alias('priority'),    ## always == 1
+                    ls.fiberflux_g.alias('lsfiberflux_g'),
+                    ls.fiberflux_r.alias('lsfiberflux_r'),
+                    ls.fiberflux_z.alias('lsfiberflux_z'))
+            .join(c2ls)
+            .join(ls)
+            .join(x)
+            .join(v, JOIN.LEFT_OUTER,
+                  on=peewee.fn.q3c_join(c.ra,c.dec,v.plug_ra,v.plug_dec,
+                                        self.config['veto_join_radius']/3600.0))
+            .where(
+                (x.ero_version == self.config['ero_version'] ) &
+                (
+                    (v.plate.is_null()) |
+                    (v.sn_median_all < self.config['veto_sn_thresh']) |
+                    (v.zwarning > 0) |
+                    (v.z_err >= self.config['veto_z_err_thresh']) |
+                    (v.z_err <= 0.0)
+                ) &
+                (ls.fibertotflux_r < flux_r_max) &
+                (
+                    (ls.fiberflux_r > flux_r_min) |
+                    (ls.fiberflux_z > flux_z_min)
+                ) &
+                (x.ero_det_like > self.config['det_like_min']) &
+                (
+                    (
+                        (x.xmatch_method == 'XPS-ML/NWAY') &
+                        (x.xmatch_metric >= self.config['p_any_min'])
+                    ) |
+                    (
+                        (x.xmatch_method == 'XPS-LR') &
+                        (x.xmatch_metric >= self.config['lr_min'])
+                    )
+                )
+            )
+        )
+
+        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+
+        return query
+
+
+
+
 
 
 
