@@ -11,13 +11,30 @@ import logging
 import click
 import peewee
 
+
+
+
 from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
+
+database.set_profile('tunnel_operations')
+database.connected
 
 from target_selection import config, log
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 from target_selection.xmatch import XMatchPlanner
+
+#from target_selection.cartons.bhm_spiders_agn import BhmSpidersAgnEfedsCarton
+
+def get_all_subclasses(cls):
+    all_subclasses = []
+
+    for subclass in cls.__subclasses__():
+        all_subclasses.append(subclass)
+        all_subclasses.extend(get_all_subclasses(subclass))
+
+    return all_subclasses
 
 
 def connect(profile=None, dbname=None, user=None, host=None, port=None):
@@ -45,7 +62,7 @@ def _create_program_metadata(carton):
 
     # Create program and associated values.
     if carton.survey:
-        survey, created = tdb.Survey.get_or_create(label=carton.name)
+        survey, created = tdb.Survey.get_or_create(label=carton.survey)
         if created:
             log.debug(f'created survey {carton.survey!r}')
 
@@ -236,7 +253,9 @@ def run(targeting_version, overwrite, keep, tile, no_load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
-    carton_classes = {Carton.name: Carton for Carton in BaseCarton.__subclasses__()}
+    #carton_classes = {Carton.name: Carton for Carton in BaseCarton.__subclasses__()}
+    carton_classes = {Carton.name: Carton for Carton in get_all_subclasses(BaseCarton)}
+    print (f"Available carton_classes: {carton_classes}")
 
     try:
         config_version = config[targeting_version]
@@ -262,6 +281,7 @@ def run(targeting_version, overwrite, keep, tile, no_load,
         try:
             Carton = carton_classes[carton_name]
             carton = Carton(targeting_version)
+            print(f"Working on {carton_name}")
             process_carton(carton, keep=keep, overwrite=overwrite,
                            skip_query=skip_query, no_load=no_load,
                            tile=tile, write_table=write_table)

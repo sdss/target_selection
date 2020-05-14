@@ -1,8 +1,8 @@
-
 '0.1.0':
     xmatch_version: 0.1.0-alpha.4
     cartons:
         - guide
+        - bhm_spiders_agn_efeds
     schema: sandbox
     guide:
         g_min: 13
@@ -81,3 +81,6 @@
         mag_i_max: 21.5
         pmsig_max: 5.0
         plxsig_max: 5.0
+    bhm_aqmes_med:
+        mag_i_min: 16.0
+        mag_i_max: 19.1

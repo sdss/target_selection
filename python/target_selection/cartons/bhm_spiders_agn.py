@@ -15,9 +15,9 @@ import sdssdb
 ##database.set_profile('operations')
 ##database.connected
 
-from sdssdb.peewee.sdss5db.catalogdb import database
-database.set_profile('tunnel_operations')
-database.connected
+#from sdssdb.peewee.sdss5db.catalogdb import database
+#database.set_profile('tunnel_operations')
+#database.connected
 
 
 
@@ -149,7 +149,7 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
     name = 'bhm_spiders_agn_wide_ls'
     cadence = 'bhm_spiders_1x4'
 
-    def build_query(self):
+    def build_query(self, version_id):
         c = Catalog.alias()
         x = BHM_Spiders_AGN_Superset.alias()
         ls = Legacy_Survey_DR8.alias()
@@ -173,13 +173,15 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
             .join(c2ls)
             .join(ls)
             .join(x)
+            .where(c.version_id == version_id,
+                   c2ls.version_id == version_id)
             .where(
-                (x.ero_version == self.config['ero_version'] ) &
-                (ls.fibertotflux_r < flux_r_max) &
+                (x.ero_version == self.config['ero_version'] ),
+                (ls.fibertotflux_r < flux_r_max),
                 ((ls.fiberflux_r   > flux_r_min) |
-                 (ls.fiberflux_z > flux_z_min) ) &
-                (x.ero_det_like > self.config['det_like_min']) &
-                (x.xmatch_metric > self.config['p_any_min'])
+                 (ls.fiberflux_z > flux_z_min) ),
+                (x.ero_det_like > self.config['det_like_min']),
+                (x.xmatch_metric > self.config['p_any_min']),
             )
         )
 
@@ -191,7 +193,8 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
 
 
 
-class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
+#class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
+class BhmSpidersAgnEfedsCarton(BaseCarton):
 
     '''
     SELECT * from bhm_spiders_agn_superset AS x
@@ -209,26 +212,30 @@ class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
                v.z_err <= 0.0)
     '''
 
+    category = 'science'
+    survey = 'BHM'
+    tile = False
+
+
     name = 'bhm_spiders_agn_efeds'
-    cadence = 'bhm_spiders_1x8'
+    cadence = None # 'bhm_spiders_1x8'
 
-    # list of skymasks - possibly not needed for eFEDS
-    skymasks = [ ]
+    # config = {
+    #     'ero_version':'efeds_c940_V2T',
+    #     'mag_r_min': 17.0,
+    #     'mag_r_max': 22.5,
+    #     'mag_z_max': 21.5,
+    #     'det_like_min': 6.0,
+    #     'p_any_min': 0.1,
+    #     'lr_min': 0.2,
+    #     'veto_join_radius': 1.0,
+    #     'veto_sn_thresh': 1.0000,
+    #     'veto_z_err_thresh': 0.002,
+    # }
 
-    config = {
-        'ero_version':'efeds_c940_V2T',
-        'mag_r_min': 17.0,
-        'mag_r_max': 22.5,
-        'mag_z_max': 21.5,
-        'det_like_min': 6.0,
-        'p_any_min': 0.1,
-        'lr_min': 0.2,
-        'veto_join_radius': 1.0,
-        'veto_sn_thresh': 1.0000,
-        'veto_z_err_thresh': 0.002,
-    }
 
-    def build_query(self):
+
+    def build_query(self, version_id):
 
         c = Catalog.alias()
         x = BHM_Spiders_AGN_Superset.alias()
@@ -257,21 +264,23 @@ class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
             .join(v, JOIN.LEFT_OUTER,
                   on=peewee.fn.q3c_join(c.ra,c.dec,v.plug_ra,v.plug_dec,
                                         self.config['veto_join_radius']/3600.0))
+            .where(c.version_id == version_id,
+                   c2ls.version_id == version_id)
             .where(
-                (x.ero_version == self.config['ero_version'] ) &
+                (x.ero_version == self.config['ero_version'] ),
                 (
                     (v.plate.is_null()) |
                     (v.sn_median_all < self.config['veto_sn_thresh']) |
                     (v.zwarning > 0) |
                     (v.z_err >= self.config['veto_z_err_thresh']) |
                     (v.z_err <= 0.0)
-                ) &
-                (ls.fibertotflux_r < flux_r_max) &
+                ),
+                (ls.fibertotflux_r < flux_r_max),
                 (
                     (ls.fiberflux_r > flux_r_min) |
                     (ls.fiberflux_z > flux_z_min)
-                ) &
-                (x.ero_det_like > self.config['det_like_min']) &
+                ),
+                (x.ero_det_like > self.config['det_like_min']),
                 (
                     (
                         (x.xmatch_method == 'XPS-ML/NWAY') &
@@ -313,7 +322,7 @@ class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
 #waiting_for_psdr2#     name = 'bhm_spiders_agn_wide_ls'
 #waiting_for_psdr2#     cadence = 'bhm_spiders_1x4'
 #waiting_for_psdr2#
-#waiting_for_psdr2#     def build_query(self):
+#waiting_for_psdr2#     def build_query(self, version_id):
 #waiting_for_psdr2#
 #waiting_for_psdr2#         c = Catalog.alias()
 #waiting_for_psdr2#         x = BHM_Spiders_AGN_Superset.alias()

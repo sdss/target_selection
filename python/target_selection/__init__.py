@@ -9,9 +9,13 @@ from sdsstools import get_config, get_logger, get_package_version
 
 NAME = 'sdss-target-selection'
 
+#config = get_config('target_selection',
+#                    os.path.join(os.path.dirname(__file__),
+#
+# 'config/target_selection.yml'))
 config = get_config('target_selection',
-                    os.path.join(os.path.dirname(__file__),
-                                 'config/target_selection.yml'))
+                    os.path.expanduser('~/SDSSV/gitwork/target_selection/python/target_selection/config/target_selection.yml'))
+
 
 log = get_logger(NAME)
 
