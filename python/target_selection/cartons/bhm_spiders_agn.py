@@ -438,3 +438,45 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 # ##############################################################
 # ##############################################################
 # ##############################################################
+
+
+
+
+def _test_xmatch_stuff():
+    # check numbers of targets in a test patch
+
+    version_id = 11
+    search_radius_deg = 0.01
+    ra0 = 135.0
+    dec0 = 1.0
+
+    c = Catalog.alias()
+#    x = BHM_Spiders_AGN_Superset.alias()
+    ls = Legacy_Survey_DR8.alias()
+    c2ls = CatalogToLegacy_Survey_DR8.alias()
+
+
+    query = (
+        c
+        .select(c.catalogid,
+                c.ra,
+                c.dec,
+                c.lead,
+                c.version,
+                ls.ls_id,
+                ls.ra,
+                ls.dec,
+        )
+        .join(c2ls)
+        .join(ls)
+        .where(c.version_id == version_id,
+               c2ls.version_id == version_id)
+        .where(
+            peewee.fn.q3c_radial_query(c.ra,c.dec,
+                                       ra0, dec0,
+                                       search_radius_deg)
+        )
+    )
+
+
+    query.select().limit(1000).count()
