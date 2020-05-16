@@ -73,16 +73,17 @@ def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
 
     """
 
-    pmra_field = fn.coalesce(pmra_field, 0) / 1000 / 3600
-    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000 / 3600
+    pmra_field = fn.coalesce(pmra_field, 0) / 1000. / 3600.
+    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000. / 3600.
+    epoch = fn.coalesce(epoch_delta, 0)
 
     if is_pmra_cos:
         cos_dec = fn.cos(fn.radians(fn.coalesce(dec_field, 0)))
-        ra_corr = ra_field + pmra_field / cos_dec * fn.coalesce(epoch_delta, 0)
+        ra_corr = ra_field + pmra_field / cos_dec * epoch
     else:
-        ra_corr = ra_field + pmra_field * fn.coalesce(epoch_delta, 0)
+        ra_corr = ra_field + pmra_field * epoch
 
-    dec_corr = dec_field + pmdec_field * fn.coalesce(epoch_delta, 0)
+    dec_corr = dec_field + pmdec_field * epoch
 
     return ra_corr, dec_corr
 
@@ -186,7 +187,9 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
 
     try:
 
-        orig_value = database.execute_sql(f'show {parameter}').fetchone()[0].upper()
+        orig_value = (database
+                      .execute_sql(f'SHOW {parameter}')
+                      .fetchone()[0].upper())
         value_changed = orig_value != new_value
 
         if value_changed:
@@ -233,15 +236,23 @@ def remove_version(database, version, schema='catalogdb',
 
     print(f'version_id={version_id}')
 
-    n_targets = Catalog.select().where(Catalog.version_id == version_id).count()
-    print(f'Number of targets found in {Catalog._meta.table_name}: {n_targets:,}')
+    n_targets = (Catalog
+                 .select()
+                 .where(Catalog.version_id == version_id)
+                 .count())
+    print(f'Number of targets found in '
+          f'{Catalog._meta.table_name}: {n_targets:,}')
 
     if not click.confirm('Do you really want to proceed?'):
         return
 
     for model in models:
-        n_removed = model.delete().where(model.version_id == version_id).execute()
-        vacuum_table(database, f'{model._meta.schema}.{model._meta.table_name}')
+        n_removed = (model
+                     .delete()
+                     .where(model.version_id == version_id)
+                     .execute())
+        vacuum_table(database,
+                     f'{model._meta.schema}.{model._meta.table_name}')
         print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
 
     if delete_version:
@@ -278,7 +289,8 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
     tables = []
     for table_name in database.models:
         if table_name != table:
-            if not table_name.startswith(table + '_to_') or not relational_tables:
+            is_relational = table_name.startswith(table + '_to_')
+            if not is_relational or not relational_tables:
                 continue
         model = database.models[table_name]
         if not model.table_exists() or model._meta.schema != schema:
@@ -286,7 +298,9 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
         tables.append(table_name)
 
     for table_name in tables:
-        table_name = table_name if schema is None else schema + '.' + table_name
+        table_name = (table_name
+                      if schema is None
+                      else schema + '.' + table_name)
         vacuum_table(database, table_name, vacuum=vacuum, analyze=analyze)
 
 

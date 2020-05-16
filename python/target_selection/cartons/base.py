@@ -104,7 +104,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             assert (targetdb.Cadence
                     .select()
                     .where(targetdb.Cadence.label == self.cadence)
-                    .count() == 1), f'{self.cadence!r} does not exist in targetdb.cadence.'
+                    .count() == 1), (f'{self.cadence!r} does not '
+                                     'exist in targetdb.cadence.')
 
         self.has_run = False
         log.header = f'({self.name}): '
@@ -233,7 +234,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         tile_num = tile_num or self.tile_num
 
         if database.table_exists(self.table_name, schema=self.schema):
-            raise RuntimeError(f'temporary table {self.table_name} already exists.')
+            raise RuntimeError(f'temporary table {self.table_name} '
+                               'already exists.')
 
         log.info('building query ...')
         version_id = catalogdb.Version.get(version=self.xmatch_version).id
@@ -294,7 +296,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
             n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
 
             if progress_bar:
-                counter = manager.counter(total=n_tiles, desc=self.name, unit='ticks')
+                counter = manager.counter(total=n_tiles,
+                                          desc=self.name,
+                                          unit='ticks')
                 counter.update(0)
 
             with self.database.atomic():
@@ -388,9 +392,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """Drops the intermediate table if it exists."""
 
         if self.schema:
-            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.schema}.{self.table_name};')
+            self.database.execute_sql(f'DROP TABLE IF EXISTS '
+                                      f'{self.schema}.{self.table_name};')
         else:
-            self.database.execute_sql(f'DROP TABLE IF EXISTS {self.table_name};')
+            self.database.execute_sql(f'DROP TABLE IF EXISTS '
+                                      f'{self.table_name};')
 
     def write_table(self, filename=None, model=None):
         """Writes the intermediate table to a FITS file.

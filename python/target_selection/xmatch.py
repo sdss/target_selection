@@ -18,7 +18,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, fn
+from peewee import SQL, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
@@ -97,7 +97,9 @@ def get_relational_model(model, prefix='catalog_to_'):
         class Meta:
             database = meta.database
             schema = meta.schema
-            primary_key = peewee.CompositeKey('catalogid', 'target_id', 'version_id')
+            primary_key = peewee.CompositeKey('catalogid',
+                                              'target_id',
+                                              'version_id')
 
     model_prefix = ''.join(x.capitalize() or '_'
                            for x in prefix.rstrip().split('_'))
@@ -423,7 +425,8 @@ class XMatchPlanner(object):
         self._prepare_models()
 
         self.models = {model._meta.table_name: model for model in models}
-        self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
+        self.extra_nodes = {model._meta.table_name: model
+                            for model in extra_nodes}
 
         self._options = {'query_radius': query_radius or QUERY_RADIUS,
                          'show_sql': show_sql,
@@ -526,7 +529,7 @@ class XMatchPlanner(object):
         """
         if isinstance(in_models, (list, tuple)):
             models = in_models
-        elif inspect.isclass(in_models) and issubclass(in_models, peewee.Model):
+        elif inspect.isclass(in_models) and issubclass(in_models, Model):
             database = in_models._meta.database
             models = set(in_models.__subclasses__())
             while True:
@@ -544,7 +547,8 @@ class XMatchPlanner(object):
         assert database.connected, 'database is not connected.'
 
         if config_file is None:
-            config_file = os.path.dirname(target_selection.__file__) + '/config/xmatch.yml'
+            config_file = (os.path.dirname(target_selection.__file__) +
+                           '/config/xmatch.yml')
 
         config = XMatchPlanner._read_config(config_file, plan)
 
@@ -564,7 +568,8 @@ class XMatchPlanner(object):
             if table_name not in models:
                 continue
             table_params = table_config[table_name] or {}
-            xmatch_models[table_name] = XMatchModel(models[table_name], **table_params)
+            xmatch_models[table_name] = XMatchModel(models[table_name],
+                                                    **table_params)
 
         extra_nodes = [models[table_name] for table_name in models
                        if table_name not in xmatch_models]
@@ -999,9 +1004,10 @@ class XMatchPlanner(object):
         self.update_model_graph(silent=True)
 
         with Timer() as timer:
-            for table_name in self.process_order:
+            p_order = sef.process_order
+            for table_name in p_order:
                 if (from_ and
-                        self.process_order.index(table_name) < self.process_order.index(from_)):
+                        p_order.index(table_name) < p_order.index(from_)):
                     self.log.warning(f'Skipping table {table_name}.')
                     continue
                 model = self.models[table_name]
@@ -1115,10 +1121,12 @@ class XMatchPlanner(object):
             RelationalModel._meta.primary_key = False
             md5 = hashlib.md5(self.plan.encode()).hexdigest()[:0:16]
             RelationalModel._meta.table_name += ('_' + md5)
-            RelationalModel._meta.indexes.append((('catalogid', 'target_id'), False))
+            RelationalModel._meta.indexes.append((('catalogid',
+                                                   'target_id'), False))
         else:
             # Add an index on (version_id, target_id)
-            RelationalModel._meta.indexes.append((('version_id', 'target_id'), False))
+            RelationalModel._meta.indexes.append((('version_id',
+                                                   'target_id'), False))
 
         rtname = RelationalModel._meta.table_name
 
@@ -1132,10 +1140,12 @@ class XMatchPlanner(object):
         # as a constraint and index if the table is created because that would
         # slow down inserts. We'll created them manually with add_fks.
         # Note that we do not create an FK between the relational model and
-        # Catalog because the relationship is only unique on (catalogid, version_id).
+        # Catalog because the relationship is only unique on
+        # (catalogid, version_id).
         RelationalModel._meta.add_field(
-            'target',
-            peewee.ForeignKeyField(model, column_name='target_id', backref='+'))
+            'target', peewee.ForeignKeyField(model,
+                                             column_name='target_id',
+                                             backref='+'))
 
         self.extra_nodes[rtname] = RelationalModel
         self.update_model_graph(silent=True)
@@ -1226,7 +1236,8 @@ class XMatchPlanner(object):
 
                     nids = insert_query.execute()
 
-            self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
+            self.log.debug(f'Linked {nids:,} records in '
+                           f'{timer.interval:.3f} s.')
 
     def _run_phase_2(self, model, rel_model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1253,12 +1264,14 @@ class XMatchPlanner(object):
         # Should we use proper motions?
         model_epoch = get_epoch(model)
 
-        use_pm = (isinstance(model_epoch, (peewee.Expression, peewee.Function)) or
-                  model_epoch != catalog_epoch)
+        is_model_expression = isinstance(model_epoch, (peewee.Expression,
+                                                       peewee.Function))
+        use_pm = is_model_expression or (model_epoch != catalog_epoch)
 
         if use_pm:
 
-            self.log.debug('Determining maximum epoch delta between catalogues.')
+            self.log.debug('Determining maximum epoch delta '
+                           'between catalogues.')
 
             if isinstance(model_epoch, (int, float)):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
@@ -1451,7 +1464,8 @@ class XMatchPlanner(object):
                                 *model_fields,
                                 peewee.Value(table_name),
                                 peewee.Value(self._version_id))
-                        .where(~fn.EXISTS(TempCatalog.select(SQL('1'))
+                        .where(~fn.EXISTS(TempCatalog
+                                          .select(SQL('1'))
                                           .where(TempCatalog.catalogid == rel_model.catalogid)))
                         .join(model, on=(rel_model.target_id == model_pk)))
 

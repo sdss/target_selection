@@ -88,7 +88,8 @@ def nested_regrade(pixels, nside_in, nside_out):
 
     else:
 
-        prograded = numpy.zeros((len(pixels), int(2**(2 * (k_out - k_in)))), dtype=int)
+        prograded = numpy.zeros((len(pixels), int(2**(2 * (k_out - k_in)))),
+                                dtype=int)
         prograded += pixels[numpy.newaxis].T
         for ii in range(int(k_out - k_in))[::-1]:
 
@@ -129,8 +130,12 @@ def _process_tile(pix, database_params=None, query=None,
                                                          nest=True,
                                                          lonlat=True)
 
-    c1 = SkyCoord(ra=candidates.ra.to_numpy(), dec=candidates.dec.to_numpy(), unit='deg')
-    c2 = SkyCoord(ra=targets.ra.to_numpy(), dec=targets.dec.to_numpy(), unit='deg')
+    c1 = SkyCoord(ra=candidates.ra.to_numpy(),
+                  dec=candidates.dec.to_numpy(),
+                  unit='deg')
+    c2 = SkyCoord(ra=targets.ra.to_numpy(),
+                  dec=targets.dec.to_numpy(),
+                  unit='deg')
     sep_arcsec = match_coordinates_sky(c1, c2, nthneighbor=1)[1].value * 3600.
 
     candidates['sep_neighbour'] = sep_arcsec
@@ -356,7 +361,9 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
     # Plot skies
     centre = SkyCoord(ra=ra, dec=dec, unit='deg')
-    sky_coords = SkyCoord(ra=data.ra.to_numpy(), dec=data.dec.to_numpy(), unit='deg')
+    sky_coords = SkyCoord(ra=data.ra.to_numpy(),
+                          dec=data.dec.to_numpy(),
+                          unit='deg')
     skies = data[sky_coords.separation(centre).value < radius]
 
     ax.scatter(skies.ra, skies.dec,
@@ -374,7 +381,9 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
     # Plot targets
     if targets is not None:
         targets = numpy.array(targets)
-        target_coords = SkyCoord(ra=targets[:, 0], dec=targets[:, 1], unit='deg')
+        target_coords = SkyCoord(ra=targets[:, 0],
+                                 dec=targets[:, 1],
+                                 unit='deg')
         targets = targets[target_coords.separation(centre).value < radius]
 
         ax.scatter(targets[:, 0], targets[:, 1], marker='x', s=0.2,

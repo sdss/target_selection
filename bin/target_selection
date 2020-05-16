@@ -39,8 +39,10 @@ def _create_program_metadata(carton):
 
     version_pk = tdb.Version.get(label=carton.version, target_selection=True)
 
-    if tdb.Program.select().where(tdb.Program.label == carton.name,
-                                  tdb.Program.version_pk == version_pk).exists():
+    if (tdb.Program.select()
+                   .where(tdb.Program.label == carton.name,
+                          tdb.Program.version_pk == version_pk)
+                   .exists()):
         return
 
     # Create program and associated values.
@@ -209,7 +211,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
     if verbose:
         log.set_level(logging.DEBUG)
 
-    assert connect(profile, dbname, user, host, port), 'database is not connected.'
+    if not connect(profile, dbname, user, host, port):
+        raise TargetSelectionError('database is not connected.')
 
 
 @target_selection.command()
@@ -219,7 +222,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.option('--keep', is_flag=True,
               help='keep intermediate tables after loading')
 @click.option('--skip-query', is_flag=True,
-              help='do not run the query, only load intermediate table if it exists')
+              help='do not run the query, only load intermediate '
+                   'table if it exists')
 @click.option('--tile/--no-tile', is_flag=True, default=None,
               help='whether to run the query in chunks tiling the sky')
 @click.option('--no-load', is_flag=True,
@@ -236,7 +240,8 @@ def run(targeting_version, overwrite, keep, tile, no_load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
-    carton_classes = {Carton.name: Carton for Carton in BaseCarton.__subclasses__()}
+    carton_classes = {Carton.name: Carton
+                      for Carton in BaseCarton.__subclasses__()}
 
     try:
         config_version = config[targeting_version]
@@ -267,7 +272,7 @@ def run(targeting_version, overwrite, keep, tile, no_load,
                            tile=tile, write_table=write_table)
         except Exception as ee:
             if allow_errors:
-                log.error(f'found error processing carton {carton.name}: {ee}')
+                log.error(f'errored processing carton {carton.name}: {ee}')
             else:
                 raise
 
