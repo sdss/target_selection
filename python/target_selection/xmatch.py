@@ -1150,8 +1150,9 @@ class XMatchPlanner(object):
         query = model.select()
         for inode in range(1, len(path)):
             if path[inode] is Catalog:
-                query = query.join(Catalog,
-                                   on=(Catalog.catalogid == path[inode - 1].catalogid))
+                query = query.join(
+                    Catalog,
+                    on=(Catalog.catalogid == path[inode - 1].catalogid))
             else:
                 query = query.join(path[inode])
 
@@ -1355,8 +1356,8 @@ class XMatchPlanner(object):
                         .where(~fn.EXISTS(
                             rel_model
                             .select(SQL('1'))
-                            .where(rel_model.catalogid == xmatched.c.catalogid,
-                                   rel_model.target_id == xmatched.c.target_id))))
+                            .where((rel_model.catalogid == xmatched.c.catalogid) |
+                                   (rel_model.target_id == xmatched.c.target_id))))
 
         # Insert into relational model.
         insert_query = rel_model.insert_from(
