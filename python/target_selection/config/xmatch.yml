@@ -233,7 +233,7 @@
     schema: catalogdb
     output_table: catalog
     start_node: tic_v8
-    disable_seqscan: true
+    disable_seqscan: false
     debug: true
     log_path: xmatch_{version}.log
     tables:
@@ -287,6 +287,7 @@
             dec_column: dec_pm
             pmra_column: pmra
             pmdec_column: pmdec
+            has_missing_coordinates: true
             epoch: 2014.115  # MJD 56700
             parallax_column: par_pm
             skip_phases: [3]
