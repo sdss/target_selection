@@ -337,3 +337,30 @@
             dec_column: dec
         gaia_unwise_agn:  # Only for joining.
             join_weight: 0.3
+
+'0-beta.2':
+    base_plan: '0.1.0-beta.1'
+    log_path: xmatch_{plan}.log
+    sample_region:
+        - [270., 66.56, 5.]    # North CVZ
+        - [90., -66.56, 5.]    # South CVZ
+        - [45.0, 0.0, 5.]      # Stripe-82-West
+        - [135.0, 1.0, 5.]     # eFEDS
+        - [315.0, 0.0, 5.]     # Stripe-82-East
+    tables:
+        catwise:
+            ra_column: ra_pm
+            dec_column: dec_pm
+            pmra_column: pmra
+            pmdec_column: pmdec
+            has_missing_coordinates: true
+            epoch: 2014.115  # MJD 56700
+            parallax_column: par_pm
+            skip_phases: [3]
+            query_radius: 3
+            database_options:
+                work_mem: {value: '20GB', phases: [2]}
+    database_options:
+        work_mem: '4GB'
+        temp_buffers: '1GB'
+        synchronous_commit: 'off'
