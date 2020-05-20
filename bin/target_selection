@@ -37,11 +37,11 @@ def _create_program_metadata(carton):
     survey = None
     category = None
 
-    version_pk = tdb.Version.get(label=carton.version, target_selection=True)
+    plan_pk = tdb.Plan.get(label=carton.plan, target_selection=True)
 
     if (tdb.Program.select()
                    .where(tdb.Program.label == carton.name,
-                          tdb.Program.version_pk == version_pk)
+                          tdb.Program.plan_pk == plan_pk)
                    .exists()):
         return
 
@@ -57,7 +57,7 @@ def _create_program_metadata(carton):
             log.debug(f'created category {carton.category!r}')
 
     tdb.Program.create(label=carton.name, category=category,
-                       survey=survey, version_pk=version_pk)
+                       survey=survey, plan_pk=plan_pk)
     log.debug(f'created program {carton.name!r}')
 
 
@@ -94,8 +94,8 @@ def load_data(carton, results):
 
     log.info(f'inserted {n_inserted:,} rows into targetdb.target.')
 
-    version_pk = tdb.Version.get(label=carton.version, target_selection=True)
-    program_pk = tdb.Program.get(label=carton.name, version_pk=version_pk).pk
+    plan_pk = tdb.Plan.get(plan=carton.plan, target_selection=True)
+    program_pk = tdb.Program.get(label=carton.name, plan_pk=plan_pk).pk
 
     if carton.cadence is not None:
 
@@ -113,7 +113,7 @@ def load_data(carton, results):
                 .join(tdb.Program)
                 .where(tdb.ProgramToTarget.target_pk == tdb.Target.pk,
                        tdb.ProgramToTarget.program_pk == program_pk,
-                       tdb.Program.version_pk == version_pk))),
+                       tdb.Program.plan_pk == plan_pk))),
             [tdb.ProgramToTarget.target_pk,
              tdb.ProgramToTarget.cadence_pk,
              tdb.ProgramToTarget.program_pk]).returning().execute()
@@ -135,7 +135,7 @@ def load_data(carton, results):
                 .join(tdb.Program)
                 .where(tdb.ProgramToTarget.target_pk == tdb.Target.pk,
                        tdb.ProgramToTarget.program_pk == program_pk,
-                       tdb.Program.version_pk == version_pk))),
+                       tdb.Program.plan_pk == plan_pk))),
             [tdb.ProgramToTarget.target_pk,
              tdb.ProgramToTarget.cadence_pk,
              tdb.ProgramToTarget.program_pk]).returning().execute()
@@ -151,19 +151,19 @@ def process_carton(carton, keep=False, overwrite=False, no_load=False,
 
     log.info(f'running target selection for carton {carton.name!r}.')
 
-    # Check if data has been loaded for this carton and targeting version
+    # Check if data has been loaded for this carton and targeting plan
     has_targets = (tdb.Target
                    .select()
                    .join(tdb.ProgramToTarget)
                    .join(tdb.Program)
-                   .join(tdb.Version)
+                   .join(tdb.Plan)
                    .where(tdb.Program.label == carton.name,
-                          tdb.Version.label == carton.version)
+                          tdb.Plan.label == carton.plan)
                    .first())
 
     if has_targets and (not skip_query and not overwrite):
         raise ValueError(f'(found existing targets for carton {carton.name!r} '
-                         f'with version {carton.version!r}.')
+                         f'with plan {carton.plan!r}.')
 
     _create_program_metadata(carton)
 
@@ -216,7 +216,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
 
 
 @target_selection.command()
-@click.argument('TARGETING-VERSION', type=str)
+@click.argument('TARGETING-PLAN', type=str)
 @click.option('--overwrite', is_flag=True,
               help='drop intermediate tables if they exist')
 @click.option('--keep', is_flag=True,
@@ -236,7 +236,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='write intermediate table as a FITS file')
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
-def run(targeting_version, overwrite, keep, tile, no_load,
+def run(targeting_plan, overwrite, keep, tile, no_load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
@@ -244,12 +244,12 @@ def run(targeting_version, overwrite, keep, tile, no_load,
                       for Carton in BaseCarton.__subclasses__()}
 
     try:
-        config_version = config[targeting_version]
+        config_plan = config[targeting_plan]
     except KeyError:
-        raise TargetSelectionError('cannot find configuration for version '
-                                   f'{targeting_version}.')
+        raise TargetSelectionError('cannot find configuration for plan '
+                                   f'{targeting_plan}.')
 
-    cartons = config_version['cartons']
+    cartons = config_plan['cartons']
 
     if exclude:
         cartons = [carton for carton in cartons if carton not in exclude]
@@ -257,16 +257,16 @@ def run(targeting_version, overwrite, keep, tile, no_load,
     if include:
         cartons = [carton for carton in cartons if carton in include]
 
-    # Create targeting version in tdb.
-    __, created = tdb.Version.get_or_create(label=targeting_version,
+    # Create targeting plan in tdb.
+    __, created = tdb.Plan.get_or_create(label=targeting_plan,
                                             target_selection=True)
     if created:
-        log.info(f'created record in tdb.version for {targeting_version!r}.')
+        log.info(f'created record in targetdb.plan for {targeting_plan!r}.')
 
     for carton_name in cartons:
         try:
             Carton = carton_classes[carton_name]
-            carton = Carton(targeting_version)
+            carton = Carton(targeting_plan)
             process_carton(carton, keep=keep, overwrite=overwrite,
                            skip_query=skip_query, no_load=no_load,
                            tile=tile, write_table=write_table)
@@ -280,18 +280,18 @@ def run(targeting_version, overwrite, keep, tile, no_load,
 
 
 @target_selection.command()
-@click.argument('TARGETING-VERSION', type=str)
+@click.argument('TARGETING-PLAN', type=str)
 @click.option('--tables', is_flag=True,
               help='also remove intermediate tables')
-def clear(targeting_version, tables):
-    """Clear all data for a target selection version."""
+def clear(targeting_plan, tables):
+    """Clear all data for a target selection plan."""
 
     if tables:
         Cartons = BaseCarton.__subclasses__()
         for Carton in Cartons:
-            Carton(targeting_version).drop_table()
+            Carton(targeting_plan).drop_table()
     try:
-        tdb.Version.get(label=targeting_version).delete_instance()
+        tdb.Plan.get(label=targeting_plan).delete_instance()
     except peewee.DoesNotExist:
         pass
 

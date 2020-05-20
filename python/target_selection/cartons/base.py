@@ -15,7 +15,7 @@ from astropy import table
 from sdssdb.peewee.sdss5db import catalogdb, database, targetdb
 from sdsstools.color_print import color_text
 
-from target_selection import config, log, manager
+from target_selection import __version__, config, log, manager
 from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import Timer
 
@@ -29,12 +29,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    targeting_version : str
-        The version of the target selection.
+    targeting_plan : str
+        The target selection plan version.
     schema : str
         Schema in which the temporary table with the results of the
         query will be created. If `None`, tries to use the ``schema`` parameter
-        from the configuration file for this version of target selection. If
+        from the configuration file for this plan of target selection. If
         the parameter is not set, defaults to ``'sandbox'``.
     table_name : str
         The name of the temporary table. Defaults to ``temp_<name>`` where
@@ -52,6 +52,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         The survey associated with this carton.
     orm : str
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
+    tag : str
+        The version of the ``target_selection`` code used.
     tile : bool
         Whether to tile the query instead of running it all at once.
     tile_region : tuple
@@ -75,23 +77,24 @@ class BaseCarton(metaclass=abc.ABCMeta):
     tile_region = None
     tile_num = None
 
-    def __init__(self, targeting_version, schema=None, table_name=None):
+    def __init__(self, targeting_plan, schema=None, table_name=None):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
 
-        self.version = targeting_version
+        self.plan = targeting_plan
+        self.tag = __version__
 
-        if self.version not in config:
-            raise TargetSelectionError(f'({self.name}): cannot find version '
-                                       f'{self.version!r} in config.')
+        if self.plan not in config:
+            raise TargetSelectionError(f'({self.name}): cannot find plan '
+                                       f'{self.plan!r} in config.')
 
-        self.config = config[self.version].get(self.name, None)
+        self.config = config[self.plan].get(self.name, None)
 
         try:
-            self.xmatch_version = config[self.version]['xmatch_version']
+            self.xmatch_plan = config[self.plan]['xmatch_plan']
         except KeyError:
-            raise TargetSelectionError(f'({self.name}): xmatch_version '
+            raise TargetSelectionError(f'({self.name}): xmatch_plan '
                                        'not found in config.')
 
         self.database = targetdb.database
@@ -161,7 +164,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """Returns a Peewee model with the columns returned by a query."""
 
         if query is None:
-            version_id = catalogdb.Version.get(version=self.xmatch_version).id
+            version_id = catalogdb.Version.get(plan=self.xmatch_plan).id
             query = self.build_query(version_id)
 
         class Model(peewee.Model):
@@ -238,7 +241,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                'already exists.')
 
         log.info('building query ...')
-        version_id = catalogdb.Version.get(version=self.xmatch_version).id
+        version_id = catalogdb.Version.get(plan=self.xmatch_plan).id
         query = self.build_query(version_id)
 
         # Make sure the catalogid column is selected.
@@ -405,14 +408,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         ----------
         filename : str
             The file to which to write the table. Defaults to
-            ``<name>_<version>.fits``.
+            ``<name>_<plan>.fits``.
         model : peewee:Model
             The model of the intermediate table. Defaults to use the
             model matching the carton query.
 
         """
 
-        filename = filename or f'{self.name}_{self.version}.fits'
+        filename = filename or f'{self.name}_{self.plan}.fits'
 
         log.debug(f'({self.name}): writing table to {filename}.')
 

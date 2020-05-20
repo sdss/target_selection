@@ -1,6 +1,6 @@
 
 '0.1.0':
-    xmatch_version: 0.1.0-alpha.4
+    xmatch_plan: 0.1.0-alpha.4
     cartons:
         - guide
     schema: sandbox
