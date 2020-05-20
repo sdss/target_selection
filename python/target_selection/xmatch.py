@@ -66,7 +66,7 @@ class Catalog(peewee.Model):
 class TempCatalog(Catalog):
     """Temporary output table."""
 
-    pass
+    version_id = peewee.IntegerField(null=False, index=False)
 
 
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
@@ -1107,7 +1107,7 @@ class XMatchPlanner(object):
         class BaseModel(peewee.Model):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
-            target_id = model_pk_class(null=False, index=True)
+            target_id = model_pk_class(null=False)
             version_id = peewee.SmallIntegerField(null=False)
             distance = peewee.DoubleField(null=True)
             best = peewee.BooleanField(null=False)
@@ -1115,9 +1115,10 @@ class XMatchPlanner(object):
             class Meta:
                 database = meta.database
                 schema = meta.schema
-                primary_key = peewee.CompositeKey('catalogid',
-                                                  'target_id',
-                                                  'version_id')
+                primary_key = False
+                indexes = [(('version_id', 'target_id'), False)]
+                constraints = [SQL('UNIQUE(catalogid, target_id, version_id) '
+                                   'DEFERRABLE INITIALLY DEFERRED')]
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))
