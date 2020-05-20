@@ -2,4 +2,17 @@
 Catalogue cross-matching
 ========================
 
-TBD. Refer to the `.XMatchPlanner` documentation for the time being.
+Overview
+--------
+
+Database configuration
+----------------------
+
+Running ``xmatch``
+------------------
+
+The configuration file
+^^^^^^^^^^^^^^^^^^^^^^
+
+Overriding database parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
