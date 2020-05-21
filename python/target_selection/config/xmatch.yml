@@ -357,5 +357,5 @@
                 work_mem: {value: '20GB', phases: [2]}
     database_options:
         work_mem: '4GB'
-        temp_buffers: '1GB'
+        temp_buffers: '5GB'
         synchronous_commit: 'off'

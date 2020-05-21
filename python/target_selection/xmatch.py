@@ -66,7 +66,11 @@ class Catalog(peewee.Model):
 class TempCatalog(Catalog):
     """Temporary output table."""
 
-    version_id = peewee.IntegerField(null=False, index=False)
+    catalogid = peewee.BigIntegerField(index=True, primary_key=False)
+    version_id = peewee.IntegerField(index=False)
+
+    class Meta:
+        primary_key = False
 
 
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
@@ -1499,6 +1503,10 @@ class XMatchPlanner(object):
                                f'{temp_table!r}{self._get_sql(unmatched)}')
 
                 unmatched.create_table(temp_table, temporary=True)
+
+                # Analyze the temporary table to gather stats.
+                self.log.debug('Running ANALYZE on temporary table.')
+                self.database.execute_sql(f'ANALYZE "{temp_table}";')
 
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
