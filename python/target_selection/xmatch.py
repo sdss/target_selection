@@ -1023,6 +1023,8 @@ class XMatchPlanner(object):
         else:
             is_first_model = False
 
+        self._phases_run = set()
+
         with Timer() as timer:
             if is_first_model:
                 self._run_phase_3(model)
@@ -1071,14 +1073,15 @@ class XMatchPlanner(object):
             pmdec_field = peewee.SQL('null')
 
         # Actually add the RA/Dec fields as defined above
-        model_fields.extend([ra_field, dec_field])
-        model_fields.extend([pmra_field, pmdec_field])
+        model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
+        model_fields.extend([pmra_field.alias('pmra'),
+                             pmdec_field.alias('pmdec')])
 
         # Parallax
         if xmatch.parallax_column:
-            model_fields.append(fields[xmatch.parallax_column])
+            model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
         else:
-            model_fields.append(peewee.SQL('null'))
+            model_fields.append(peewee.SQL('null').alias('parallax'))
 
         return model_fields
 
@@ -1254,6 +1257,8 @@ class XMatchPlanner(object):
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
 
+            self._phases_run.add(1)
+
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
 
@@ -1391,17 +1396,20 @@ class XMatchPlanner(object):
                                 xmatched.c.catalogid,
                                 peewee.Value(self._version_id).alias('version_id'),
                                 xmatched.c.distance.alias('distance'),
-                                best.alias('best'))
-                        .where(~fn.EXISTS(
-                            rel_model
-                            .select(SQL('1'))
-                            .where(rel_model.catalogid == xmatched.c.catalogid)))
-                        .where(~fn.EXISTS(
-                            rel_model
-                            .select(SQL('1'))
-                            .where((rel_model.version_id == self._version_id) &
-                                   (rel_model.target_id == xmatched.c.target_id))))
-                        .with_cte(xmatched))
+                                best.alias('best')))
+
+        # We only need to care about already linked targets if phase 1 run.
+        if 1 in self._phases_run:
+            insert_query = (insert_query
+                            .where(~fn.EXISTS(
+                                rel_model
+                                .select(SQL('1'))
+                                .where(rel_model.catalogid == xmatched.c.catalogid)))
+                            .where(~fn.EXISTS(
+                                rel_model
+                                .select(SQL('1'))
+                                .where((rel_model.version_id == self._version_id) &
+                                       (rel_model.target_id == xmatched.c.target_id)))))
 
         with Timer() as timer:
 
@@ -1420,7 +1428,7 @@ class XMatchPlanner(object):
                           rel_model.version_id, rel_model.distance,
                           rel_model.best]
 
-                insert_query = rel_model.insert_from(insert_query,
+                insert_query = rel_model.insert_from(insert_query.with_cte(xmatched),
                                                      fields).returning()
 
                 self.log.debug(f'Inserting cross-matched data into '
@@ -1432,6 +1440,8 @@ class XMatchPlanner(object):
         self.log.debug(f'Cross-matched {TempCatalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
+
+        self._phases_run.add(1)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
@@ -1476,12 +1486,16 @@ class XMatchPlanner(object):
                      .select((fn.row_number().over() + self._max_cid).alias('catalogid'),
                              model_pk.alias('target_id'),
                              peewee.Value(self._version_id).alias('version_id'),
-                             peewee.SQL('true').alias('best'))
-                     .where(self._get_sample_where(model_ra, model_dec))
-                     .where(~fn.EXISTS(rel_model
-                                       .select(SQL('1'))
-                                       .where(rel_model.version_id == self._version_id,
-                                              rel_model.target_id == model_pk))))
+                             peewee.SQL('true').alias('best'),
+                             *model_fields)
+                     .where(self._get_sample_where(model_ra, model_dec)))
+
+        if 1 in self._phases_run or 2 in self._phases_run:
+            unmatched = (unmatched
+                         .where(~fn.EXISTS(rel_model
+                                           .select(SQL('1'))
+                                           .where(rel_model.version_id == self._version_id,
+                                                  rel_model.target_id == model_pk))))
 
         if xmatch.has_missing_coordinates:
             unmatched = unmatched.where(model_ra.is_null(False),
@@ -1529,22 +1543,25 @@ class XMatchPlanner(object):
                 # 3. Fill out the temporary catalog table with the information
                 #    from the unique targets.
 
-                subq = (temp_model
-                        .select(temp_model.catalogid,
-                                *model_fields,
-                                peewee.Value(table_name),
-                                peewee.Value(self._version_id))
-                        .join(model, on=(temp_model.target_id == model_pk)))
+                temp_table = peewee.Table(temp_table)
 
                 insert_query = TempCatalog.insert_from(
-                    subq, [TempCatalog.catalogid,
-                           TempCatalog.ra,
-                           TempCatalog.dec,
-                           TempCatalog.pmra,
-                           TempCatalog.pmdec,
-                           TempCatalog.parallax,
-                           TempCatalog.lead,
-                           TempCatalog.version_id]).returning()
+                    temp_table.select(temp_table.c.catalogid,
+                                      temp_table.c.ra,
+                                      temp_table.c.dec,
+                                      temp_table.c.pmra,
+                                      temp_table.c.pmdec,
+                                      temp_table.c.parallax,
+                                      peewee.Value(table_name),
+                                      temp_table.c.version_id),
+                    [TempCatalog.catalogid,
+                     TempCatalog.ra,
+                     TempCatalog.dec,
+                     TempCatalog.pmra,
+                     TempCatalog.pmdec,
+                     TempCatalog.parallax,
+                     TempCatalog.lead,
+                     TempCatalog.version_id]).returning()
 
                 self.log.debug(f'Running INSERT query into {self._temp_table}'
                                f'{self._get_sql(insert_query)}')
@@ -1559,6 +1576,8 @@ class XMatchPlanner(object):
                        f'Total time: {timer.elapsed:.3f} s.')
 
         self._analyze(rel_model, catalog=True)
+
+        self._phases_run.add(3)
 
     def _load_output_table(self, keep_temp=False):
         """Copies the temporary table to the real output table."""
