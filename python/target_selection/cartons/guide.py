@@ -22,6 +22,7 @@ class GuideCarton(BaseCarton):
 
     name = 'guide'
     category = 'guide'
+    cadence = None
 
     tile = False
     tile_region = None
@@ -30,19 +31,19 @@ class GuideCarton(BaseCarton):
     def build_query(self, version_id):
 
         sample = (Catalog
-                       .select(Catalog.catalogid,
-                               Catalog.ra,
-                               Catalog.dec,
-                               Gaia.phot_g_mean_mag)
-                       .join(CatalogToTIC_v8)
-                       .join(TIC_v8)
-                       .join(Gaia)
-                       .join(Gaia_Clean)
-                       .where((Gaia.phot_g_mean_mag > self.config['g_min']) &
-                              (Gaia.phot_g_mean_mag < self.config['g_max']))
-                       .where(Catalog.version_id == version_id,
-                              CatalogToTIC_v8.version_id == version_id)
-                       .cte('sample'))
+                  .select(Catalog.catalogid,
+                          Catalog.ra,
+                          Catalog.dec,
+                          Gaia.phot_g_mean_mag)
+                  .join(CatalogToTIC_v8)
+                  .join(TIC_v8)
+                  .join(Gaia)
+                  .join(Gaia_Clean)
+                  .where((Gaia.phot_g_mean_mag > self.parameters['g_min']) &
+                         (Gaia.phot_g_mean_mag < self.parameters['g_max']))
+                  .where(Catalog.version_id == version_id,
+                         CatalogToTIC_v8.version_id == version_id)
+                  .cte('sample'))
 
         # We should use q3c_join_pm and q3c_dist_pm here.
         subq = (Gaia
@@ -50,7 +51,7 @@ class GuideCarton(BaseCarton):
                 .where(peewee.fn.q3c_join(sample.c.ra, sample.c.dec,
                                           Gaia.ra,
                                           Gaia.dec,
-                                          self.config['min_separation']))
+                                          self.parameters['min_separation']))
                 .order_by(peewee.fn.q3c_dist(sample.c.ra,
                                              sample.c.dec,
                                              Gaia.ra,

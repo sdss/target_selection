@@ -12,7 +12,7 @@ import click
 import peewee
 
 from sdssdb.peewee.sdss5db import targetdb as tdb
-from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
+from sdssdb.peewee.sdss5db.catalogdb import database
 
 from target_selection import config, log
 from target_selection.cartons import BaseCarton
@@ -30,171 +30,6 @@ def connect(profile=None, dbname=None, user=None, host=None, port=None):
         database.connect(dbname=dbname, user=user, host=host, port=port)
 
     return database.connected
-
-
-def _create_program_metadata(carton):
-
-    survey = None
-    category = None
-
-    plan_pk = tdb.Plan.get(label=carton.plan, target_selection=True)
-
-    if (tdb.Program.select()
-                   .where(tdb.Program.label == carton.name,
-                          tdb.Program.plan_pk == plan_pk)
-                   .exists()):
-        return
-
-    # Create program and associated values.
-    if carton.survey:
-        survey, created = tdb.Survey.get_or_create(label=carton.name)
-        if created:
-            log.debug(f'created survey {carton.survey!r}')
-
-    if carton.category:
-        category, created = tdb.Category.get_or_create(label=carton.category)
-        if created:
-            log.debug(f'created category {carton.category!r}')
-
-    tdb.Program.create(label=carton.name, category=category,
-                       survey=survey, plan_pk=plan_pk)
-    log.debug(f'created program {carton.name!r}')
-
-
-def load_data(carton, results):
-    """Loads data from the temporary table into tdb."""
-
-    has_targets = (results.select()
-                   .where(results.selected == True)  # noqa
-                   .exists())
-
-    if not has_targets:
-        raise ValueError(f'no targets found in intermediate table.')
-
-    # TODO: add magnitude loading.
-
-    n_inserted = tdb.Target.insert_from(
-        Catalog.select(Catalog.catalogid,
-                       Catalog.ra,
-                       Catalog.dec,
-                       Catalog.pmra,
-                       Catalog.pmdec,
-                       Catalog.parallax)
-        .join(results, on=(Catalog.catalogid == results.catalogid))
-        .where(~peewee.fn.EXISTS(
-            tdb.Target
-            .select(peewee.SQL('1'))
-            .where(tdb.Target.catalogid == results.catalogid))),
-        [tdb.Target.catalogid,
-         tdb.Target.ra,
-         tdb.Target.dec,
-         tdb.Target.pmra,
-         tdb.Target.pmdec,
-         tdb.Target.parallax]).returning().execute()
-
-    log.info(f'inserted {n_inserted:,} rows into targetdb.target.')
-
-    plan_pk = tdb.Plan.get(plan=carton.plan, target_selection=True)
-    program_pk = tdb.Program.get(label=carton.name, plan_pk=plan_pk).pk
-
-    if carton.cadence is not None:
-
-        cadence_pk = tdb.Cadence.get(label=carton.cadence)
-
-        n_inserted = tdb.ProgramToTarget.insert_from(
-            results.select(tdb.Target.pk,
-                           cadence_pk,
-                           program_pk)
-            .join(tdb.Target,
-                  on=(tdb.Target.catalogid == results.catalogid))
-            .where(~peewee.fn.EXISTS(
-                tdb.ProgramToTarget
-                .select(peewee.SQL('1'))
-                .join(tdb.Program)
-                .where(tdb.ProgramToTarget.target_pk == tdb.Target.pk,
-                       tdb.ProgramToTarget.program_pk == program_pk,
-                       tdb.Program.plan_pk == plan_pk))),
-            [tdb.ProgramToTarget.target_pk,
-             tdb.ProgramToTarget.cadence_pk,
-             tdb.ProgramToTarget.program_pk]).returning().execute()
-
-    else:
-
-        n_inserted = tdb.ProgramToTarget.insert_from(
-            results.select(tdb.Target.pk,
-                           tdb.Cadence.pk,
-                           program_pk)
-            .join(tdb.Target,
-                  on=(tdb.Target.catalogid == results.catalogid))
-            .switch(results)
-            .join(tdb.Cadence, 'LEFT OUTER JOIN',
-                  on=(tdb.Cadence.label == results.cadence))
-            .where(~peewee.fn.EXISTS(
-                tdb.ProgramToTarget
-                .select(peewee.SQL('1'))
-                .join(tdb.Program)
-                .where(tdb.ProgramToTarget.target_pk == tdb.Target.pk,
-                       tdb.ProgramToTarget.program_pk == program_pk,
-                       tdb.Program.plan_pk == plan_pk))),
-            [tdb.ProgramToTarget.target_pk,
-             tdb.ProgramToTarget.cadence_pk,
-             tdb.ProgramToTarget.program_pk]).returning().execute()
-
-    log.info(f'inserted {n_inserted:,} rows into targetdb.program_to_target.')
-
-
-def process_carton(carton, keep=False, overwrite=False, no_load=False,
-                   skip_query=False, tile=None, write_table=False):
-    """Processes the target selection for a carton."""
-
-    log.header = f'({carton.name}): '
-
-    log.info(f'running target selection for carton {carton.name!r}.')
-
-    # Check if data has been loaded for this carton and targeting plan
-    has_targets = (tdb.Target
-                   .select()
-                   .join(tdb.ProgramToTarget)
-                   .join(tdb.Program)
-                   .join(tdb.Plan)
-                   .where(tdb.Program.label == carton.name,
-                          tdb.Plan.label == carton.plan)
-                   .first())
-
-    if has_targets and (not skip_query and not overwrite):
-        raise ValueError(f'(found existing targets for carton {carton.name!r} '
-                         f'with plan {carton.plan!r}.')
-
-    _create_program_metadata(carton)
-
-    if not skip_query:
-
-        if overwrite:
-            log.info(f'dropping table {carton.table_name}.')
-            carton.drop_table()
-        else:
-            if database.table_exists(carton.table_name, schema=carton.schema):
-                raise RuntimeError(f'temporary table {carton.table_name!r} '
-                                   'already exists.')
-
-        results_model = carton.run(tile=tile)
-
-    else:
-
-        log.debug(f'skipping query.')
-        results_model = carton.get_model_from_query()
-
-    if write_table:
-        carton.write_table()
-
-    if no_load:
-        log.debug(f'not loading data into tdb.target.')
-    else:
-        load_data(carton, results_model)
-
-    if not keep:
-        log.debug(f'dropping intermediate table {carton.table_name!r}.')
-        database.drop_tables([results_model])
 
 
 @click.group()
@@ -226,8 +61,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
                    'table if it exists')
 @click.option('--tile/--no-tile', is_flag=True, default=None,
               help='whether to run the query in chunks tiling the sky')
-@click.option('--no-load', is_flag=True,
-              help='do not load data into tdb.target')
+@click.option('--load/--no-load', is_flag=True, default=True,
+              help='whether to load data into targetdb.target')
 @click.option('--include', '-i', type=str,
               help='comma-separated carton names to include')
 @click.option('--exclude', '-e', type=str,
@@ -236,7 +71,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='write intermediate table as a FITS file')
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
-def run(targeting_plan, overwrite, keep, tile, no_load,
+def run(targeting_plan, overwrite, keep, tile, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
@@ -257,19 +92,38 @@ def run(targeting_plan, overwrite, keep, tile, no_load,
     if include:
         cartons = [carton for carton in cartons if carton in include]
 
-    # Create targeting plan in tdb.
-    __, created = tdb.Plan.get_or_create(label=targeting_plan,
-                                            target_selection=True)
-    if created:
-        log.info(f'created record in targetdb.plan for {targeting_plan!r}.')
-
     for carton_name in cartons:
+
         try:
+
             Carton = carton_classes[carton_name]
             carton = Carton(targeting_plan)
-            process_carton(carton, keep=keep, overwrite=overwrite,
-                           skip_query=skip_query, no_load=no_load,
-                           tile=tile, write_table=write_table)
+
+            log.header = f'({carton.name}): '
+            log.info(f'running target selection for carton {carton.name!r}.')
+
+            if carton.check_targets():
+                raise ValueError(f'found existing targets for carton '
+                                 f'{carton.name!r} with plan {carton.plan!r}.')
+
+            if not skip_query:
+                carton.run(tile=tile, overwrite=overwrite)
+            else:
+                carton.has_run = True
+                log.debug(f'skipping query.')
+
+            if load:
+                carton.load()
+            else:
+                log.debug(f'not loading data into targetdb.target.')
+
+            if write_table:
+                carton.write_table()
+
+            if not keep:
+                log.info(f'dropping temporary table {carton.path!r}.')
+                carton.drop_table()
+
         except Exception as ee:
             if allow_errors:
                 log.error(f'errored processing carton {carton.name}: {ee}')

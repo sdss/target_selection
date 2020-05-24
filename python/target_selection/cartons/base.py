@@ -12,7 +12,9 @@ import numpy
 import peewee
 from astropy import table
 
-from sdssdb.peewee.sdss5db import catalogdb, database, targetdb
+from sdssdb.peewee import BaseModel
+from sdssdb.peewee.sdss5db import catalogdb as cdb
+from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdsstools.color_print import color_text
 
 from target_selection import __version__, config, log, manager
@@ -89,29 +91,39 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise TargetSelectionError(f'({self.name}): cannot find plan '
                                        f'{self.plan!r} in config.')
 
-        self.config = config[self.plan].get(self.name, None)
+        self.config = config[self.plan]
+
+        if 'parameters' in self.config:
+            self.parameters = self.config['parameters'].get(self.name, None)
+        else:
+            self.parameters = None
 
         try:
-            self.xmatch_plan = config[self.plan]['xmatch_plan']
+            self.xmatch_plan = self.config['xmatch_plan']
         except KeyError:
             raise TargetSelectionError(f'({self.name}): xmatch_plan '
                                        'not found in config.')
 
-        self.database = targetdb.database
+        self.database = tdb.database
         assert self.database.connected, 'database is not connected.'
 
         self.schema = schema or self.config.get('schema', None) or 'sandbox'
         self.table_name = table_name or f'temp_{self.name}'
 
         if self.cadence:
-            assert (targetdb.Cadence
+            assert (tdb.Cadence
                     .select()
-                    .where(targetdb.Cadence.label == self.cadence)
+                    .where(tdb.Cadence.label == self.cadence)
                     .count() == 1), (f'{self.cadence!r} does not '
                                      'exist in targetdb.cadence.')
 
         self.has_run = False
-        log.header = f'({self.name}): '
+
+    @property
+    def path(self):
+        """The schema-qualified path to the output table."""
+
+        return self.schema + '.' + self.table_name
 
     @abc.abstractmethod
     def build_query(self, version_id):
@@ -160,14 +172,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         raise ValueError(f'failed resolving column {field!r}')
 
-    def get_model_from_query(self, query=None):
+    def get_model(self, query=None, use_reflection=False):
         """Returns a Peewee model with the columns returned by a query."""
 
         if query is None:
-            version_id = catalogdb.Version.get(plan=self.xmatch_plan).id
+            version_id = cdb.Version.get(plan=self.xmatch_plan).id
             query = self.build_query(version_id)
 
-        class Model(peewee.Model):
+        class Model(BaseModel):
 
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
@@ -177,7 +189,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 database = self.database
                 table_name = self.table_name
                 schema = self.schema
-                primary_key = False
+                reflection_options = {'skip_foreign_keys': True}
+
+        if use_reflection:
+            Model.reflect()
+            return Model
 
         returning_fields = query._returning
 
@@ -192,14 +208,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
             new_field = resolved_field.__class__(primary_key=is_primary_key,
                                                  null=not is_primary_key)
 
-            if is_primary_key:
-                Model._meta.set_primary_key(field_name, new_field)
-            else:
-                Model._meta.add_field(field_name, new_field)
+            Model._meta.add_field(field_name, new_field)
 
         return Model
 
-    def run(self, tile=None, tile_num=None, progress_bar=True,
+    def run(self, tile=None, tile_num=None, progress_bar=True, overwrite=False,
             **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
@@ -223,6 +236,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             when tiling.
         progress_bar : bool
             Use a progress bar when tiling.
+        overwrite : bool
+            Whether to overwrite the intermediary table if already exists.
         post_process_args : dict
             Keyword arguments to be passed to `.post_process`.
 
@@ -236,23 +251,27 @@ class BaseCarton(metaclass=abc.ABCMeta):
         tile = tile or self.tile
         tile_num = tile_num or self.tile_num
 
-        if database.table_exists(self.table_name, schema=self.schema):
-            raise RuntimeError(f'temporary table {self.table_name} '
-                               'already exists.')
+        if self.database.table_exists(self.table_name, schema=self.schema):
+            if overwrite:
+                log.info(f'dropping table {self.path!r}.')
+                self.drop_table()
+            else:
+                raise RuntimeError(f'temporary table {self.path!r} '
+                                   'already exists.')
 
-        log.info('building query ...')
-        version_id = catalogdb.Version.get(plan=self.xmatch_plan).id
+        log.debug('building query ...')
+        version_id = cdb.Version.get(plan=self.xmatch_plan).id
         query = self.build_query(version_id)
 
         # Make sure the catalogid column is selected.
-        if catalogdb.Catalog.catalogid not in query._returning:
+        if cdb.Catalog.catalogid not in query._returning:
             raise RuntimeError(f'catalogid is not being returned in query.')
 
         # Dynamically create a model for the results table.
-        ResultsModel = self.get_model_from_query(query)
+        ResultsModel = self.get_model(query)
 
         # Create sandbox table.
-        database.create_tables([ResultsModel])
+        self.database.create_tables([ResultsModel])
         log.debug(f'created table {self.table_name!r}')
 
         # Make the "selected" column detault to true. We cannot do this in
@@ -263,7 +282,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 f'ALTER TABLE {self.schema}.{self.table_name} '
                 'ALTER COLUMN selected SET DEFAULT true;')
 
-        log.debug(f'running query with tile={tile}')
+        log.info(f'running query with tile={tile}')
 
         insert_fields = [ResultsModel._meta.fields[field]
                          for field in ResultsModel._meta.fields
@@ -344,7 +363,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                             if progress_bar:
                                 counter.update()
 
-        log.info(f'inserted {n_rows:,} rows into {self.table_name} '
+        log.info(f'inserted {n_rows:,} rows into {self.path!r} '
                  f'in {timer.interval:.3f} s.')
 
         mask = self.post_process(ResultsModel, **post_process_kawrgs)
@@ -394,12 +413,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     def drop_table(self):
         """Drops the intermediate table if it exists."""
 
-        if self.schema:
-            self.database.execute_sql(f'DROP TABLE IF EXISTS '
-                                      f'{self.schema}.{self.table_name};')
-        else:
-            self.database.execute_sql(f'DROP TABLE IF EXISTS '
-                                      f'{self.table_name};')
+        self.database.execute_sql(f'DROP TABLE IF EXISTS {self.path};')
 
     def write_table(self, filename=None, model=None):
         """Writes the intermediate table to a FITS file.
@@ -417,12 +431,235 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         filename = filename or f'{self.name}_{self.plan}.fits'
 
-        log.debug(f'({self.name}): writing table to {filename}.')
+        log.debug(f'writing table to {filename}.')
 
-        results_model = model or self.get_model_from_query()
+        results_model = model or self.get_model()
 
         write_query = results_model.select()
 
         colnames = [field.name for field in write_query._returning]
         carton_table = table.Table(rows=write_query.tuples(), names=colnames)
         carton_table.write(filename, overwrite=True)
+
+    def load(self):
+        """Loads the output of the intermediate table into targetdb."""
+
+        if self.check_targets():
+            raise TargetSelectionError(f'found existing targets for carton '
+                                       f'{self.name!r} with plan '
+                                       f'{self.plan!r}.')
+
+        if not self.has_run:
+            raise TargetSelectionError('the query needs to be run before '
+                                       'calling load().')
+
+        RModel = self.get_model(use_reflection=True)
+
+        has_targets = (RModel.select()
+                       .where(RModel.selected == True)  # noqa
+                       .exists())
+
+        if not has_targets:
+            raise TargetSelectionError('no targets found in '
+                                       'intermediate table.')
+
+        with self.database.atomic():
+
+            self._create_program_metadata()
+            self._load_data(RModel)
+            self._load_magnitudes(RModel)
+            self._load_program_to_target(RModel)
+
+    def check_targets(self):
+        """Check if data has been loaded for this carton and targeting plan."""
+
+        has_targets = (tdb.ProgramToTarget
+                       .select()
+                       .join(tdb.Program)
+                       .join(tdb.Plan)
+                       .where(tdb.Program.label == self.name,
+                              tdb.Plan.label == self.plan)
+                       .exists())
+
+        return has_targets
+
+    def _create_program_metadata(self):
+
+        survey_pk = None
+        category_pk = None
+
+        # Create targeting plan in tdb.
+        plan_pk, created = tdb.Plan.get_or_create(label=self.plan,
+                                                  tag=self.tag,
+                                                  target_selection=True)
+        if created:
+            log.info(f'created record in targetdb.plan for {self.plan!r}.')
+
+        plan_pk = tdb.Plan.get(label=self.plan, target_selection=True)
+
+        if (tdb.Program.select()
+                       .where(tdb.Program.label == self.name,
+                              tdb.Program.plan_pk == plan_pk)
+                       .exists()):
+            return
+
+        # Create program and associated values.
+        if self.survey:
+            survey_pk, created_pk = tdb.Survey.get_or_create(label=self.name)
+            if created:
+                log.debug(f'created survey {self.survey!r}')
+
+        if self.category:
+            category_pk, created = tdb.Category.get_or_create(
+                label=self.category)
+            if created:
+                log.debug(f'created category {self.category!r}')
+
+        tdb.Program.create(label=self.name, category_pk=category_pk,
+                           survey_pk=survey_pk, plan_pk=plan_pk)
+        log.debug(f'created program {self.name!r}')
+
+    def _load_data(self, RModel):
+        """Load data from the intermediate table tp targetdb.target."""
+
+        log.debug('loading data into targetdb.target.')
+
+        n_inserted = tdb.Target.insert_from(
+            cdb.Catalog.select(cdb.Catalog.catalogid,
+                               cdb.Catalog.ra,
+                               cdb.Catalog.dec,
+                               cdb.Catalog.pmra,
+                               cdb.Catalog.pmdec,
+                               cdb.Catalog.parallax)
+            .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
+            .where(RModel.selected == True)  # noqa
+            .where(~peewee.fn.EXISTS(
+                tdb.Target
+                .select(peewee.SQL('1'))
+                .where(tdb.Target.catalogid == RModel.catalogid))),
+            [tdb.Target.catalogid,
+             tdb.Target.ra,
+             tdb.Target.dec,
+             tdb.Target.pmra,
+             tdb.Target.pmdec,
+             tdb.Target.parallax]).returning().execute()
+
+        log.info(f'inserted {n_inserted:,} rows into targetdb.target.')
+
+        return
+
+    def _load_magnitudes(self, RModel):
+        """Load magnitudes into targetdb.magnitude."""
+
+        log.debug('loading data into targetdb.magnitude.')
+
+        Magnitude = tdb.Magnitude
+
+        magnitude_paths = self.config['magnitudes']
+        fields = [Magnitude.target_pk]
+
+        select_from = (tdb.Target
+                       .select(tdb.Target.pk)
+                       .join(RModel,
+                             on=(RModel.catalogid == tdb.Target.catalogid))
+                       .join(cdb.Catalog,
+                             on=(RModel.catalogid == cdb.Catalog.catalogid)))
+
+        for mag, mpath in magnitude_paths.items():
+
+            fields.append(getattr(Magnitude, mag))
+
+            select_from = select_from.switch(cdb.Catalog)
+
+            # For each node in the join list we check if the node model has
+            # already been join and if so, switch the pointer to that model.
+            # Otherwise do a LEFT OUTER join because we want all the rows in
+            # the temporary table even if they don't have associated
+            # magnitudes. We make sure we only use the "best" match from the
+            # cross-match. No need to apply filters on cross-match version_id
+            # because catalogid is unique across versions.
+
+            for node in mpath:
+                column = None
+                if node == mpath[-1]:
+                    node, column = node.split('.')
+                node_model = self.database.models.get('catalogdb.' + node)
+                joins = [model[0] for join in select_from._joins.values()
+                         for model in join]
+                if node_model in joins:
+                    select_from = select_from.switch(node_model)
+                else:
+                    select_from = select_from.join(node_model,
+                                                   peewee.JOIN.LEFT_OUTER)
+                if node.startswith('catalog_to_'):
+                    select_from = (select_from
+                                   .where((node_model.best >> True) |
+                                          (node_model.catalogid >> None)))
+                if column:
+                    select_from = (select_from
+                                   .select_extend(getattr(node_model, column)))
+
+        n_inserted = (Magnitude
+                      .insert_from(select_from, fields)
+                      .returning().execute())
+
+        log.debug(f'inserted {n_inserted:,} rows into targetdb.magnitude.')
+
+    def _load_program_to_target(self, RModel):
+        """Populate targetdb.program_to_target."""
+
+        log.debug('loading data into targetdb.program_to_target.')
+
+        plan_pk = tdb.Plan.get(label=self.plan, target_selection=True)
+        program_pk = tdb.Program.get(label=self.name, plan_pk=plan_pk).pk
+
+        Target = tdb.Target
+        ProgramToTarget = tdb.ProgramToTarget
+
+        select_from = (RModel
+                       .select(Target.pk,
+                               program_pk)
+                       .join(Target,
+                             on=(Target.catalogid == RModel.catalogid))
+                       .where(~peewee.fn.EXISTS(
+                           ProgramToTarget
+                           .select(peewee.SQL('1'))
+                           .join(tdb.Program)
+                           .where(ProgramToTarget.target_pk == Target.pk,
+                                  ProgramToTarget.program_pk == program_pk,
+                                  tdb.Program.plan_pk == plan_pk))))
+
+        if self.cadence is not None:
+
+            # Check that not both the carton cadence and the cadence column
+            # are not null.
+            if RModel.select().where(~(RModel.cadence >> None)).exists():
+                raise TargetSelectionError('both carton cadence and target '
+                                           'cadence defined. This is not '
+                                           'allowed.')
+
+            cadence_pk = tdb.Cadence.get(label=self.cadence)
+            select_from = select_from.select_extend(cadence_pk)
+
+        else:
+
+            # If all cadences are null we'll set that as a value and save us
+            # a costly join.
+            if not RModel.select().where(~(RModel.cadence >> None)).exists():
+                select_from = select_from.select_extend(peewee.SQL('null'))
+            else:
+                select_from = (select_from
+                               .select_extend(tdb.Cadence.pk)
+                               .switch(RModel)
+                               .join(tdb.Cadence, 'LEFT OUTER JOIN',
+                                     on=(tdb.Cadence.label == RModel.cadence)))
+
+        # Now do the insert
+        n_inserted = ProgramToTarget.insert_from(
+            select_from,
+            [ProgramToTarget.target_pk,
+             ProgramToTarget.program_pk,
+             ProgramToTarget.cadence_pk]).returning().execute()
+
+        log.debug(f'inserted {n_inserted:,} rows into '
+                  'targetdb.program_to_target.')
