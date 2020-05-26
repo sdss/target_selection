@@ -235,13 +235,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if tile is False:
 
-            log.debug(f'CREATE TABLE {self.path} AS ' +
+            log.debug(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
                       color_text(str(query), 'darkgrey'))
 
             with self.database.atomic():
                 with Timer() as timer:
                     self.database.execute_sql(
-                        f'CREATE TABLE {self.path} AS ' + str(query))
+                        f'CREATE TABLE IF NOT EXISTS '
+                        f'{self.path} AS ' + str(query))
 
         else:
 
@@ -297,8 +298,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                             log.debug(f'tile {nn}/{n_tiles}: {polygon}')
 
                             self.database.execute_sql(
-                                f'CREATE TABLE {self.path} AS ' +
-                                str(tile_query))
+                                f'CREATE TABLE IF NOT EXISTS '
+                                f'{self.path} AS {str(tile_query)}')
 
                             nn += 1
 
@@ -393,7 +394,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         RModel = self.get_model()
 
         has_targets = (RModel.select()
-                       .where(RModel.selected == True)  # noqa
+                       .where(RModel.selected >> True)
                        .exists())
 
         if not has_targets:
@@ -469,7 +470,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                cdb.Catalog.pmdec,
                                cdb.Catalog.parallax)
             .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
-            .where(RModel.selected == True)  # noqa
+            .where(RModel.selected >> True)
             .where(~peewee.fn.EXISTS(
                 tdb.Target
                 .select(peewee.SQL('1'))
