@@ -1029,11 +1029,8 @@ class XMatchPlanner(object):
             if is_first_model:
                 self._run_phase_3(model)
             else:
-                if table_name != 'sdss_dr13_photoobj':
-                    self._run_phase_1(model)
-                    self._run_phase_2(model)
-                else:
-                    self._phases_run.add(1)
+                self._run_phase_1(model)
+                self._run_phase_2(model)
                 self._run_phase_3(model)
 
         self.log.info(f'Fully processed {table_name} in {timer.elapsed:.0f} s.')
