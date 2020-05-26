@@ -60,8 +60,7 @@ class GuideCarton(BaseCarton):
                 .offset(1))
 
         decollided = (sample
-                      .select(sample.c.catalogid,
-                              sample.c.phot_g_mean_mag.alias('magnitude_g'))
+                      .select(sample.c.catalogid)
                       .join(subq, peewee.JOIN.LEFT_LATERAL,
                             on=peewee.SQL('true'))
                       .where(subq.c.source_id.is_null())

@@ -342,20 +342,6 @@
     base_plan: '0.1.0-beta.1'
     log_path: xmatch_{plan}.log
     show_sql: true
-    tables:
-        catwise:
-            ra_column: ra_pm
-            dec_column: dec_pm
-            pmra_column: pmra
-            pmdec_column: pmdec
-            has_missing_coordinates: true
-            epoch: 2014.115  # MJD 56700
-            parallax_column: par_pm
-            skip_phases: [3]
-            query_radius: 3
-            database_options:
-                work_mem: {value: '20GB', phases: [2]}
     database_options:
-        work_mem: '10GB'
-        temp_buffers: '10GB'
-        synchronous_commit: 'off'
+        work_mem: '30GB'
+        temp_buffers: '20GB'
