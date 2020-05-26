@@ -1485,8 +1485,6 @@ class XMatchPlanner(object):
         unmatched = (model
                      .select((fn.row_number().over() + self._max_cid).alias('catalogid'),
                              model_pk.alias('target_id'),
-                             peewee.Value(self._version_id).alias('version_id'),
-                             peewee.SQL('true').alias('best'),
                              *model_fields)
                      .where(self._get_sample_where(model_ra, model_dec)))
 
@@ -1529,7 +1527,10 @@ class XMatchPlanner(object):
                           temp_model.version_id, temp_model.best]
 
                 rel_insert_query = rel_model.insert_from(
-                    temp_model.select(*fields), fields).returning()
+                    temp_model.select(temp_model.catalogid,
+                                      temp_model.target_id,
+                                      self._version_id,
+                                      peewee.SQL('true')), fields).returning()
 
                 self.log.debug(f'Copying data into relational model '
                                f'{rel_table_name!r}'
@@ -1553,7 +1554,7 @@ class XMatchPlanner(object):
                                       temp_table.c.pmdec,
                                       temp_table.c.parallax,
                                       peewee.Value(table_name),
-                                      temp_table.c.version_id),
+                                      self._version_id),
                     [TempCatalog.catalogid,
                      TempCatalog.ra,
                      TempCatalog.dec,
