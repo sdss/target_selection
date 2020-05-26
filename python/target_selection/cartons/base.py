@@ -568,6 +568,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         for mag, mpath in magnitude_paths.items():
 
             fields.append(getattr(Magnitude, mag))
+            if hasattr(RModel, mag):
+                select_from = select_from.select_extend(getattr(RModel, mag))
+                continue
 
             select_from = select_from.switch(cdb.Catalog)
 

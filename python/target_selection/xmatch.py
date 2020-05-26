@@ -1029,8 +1029,11 @@ class XMatchPlanner(object):
             if is_first_model:
                 self._run_phase_3(model)
             else:
-                self._run_phase_1(model)
-                self._run_phase_2(model)
+                if table_name != 'sdss_dr13_photoobj':
+                    self._run_phase_1(model)
+                    self._run_phase_2(model)
+                else:
+                    self._phases_run.add(1)
                 self._run_phase_3(model)
 
         self.log.info(f'Fully processed {table_name} in {timer.elapsed:.0f} s.')
@@ -1067,21 +1070,20 @@ class XMatchPlanner(object):
                 if not xmatch.is_pmra_cos:
                     pmra_field *= fn.cos(fn.radians(dec_field))
 
+            model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
+            model_fields.extend([pmra_field.alias('pmra'),
+                                 pmdec_field.alias('pmdec')])
+
         else:
 
             pmra_field = peewee.SQL('null')
             pmdec_field = peewee.SQL('null')
 
-        # Actually add the RA/Dec fields as defined above
-        model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
-        model_fields.extend([pmra_field.alias('pmra'),
-                             pmdec_field.alias('pmdec')])
+            model_fields.extend([ra_field.alias('ra'), dec_field.alias('dec')])
 
         # Parallax
         if xmatch.parallax_column:
             model_fields.append(fields[xmatch.parallax_column].alias('parallax'))
-        else:
-            model_fields.append(peewee.SQL('null').alias('parallax'))
 
         return model_fields
 
@@ -1546,23 +1548,31 @@ class XMatchPlanner(object):
 
                 temp_table = peewee.Table(temp_table)
 
+                fields = [TempCatalog.catalogid,
+                          TempCatalog.lead,
+                          TempCatalog.version_id]
+                select_columns = [temp_table.c.catalogid,
+                                  peewee.Value(table_name),
+                                  self._version_id]
+                for field in model_fields:
+                    if field._alias == 'ra':
+                        fields.append(TempCatalog.ra)
+                        select_columns.append(temp_table.c.ra)
+                    elif field._alias == 'dec':
+                        fields.append(TempCatalog.dec)
+                        select_columns.append(temp_table.c.dec)
+                    elif field._alias == 'pmra':
+                        fields.append(TempCatalog.pmra)
+                        select_columns.append(temp_table.c.pmra)
+                    elif field._alias == 'pmdec':
+                        fields.append(TempCatalog.pmdec)
+                        select_columns.append(temp_table.c.pmdec)
+                    elif field._alias == 'parallax':
+                        fields.append(TempCatalog.parallax)
+                        select_columns.append(temp_table.c.parallax)
+
                 insert_query = TempCatalog.insert_from(
-                    temp_table.select(temp_table.c.catalogid,
-                                      temp_table.c.ra,
-                                      temp_table.c.dec,
-                                      temp_table.c.pmra,
-                                      temp_table.c.pmdec,
-                                      temp_table.c.parallax,
-                                      peewee.Value(table_name),
-                                      self._version_id),
-                    [TempCatalog.catalogid,
-                     TempCatalog.ra,
-                     TempCatalog.dec,
-                     TempCatalog.pmra,
-                     TempCatalog.pmdec,
-                     TempCatalog.parallax,
-                     TempCatalog.lead,
-                     TempCatalog.version_id]).returning()
+                    temp_table.select(*select_columns), fields).returning()
 
                 self.log.debug(f'Running INSERT query into {self._temp_table}'
                                f'{self._get_sql(insert_query)}')
