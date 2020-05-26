@@ -156,28 +156,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         pass
 
-    def _resolve_field(self, field, column=None):
-        """Returns the field associated with a field, column, or alias."""
-
-        if isinstance(field, peewee.Field):
-            return (field.name, field)
-        elif isinstance(field, peewee.Alias):
-            return (field._alias, self._resolve_field(field.alias())[1])
-        elif isinstance(field, peewee.CTE):
-            for returning in field._query._returning:
-                if returning.name == column.name:
-                    return self._resolve_field(returning, column=column)
-        elif isinstance(field, peewee.Column):
-            return self._resolve_field(field.source, column=field)
-
-        raise ValueError(f'failed resolving column {field!r}')
-
-    def get_model(self, query=None, use_reflection=False):
-        """Returns a Peewee model with the columns returned by a query."""
-
-        if query is None:
-            version_id = cdb.Version.get(plan=self.xmatch_plan).id
-            query = self.build_query(version_id)
+    def get_model(self):
+        """Returns a Peewee model for the temporary table using reflection."""
 
         class Model(BaseModel):
 
@@ -190,25 +170,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 table_name = self.table_name
                 schema = self.schema
                 reflection_options = {'skip_foreign_keys': True}
+                use_reflection = True
 
-        if use_reflection:
-            Model.reflect()
-            return Model
-
-        returning_fields = query._returning
-
-        for field in returning_fields:
-
-            field_name, resolved_field = self._resolve_field(field)
-            is_primary_key = resolved_field.primary_key
-
-            if field_name in Model._meta.fields:
-                continue
-
-            new_field = resolved_field.__class__(primary_key=is_primary_key,
-                                                 null=not is_primary_key)
-
-            Model._meta.add_field(field_name, new_field)
+        if not Model.table_exists():
+            raise TargetSelectionError(f'temporary table {self.path!r} does '
+                                       'exist.')
 
         return Model
 
@@ -267,38 +233,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if cdb.Catalog.catalogid not in query._returning:
             raise RuntimeError(f'catalogid is not being returned in query.')
 
-        # Dynamically create a model for the results table.
-        ResultsModel = self.get_model(query)
-
-        # Create sandbox table.
-        self.database.create_tables([ResultsModel])
-        log.debug(f'created table {self.table_name!r}')
-
-        # Make the "selected" column detault to true. We cannot do this in
-        # Peewee because field defaults are implemented only on the Python
-        # side.
-        with self.database.atomic():
-            self.database.execute_sql(
-                f'ALTER TABLE {self.schema}.{self.table_name} '
-                'ALTER COLUMN selected SET DEFAULT true;')
-
-        log.info(f'running query with tile={tile}')
-
-        insert_fields = [ResultsModel._meta.fields[field]
-                         for field in ResultsModel._meta.fields
-                         if field not in ['selected', 'cadence']]
-
         if tile is False:
 
-            log.debug(f'INSERT INTO {ResultsModel._meta.table_name}: ' +
+            log.debug(f'CREATE TABLE {self.path} AS ' +
                       color_text(str(query), 'darkgrey'))
 
             with self.database.atomic():
                 with Timer() as timer:
-                    n_rows = (ResultsModel
-                              .insert_from(query, insert_fields)
-                              .returning()
-                              .execute())
+                    self.database.execute_sql(
+                        f'CREATE TABLE {self.path} AS ' + str(query))
 
         else:
 
@@ -353,31 +296,25 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
                             log.debug(f'tile {nn}/{n_tiles}: {polygon}')
 
-                            n_rows = (ResultsModel
-                                      .insert_from(tile_query, insert_fields)
-                                      .returning()
-                                      .execute())
+                            self.database.execute_sql(
+                                f'CREATE TABLE {self.path} AS ' +
+                                str(tile_query))
 
                             nn += 1
 
                             if progress_bar:
                                 counter.update()
 
-        log.info(f'inserted {n_rows:,} rows into {self.path!r} '
-                 f'in {timer.interval:.3f} s.')
+        log.info(f'created table {self.path!r} in {timer.interval:.3f} s.')
 
-        mask = self.post_process(ResultsModel, **post_process_kawrgs)
-        if mask is True:
-            log.debug('post-processing returned True. Selecting all records.')
-            pass  # No need to do anything
-        else:
-            assert len(mask) > 0, 'the post-process list is empty'
-            log.debug(f'selecting {len(mask)} records.')
-            (ResultsModel
-             .update({ResultsModel.selected: False})
-             .where(ResultsModel._meta.primary_key.not_in(mask))
-             .execute())
+        log.debug('adding columns and indexes.')
+        self.database.execute_sql(
+            f"""ALTER TABLE {self.path} ADD COLUMN selected BOOL DEFAULT TRUE;
+                ALTER TABLE {self.path} ADD COLUMN cadence TEXT DEFAULT NULL;
+                CREATE INDEX ON {self.path} (catalogid);""")
 
+        ResultsModel = self.get_model()
+        self.post_process(ResultsModel, **post_process_kawrgs)
         self.has_run = True
 
         return ResultsModel
@@ -387,8 +324,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         This method provides a framework for applying non-SQL operations on
         carton query. It receives the model for the temporary table and can
-        perform any operation as long as it returns a tuple with the list of
-        catalogids that should be selected.
+        perform any operation on it, including modifying the ``selected``
+        column with a mask of targets to be used.
 
         This method can also be used to set the ``cadence`` column in the
         temporary table. This column will be used to set the target cadence if
@@ -453,7 +390,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise TargetSelectionError('the query needs to be run before '
                                        'calling load().')
 
-        RModel = self.get_model(use_reflection=True)
+        RModel = self.get_model()
 
         has_targets = (RModel.select()
                        .where(RModel.selected == True)  # noqa
