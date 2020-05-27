@@ -231,7 +231,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Make sure the catalogid column is selected.
         if cdb.Catalog.catalogid not in query._returning:
-            raise RuntimeError(f'catalogid is not being returned in query.')
+            raise RuntimeError('catalogid is not being returned in query.')
 
         if tile is False:
 
