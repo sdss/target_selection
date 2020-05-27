@@ -1,4 +1,6 @@
 
+.. _target-selection:
+
 Target selection
 ================
 
