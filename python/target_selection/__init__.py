@@ -18,4 +18,8 @@ log = get_logger(NAME)
 manager = enlighten.get_manager()
 
 
+# Controls whether a failure importing a carton raises an exception.
+__fail_on_carton_import = False
+
+
 __version__ = get_package_version(path=__file__, package_name=NAME)

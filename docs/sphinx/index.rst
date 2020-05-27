@@ -12,6 +12,7 @@ Contents
 
   cross-match
   target-selection
+  cli
   api
   Changelog <changelog>
 
