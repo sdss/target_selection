@@ -1210,9 +1210,7 @@ class XMatchPlanner(object):
 
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             TempCatalog.catalogid,
-                             peewee.Value(self._version_id).alias('version_id'),
-                             peewee.SQL('true').alias('best'))
+                             TempCatalog.catalogid)
                      .where(join_rel_model.version_id == self._version_id)
                      .where(~fn.EXISTS(
                          rel_model
@@ -1251,7 +1249,10 @@ class XMatchPlanner(object):
                               temp_model.version_id, temp_model.best]
 
                     nids = rel_model.insert_from(
-                        temp_model.select(*fields),
+                        temp_model.select(rel_model.target_id,
+                                          rel_model.catalogid,
+                                          peewee.Value(self._version_id),
+                                          peewee.SQL('true')),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
