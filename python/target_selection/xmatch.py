@@ -985,8 +985,6 @@ class XMatchPlanner(object):
                            schema=Catalog._meta.schema,
                            table=Catalog._meta.table_name)
 
-        # self.database.execute_sql('SET temp_buffers="50GB";')
-
         self._create_models(force or (from_ is not None))
         self._max_cid = None
 
