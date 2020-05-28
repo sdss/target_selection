@@ -595,7 +595,7 @@ class XMatchPlanner(object):
         return config
 
     def _check_models(self):
-        """Checks the input models."""
+        """Checks the input analyse models."""
 
         catalog_tname = self.output_table
 
@@ -789,7 +789,7 @@ class XMatchPlanner(object):
         Instead of returning all possible simple paths between the ``source``
         and output table, this algorithm follows a "scorched earth" approach
         in which once an edge has been used for a join it cannot be used again.
-        This produces only distint joins between the two nodes. Paths that
+        This produces only distinct joins between the two nodes. Paths that
         include only the source and destination through their relational table
         are ignored, as are paths in which the last node before the output
         table has not yet been processed.
@@ -1310,7 +1310,7 @@ class XMatchPlanner(object):
         # larger table last.
         if self._temp_count > meta.xmatch.row_count:  # TempCatalog is larger
 
-            self.log.debug(f'Cross-matching model against temporary table.')
+            self.log.debug('Cross-matching model against temporary table.')
 
             if use_pm:
 
@@ -1339,7 +1339,7 @@ class XMatchPlanner(object):
 
         else:  # Model is larger
 
-            self.log.debug(f'Cross-matching temporary table against model.')
+            self.log.debug('Cross-matching temporary table against model.')
 
             if use_pm:
                 q3c_dist = fn.q3c_dist_pm(TempCatalog.ra, TempCatalog.dec,
