@@ -834,8 +834,7 @@ class XMatchPlanner(object):
                 if (spath[-3] in porder and
                         porder.index(spath[-3]) < porder.index(source)):
                     paths.append(spath)
-                for node in spath[1:-1]:
-                    graph.remove_node(node)
+                graph.remove_node(spath[1])
             except networkx.NetworkXNoPath:
                 break
 
