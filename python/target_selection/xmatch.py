@@ -1035,6 +1035,8 @@ class XMatchPlanner(object):
 
         self.log.info(f'Fully processed {table_name} in {timer.elapsed:.0f} s.')
 
+        self.update_model_graph()
+
         self.log.header = ''
 
     def _get_model_fields(self, model):
