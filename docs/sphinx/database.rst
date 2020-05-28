@@ -1,32 +1,21 @@
+The database server
+===================
 
-Catalogue cross-matching
-========================
+For SDSS-V target selection we use a Postgresql database server running on a dedicated machine, ``operations.sdss.org``, at University of Utah. Details on the server and its configuration are given below.
 
-The catalogue cross-matching step refers to the action of processing a series of parent catalogues to produce a list of unique objects along with the associations for each object with one or several of the parent catalogues. This definition is general regardless of the method employed to determine the cross-matches (i.e., what entries in different catalogues we consider to be the same object). At the moment, ``target_selection`` only supports the spatial cross-matching scheme described below.
-
-SDSS-V definitions
-^^^^^^^^^^^^^^^^^^
-
-Although these concepts are applicable to any cross-matching problem, for the SDSS-V case we need to define the specific framework we will employ. We use a Postgresql database server running on a dedicated machine, ``operations.sdss.org``, at Utah. Details on the server and its configuration are given below.
-
-The parent catalogues and the results of cross-matching and target selection live in the ``sdss5db`` database, whose schema can be found :ref:`here <sdssdb:available-databases>`. The files used to create and populate the parent catalogues are part of the `sdssdb <https://github.com/sdss/sdssdb>`_ product. Each parent catalogue must be a well documented publication; the downloaded files are in general maintained at Utah at ``/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/catalogs``. Additional information about each catalogue can be found in the `wiki <https://wiki.sdss.org/x/Y4DzAQ>`__.
+The parent catalogues and the results of :ref:`cross-matching <cross-matching>` and :ref:`target selection <target-selection>` live in the ``sdss5db`` database, whose schema can be found :ref:`here <sdssdb:available-databases>`. The files used to create and populate the parent catalogues are part of the `sdssdb <https://github.com/sdss/sdssdb>`_ product. Each parent catalogue must be a well documented publication; the downloaded files are in general maintained at Utah at ``/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/catalogs``. Additional information about each catalogue can be found in the `wiki <https://wiki.sdss.org/x/Y4DzAQ>`__.
 
 Parent catalogues are loaded into the ``catalogdb`` schema. This schema is meant to be only accessible from Utah and will *not* be synced to the observatories for nightly operations. The cross-matching process populates the ``catalog`` table, which contains all the unique targets for a given run of cross-matching. Each unique target has an associated unique identifier, ``catalogid``, a 64-bit integer. catalogids do not repeat across multiple runs of cross-matching. The ``catalog`` table also includes information about the RA and Dec coordinates of the target, proper motions and parallax (if provided in the catalogue from which the target was drawn), and the ``lead`` catalogue, i.e., the name of the table for the catalogue from which the target was selected. By convention, all coordinates are given in epoch 2015.5.
 
-In addition to populating ``catalog``, the process of cross-matching also creates/populates a series of relational tables ``catalog_to_<parent>`` where ``<parent>`` is the name of the related parent catalogue. Each relational table contains columns for the ``catalogid`` and ``target_id`` (the value of the primary key in the related table) that have been cross-matched, along with the distance between the two objects, and whether the match is the ``best`` (closest).
+In addition to populating ``catalog``, the process of cross-matching also creates/populates a series of relational, many-to-many tables ``catalog_to_<parent>`` where ``<parent>`` is the name of the related parent catalogue. Each relational table contains columns for the ``catalogid`` and ``target_id`` (the value of the primary key in the related table) that have been cross-matched, along with the distance between the two objects, and whether the match is the ``best`` (closest).
 
 We define a cross-matching run by its ``plan`` version (the set of configuration parameters used for the run) and the ``tag`` of the ``target_selection`` code used to run that plan. For example, ``('0.1.0-beta.1', '0.2.3')`` indicates that the plan ``0.1.0-beta.1`` was run using the code tagged as ``0.2.3``. The version strings can have any value but we follow a slightly modified style of semantic versioning in which the ``X.Y.Z`` indicates major, minor, and patch modifications to the plan; while the pre-release ``alpha`` (or ``a``) indicates a test run on a small region of the sky, and ``beta`` (or ``b``) an all-sky test run. For convenience we usually refer to a given run with a ``version_id``, which is the primary key of the ``catalogdb.version`` row that contains the (``plan``, ``tag``) pair. ``version_id`` is a column in all ``catalog`` and the relational tables and it's used to identify the unique targets and matches from a particular run.
 
 The ``targetdb`` schema of ``sdss5db`` contains the results of running target selection against a given cross-matching run. We talk about its structure in :ref:`its own section <target-selection>`.
 
 
-Database server
----------------
-
-This section refers to the set up and configuration of the database server at ``operations.sdss.org``, but it's in general applicable to any such server.
-
 Database preparation
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 The ``operations`` server has 32 CPU cores and approximately 250 GB of RAM with 80 TB of conventional hard drive space. The disks are configured as RAID-6 (?) with about 3TB of SSD disk space used as cache. The OS and software runs on a small SSD hard drive partition.
 
@@ -43,7 +32,7 @@ For each table with coordinates we create a `Q3C <https://github.com/segasai/q3c
 We also add the `pg_healpix <https://github.com/segasai/pg_healpix>`__ and `pgunit <https://github.com/petere/pguint>`__ extensions. Although it's not installed at Utah, `pg_repack <https://github.com/reorg/pg_repack>`__ provides a way of keeping tables clustered on an index without locks.
 
 Server configuration
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 The ``postgresql.conf`` file with the configuration for the database server is kept under version control in the ``operations`` table of the `config product <https://github.com/sdss/config>`__. The default Postgresql configuration is very conservative and not well suited for a database with table with billions of rows. In general is a good idea to start by using a website such as `PGTune <https://pgtune.leopard.in.ua/>`__ to determine the best default configuration depending on the server parameters. Here are the final configurations values:
 
@@ -119,14 +108,14 @@ All the parameters are explained in the Postgresql documentation but we offer co
 - For production we do not modify the *fsync* or *synchronous_commit* parameters since we don't see a very significant improvement and they entail some risk. During the initial database loading it's probably a good idea to at least set ``synchronous_commit=off``. More details are available `here <https://www.postgresql.org/docs/12/runtime-config-wal.html#RUNTIME-CONFIG-WAL-ARCHIVING>`__.
 
 Connecting and using the database
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 These instructions assume that you have access to the Utah system. The operations machine is only accessible by a small group of users but the server is available from any other virtual machine. Once you have ssh'd to your favourite Utah machine create or edit your `~/.pgpass <https://www.postgresql.org/docs/12/libpq-pgpass.html>`__ with the line ::
 
     *:*:sdss5db:sdss:XXX
     *:*:sdss5db:sdss_user:XXX
 
-where ``XXX`` is the password that needs to be requested from an administrator. Set the permissions to the file by running ``chmod 0600 ~/.pgpass``. Once you've done that you should be able to connect to the server as
+where ``XXX`` is the password that needs to be requested from an administrator. Set the permissions to the file by running ``chmod 0600 ~/.pgpass``. Once you've done that you should be able to connect to the server as ::
 
     psql -U sdss_user -h operations.sdss.org sdss5db
 
@@ -134,7 +123,7 @@ Alternatively you can create an ssh tunnel to any machine at Utah and forward th
 
     ssh -l {your_utah_username} -L {a_port_of_your_choosing}:operations.sdss.org:5432 manga.sdss.org
 
-(you can use any machine, not only the manga VM). Then add a ``.pgpass`` file as the above in your system and do
+(you can use any machine, not only the manga VM). Then add a ``.pgpass`` file as the above in your system and do ::
 
     psql -U sdss_user -h localhost -p {a_port_of_your_choosing} sdss5db
 
@@ -157,27 +146,39 @@ If you are connecting via an ssh tunnel the ``operations`` profile won't work, i
 
 There are some more details and tips on using the database server in the `wiki <https://wiki.sdss.org/x/oIBsAw>`__.
 
+Tips for running queries efficiently
+------------------------------------
 
-The spatial cross-matching process
-----------------------------------
+(These tips are written in raw SQL but they are equally applicable if you're using sdssdb/ORM). While testing queries, especially long-running ones, it's important to make sure a limit is applied in some way. The easiest way is to add a ``LIMIT`` to the query to return only the first N results (make sure to order your query if you want the results to be reproducible). For example:
 
-Phase 1: linking
-^^^^^^^^^^^^^^^^
+.. code-block:: postgresql
 
-Phase 2: cross-matching
-^^^^^^^^^^^^^^^^^^^^^^^
+    SELECT * FROM catalog c
+        INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
+        INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
+        INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
+    WHERE gaia.parallax < 0.5
+    ORDER BY gaia.parallax DESC
+    LIMIT 100;
 
-Phase 3: unique targets
-^^^^^^^^^^^^^^^^^^^^^^^
+will return the catalog information for the 100 Gaia targets with the largest parallaxes as long as those are < 0.5. This query runs in ~20s while the query without the ``LIMIT`` could take more than one hour. You can also use aggregate functions such as ``COUNT(*)`` to get statistics from your queries.
 
-Running ``xmatch``
-------------------
+Alternatively, it's possible to limit your query by doing a radial query:
 
-The configuration file
-^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: postgresql
 
-Overriding database parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    SELECT * FROM catalog c
+        INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
+        INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
+        INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
+    WHERE q3c_radial_query(c.ra, c.dec, 100, 20, 1);
 
-Removing a run
-^^^^^^^^^^^^^^
+This query will return all the catalog rows that are cross-matched with Gaia DR2 and that fall within a radius of 1 degree around (100, 20) deg.
+
+For very large queries it's best to avoid using a naked SELECT statement that output to the terminal. For example ``SELECT * FROM unwise`` will return 2 billion rows and 300 columns. What's more, the output will probably be larger than the RAM size available and you'll crash the database server. And even if the query works you won't be able to process it in any useful way from the screen. Instead, save the results to a new table:
+
+.. code-block:: postgresql
+
+    CREATE TABLE sandbox.temp_results AS SELECT * FROM unwise;
+
+All users can use the ``sandbox`` schema for this purpose (it's writeable even by the ``sdss_user`` role). Remember to drop your table once you're done with it. You can use temporary tables but note those will disappear automatically once you close the connection.

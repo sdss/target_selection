@@ -10,6 +10,7 @@ Contents
 .. toctree::
   :maxdepth: 2
 
+  database
   cross-match
   target-selection
   cli
