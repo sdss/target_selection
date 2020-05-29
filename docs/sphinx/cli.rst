@@ -5,7 +5,7 @@
 Command-line interface
 ======================
 
-The command ``target_selection`` provides access to some of the features of the library.
+The command ``target_selection`` provides CLI access to some of the features of the library.
 
 Examples of use
 ---------------
@@ -32,7 +32,7 @@ We can remove the results of a target selection run from ``targetdb`` ::
 
    target_selection --user sdss clear "0.4.1"
 
-Note that this won't remove entries from the ``target`` or ``magnitude`` table because a target entry can be related to multiple target selection plans.
+Note that this won't remove entries from the ``target`` or ``magnitude`` table because a ``target`` entry can be related to multiple target selection plans.
 
 Available commands
 ------------------
