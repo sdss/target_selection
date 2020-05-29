@@ -414,9 +414,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         has_targets = (tdb.ProgramToTarget
                        .select()
                        .join(tdb.Program)
-                       .join(tdb.Plan)
+                       .join(tdb.Version)
                        .where(tdb.Program.label == self.name,
-                              tdb.Plan.label == self.plan)
+                              tdb.Version.plan == self.plan)
                        .exists())
 
         return has_targets
@@ -427,17 +427,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
         category_pk = None
 
         # Create targeting plan in tdb.
-        plan_pk, created = tdb.Plan.get_or_create(label=self.plan,
-                                                  tag=self.tag,
-                                                  target_selection=True)
+        version_pk, created = tdb.Version.get_or_create(plan=self.plan,
+                                                        tag=self.tag,
+                                                        target_selection=True)
         if created:
-            log.info(f'created record in targetdb.plan for {self.plan!r}.')
-
-        plan_pk = tdb.Plan.get(label=self.plan, target_selection=True)
+            log.info(f'created record in targetdb.version for {self.plan!r}.')
 
         if (tdb.Program.select()
                        .where(tdb.Program.label == self.name,
-                              tdb.Program.plan_pk == plan_pk)
+                              tdb.Program.version_pk == version_pk)
                        .exists()):
             return
 
@@ -454,7 +452,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 log.debug(f'created category {self.category!r}')
 
         tdb.Program.create(label=self.name, category_pk=category_pk,
-                           survey_pk=survey_pk, plan_pk=plan_pk)
+                           survey_pk=survey_pk, version_pk=version_pk)
         log.debug(f'created program {self.name!r}')
 
     def _load_data(self, RModel):
@@ -551,8 +549,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('loading data into targetdb.program_to_target.')
 
-        plan_pk = tdb.Plan.get(label=self.plan, target_selection=True)
-        program_pk = tdb.Program.get(label=self.name, plan_pk=plan_pk).pk
+        version_pk = tdb.Version.get(label=self.plan, target_selection=True)
+        program_pk = tdb.Program.get(label=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
         ProgramToTarget = tdb.ProgramToTarget
@@ -568,7 +566,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                            .join(tdb.Program)
                            .where(ProgramToTarget.target_pk == Target.pk,
                                   ProgramToTarget.program_pk == program_pk,
-                                  tdb.Program.plan_pk == plan_pk))))
+                                  tdb.Program.version_pk == version_pk))))
 
         if self.cadence is not None:
 
