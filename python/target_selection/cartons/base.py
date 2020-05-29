@@ -309,10 +309,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
         log.info(f'created table {self.path!r} in {timer.interval:.3f} s.')
 
         log.debug('adding columns and indexes.')
-        self.database.execute_sql(
-            f"""ALTER TABLE {self.path} ADD COLUMN selected BOOL DEFAULT TRUE;
-                ALTER TABLE {self.path} ADD COLUMN cadence TEXT DEFAULT NULL;
-                CREATE INDEX ON {self.path} (catalogid);""")
+
+        columns = [col.name
+                   for col in self.database.get_columns(self.table_name,
+                                                        self.schema)]
+
+        if 'selected' not in columns:
+            self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                      'ADD COLUMN selected BOOL DEFAULT TRUE;')
+
+        if 'cadence' not in columns:
+            self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                      'ADD COLUMN cadence BOOL DEFAULT NULL;')
+
+        self.database.execute_sql(f'CREATE INDEX ON {self.path} (catalogid);')
 
         ResultsModel = self.get_model()
         self.post_process(ResultsModel, **post_process_kawrgs)
@@ -549,7 +559,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('loading data into targetdb.program_to_target.')
 
-        version_pk = tdb.Version.get(label=self.plan, target_selection=True)
+        version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
         program_pk = tdb.Program.get(label=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
