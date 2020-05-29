@@ -50,7 +50,7 @@ Here we assume we are using the cross-match corresponding to the plan with ``cat
 
     gg = (TwoMassPSC
           .select(Catalog.catalogid)
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < 11,
@@ -80,7 +80,7 @@ The main method that needs overloading is `.build_query`, which receives the ver
 
             gg = (TwoMassPSC
                   .select(Catalog.catalogid)
-                  .join(TIC_v8, 'LEFT OUTER')
+                  .join(TIC_v8, 'LEFT_OUTER')
                   .join(CatalogToTIC_v8)
                   .join(Catalog)
                   .where(TwoMassPSC.h_m < 11,
@@ -121,7 +121,7 @@ Here target selection plan ``0.1.0`` is associated with cross-matching ``0.1.0-b
 
     gg = (TwoMassPSC
           .select(Catalog.catalogid)
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < self.parameters['h_max'],
@@ -138,7 +138,7 @@ We have just seen how the magnitudes for a target are obtained from parent table
     gg = (TwoMassPSC
           .select(Catalog.catalogid,
                   CatWISE.w1mag.alias('h'))
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .join(CatalogToCatWISE)
