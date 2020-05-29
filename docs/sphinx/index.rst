@@ -1,7 +1,7 @@
 Target Selection
 ================
 
-``target_selection`` provides the framework for defining cross-matching and target selection algorithms against the parent catalogues in :ref:`catalogdb <sdssdb:available-databases>`.
+``target_selection`` provides the framework for defining cross-matching and target selection algorithms using the parent catalogues in :ref:`catalogdb <sdssdb:available-databases>`.
 
 
 Contents

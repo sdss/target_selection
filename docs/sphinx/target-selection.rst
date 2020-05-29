@@ -56,7 +56,7 @@ Here we assume we are using the cross-match corresponding to the plan with ``cat
                  ((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5 | TIC_v8.gaia >> None),
                  Catalog.version_id == 13))
 
-``target_selection`` provides all the additional boilerplate to evaluate this query against ``catalogdb``, retrieve the results, and load them into ``targetdb`` along with their associated metadata (magnitudes, cadences, etc).
+``target_selection`` provides all the additional boilerplate to evaluate this query using ``catalogdb``, retrieve the results, and load them into ``targetdb`` along with their associated metadata (magnitudes, cadences, etc).
 
 Writing the query
 ^^^^^^^^^^^^^^^^^
