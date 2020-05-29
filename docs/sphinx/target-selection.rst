@@ -69,6 +69,8 @@ The main method that needs overloading is `.build_query`, which receives the ver
     from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                                  TIC_v8, TwoMassPSC)
 
+    from . import BaseCarton
+
     class GalacticGenesisCarton(BaseCarton):
 
         name = 'galactic_genesis'
