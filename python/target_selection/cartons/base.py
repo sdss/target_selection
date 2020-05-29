@@ -426,7 +426,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        .join(tdb.Program)
                        .join(tdb.Version)
                        .where(tdb.Program.label == self.name,
-                              tdb.Version.plan == self.plan)
+                              tdb.Version.plan == self.plan,
+                              tdb.Version.target_selection >> True)
                        .exists())
 
         return has_targets

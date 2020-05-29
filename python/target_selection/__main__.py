@@ -155,7 +155,8 @@ def clear(targeting_plan, tables):
         for Carton in Cartons:
             Carton(targeting_plan).drop_table()
     try:
-        tdb.Version.get(plan=targeting_plan).delete_instance()
+        tdb.Version.get(plan=targeting_plan,
+                        target_selection=True).delete_instance()
     except peewee.DoesNotExist:
         pass
 
