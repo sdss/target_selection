@@ -6,6 +6,14 @@ Catalogue cross-matching
 
 The catalogue cross-matching step refers to the action of processing a series of parent catalogues to produce a list of unique objects along with the associations for each object with one or several of the parent catalogues. This definition is general regardless of the method employed to determine the cross-matches (i.e., what entries in different catalogues we consider to be the same object). At the moment, ``target_selection`` only supports the spatial cross-matching scheme described below.
 
+Parent catalogues are loaded into the ``catalogdb`` schema as described in :ref:`here <database-server>`. This schema is meant to be only accessible from Utah and will *not* be synced to the observatories for nightly operations. The cross-matching process populates the ``catalog`` table, which contains all the unique targets for a given run of cross-matching. Each unique target has an associated unique identifier, ``catalogid``, a 64-bit integer. catalogids do not repeat across multiple runs of cross-matching. The ``catalog`` table also includes information about the RA and Dec coordinates of the target, proper motions and parallax (if provided in the catalogue from which the target was drawn), and the ``lead`` catalogue, i.e., the name of the table for the catalogue from which the target was selected. By convention, all coordinates are given in epoch 2015.5.
+
+In addition to populating ``catalog``, the process of cross-matching also creates/populates a series of relational, many-to-many tables ``catalog_to_<parent>`` where ``<parent>`` is the name of the related parent catalogue. Each relational table contains columns for the ``catalogid`` and ``target_id`` (the value of the primary key in the related table) that have been cross-matched, along with the distance between the two objects, and whether the match is the ``best`` (closest).
+
+We define a cross-matching run by its ``plan`` version (the set of configuration parameters used for the run) and the ``tag`` of the ``target_selection`` code used to run that plan. For example, ``('0.1.0-beta.1', '0.2.3')`` indicates that the plan ``0.1.0-beta.1`` was run using the code tagged as ``0.2.3``. The version strings can have any value but we follow a slightly modified style of semantic versioning in which the ``X.Y.Z`` indicates major, minor, and patch modifications to the plan; while the pre-release ``alpha`` (or ``a``) indicates a test run on a small region of the sky, and ``beta`` (or ``b``) an all-sky test run. For convenience we usually refer to a given run with a ``version_id``, which is the primary key of the ``catalogdb.version`` row that contains the (``plan``, ``tag``) pair. ``version_id`` is a column in all ``catalog`` and the relational tables and it's used to identify the unique targets and matches from a particular run.
+
+The ``targetdb`` schema of ``sdss5db`` contains the results of running target selection against a given cross-matching run. We talk about its structure in :ref:`its own section <target-selection>`.
+
 The spatial cross-matching process
 ----------------------------------
 
@@ -14,8 +22,8 @@ The process of cross-matching is conceptually defined in the following diagram:
 |
 
 .. image:: _static/Catalogdb_Crossmatch.png
-        :scale: 90 %
-        :align: center
+    :scale: 90 %
+    :align: center
 
 |
 
