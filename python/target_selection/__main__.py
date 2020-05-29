@@ -6,9 +6,10 @@
 # @Filename: __main__.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-import sys
 import importlib
 import logging
+import sys
+import warnings
 
 import click
 import peewee
@@ -17,9 +18,13 @@ from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdssdb.peewee.sdss5db.catalogdb import database
 
 import target_selection as tsmod
-from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 from target_selection.xmatch import XMatchPlanner
+
+
+# Disable warnings during import because the connection may not be working yet.
+with warnings.catch_warnings():
+    from target_selection.cartons import BaseCarton
 
 
 def connect(profile=None, dbname=None, user=None, host=None, port=None):
@@ -51,6 +56,9 @@ def target_selection(profile, dbname, user, host, port, verbose):
     if not connect(profile, dbname, user, host, port):
         raise TargetSelectionError('database is not connected.')
 
+    # Reload the cartons now that we have a connection.
+    importlib.reload(sys.modules['target_selection.cartons'])
+
 
 @target_selection.command()
 @click.argument('TARGETING-PLAN', type=str)
@@ -77,14 +85,11 @@ def run(targeting_plan, overwrite, keep, tile, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
-    # Reload the carton module. At this point the DB connection should be
-    # available and we want to be sure all the cartons are available and
-    # can be imported.
-    tsmod.__fail_on_carton_import = True
-    importlib.reload(sys.modules['target_selection.cartons'])
-
     carton_classes = {Carton.name: Carton
                       for Carton in BaseCarton.__subclasses__()}
+
+    if len(carton_classes) == 0:
+        raise TargetSelectionError('no carton classes found.')
 
     try:
         config_plan = tsmod.config[targeting_plan]
@@ -134,9 +139,13 @@ def run(targeting_plan, overwrite, keep, tile, load,
                 carton.drop_table()
 
         except Exception as ee:
+
             if allow_errors:
-                tsmod.log.error(f'errored processing carton '
-                                f'{carton.name}: {ee}')
+                if carton_name not in carton_classes:
+                    tsmod.log.error(f'no carton class found for {carton_name}')
+                else:
+                    tsmod.log.error(f'errored processing carton '
+                                    f'{carton_name}: {ee}')
             else:
                 raise
 
