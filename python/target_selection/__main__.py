@@ -48,8 +48,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
     if verbose:
         tsmod.log.set_level(logging.DEBUG)
 
-    # if not connect(profile, dbname, user, host, port):
-    #     raise TargetSelectionError('database is not connected.')
+    if not connect(profile, dbname, user, host, port):
+        raise TargetSelectionError('database is not connected.')
 
 
 @target_selection.command()
