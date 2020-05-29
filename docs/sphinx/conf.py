@@ -35,7 +35,7 @@ from pkg_resources import parse_version
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
               'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.mathjax',
-              'sphinx.ext.intersphinx', 'sdsstools.releases']
+              'sphinx.ext.intersphinx', 'sdsstools.releases', 'sphinx_click.ext']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -145,7 +145,7 @@ html_theme_options = {
     'github_button': True,
     'github_type': 'star',
     'sidebar_collapse': True,
-    'page_width': '70%'
+    'page_width': '80%'
 }
 
 html_sidebars = {

@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 #
 # @Author: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Date: 2020-02-27
-# @Filename: target_selection
+# @Date: 2020-05-26
+# @Filename: __main__.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import sys
+import importlib
 import logging
 
 import click
@@ -14,7 +16,7 @@ import peewee
 from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdssdb.peewee.sdss5db.catalogdb import database
 
-from target_selection import config, log
+import target_selection as tsmod
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 from target_selection.xmatch import XMatchPlanner
@@ -44,10 +46,10 @@ def target_selection(profile, dbname, user, host, port, verbose):
     """Performs tasks related to target selection for SDSS-V."""
 
     if verbose:
-        log.set_level(logging.DEBUG)
+        tsmod.log.set_level(logging.DEBUG)
 
-    if not connect(profile, dbname, user, host, port):
-        raise TargetSelectionError('database is not connected.')
+    # if not connect(profile, dbname, user, host, port):
+    #     raise TargetSelectionError('database is not connected.')
 
 
 @target_selection.command()
@@ -75,11 +77,17 @@ def run(targeting_plan, overwrite, keep, tile, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
+    # Reload the carton module. At this point the DB connection should be
+    # available and we want to be sure all the cartons are available and
+    # can be imported.
+    tsmod.__fail_on_carton_import = True
+    importlib.reload(sys.modules['target_selection.cartons'])
+
     carton_classes = {Carton.name: Carton
                       for Carton in BaseCarton.__subclasses__()}
 
     try:
-        config_plan = config[targeting_plan]
+        config_plan = tsmod.config[targeting_plan]
     except KeyError:
         raise TargetSelectionError('cannot find configuration for plan '
                                    f'{targeting_plan}.')
@@ -99,8 +107,9 @@ def run(targeting_plan, overwrite, keep, tile, load,
             Carton = carton_classes[carton_name]
             carton = Carton(targeting_plan)
 
-            log.header = f'({carton.name}): '
-            log.info(f'running target selection for carton {carton.name!r}.')
+            tsmod.log.header = f'({carton.name}): '
+            tsmod.log.info(f'running target selection for '
+                           f'carton {carton.name!r}.')
 
             if carton.check_targets():
                 raise ValueError(f'found existing targets for carton '
@@ -110,27 +119,28 @@ def run(targeting_plan, overwrite, keep, tile, load,
                 carton.run(tile=tile, overwrite=overwrite)
             else:
                 carton.has_run = True
-                log.debug(f'skipping query.')
+                tsmod.log.debug('skipping query.')
 
             if load:
                 carton.load()
             else:
-                log.debug(f'not loading data into targetdb.target.')
+                tsmod.log.debug('not loading data into targetdb.target.')
 
             if write_table:
                 carton.write_table()
 
             if not keep:
-                log.info(f'dropping temporary table {carton.path!r}.')
+                tsmod.log.info(f'dropping temporary table {carton.path!r}.')
                 carton.drop_table()
 
         except Exception as ee:
             if allow_errors:
-                log.error(f'errored processing carton {carton.name}: {ee}')
+                tsmod.log.error(f'errored processing carton '
+                                f'{carton.name}: {ee}')
             else:
                 raise
 
-    log.header = ''
+    tsmod.log.header = ''
 
 
 @target_selection.command()
