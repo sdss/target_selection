@@ -21,7 +21,7 @@ class GalacticGenesisCarton(BaseCarton):
 
         gg = (TwoMassPSC
               .select(Catalog.catalogid)
-              .join(TIC_v8, 'LEFT OUTER')
+              .join(TIC_v8, 'LEFT_OUTER')
               .join(CatalogToTIC_v8)
               .join(Catalog)
               .where(TwoMassPSC.h_m < self.parameters['h_max'],
