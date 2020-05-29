@@ -216,10 +216,13 @@ def remove_version(database, plan, schema='catalogdb',
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
     models = []
-    for table_name in database.models:
+    for path in database.models:
+        schema, table_name = path.split('.')
+        if schema != schema:
+            continue
         if table_name != table and not table_name.startswith(table + '_to_'):
             continue
-        model = database.models[table_name]
+        model = database.models[path]
         if not model.table_exists() or model._meta.schema != schema:
             continue
         models.append(model)
@@ -230,8 +233,8 @@ def remove_version(database, plan, schema='catalogdb',
     print(f'Tables that will be truncated on {plan!r}: ' +
           ', '.join(model._meta.table_name for model in models))
 
-    Catalog = database.models[table]
-    Version = database.models['version']
+    Catalog = database.models[schema + '.' + table]
+    Version = database.models[schema + '.version']
 
     try:
         version_id = Version.get(plan=plan).id

@@ -834,8 +834,7 @@ class XMatchPlanner(object):
                 if (spath[-3] in porder and
                         porder.index(spath[-3]) < porder.index(source)):
                     paths.append(spath)
-                for node in spath[1:-1]:
-                    graph.remove_node(node)
+                graph.remove_node(spath[1])
             except networkx.NetworkXNoPath:
                 break
 
@@ -985,8 +984,6 @@ class XMatchPlanner(object):
                            schema=Catalog._meta.schema,
                            table=Catalog._meta.table_name)
 
-        # self.database.execute_sql('SET temp_buffers="50GB";')
-
         self._create_models(force or (from_ is not None))
         self._max_cid = None
 
@@ -1034,6 +1031,8 @@ class XMatchPlanner(object):
                 self._run_phase_3(model)
 
         self.log.info(f'Fully processed {table_name} in {timer.elapsed:.0f} s.')
+
+        self.update_model_graph()
 
         self.log.header = ''
 
@@ -1113,7 +1112,7 @@ class XMatchPlanner(object):
         class BaseModel(peewee.Model):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
-            target_id = model_pk_class(null=False)
+            target_id = model_pk_class(null=False, index=True)
             version_id = peewee.SmallIntegerField(null=False)
             distance = peewee.DoubleField(null=True)
             best = peewee.BooleanField(null=False)
@@ -1210,9 +1209,7 @@ class XMatchPlanner(object):
 
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             TempCatalog.catalogid,
-                             peewee.Value(self._version_id).alias('version_id'),
-                             peewee.SQL('true').alias('best'))
+                             TempCatalog.catalogid)
                      .where(join_rel_model.version_id == self._version_id)
                      .where(~fn.EXISTS(
                          rel_model
@@ -1251,7 +1248,10 @@ class XMatchPlanner(object):
                               temp_model.version_id, temp_model.best]
 
                     nids = rel_model.insert_from(
-                        temp_model.select(*fields),
+                        temp_model.select(rel_model.target_id,
+                                          rel_model.catalogid,
+                                          peewee.Value(self._version_id),
+                                          peewee.SQL('true')),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')

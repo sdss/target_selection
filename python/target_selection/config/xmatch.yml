@@ -343,5 +343,5 @@
     log_path: xmatch_{plan}.log
     show_sql: true
     database_options:
-        work_mem: '30GB'
-        temp_buffers: '20GB'
+        work_mem: '10GB'
+        temp_buffers: '10GB'
