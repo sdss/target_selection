@@ -95,6 +95,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise TargetSelectionError(f'({self.name}): xmatch_plan '
                                        'not found in config.')
 
+        # Check the signature of build_query
+        self._build_query_signature = inspect.signature(self.build_query)
+        if 'version_id' not in self._build_query_signature.parameters:
+            raise TargetSelectionError('build_query does not '
+                                       'accept version_id')
+
         self.database = tdb.database
         assert self.database.connected, 'database is not connected.'
 
@@ -213,8 +219,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # If build_query accepts a query_region parameter, call with the query
         # region. Otherwise will add the radial query condition later.
-        signature = inspect.signature(self.build_query)
-        if 'query_region' in signature.parameters:
+        if 'query_region' in self._build_query_signature.parameters:
             query = self.build_query(version_id, query_region=query_region)
         else:
             query = self.build_query(version_id)
@@ -224,7 +229,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise RuntimeError('catalogid is not being returned in query.')
 
         if query_region:
-            if 'query_region' in signature.parameters:
+            if 'query_region' in self._build_query_signature.parameters:
                 pass
             else:
                 # This may be quite inefficient depending on the query.
