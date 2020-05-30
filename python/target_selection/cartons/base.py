@@ -210,21 +210,24 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('building query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
-        query = self.build_query(version_id)
+
+        # If build_query accepts a query_region parameter, call with the query
+        # region. Otherwise will add the radial query condition later.
+        signature = inspect.signature(self.build_query)
+        if 'query_region' in signature.parameters:
+            query = self.build_query(version_id, query_region=query_region)
+        else:
+            query = self.build_query(version_id)
 
         # Make sure the catalogid column is selected.
         if cdb.Catalog.catalogid not in query._returning:
             raise RuntimeError('catalogid is not being returned in query.')
 
         if query_region:
-            # If build_query accepts a query_region parameter, call it again
-            # but this time pass the query region. Otherwise add a radial
-            # query condition (depending on the query the latter won't be
-            # very efficient).
-            signature = inspect.signature(self.build_query)
             if 'query_region' in signature.parameters:
-                query = self.build_query(version_id, query_region=query_region)
+                pass
             else:
+                # This may be quite inefficient depending on the query.
                 subq = query.alias('subq')
                 query = (peewee.Select(columns=[peewee.SQL('subq.*')])
                          .from_(subq)
