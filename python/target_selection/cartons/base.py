@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import abc
+import inspect
 
 import peewee
 from astropy import table
@@ -216,18 +217,27 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise RuntimeError('catalogid is not being returned in query.')
 
         if query_region:
+            # If build_query accepts a query_region parameter, call it again
+            # but this time pass the query region. Otherwise add a radial
+            # query condition (depending on the query the latter won't be
+            # very efficient).
+            signature = inspect.signature(self.build_query)
+            if 'query_region' in signature.parameters:
+                query = self.build_query(version_id, query_region=query_region)
+            else:
+                subq = query.alias('subq')
+                query = (peewee.Select(columns=[peewee.SQL('subq.*')])
+                         .from_(subq)
+                         .join(cdb.Catalog,
+                               on=(cdb.Catalog.catalogid == subq.c.catalogid))
+                         .where(peewee.fn.q3c_radial_query(cdb.Catalog.ra,
+                                                           cdb.Catalog.dec,
+                                                           query_region[0],
+                                                           query_region[1],
+                                                           query_region[2])))
 
-            query = (peewee.Select(from_list=[query])
-                     .join(cdb.Catalog,
-                           on=(cdb.Catalog.catalogid == query.c.catalogid))
-                     .where(peewee.fn.q3c_radial_query(cdb.Catalog.ra,
-                                                       cdb.Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
-
-        log.debug(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                  color_text(str(query), 'darkgrey'))
+        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
+                             str(query), 'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
