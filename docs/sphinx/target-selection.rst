@@ -50,7 +50,7 @@ Here we assume we are using the cross-match corresponding to the plan with ``cat
 
     gg = (TwoMassPSC
           .select(Catalog.catalogid)
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < 11,
@@ -69,6 +69,8 @@ The main method that needs overloading is `.build_query`, which receives the ver
     from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                                  TIC_v8, TwoMassPSC)
 
+    from . import BaseCarton
+
     class GalacticGenesisCarton(BaseCarton):
 
         name = 'galactic_genesis'
@@ -78,7 +80,7 @@ The main method that needs overloading is `.build_query`, which receives the ver
 
             gg = (TwoMassPSC
                   .select(Catalog.catalogid)
-                  .join(TIC_v8, 'LEFT OUTER')
+                  .join(TIC_v8, 'LEFT_OUTER')
                   .join(CatalogToTIC_v8)
                   .join(Catalog)
                   .where(TwoMassPSC.h_m < 11,
@@ -119,7 +121,7 @@ Here target selection plan ``0.1.0`` is associated with cross-matching ``0.1.0-b
 
     gg = (TwoMassPSC
           .select(Catalog.catalogid)
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < self.parameters['h_max'],
@@ -136,7 +138,7 @@ We have just seen how the magnitudes for a target are obtained from parent table
     gg = (TwoMassPSC
           .select(Catalog.catalogid,
                   CatWISE.w1mag.alias('h'))
-          .join(TIC_v8, 'LEFT OUTER')
+          .join(TIC_v8, 'LEFT_OUTER')
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .join(CatalogToCatWISE)
@@ -155,6 +157,48 @@ Post-processing
 Calling `~.BaseCarton.run` will execute the query and create a temporary table in the ``sandbox`` schema called ``temp_<carton_name>`` with its output (the ``catalogid`` column and any other columns we decided to return). Two extra columns are added if they have not been returned by the query: ``selected`` which is set to ``true``, and ``cadence``, set to ``null``. The first one indicates whether the target must be selected and loaded into ``targetdb``' the second allows to set a cadence specific to that object. Note that setting both the carton `.cadence` attribute and the ``cadence`` column is not allowed.
 
 After the query is done the carton class calls `~.BaseCarton.post_process`. By default that method doesn't do anything but it can be overloaded to perform additional, non-SQL operations on the output table. A typical case is that a selection criteria is too complicated to encapsulate as SQL, or maybe it requires using an external file. We can define `.build_query` to return a superset of the targets and use `.post_process` to mask out the objects that do not meet the criteria by changing their ``selected`` value to ``false``. We can also set the ``cadence`` column the same way, or add new magnitude columns based on other existing columns. `.post_process` receives a Peewee model of the temporary table generated using reflection and doesn't return anything: all operations must be done in place on the table.
+
+Restricting the query
+^^^^^^^^^^^^^^^^^^^^^
+
+For test purposes it's useful to be able to run the query on a small region on the sky. This can be accomplished by defining the carton class and overriding the ``query_region`` attribute or by calling `~.BaseCarton.run` and passing a ``query_region`` argument. In either case ``query_region`` must be a tuple in the form ``(ra_centre, dec_centre, radius)``, in degrees. Only targets within that radial region will be included in the output.
+
+The most efficient way to implement the radial query is to do it explicitely when writing the query. If we define `.build_query` with the keyword argument ``query_region`` in its signature, `~.BaseCarton.run` will pass the parameter, at which point the query can implement it in the most optimal way possible.
+
+Let's rewrite our Galactic Genesis example with a radial query option ::
+
+    import peewee
+
+    from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+                                                 TIC_v8, TwoMassPSC)
+
+    from . import BaseCarton
+
+    class GalacticGenesisCarton(BaseCarton):
+
+        name = 'galactic_genesis'
+        category = 'science'
+
+        def build_query(self, version_id, query_region=None):
+
+            gg = (TwoMassPSC
+                  .select(Catalog.catalogid)
+                  .join(TIC_v8, 'LEFT_OUTER')
+                  .join(CatalogToTIC_v8)
+                  .join(Catalog)
+                  .where(TwoMassPSC.h_m < 11,
+                         ((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5 | TIC_v8.gaia >> None),
+                         Catalog.version_id == version_id))
+
+            if query_region:
+                gg = gg.where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                         query_region[0],
+                                                         query_region[1],
+                                                         query_region[2])
+
+            return gg
+
+If we don't implement the region condition explicitely, `~.BaseCarton.run` will add it by converting the main query into a subquery and joining with the ``catalog`` table. Depending on the query this may result in very poor performance (the results could be restricted to the radial region only after the query has run on the whole sky). It's recommended to implement ``query_region`` in `.build_query`.
 
 
 Running target selection

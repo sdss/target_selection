@@ -7,8 +7,8 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import abc
+import inspect
 
-import numpy
 import peewee
 from astropy import table
 
@@ -17,7 +17,7 @@ from sdssdb.peewee.sdss5db import catalogdb as cdb
 from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdsstools.color_print import color_text
 
-from target_selection import __version__, config, log, manager
+from target_selection import __version__, config, log
 from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import Timer
 
@@ -56,17 +56,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
     tag : str
         The version of the ``target_selection`` code used.
-    tile : bool
-        Whether to tile the query instead of running it all at once.
-    tile_region : tuple
-        A tuple defining the region over which to tile with the format
-        ``(ra0, dec0, ra1, dec1)``. This setting is only applied if
-        ``tile=True``; for a non-tiled delimitation of the query region, use
-        the `q3c <https://github.com/segasai/q3c>`__ function
-        ``q3c_poly_query`` when building the query.
-    tile_num : int
-        The number of tile nodes in which to divide the RA and Dec axes
-        when tiling.
+    query_region : tuple
+        A tuple defining the region over which the query should be performed,
+        with the format ``(ra, dec, radius)`` in degrees. This will append a
+        ``q3c_radial_query`` condition to the query.
 
     """
 
@@ -75,9 +68,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     category = None
     survey = None
 
-    tile = False
-    tile_region = None
-    tile_num = None
+    query_region = None
 
     def __init__(self, targeting_plan, schema=None, table_name=None):
 
@@ -103,6 +94,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
         except KeyError:
             raise TargetSelectionError(f'({self.name}): xmatch_plan '
                                        'not found in config.')
+
+        # Check the signature of build_query
+        self._build_query_signature = inspect.signature(self.build_query)
+        if 'version_id' not in self._build_query_signature.parameters:
+            raise TargetSelectionError('build_query does not '
+                                       'accept version_id')
 
         self.database = tdb.database
         assert self.database.connected, 'database is not connected.'
@@ -178,30 +175,23 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return Model
 
-    def run(self, tile=None, tile_num=None, progress_bar=True, overwrite=False,
+    def run(self, tile=None, query_region=None, overwrite=False,
             **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
         output of the query is stored in a temporary table whose schema and
-        table name are defined when the object is instantiated. The target
-        selection query can be run as a single query or tiled.
+        table name are defined when the object is instantiated.
 
         After the query has run, the `.post_process` routine is called if the
-        method has been overridden for the given carton. The returned mask
-        is stored as a new column, ``selected``, in the intermediary table.
+        method has been overridden for the given carton.
 
         Parameters
         ----------
-        tile : bool
-            Whether to perform multiple queries by tiling the sky with a
-            rectangular grid instead of running a single query. If `True`,
-            a filter using ``q3c_poly_query`` is added to the query.
-        tile_num : int
-            The number of tile nodes in which to divide the RA and Dec axes
-            when tiling.
-        progress_bar : bool
-            Use a progress bar when tiling.
+        query_region : tuple
+            A tuple defining the region over which the query should be
+            performed, with the format ``(ra, dec, radius)`` in degrees. This
+            will append a ``q3c_radial_query`` condition to the query.
         overwrite : bool
             Whether to overwrite the intermediary table if already exists.
         post_process_args : dict
@@ -214,8 +204,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         """
 
-        tile = tile or self.tile
-        tile_num = tile_num or self.tile_num
+        query_region = query_region or self.query_region
 
         if self.database.table_exists(self.table_name, schema=self.schema):
             if overwrite:
@@ -227,84 +216,42 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('building query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
-        query = self.build_query(version_id)
+
+        # If build_query accepts a query_region parameter, call with the query
+        # region. Otherwise will add the radial query condition later.
+        if 'query_region' in self._build_query_signature.parameters:
+            query = self.build_query(version_id, query_region=query_region)
+        else:
+            query = self.build_query(version_id)
 
         # Make sure the catalogid column is selected.
         if cdb.Catalog.catalogid not in query._returning:
             raise RuntimeError('catalogid is not being returned in query.')
 
-        if tile is False:
-
-            log.debug(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                      color_text(str(query), 'darkgrey'))
-
-            with self.database.atomic():
-                with Timer() as timer:
-                    self.database.execute_sql(
-                        f'CREATE TABLE IF NOT EXISTS '
-                        f'{self.path} AS ' + str(query))
-
-        else:
-
-            assert tile_num > 1, 'tile_num must be >= 2'
-
-            if self.tile_region is None:
-                ra_space = numpy.linspace(0, 360, num=tile_num)
-                dec_space = numpy.linspace(-90, 90, num=tile_num)
+        if query_region:
+            if 'query_region' in self._build_query_signature.parameters:
+                pass
             else:
-                ra_space = numpy.linspace(self.tile_region[0],
-                                          self.tile_region[2],
-                                          num=tile_num)
-                dec_space = numpy.linspace(self.tile_region[1],
-                                           self.tile_region[3],
-                                           num=tile_num)
+                # This may be quite inefficient depending on the query.
+                subq = query.alias('subq')
+                query = (peewee.Select(columns=[peewee.SQL('subq.*')])
+                         .from_(subq)
+                         .join(cdb.Catalog,
+                               on=(cdb.Catalog.catalogid == subq.c.catalogid))
+                         .where(peewee.fn.q3c_radial_query(cdb.Catalog.ra,
+                                                           cdb.Catalog.dec,
+                                                           query_region[0],
+                                                           query_region[1],
+                                                           query_region[2])))
 
-            n_tiles = (len(ra_space) - 1) * (len(dec_space) - 1)
+        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
+                             str(query), 'darkgrey'))
 
-            if progress_bar:
-                counter = manager.counter(total=n_tiles,
-                                          desc=self.name,
-                                          unit='ticks')
-                counter.update(0)
-
-            with self.database.atomic():
-                with Timer() as timer:
-
-                    nn = 1
-                    for ii in range(len(ra_space) - 1):
-                        for jj in range(len(dec_space) - 1):
-
-                            ra0 = ra_space[ii]
-                            ra1 = ra_space[ii + 1]
-                            dec0 = dec_space[jj]
-                            dec1 = dec_space[jj + 1]
-
-                            polygon = (f'(({ra0:.1f}, {dec0:.1f}), '
-                                       f'({ra0:.1f}, {dec1:.1f}), '
-                                       f'({ra1:.1f}, {dec1:.1f}), '
-                                       f'({ra1:.1f}, {dec0:.1f}))')
-
-                            if isinstance(query, peewee. ModelSelect):
-                                query_model = query.model
-                            else:
-                                query_model = query._cte_list[0].c
-
-                            tile_query = query.where(
-                                peewee.fn.q3c_poly_query(
-                                    query_model.ra,
-                                    query_model.dec,
-                                    peewee.SQL(f'\'{polygon}\'::polygon')))
-
-                            log.debug(f'tile {nn}/{n_tiles}: {polygon}')
-
-                            self.database.execute_sql(
-                                f'CREATE TABLE IF NOT EXISTS '
-                                f'{self.path} AS {str(tile_query)}')
-
-                            nn += 1
-
-                            if progress_bar:
-                                counter.update()
+        with self.database.atomic():
+            with Timer() as timer:
+                self.database.execute_sql(
+                    f'CREATE TABLE IF NOT EXISTS '
+                    f'{self.path} AS ' + str(query))
 
         log.info(f'created table {self.path!r} in {timer.interval:.3f} s.')
 

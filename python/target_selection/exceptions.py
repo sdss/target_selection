@@ -44,3 +44,9 @@ class TargetSelectionUserWarning(UserWarning, TargetSelectionWarning):
 class TargetSelectionDeprecationWarning(TargetSelectionUserWarning):
     """A warning for deprecated features."""
     pass
+
+
+class TargetSelectionImportWarning(TargetSelectionUserWarning, ImportWarning):
+    """Warning for import problems."""
+
+    pass
