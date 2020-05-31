@@ -194,7 +194,7 @@ Let's rewrite our Galactic Genesis example with a radial query option ::
                 gg = gg.where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
                                                          query_region[0],
                                                          query_region[1],
-                                                         query_region[2])
+                                                         query_region[2]))
 
             return gg
 
