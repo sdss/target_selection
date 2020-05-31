@@ -24,11 +24,7 @@ class GuideCarton(BaseCarton):
     category = 'guide'
     cadence = None
 
-    tile = False
-    tile_region = None
-    tile_num = 501
-
-    def build_query(self, version_id):
+    def build_query(self, version_id, query_region=None):
 
         sample = (Catalog
                   .select(Catalog.catalogid,
@@ -42,8 +38,17 @@ class GuideCarton(BaseCarton):
                   .where((Gaia.phot_g_mean_mag > self.parameters['g_min']) &
                          (Gaia.phot_g_mean_mag < self.parameters['g_max']))
                   .where(Catalog.version_id == version_id,
-                         CatalogToTIC_v8.version_id == version_id)
-                  .cte('sample'))
+                         CatalogToTIC_v8.version_id == version_id))
+
+        if query_region:
+            sample = (sample
+                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                        Catalog.dec,
+                                                        query_region[0],
+                                                        query_region[1],
+                                                        query_region[2])))
+
+        sample = sample.cte('sample')
 
         # We should use q3c_join_pm and q3c_dist_pm here.
         subq = (Gaia

@@ -61,7 +61,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
 
 
 @target_selection.command()
-@click.argument('TARGETING-PLAN', type=str)
+@click.argument('TARGETING-PLAN', nargs=1, type=str)
 @click.option('--overwrite', is_flag=True,
               help='drop intermediate tables if they exist')
 @click.option('--keep', is_flag=True,
@@ -69,8 +69,8 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.option('--skip-query', is_flag=True,
               help='do not run the query, only load intermediate '
                    'table if it exists')
-@click.option('--tile/--no-tile', is_flag=True, default=None,
-              help='whether to run the query in chunks tiling the sky')
+@click.option('--region', '-r', type=float, nargs=3, default=None,
+              help='the region (ra, dec, radius) to query')
 @click.option('--load/--no-load', is_flag=True, default=True,
               help='whether to load data into targetdb.target')
 @click.option('--include', '-i', type=str,
@@ -81,7 +81,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='write intermediate table as a FITS file')
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
-def run(targeting_plan, overwrite, keep, tile, load,
+def run(targeting_plan, overwrite, keep, region, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
@@ -121,7 +121,7 @@ def run(targeting_plan, overwrite, keep, tile, load,
                                  f'{carton.name!r} with plan {carton.plan!r}.')
 
             if not skip_query:
-                carton.run(tile=tile, overwrite=overwrite)
+                carton.run(query_region=(region or None), overwrite=overwrite)
             else:
                 carton.has_run = True
                 tsmod.log.debug('skipping query.')
