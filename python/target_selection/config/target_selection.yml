@@ -16,3 +16,6 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        galactic_genesis:
+            h_max: 11
+            h_g: 3.5
