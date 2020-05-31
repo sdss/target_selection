@@ -349,6 +349,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                    *mag_fields,
                                    tdb.Cadence.label.alias('cadence'))
                            .join(tdb.Magnitude)
+                           .switch(tdb.Target)
                            .join(tdb.ProgramToTarget)
                            .join(tdb.Cadence)
                            .switch(tdb.ProgramToTarget)
