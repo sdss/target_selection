@@ -33,7 +33,7 @@ class GalacticGenesisCarton(BaseCarton):
               .join(CatalogToTIC_v8)
               .join(Catalog)
               .where(TIC_v8.hmag < self.parameters['h_max'],
-                     ((TIC_v8.hmag - TIC_v8.gmag) > self.parameters['h_g'] |
+                     (((TIC_v8.hmag - TIC_v8.gmag) > self.parameters['h_g']) |
                       TIC_v8.gaia >> None),
                      Catalog.version_id == version_id))
 
