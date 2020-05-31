@@ -310,17 +310,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.database.execute_sql(f'DROP TABLE IF EXISTS {self.path};')
 
-    def write_table(self, filename=None, model=None):
-        """Writes the intermediate table to a FITS file.
+    def write_table(self, filename=None, mode='results'):
+        """Writes the selection to a FITS file.
 
         Parameters
         ----------
         filename : str
             The file to which to write the table. Defaults to
             ``<name>_<plan>.fits``.
-        model : peewee:Model
-            The model of the intermediate table. Defaults to use the
-            model matching the carton query.
+        mode : str
+            Defines what data to write. If ``'results'``, writes the
+            intermediate table (usually just the ``catalogid`` column). If
+            ``'targetdb'``, writes all the relevant columns for the targets
+            loaded to ``targetdb`` for this carton and plan (must be used after
+            `.load` has been called).
 
         """
 
@@ -328,13 +331,50 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug(f'writing table to {filename}.')
 
-        results_model = model or self.get_model()
+        if mode == 'results':
 
-        write_query = results_model.select()
+            results_model = self.get_model()
+            write_query = results_model.select()
 
-        colnames = [field.name for field in write_query._returning]
+            colnames = [field.name for field in write_query._returning]
+
+        elif mode == 'targetdb':
+
+            mag_fields = [field
+                          for field in tdb.Magnitude._meta.fields.values()
+                          if field.name not in ['pk', 'target_pk']]
+
+            write_query = (tdb.Target
+                           .select(tdb.Target,
+                                   *mag_fields,
+                                   tdb.Cadence.label.alias('cadence'))
+                           .join(tdb.Magnitude)
+                           .join(tdb.ProgramToTarget)
+                           .join(tdb.Cadence)
+                           .switch(tdb.ProgramToTarget)
+                           .join(tdb.Program)
+                           .join(tdb.Version)
+                           .where(tdb.Program.label == self.name,
+                                  tdb.Version.plan == self.plan,
+                                  tdb.Version.target_selection >> True))
+
+            colnames = []
+            for col in write_query._returning:
+                if isinstance(col, peewee.ForeignKeyField):
+                    colnames.append(col.column_name)
+                elif isinstance(col, peewee.Alias):
+                    colnames.append(col._alias)
+                else:
+                    colnames.append(col.name)
+
+        else:
+            raise ValueError('invalud mode. Available modes are '
+                             '"results" and "targetdb".')
+
         carton_table = table.Table(rows=write_query.tuples(), names=colnames)
         carton_table.write(filename, overwrite=True)
+
+        return carton_table
 
     def load(self):
         """Loads the output of the intermediate table into targetdb."""

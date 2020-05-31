@@ -78,7 +78,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
 @click.option('--exclude', '-e', type=str,
               help='comma-separated carton names to exclude')
 @click.option('--write-table', '-w', is_flag=True,
-              help='write intermediate table as a FITS file')
+              help='write table of loaded targets as a FITS file')
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
 def run(targeting_plan, overwrite, keep, region, load,
@@ -132,7 +132,7 @@ def run(targeting_plan, overwrite, keep, region, load,
                 tsmod.log.debug('not loading data into targetdb.target.')
 
             if write_table:
-                carton.write_table()
+                carton.write_table(mode='targetdb')
 
             if not keep:
                 tsmod.log.info(f'dropping temporary table {carton.path!r}.')
