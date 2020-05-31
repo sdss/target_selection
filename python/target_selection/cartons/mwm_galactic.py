@@ -18,25 +18,22 @@ class GalacticGenesisCarton(BaseCarton):
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
-    plane and bulge). Select sources brighter than H<11 AND ((G-H) > 3.5 OR
+    plane and bulge). Select sources brighter than H<11 AND ( (G-H) > 3.5 OR
     Gaia non-detection). Approximately 5 million stars.
 
     """
 
-    name = 'mwm_galactic'
+    name = 'galactic_genesis'
     category = 'science'
 
     def build_query(self, version_id, query_region=None):
-
-        Hmag = TIC_v8.hmag
-        Gmag = TIC_v8.gaiamag
 
         gg = (TIC_v8
               .select(Catalog.catalogid)
               .join(CatalogToTIC_v8)
               .join(Catalog)
-              .where(Hmag < self.parameters['h_max'],
-                     (((Gmag - Hmag) > self.parameters['g_h']) |
+              .where(TIC_v8.hmag < self.parameters['h_max'],
+                     (((TIC_v8.hmag - TIC_v8.gmag) > self.parameters['h_g']) |
                       TIC_v8.gaia >> None),
                      Catalog.version_id == version_id))
 
