@@ -8,8 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             TIC_v8, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, TIC_v8
 
 from . import BaseCarton
 
@@ -29,13 +28,12 @@ class GalacticGenesisCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        gg = (TwoMassPSC
+        gg = (TIC_v8
               .select(Catalog.catalogid)
-              .join(TIC_v8, 'LEFT_OUTER')
               .join(CatalogToTIC_v8)
               .join(Catalog)
-              .where(TwoMassPSC.h_m < self.parameters['h_max'],
-                     ((TwoMassPSC.h_m - TIC_v8.gmag) > self.parameters['h_g'] |
+              .where(TIC_v8.hmag < self.parameters['h_max'],
+                     ((TIC_v8.hmag - TIC_v8.gmag) > self.parameters['h_g'] |
                       TIC_v8.gaia >> None),
                      Catalog.version_id == version_id))
 
