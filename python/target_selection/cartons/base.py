@@ -457,7 +457,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        .join(RModel,
                              on=(RModel.catalogid == tdb.Target.catalogid))
                        .join(cdb.Catalog,
-                             on=(RModel.catalogid == cdb.Catalog.catalogid)))
+                             on=(RModel.catalogid == cdb.Catalog.catalogid))
+                       .where(~peewee.fn.EXISTS(
+                              Magnitude
+                              .select(peewee.SQL('1'))
+                              .where(Magnitude.target_pk == tdb.Target.pk))))
 
         for mag, mpath in magnitude_paths.items():
 
