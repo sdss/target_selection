@@ -8,9 +8,9 @@
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
         r: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_r]
         i: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_i]
-        h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
-        bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
-        rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+        h: [catalog_to_tic_v8, tic_v8.hmag]
+        bp: [catalog_to_tic_v8, tic_v8.gaiarp]
+        rp: [catalog_to_tic_v8, tic_v8.gaiabp]
     parameters:
         guide:
             g_min: 13
