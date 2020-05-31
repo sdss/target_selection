@@ -54,7 +54,7 @@ Here we assume we are using the cross-match corresponding to the plan with ``cat
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < 11,
-                 ((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5 | TIC_v8.gaia >> None),
+                 (((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5) | TIC_v8.gaia >> None),
                  Catalog.version_id == 13))
 
 ``target_selection`` provides all the additional boilerplate to evaluate this query using ``catalogdb``, retrieve the results, and load them into ``targetdb`` along with their associated metadata (magnitudes, cadences, etc).
@@ -84,7 +84,7 @@ The main method that needs overloading is `.build_query`, which receives the ver
                   .join(CatalogToTIC_v8)
                   .join(Catalog)
                   .where(TwoMassPSC.h_m < 11,
-                         ((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5 | TIC_v8.gaia >> None),
+                         (((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5) | TIC_v8.gaia >> None),
                          Catalog.version_id == version_id))
 
             return gg
@@ -125,7 +125,7 @@ Here target selection plan ``0.1.0`` is associated with cross-matching ``0.1.0-b
           .join(CatalogToTIC_v8)
           .join(Catalog)
           .where(TwoMassPSC.h_m < self.parameters['h_max'],
-                 ((TwoMassPSC.h_m - TIC_v8.gmag) > self.parameters['h_g'] | TIC_v8.gaia >> None),
+                 (((TwoMassPSC.h_m - TIC_v8.gmag) > self.parameters['h_g']) | TIC_v8.gaia >> None),
                  Catalog.version_id == version_id))
 
 The ``magnitudes`` section indicates the joins needed to load the ``targetdb.magnitude`` table. For each column in the table the mapping indicates the tables that need to be joined, starting at ``catalog``; the last entry also includes the column to grab. For example, for the ``h`` magnitude the configuration file indicates that we need to join ``catalog`` with ``twomass_psc`` via ``catalog_to_tic_v8`` and ``tic_v8`` and the insert the value from the column ``h_m``.
@@ -144,7 +144,7 @@ We have just seen how the magnitudes for a target are obtained from parent table
           .join(CatalogToCatWISE)
           .join(CatWISE)
           .where(TwoMassPSC.h_m < self.parameters['h_max'],
-                 ((TwoMassPSC.h_m - TIC_v8.gmag) > self.parameters['h_g'] | TIC_v8.gaia >> None),
+                 (((TwoMassPSC.h_m - TIC_v8.gmag) > self.parameters['h_g']) | TIC_v8.gaia >> None),
                  Catalog.version_id == version_id))
 
 In this query we are returning the CatWISE W1 magnitude aliased as column ``h`` (a very bad idea, but useful for the purposes of this example). If the column is present, ``target_selection`` will use it directly instead of trying to grab the ``h`` magnitude from ``catalogdb``.
@@ -187,7 +187,7 @@ Let's rewrite our Galactic Genesis example with a radial query option ::
                   .join(CatalogToTIC_v8)
                   .join(Catalog)
                   .where(TwoMassPSC.h_m < 11,
-                         ((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5 | TIC_v8.gaia >> None),
+                         (((TwoMassPSC.h_m - TIC_v8.gmag) > 3.5) | TIC_v8.gaia >> None),
                          Catalog.version_id == version_id))
 
             if query_region:
