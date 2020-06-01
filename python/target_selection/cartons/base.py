@@ -8,6 +8,7 @@
 
 import abc
 import inspect
+import warnings
 
 import numpy
 import peewee
@@ -383,6 +384,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         masked = numpy.ma.array(write_query.tuples())
         masked.mask = (masked.data == None)  # noqa
+
+        warnings.filterwarnings(
+            'ignore', message='.*converting a masked element to nan.*')
 
         carton_table = table.Table(rows=masked,
                                    names=colnames, masked=True)
