@@ -18,7 +18,7 @@ class GalacticGenesisCarton(BaseCarton):
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
-    plane and bulge). Select sources brighter than H<11 AND ( (G-H) > 3.5 OR
+    plane and bulge). Select sources brighter than H<11 AND ((G-H) > 3.5 OR
     Gaia non-detection). Approximately 5 million stars.
 
     """
