@@ -71,7 +71,7 @@ class MWM_OB_Carton(BaseCarton):
                  .join(Gaia_DR2_RUWE,
                        on=(TIC_v8.gaia_int == Gaia_DR2_RUWE.source_id))
                  .join(TMBN, on=(TMBN.source_id == Gaia_DR2_RUWE.source_id))
-                 .where(TIC_v8.plx < 10**((10. - km) / 5.),
+                 .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - km - 0.25 * (Gm - km) > -0.30,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
