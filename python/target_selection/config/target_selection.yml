@@ -17,18 +17,6 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
-<<<<<<< HEAD
-<<<<<<< HEAD
         mwm_galactic:
             h_max: 11
             g_h: 3.5
-=======
-        galactic_genesis:
-            h_max: 11
-            h_g: 3.5
->>>>>>> Add parameters for GG to config file
-=======
-        mwm_galactic:
-            h_max: 11
-            g_h: 3.5
->>>>>>> Fix colour G-H
