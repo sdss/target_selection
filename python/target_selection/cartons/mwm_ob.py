@@ -15,6 +15,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8)
 
+<<<<<<< HEAD
+=======
+from .. import log
+>>>>>>> 4ff4ee366a252a84cab1e45b91e3dbaad3f376bb
 from . import BaseCarton
 
 
