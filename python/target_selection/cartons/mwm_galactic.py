@@ -23,7 +23,7 @@ class GalacticGenesisCarton(BaseCarton):
 
     """
 
-    name = 'galactic_genesis'
+    name = 'mwm_galactic'
     category = 'science'
 
     def build_query(self, version_id, query_region=None):
