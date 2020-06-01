@@ -115,6 +115,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     .count() == 1), (f'{self.cadence!r} does not '
                                      'exist in targetdb.cadence.')
 
+        self.log = log
         self.has_run = False
 
     @property
