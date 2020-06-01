@@ -15,7 +15,6 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8)
 
-from .. import log
 from . import BaseCarton
 
 
@@ -105,7 +104,7 @@ class MWM_OB_Carton(BaseCarton):
                                   ('ks_m', float),
                                   ('parallax', float)])
 
-        log.debug(f'Number of initial rows: {len(data)}.')
+        self.log.debug(f'Number of initial rows: {len(data)}.')
 
         data = data[data['parallax'] > 0]
         M_K_star = data['ks_m'] + 5. * numpy.log10(data['parallax'] / 100.)
@@ -133,9 +132,9 @@ class MWM_OB_Carton(BaseCarton):
 
         catalogid_new = set(catalogid_new)
 
-        log.debug(f'Number of selected rows: {len(catalogid_new)}.')
+        self.log.debug(f'Number of selected rows: {len(catalogid_new)}.')
 
-        log.debug('Applying selected mask.')
+        self.log.debug('Applying selected mask.')
 
         with self.database.atomic():
             (Model
