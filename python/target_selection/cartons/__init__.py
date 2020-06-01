@@ -14,6 +14,7 @@ from .base import BaseCarton
 
 exclusions = ['__init__.py', 'base.py']
 
+cwd = os.getcwd()
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 files = [file_ for file_ in glob.glob('**/*.py', recursive=True)
@@ -34,3 +35,5 @@ for file_ in files:
 
         warnings.warn(f'cannot import file {file_}: {ee}',
                       TargetSelectionImportWarning)
+
+os.chdir(cwd)
