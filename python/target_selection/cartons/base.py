@@ -9,6 +9,7 @@
 import abc
 import inspect
 
+import numpy
 import peewee
 from astropy import table
 
@@ -342,7 +343,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             mag_fields = [field
                           for field in tdb.Magnitude._meta.fields.values()
-                          if field.name not in ['pk', 'target_pk']]
+                          if field.name not in ['pk', 'target_pk', 'target']]
 
             write_query = (tdb.Target
                            .select(tdb.Target,
@@ -351,7 +352,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                            .join(tdb.Magnitude)
                            .switch(tdb.Target)
                            .join(tdb.ProgramToTarget)
-                           .join(tdb.Cadence)
+                           .join(tdb.Cadence, peewee.JOIN.LEFT_OUTER)
                            .switch(tdb.ProgramToTarget)
                            .join(tdb.Program)
                            .join(tdb.Version)
@@ -372,7 +373,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
             raise ValueError('invalud mode. Available modes are '
                              '"results" and "targetdb".')
 
-        carton_table = table.Table(rows=write_query.tuples(), names=colnames)
+        if not write_query.exists():
+            raise TargetSelectionError('no records found.')
+
+        masked = numpy.ma.array(write_query.tuples())
+        masked.mask = (masked.data == None)  # noqa
+
+        carton_table = table.Table(rows=masked,
+                                   names=colnames, masked=True)
+
         carton_table.write(filename, overwrite=True)
 
         return carton_table
