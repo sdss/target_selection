@@ -74,6 +74,7 @@ class MWM_OB_Carton(BaseCarton):
                  .join(Gaia_DR2_RUWE,
                        on=(TIC_v8.gaia_int == Gaia_DR2_RUWE.source_id))
                  .join(TMBN, on=(TMBN.source_id == Gaia_DR2_RUWE.source_id))
+                 .where(Catalog.version_id == version_id)
                  .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - km - 0.25 * (Gm - km) > -0.30,
@@ -191,6 +192,7 @@ class MWM_OB_MC_Carton(BaseCarton):
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(TMBN, on=(TMBN.source_id == TIC_v8.gaia_int))
+                 .where(Catalog.version_id == version_id)
                  .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
