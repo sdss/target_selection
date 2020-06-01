@@ -273,6 +273,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
 
         self.database.execute_sql(f'CREATE INDEX ON {self.path} (catalogid);')
+        self.database.execute_sql(f'CREATE INDEX ON {self.path} (selected);')
         self.database.execute_sql(f'ANALYZE {self.path};')
 
         ResultsModel = self.get_model()
