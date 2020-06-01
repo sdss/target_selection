@@ -7,7 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import numpy
-from peewee import fn
+from peewee import ValuesList, fn
 from scipy.special import erf
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
@@ -15,11 +15,15 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8)
 
+from ..exceptions import TargetSelectionNotImplemented
 from . import BaseCarton
 
 
+TMBN = Gaia_DR2_TwoMass_Best_Neighbour
+
+
 class MWM_OB_Carton(BaseCarton):
-    """Milky Waky OB stars.
+    """Milky Way OB stars.
 
     Definition: Select all the hot, young stars in Gaia and 2MASS  with M_K < 0
     mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Milky Way, then subsampled
@@ -27,23 +31,24 @@ class MWM_OB_Carton(BaseCarton):
 
     Query on the Gaia archive:
 
-    SELECT  g.source_id
-    FROM gaiadr2.gaia_source as g
-    JOIN gaiadr2.ruwe AS r
-        USING (source_id)
-    INNER JOIN gaiadr2.tmass_best_neighbour AS xmatch
-        ON g.source_id = xmatch.source_id
-    INNER JOIN gaiadr1.tmass_original_valid AS tm
-        ON tm.tmass_oid = xmatch.tmass_oid
-    WHERE parallax < power(10.,(10.-tm.ks_m-0.)/5.)
-        AND tm.j_m - tm.ks_m - 0.25*(g.phot_g_mean_mag - tm.ks_m) < 0.10
-        AND tm.j_m - tm.ks_m - 0.25*(g.phot_g_mean_mag - tm.ks_m) > -0.30
-        AND tm.j_m - tm.h_m < 0.15*(g.phot_g_mean_mag -tm.ks_m) + 0.05
-        AND tm.j_m - tm.h_m > 0.15*(g.phot_g_mean_mag -tm.ks_m) - 0.15
-        AND tm.j_m - tm.ks_m < 0.23*(g.phot_g_mean_mag -tm.ks_m) + 0.03
-        AND g.phot_g_mean_mag > 2*(g.phot_g_mean_mag -tm.ks_m) + 3.0
-        AND g.phot_g_mean_mag < 2*(g.phot_g_mean_mag -tm.ks_m) + 11.
-        AND xmatch.angular_distance < 1. AND r.ruwe <1.4;
+        SELECT  g.source_id
+        FROM gaiadr2.gaia_source as g
+        JOIN gaiadr2.ruwe AS r
+            USING (source_id)
+        INNER JOIN gaiadr2.tmass_best_neighbour AS xmatch
+            ON g.source_id = xmatch.source_id
+        INNER JOIN gaiadr1.tmass_original_valid AS tm
+            ON tm.tmass_oid = xmatch.tmass_oid
+        WHERE parallax < power(10.,(10.-tm.ks_m-0.)/5.)
+            AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
+            AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
+            AND tm.j_m - tm.h_m < 0.15 * (g.phot_g_mean_mag - tm.ks_m) + 0.05
+            AND tm.j_m - tm.h_m > 0.15 * (g.phot_g_mean_mag - tm.ks_m) - 0.15
+            AND tm.j_m - tm.ks_m < 0.23 * (g.phot_g_mean_mag - tm.ks_m) + 0.03
+            AND g.phot_g_mean_mag > 2 * (g.phot_g_mean_mag - tm.ks_m) + 3.0
+            AND g.phot_g_mean_mag < 2 * (g.phot_g_mean_mag - tm.ks_m) + 11.
+            AND xmatch.angular_distance < 1.
+            AND r.ruwe < 1.4;
 
     Notes:
         - ks_m is the same as twomass_psc.h_m.
@@ -59,8 +64,6 @@ class MWM_OB_Carton(BaseCarton):
         hm = TIC_v8.hmag
         jm = TIC_v8.jmag
         Gm = TIC_v8.gaiamag
-
-        TMBN = Gaia_DR2_TwoMass_Best_Neighbour
 
         query = (Catalog.select(Catalog.catalogid,
                                 Catalog.parallax,
@@ -137,7 +140,94 @@ class MWM_OB_Carton(BaseCarton):
 
         self.log.debug('Applying selected mask.')
 
+        values = ValuesList(zip(catalogid_new), columns=('catalogid',), alias='vl')
+
         with self.database.atomic():
             (Model
              .update({Model.selected: False})
-             .where(Model.catalogid.not_in(catalogid_new)).execute())
+             .from_(values)
+             .where(Model.catalogid != values.c.catalogid)
+             .execute())
+
+
+class MWM_OB_MC_Carton(BaseCarton):
+    """Magellanic Clouds OB stars.
+
+    Definition: Select all the hot, young stars in Gaia and 2MASS with M_K < 0
+    mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Magellanic Clouds.
+
+    Pseudo-query:
+
+        phot_g_mean_ mag < 16.0
+        AND parallax < power(10., (10. -  ks_m) / 5.)
+        AND jm - ks_m - 0.25 * (phot_g_mean_mag - ks_m) < 0.10
+        AND j_m - h_m < 0.15 * (phot_g_mean_mag -ks_m) + 0.05
+        AND j_m - ks_m < 0.23 * (phot_g_mean_mag -ks_m) + 0.03
+        AND phot_g_mean_mag > 2 * (phot_g_mean_mag -ks_m) + 3.0
+        AND  265.0 < l < 310.0
+        AND -50 < b < -25.0
+        AND xmatch.angular distance < 1.0
+
+    Notes:
+        - ks_m is the same as twomass_psc.h_m.
+
+    """
+
+    name = 'mwm_ob_mc'
+    category = 'science'
+
+    def build_query(self, version_id, query_region=None):
+
+        b = TIC_v8.gallat
+        l = TIC_v8.gallong  # noqa
+
+        km = TIC_v8.kmag
+        hm = TIC_v8.hmag
+        jm = TIC_v8.jmag
+        Gm = TIC_v8.gaiamag
+
+        query = (Catalog.select(Catalog.catalogid,
+                                TIC_v8.gaia_int.alias('gaia_source_id'))
+                 .join(CatalogToTIC_v8)
+                 .join(TIC_v8)
+                 .join(TMBN, on=(TMBN.source_id == TIC_v8.gaia_int))
+                 .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
+                        jm - km - 0.25 * (Gm - km) < 0.10,
+                        jm - hm < 0.15 * (Gm - km) + 0.05,
+                        jm - km < 0.23 * (Gm - km) + 0.03,
+                        Gm > 2 * (Gm - km) + 3.0,
+                        TMBN.angular_distance < 1.,
+                        b > -50., b < -25., l > 265., l < 310.))
+
+        if query_region:
+            query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                    query_region[0],
+                                                    query_region[1],
+                                                    query_region[2]))
+
+        return query
+
+
+class MWM_OB_Cepheids_Carton(BaseCarton):
+    """Milky Way Cepheids.
+
+    Definition: List of Cepheids compiled by Inno et al. (in prep). The
+    catalogue is obtained by using Gaia DR2 and ASAS-SN. Gaia parallaxes and
+    variability information are used to select an initial sample, for which
+    multi-epoch V-band photometry from the ASAS-SN survey is retrieved. From
+    the ASAS-SN lightcurves, periods and Fourier parameters are derived. The
+    Fourier parameters are used to identify classical Cepheids. The final
+    catalogue is assembled by including several public classic Cepheid
+    databases: OGLE-cCs, Gaia-cCs, ASASSN-cCs, VSX-cCs, Simbad-cCs,  and
+    WISE-cCs. The final catalogue consists of ~3000 targets, between 6 < G < 17
+    mag.
+
+    """
+
+    name = 'mwm_ob_cepheids'
+    category = 'science'
+
+    def build_query(self, version_id, query_region=None):
+
+        raise TargetSelectionNotImplemented('mwm_ob_cepheids not '
+                                            'implemented in v0.')
