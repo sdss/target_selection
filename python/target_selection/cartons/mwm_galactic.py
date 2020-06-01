@@ -28,12 +28,15 @@ class GalacticGenesisCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        Hmag = TIC_v8.hmag
+        Gmag = TIC_v8.gaiamag
+
         gg = (TIC_v8
               .select(Catalog.catalogid)
               .join(CatalogToTIC_v8)
               .join(Catalog)
-              .where(TIC_v8.hmag < self.parameters['h_max'],
-                     (((TIC_v8.hmag - TIC_v8.gmag) > self.parameters['h_g']) |
+              .where(Hmag < self.parameters['h_max'],
+                     (((Hmag - Gmag) > self.parameters['h_g']) |
                       TIC_v8.gaia >> None),
                      Catalog.version_id == version_id))
 
