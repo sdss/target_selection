@@ -100,13 +100,14 @@ class MWM_OB_Carton(BaseCarton):
 
         data = numpy.array(Model.select(Model.catalogid,
                                         Model.ks_m,
-                                        Model.parallax),
+                                        Model.parallax).tuples(),
                            dtype=[('catalogid', numpy.int64),
                                   ('ks_m', float),
                                   ('parallax', float)])
 
         log.debug(f'Number of initial rows: {len(data)}.')
 
+        data = data[data['parallax'] > 0]
         M_K_star = data['ks_m'] + 5. * numpy.log10(data['parallax'] / 100.)
         data_sel_idx = numpy.isfinite(M_K_star)
         data_sel = data[data_sel_idx]
@@ -118,6 +119,7 @@ class MWM_OB_Carton(BaseCarton):
 
         catalogid_new = []
 
+        # p ~ 3000 so this for loop is actually not that inefficient.
         for i in range(len(p) - 1):
 
             w = numpy.where((M_K_star < M_K[i + 1]) & (M_K_star >= M_K[i]))
@@ -127,12 +129,15 @@ class MWM_OB_Carton(BaseCarton):
             N_new = numpy.int(numpy.round(p_ * N, 2))
             catalogid_ = numpy.random.choice(data_sel['catalogid'][w], N_new,
                                              replace=False)
+            catalogid_new += catalogid_.tolist()
 
-            catalogid_new += catalogid_
+        catalogid_new = set(catalogid_new)
 
         log.debug(f'Number of selected rows: {len(catalogid_new)}.')
+
+        log.debug('Applying selected mask.')
 
         with self.database.atomic():
             (Model
              .update({Model.selected: False})
-             .where(Model.catalogid.not_in(catalogid_new)))
+             .where(Model.catalogid.not_in(catalogid_new)).execute())
