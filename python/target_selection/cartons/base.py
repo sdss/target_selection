@@ -210,13 +210,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if self.database.table_exists(self.table_name, schema=self.schema):
             if overwrite:
-                log.info(f'dropping table {self.path!r}.')
+                log.info(f'Dropping table {self.path!r}.')
                 self.drop_table()
             else:
-                raise RuntimeError(f'temporary table {self.path!r} '
+                raise RuntimeError(f'Temporary table {self.path!r} '
                                    'already exists.')
 
-        log.debug('building query ...')
+        log.debug('Building query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
 
         # If build_query accepts a query_region parameter, call with the query
@@ -255,9 +255,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     f'CREATE TABLE IF NOT EXISTS '
                     f'{self.path} AS ' + str(query))
 
-        log.info(f'created table {self.path!r} in {timer.interval:.3f} s.')
+        log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
 
-        log.debug('adding columns and indexes.')
+        log.debug('Adding columns and indexes.')
 
         columns = [col.name
                    for col in self.database.get_columns(self.table_name,
@@ -275,7 +275,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         ResultsModel = self.get_model()
 
-        log.debug('running post-process.')
+        log.debug('Running post-process.')
         self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
@@ -334,7 +334,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         filename = filename or f'{self.name}_{self.plan}.fits'
 
-        log.debug(f'writing table to {filename}.')
+        log.debug(f'Writing table to {filename}.')
 
         if mode == 'results':
 
@@ -443,7 +443,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                         tag=self.tag,
                                                         target_selection=True)
         if created:
-            log.info(f'created record in targetdb.version for {self.plan!r}.')
+            log.info(f'Created record in targetdb.version for {self.plan!r}.')
 
         if (tdb.Program.select()
                        .where(tdb.Program.label == self.name,
@@ -455,17 +455,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if self.survey:
             survey_pk, created_pk = tdb.Survey.get_or_create(label=self.name)
             if created:
-                log.debug(f'created survey {self.survey!r}')
+                log.debug(f'Created survey {self.survey!r}')
 
         if self.category:
             category_pk, created = tdb.Category.get_or_create(
                 label=self.category)
             if created:
-                log.debug(f'created category {self.category!r}')
+                log.debug(f'Created category {self.category!r}')
 
         tdb.Program.create(label=self.name, category_pk=category_pk,
                            survey_pk=survey_pk, version_pk=version_pk)
-        log.debug(f'created program {self.name!r}')
+        log.debug(f'Created program {self.name!r}')
 
     def _load_data(self, RModel):
         """Load data from the intermediate table tp targetdb.target."""
@@ -492,14 +492,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
              tdb.Target.pmdec,
              tdb.Target.parallax]).returning().execute()
 
-        log.info(f'inserted {n_inserted:,} rows into targetdb.target.')
+        log.info(f'Inserted {n_inserted:,} rows into targetdb.target.')
 
         return
 
     def _load_magnitudes(self, RModel):
         """Load magnitudes into targetdb.magnitude."""
 
-        log.debug('loading data into targetdb.magnitude.')
+        log.debug('Loading data into targetdb.magnitude.')
 
         Magnitude = tdb.Magnitude
 
@@ -558,12 +558,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
                       .insert_from(select_from, fields)
                       .returning().execute())
 
-        log.debug(f'inserted {n_inserted:,} rows into targetdb.magnitude.')
+        log.debug(f'Inserted {n_inserted:,} rows into targetdb.magnitude.')
 
     def _load_program_to_target(self, RModel):
         """Populate targetdb.program_to_target."""
 
-        log.debug('loading data into targetdb.program_to_target.')
+        log.debug('Loading data into targetdb.program_to_target.')
 
         version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
         program_pk = tdb.Program.get(label=self.name, version_pk=version_pk).pk
@@ -616,5 +616,5 @@ class BaseCarton(metaclass=abc.ABCMeta):
              ProgramToTarget.program_pk,
              ProgramToTarget.cadence_pk]).returning().execute()
 
-        log.debug(f'inserted {n_inserted:,} rows into '
+        log.debug(f'Inserted {n_inserted:,} rows into '
                   'targetdb.program_to_target.')
