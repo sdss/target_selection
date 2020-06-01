@@ -274,7 +274,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.database.execute_sql(f'CREATE INDEX ON {self.path} (catalogid);')
 
         ResultsModel = self.get_model()
+
+        log.debug('running post-process.')
         self.post_process(ResultsModel, **post_process_kawrgs)
+
         self.has_run = True
 
         return ResultsModel
