@@ -40,6 +40,7 @@ class MWM_OB_Carton(BaseCarton):
         INNER JOIN gaiadr1.tmass_original_valid AS tm
             ON tm.tmass_oid = xmatch.tmass_oid
         WHERE parallax < power(10.,(10.-tm.ks_m-0.)/5.)
+            AND g.phot_g_mean_mag < 16.
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
             AND tm.j_m - tm.h_m < 0.15 * (g.phot_g_mean_mag - tm.ks_m) + 0.05
@@ -77,6 +78,7 @@ class MWM_OB_Carton(BaseCarton):
                  .join(TMBN, on=(TMBN.source_id == Gaia_DR2_RUWE.source_id))
                  .where(Catalog.version_id == version_id)
                  .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
+                        Gm < 16.,
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - km - 0.25 * (Gm - km) > -0.30,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
@@ -201,6 +203,7 @@ class MWM_OB_MC_Carton(BaseCarton):
                  .join(TMBN, on=(TMBN.source_id == TIC_v8.gaia_int))
                  .where(Catalog.version_id == version_id)
                  .where(TIC_v8.plx < fn.pow(10, ((10. - km) / 5.)),
+                        Gm < 16.,
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
                         jm - km < 0.23 * (Gm - km) + 0.03,
