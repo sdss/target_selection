@@ -17,6 +17,7 @@ from astropy import table
 from sdssdb.peewee import BaseModel
 from sdssdb.peewee.sdss5db import catalogdb as cdb
 from sdssdb.peewee.sdss5db import targetdb as tdb
+from sdsstools import read_yaml_file
 from sdsstools.color_print import color_text
 
 from target_selection import __version__, config, log
@@ -35,6 +36,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
     ----------
     targeting_plan : str
         The target selection plan version.
+    config_file : str
+        The path to the configuration file to use. If undefined, uses the
+        internal ``target_selection.yml`` file.
     schema : str
         Schema in which the temporary table with the results of the
         query will be created. If `None`, tries to use the ``schema`` parameter
@@ -72,7 +76,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
     query_region = None
 
-    def __init__(self, targeting_plan, schema=None, table_name=None):
+    def __init__(self, targeting_plan, config_file=None,
+                 schema=None, table_name=None):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
@@ -80,11 +85,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.plan = targeting_plan
         self.tag = __version__
 
-        if self.plan not in config:
+        if config_file:
+            this_config = read_yaml_file(config_file)
+        else:
+            this_config = config
+
+        if self.plan not in this_config:
             raise TargetSelectionError(f'({self.name}): cannot find plan '
                                        f'{self.plan!r} in config.')
 
-        self.config = config[self.plan]
+        self.config = this_config[self.plan]
 
         if 'parameters' in self.config:
             self.parameters = self.config['parameters'].get(self.name, None)
@@ -252,9 +262,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             with Timer() as timer:
-                self.database.execute_sql(
-                    f'CREATE TABLE IF NOT EXISTS '
-                    f'{self.path} AS ' + str(query))
+                self._setup_transaction()
+                self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
+                                          f'{self.path} AS ' + str(query))
 
         log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
 
@@ -272,14 +282,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
 
-        self.database.execute_sql(f'CREATE INDEX ON {self.path} (catalogid);')
+        self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                  'ADD PRIMARY KEY (catalogid);')
         self.database.execute_sql(f'CREATE INDEX ON {self.path} (selected);')
         self.database.execute_sql(f'ANALYZE {self.path};')
 
         ResultsModel = self.get_model()
 
         log.debug('Running post-process.')
-        self.post_process(ResultsModel, **post_process_kawrgs)
+        with self.database.atomic():
+            self._setup_transaction()
+            self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
 
@@ -297,6 +310,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         temporary table. This column will be used to set the target cadence if
         the carton `.cadence` attribute is not set.
 
+        `.post_process` runs inside a database transaction so it's not
+        necessary to create a new one, but savepoints can be added.
+
         Parameters
         ----------
         model : peewee:Model
@@ -312,6 +328,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """
 
         return True
+
+    def _setup_transaction(self):
+        """Setups the transaction locally modifying the datbase parameters."""
+
+        if 'database_options' not in self.config:
+            return
+
+        for param, value in self.config['database_options'].items():
+            self.database.execute_sql(f'SET LOCAL {param} = {value!r};')
 
     def drop_table(self):
         """Drops the intermediate table if it exists."""
@@ -419,7 +444,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        'intermediate table.')
 
         with self.database.atomic():
-
+            self._setup_transaction()
             self._create_program_metadata()
             self._load_data(RModel)
             self._load_magnitudes(RModel)
@@ -512,12 +537,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
         magnitude_paths = self.config['magnitudes']
         fields = [Magnitude.target_pk]
 
-        select_from = (tdb.Target
+        select_from = (RModel
                        .select(tdb.Target.pk)
-                       .join(RModel,
+                       .join(tdb.Target,
                              on=(RModel.catalogid == tdb.Target.catalogid))
                        .join(cdb.Catalog,
                              on=(RModel.catalogid == cdb.Catalog.catalogid))
+                       .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
                               Magnitude
                               .select(peewee.SQL('1'))
@@ -552,10 +578,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 else:
                     select_from = select_from.join(node_model,
                                                    peewee.JOIN.LEFT_OUTER)
-                if node.startswith('catalog_to_'):
-                    select_from = (select_from
-                                   .where((node_model.best >> True) |
-                                          (node_model.catalogid >> None)))
+                    if node.startswith('catalog_to_'):
+                        select_from = (select_from
+                                       .where((node_model.best >> True) |
+                                              (node_model.catalogid >> None)))
                 if column:
                     select_from = (select_from
                                    .select_extend(getattr(node_model, column)))
@@ -582,6 +608,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                program_pk)
                        .join(Target,
                              on=(Target.catalogid == RModel.catalogid))
+                       .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
                            ProgramToTarget
                            .select(peewee.SQL('1'))

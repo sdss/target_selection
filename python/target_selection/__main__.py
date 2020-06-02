@@ -62,6 +62,9 @@ def target_selection(profile, dbname, user, host, port, verbose):
 
 @target_selection.command()
 @click.argument('TARGETING-PLAN', nargs=1, type=str)
+@click.option('--config-file', type=click.Path(exists=True, dir_okay=False),
+              help='the file to read. Defaults to the internal '
+                   'configuration file.')
 @click.option('--overwrite', is_flag=True,
               help='drop intermediate tables if they exist')
 @click.option('--keep', is_flag=True,
@@ -81,7 +84,7 @@ def target_selection(profile, dbname, user, host, port, verbose):
               help='write table of loaded targets as a FITS file')
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
-def run(targeting_plan, overwrite, keep, region, load,
+def run(targeting_plan, config_file, overwrite, keep, region, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
@@ -110,7 +113,7 @@ def run(targeting_plan, overwrite, keep, region, load,
         try:
 
             Carton = carton_classes[carton_name]
-            carton = Carton(targeting_plan)
+            carton = Carton(targeting_plan, config_file=config_file)
 
             tsmod.log.header = f'({carton.name}): '
             tsmod.log.info(f'running target selection for '

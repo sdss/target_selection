@@ -130,6 +130,20 @@ Here target selection plan ``0.1.0`` is associated with cross-matching ``0.1.0-b
 
 The ``magnitudes`` section indicates the joins needed to load the ``targetdb.magnitude`` table. For each column in the table the mapping indicates the tables that need to be joined, starting at ``catalog``; the last entry also includes the column to grab. For example, for the ``h`` magnitude the configuration file indicates that we need to join ``catalog`` with ``twomass_psc`` via ``catalog_to_tic_v8`` and ``tic_v8`` and the insert the value from the column ``h_m``.
 
+As with :ref:`cross-matching <cross-match-db-params>`, it's possible to locally override the default database configuration to increase the work memory or optimise queries. The database parameters must be defined for a plan inside the configuration file, for example
+
+.. code-block:: yaml
+
+    '0.1.0':
+        xmatch_plan: 0.1.0-beta.1
+        cartons:
+            - galactic_genesis
+        database_options:
+            work_mem: '2GB'
+            temp_buffers: '2GB'
+
+The custom parameters are applying within the transactions used to execute `.run`, `.post_process`, and `.load`.
+
 Custom magnitudes
 ^^^^^^^^^^^^^^^^^
 
