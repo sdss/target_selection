@@ -262,9 +262,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             with Timer() as timer:
-                self.database.execute_sql(
-                    f'CREATE TABLE IF NOT EXISTS '
-                    f'{self.path} AS ' + str(query))
+                self._setup_transaction()
+                self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
+                                          f'{self.path} AS ' + str(query))
 
         log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
 
@@ -289,7 +289,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         ResultsModel = self.get_model()
 
         log.debug('Running post-process.')
-        self.post_process(ResultsModel, **post_process_kawrgs)
+        with self.database.atomic():
+            self._setup_transaction()
+            self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
 
@@ -307,6 +309,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         temporary table. This column will be used to set the target cadence if
         the carton `.cadence` attribute is not set.
 
+        `.post_process` runs inside a database transaction so it's not
+        necessary to create a new one, but savepoints can be added.
+
         Parameters
         ----------
         model : peewee:Model
@@ -322,6 +327,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """
 
         return True
+
+    def _setup_transaction(self):
+        """Setups the transaction locally modifying the datbase parameters."""
+
+        if 'database_options' not in self.config:
+            return
+
+        for param, value in self.config['database_options'].items():
+            self.database.execute_sql(f'SET LOCAL {param} = {value!r};')
 
     def drop_table(self):
         """Drops the intermediate table if it exists."""
@@ -429,7 +443,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        'intermediate table.')
 
         with self.database.atomic():
-
+            self._setup_transaction()
             self._create_program_metadata()
             self._load_data(RModel)
             self._load_magnitudes(RModel)
