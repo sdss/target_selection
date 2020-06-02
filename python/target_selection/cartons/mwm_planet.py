@@ -36,13 +36,15 @@ class TESS_Planets_Carton(BaseCarton):
         query = (TESS_TOI
                  .select(Catalog.catalogid,
                          TESS_TOI.ticid,
-                         TESS_TOI.disposition,
+                         TESS_TOI.tess_disposition,
                          TIC_v8.hmag)
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
                  .where(TIC_v8.hmag > self.parameters['h_min'],
-                        TIC_v8.hmag < self.parameters['h_max'])
+                        TIC_v8.hmag < self.parameters['h_max'],
+                        Catalog.version_id == version_id,
+                        CatalogToTIC_v8.version_id == version_id)
                  .distinct([TESS_TOI.ticid]))
 
         if query_region:
