@@ -537,12 +537,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
         magnitude_paths = self.config['magnitudes']
         fields = [Magnitude.target_pk]
 
-        select_from = (tdb.Target
+        select_from = (RModel
                        .select(tdb.Target.pk)
-                       .join(RModel,
+                       .join(tdb.Target,
                              on=(RModel.catalogid == tdb.Target.catalogid))
                        .join(cdb.Catalog,
                              on=(RModel.catalogid == cdb.Catalog.catalogid))
+                       .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
                               Magnitude
                               .select(peewee.SQL('1'))
@@ -577,10 +578,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 else:
                     select_from = select_from.join(node_model,
                                                    peewee.JOIN.LEFT_OUTER)
-                if node.startswith('catalog_to_'):
-                    select_from = (select_from
-                                   .where((node_model.best >> True) |
-                                          (node_model.catalogid >> None)))
+                    if node.startswith('catalog_to_'):
+                        select_from = (select_from
+                                       .where((node_model.best >> True) |
+                                              (node_model.catalogid >> None)))
                 if column:
                     select_from = (select_from
                                    .select_extend(getattr(node_model, column)))
@@ -607,6 +608,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                program_pk)
                        .join(Target,
                              on=(Target.catalogid == RModel.catalogid))
+                       .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
                            ProgramToTarget
                            .select(peewee.SQL('1'))
