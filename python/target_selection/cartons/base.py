@@ -402,20 +402,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col.name)
 
         else:
-            raise ValueError('Invalid mode. Available modes are '
+            raise ValueError('invalud mode. Available modes are '
                              '"results" and "targetdb".')
 
         if not write_query.exists():
             raise TargetSelectionError('no records found.')
 
-        masked = numpy.ma.array(write_query.tuples())
-        masked.mask = (masked.data == None)  # noqa
+        results = write_query.tuples()
+        results = ((col if col is not None else numpy.nan for col in row)
+                   for row in tuple(results))
 
         warnings.filterwarnings(
             'ignore', message='.*converting a masked element to nan.*')
 
-        carton_table = table.Table(rows=masked,
-                                   names=colnames, masked=True)
+        carton_table = table.Table(rows=results, names=colnames, masked=True)
 
         carton_table.write(filename, overwrite=True)
 
