@@ -39,7 +39,7 @@ class MWM_OB_Carton(BaseCarton):
             ON g.source_id = xmatch.source_id
         INNER JOIN gaiadr1.tmass_original_valid AS tm
             ON tm.tmass_oid = xmatch.tmass_oid
-        WHERE parallax < power(10.,(10.-tm.ks_m-0.)/5.)
+        WHERE parallax < power(10., (10. - tm.ks_m) / 5.)
             AND g.phot_g_mean_mag < 16.
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
