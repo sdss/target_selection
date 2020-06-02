@@ -360,7 +360,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         """
 
-        filename = filename or f'{self.name}_{self.plan}.fits'
+        filename = filename or f'{self.name}_{self.plan}.fits.gz'
 
         log.debug(f'Writing table to {filename}.')
 
