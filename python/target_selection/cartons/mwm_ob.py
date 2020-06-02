@@ -144,7 +144,8 @@ class MWM_OB_Carton(BaseCarton):
 
         self.log.debug('Applying selected mask.')
 
-        values = ValuesList(zip(catalogid_new), columns=('catalogid',), alias='vl')
+        values = ValuesList(zip(catalogid_new), columns=('catalogid',),
+                            alias='vl')
 
         with self.database.atomic():
             # Change everything to selected=False
@@ -231,8 +232,8 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     Fourier parameters are used to identify classical Cepheids. The final
     catalogue is assembled by including several public classic Cepheid
     databases: OGLE-cCs, Gaia-cCs, ASASSN-cCs, VSX-cCs, Simbad-cCs,  and
-    WISE-cCs. The final catalogue consists of ~3000 targets, between 6 < G < 17
-    mag.
+    WISE-cCs. The final catalogue consists of ~3000 targets, between
+    6 < G < 17 mag.
 
     """
 
