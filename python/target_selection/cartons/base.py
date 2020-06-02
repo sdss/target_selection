@@ -17,6 +17,7 @@ from astropy import table
 from sdssdb.peewee import BaseModel
 from sdssdb.peewee.sdss5db import catalogdb as cdb
 from sdssdb.peewee.sdss5db import targetdb as tdb
+from sdsstools import read_yaml_file
 from sdsstools.color_print import color_text
 
 from target_selection import __version__, config, log
@@ -35,6 +36,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
     ----------
     targeting_plan : str
         The target selection plan version.
+    config_file : str
+        The path to the configuration file to use. If undefined, uses the
+        internal ``target_selection.yml`` file.
     schema : str
         Schema in which the temporary table with the results of the
         query will be created. If `None`, tries to use the ``schema`` parameter
@@ -72,7 +76,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
     query_region = None
 
-    def __init__(self, targeting_plan, schema=None, table_name=None):
+    def __init__(self, targeting_plan, config_file=None,
+                 schema=None, table_name=None):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
@@ -80,11 +85,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.plan = targeting_plan
         self.tag = __version__
 
-        if self.plan not in config:
+        if config_file:
+            this_config = read_yaml_file(config_file)
+        else:
+            this_config = config
+
+        if self.plan not in this_config:
             raise TargetSelectionError(f'({self.name}): cannot find plan '
                                        f'{self.plan!r} in config.')
 
-        self.config = config[self.plan]
+        self.config = this_config[self.plan]
 
         if 'parameters' in self.config:
             self.parameters = self.config['parameters'].get(self.name, None)
