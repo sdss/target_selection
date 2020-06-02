@@ -343,7 +343,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.database.execute_sql(f'DROP TABLE IF EXISTS {self.path};')
 
-    def write_table(self, filename=None, mode='results'):
+    def write_table(self, filename=None, mode='results', write=True):
         """Writes the selection to a FITS file.
 
         Parameters
@@ -357,6 +357,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
             ``'targetdb'``, writes all the relevant columns for the targets
             loaded to ``targetdb`` for this carton and plan (must be used after
             `.load` has been called).
+        write : bool
+            Whether to write the table to disk. If `False`, just returns the
+            table object.
+
+        Returns
+        -------
+        table : `~astropy.table.Table`
+            A table object with the selected results.
 
         """
 
@@ -421,7 +429,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         carton_table = table.Table(rows=results, names=colnames, masked=True)
 
-        carton_table.write(filename, overwrite=True)
+        if write:
+            carton_table.write(filename, overwrite=True)
 
         return carton_table
 
