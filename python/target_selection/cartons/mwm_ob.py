@@ -144,10 +144,15 @@ class MWM_OB_Carton(BaseCarton):
         values = ValuesList(zip(catalogid_new), columns=('catalogid',), alias='vl')
 
         with self.database.atomic():
+            # Change everything to selected=False
+            (Model.update({Model.selected: False}).execute())
+            # Select the catalogids we calculated. If we tried to do a
+            # .where(Model.catalogid != values.c.catalogid) that would take
+            # forever, not sure why.
             (Model
-             .update({Model.selected: False})
+             .update({Model.selected: True})
              .from_(values)
-             .where(Model.catalogid != values.c.catalogid)
+             .where(Model.catalogid == values.c.catalogid)
              .execute())
 
 
