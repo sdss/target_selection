@@ -360,7 +360,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         """
 
-        filename = filename or f'{self.name}_{self.plan}.fits.gz'
+        if not filename:
+            if mode == 'results':
+                filename = f'{self.name}_{self.plan}.fits.gz'
+            else:
+                filename = f'{self.name}_{self.plan}_targetdb.fits.gz'
 
         log.debug(f'Writing table to {filename}.')
 
