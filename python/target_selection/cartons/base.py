@@ -402,7 +402,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col.name)
 
         else:
-            raise ValueError('invalud mode. Available modes are '
+            raise ValueError('Invalid mode. Available modes are '
                              '"results" and "targetdb".')
 
         if not write_query.exists():
@@ -425,12 +425,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """Loads the output of the intermediate table into targetdb."""
 
         if self.check_targets():
-            raise TargetSelectionError(f'found existing targets for carton '
+            raise TargetSelectionError(f'Found existing targets for carton '
                                        f'{self.name!r} with plan '
                                        f'{self.plan!r}.')
 
         if not self.has_run:
-            raise TargetSelectionError('the query needs to be run before '
+            raise TargetSelectionError('The query needs to be run before '
                                        'calling load().')
 
         RModel = self.get_model()
@@ -440,7 +440,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        .exists())
 
         if not has_targets:
-            raise TargetSelectionError('no targets found in '
+            raise TargetSelectionError('No targets found in '
                                        'intermediate table.')
 
         with self.database.atomic():
@@ -449,6 +449,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self._load_data(RModel)
             self._load_magnitudes(RModel)
             self._load_program_to_target(RModel)
+
+            self.log.debug('Committing records and checking constraints.')
 
     def check_targets(self):
         """Check if data has been loaded for this carton and targeting plan."""
