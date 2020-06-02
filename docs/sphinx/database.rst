@@ -48,8 +48,8 @@ The ``postgresql.conf`` file with the configuration for the database server is k
     max_parallel_workers = 32
     max_parallel_maintenance_workers = 16
 
-    random_page_cost = 0.2
-    seq_page_cost = 0.1
+    random_page_cost = 2
+    seq_page_cost = 1
     cpu_index_tuple_cost 0.0001
     cpu_operator_cost 0.0025
     default_statistics_target = 500
@@ -87,7 +87,7 @@ All the parameters are explained in the Postgresql documentation but we offer co
 
 - *effective_io_concurrency* indicates how many concurrent disk I/O operations are allowed. This is a complicated value to tune in a system with a RAID and SSD cache but in general it seems that setting it to the number of disks in the RAID produces good performance.
 
-- *random_page_cost* and *seq_page_cost* parametrise the relative cost of performing a sequential read of a table versus a random (index) access. In spinning disks, random accesses are up to four times more costly than sequential ones; in SSD disks they are almost equivalent. These values are used by the query planner to calculate the cost associated to operations and determine whether to use a sequential scan or an index. We decrease their relative cost while lowering their absolute value with respect to CPU operations. This results in the planner using indexes for most cases except for the scanning of very large tables for which most or all rows need to be returned. More details are given `here <https://www.postgresql.org/docs/current/runtime-config-query.html>`__.
+- *random_page_cost* and *seq_page_cost* parametrise the relative cost of performing a sequential read of a table versus a random (index) access. In spinning disks, random accesses are up to four times more costly than sequential ones; in SSD disks they are almost equivalent. These values are used by the query planner to calculate the cost associated to operations and determine whether to use a sequential scan or an index. We decrease the cost of random access with respect to sequential but not in a significant way. A more aggressive tweaking can be done for a given query if the default plan is not optimal. More details are given `here <https://www.postgresql.org/docs/current/runtime-config-query.html>`__.
 
 - *cpu_index_tuple_cost* and *cpu_operator_cost* are the costs associate with processing each index entry during an index scan, and each operator or function, respectively. They don't seem to impact the query planner very heavily but we reduce them to about a tenth of their original value to account for faster, modern CPUs.
 
