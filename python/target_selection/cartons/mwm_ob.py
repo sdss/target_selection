@@ -57,6 +57,7 @@ class MWM_OB_Carton(BaseCarton):
 
     name = 'mwm_ob'
     category = 'science'
+    cadence = 'mwm_ob_3x1'
 
     def build_query(self, version_id, query_region=None):
 
@@ -181,6 +182,7 @@ class MWM_OB_MC_Carton(BaseCarton):
 
     name = 'mwm_ob_mc'
     category = 'science'
+    cadence = 'mwm_ob_3x1'
 
     def build_query(self, version_id, query_region=None):
 
@@ -233,6 +235,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
 
     name = 'mwm_ob_cepheids'
     category = 'science'
+    cadence = 'mwm_ob_3x1'
 
     def build_query(self, version_id, query_region=None):
 
