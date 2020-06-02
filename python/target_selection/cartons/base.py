@@ -282,7 +282,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
 
-        self.database.execute_sql(f'CREATE INDEX ON {self.path} (catalogid);')
+        self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                  'ADD PRIMARY KEY (catalogid);')
         self.database.execute_sql(f'CREATE INDEX ON {self.path} (selected);')
         self.database.execute_sql(f'ANALYZE {self.path};')
 
