@@ -49,6 +49,7 @@ class MWM_SNC_100pc(BaseCarton):
 
     name = 'mwm_100pc'
     category = 'science'
+    mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
 
@@ -118,6 +119,7 @@ class MWM_SNC_250pc(BaseCarton):
 
     name = 'mwm_250pc'
     category = 'science'
+    mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
 
