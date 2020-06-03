@@ -68,7 +68,11 @@ class MWM_SNC_100pc(BaseCarton):
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
                  .where(
+<<<<<<< HEAD
                      ((TIC_v8.plx - TIC_v8.e_plx) > 10) &
+=======
+                     ((Gaia_DR2.parallax - Gaia_DR2.parallax_error) > 10) &
+>>>>>>> Implemente MWM solar neighbourhood cartons
                      ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
                      ~(gal_cut))
                  .where(Catalog.version_id == version_id,
