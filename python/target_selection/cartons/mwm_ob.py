@@ -6,9 +6,7 @@
 # @Filename: mwm_ob.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-import numpy
-from peewee import ValuesList, fn
-from scipy.special import erf
+from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_RUWE,
@@ -57,6 +55,7 @@ class MWM_OB_Carton(BaseCarton):
     """
 
     name = 'mwm_ob'
+    survey = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
 
@@ -103,61 +102,66 @@ class MWM_OB_Carton(BaseCarton):
         See files  https://keeper.mpdl.mpg.de/f/a84318bb5213431ea513/?dl=1 and
         https://keeper.mpdl.mpg.de/f/ee2d70d8eb2f463f9562/?dl=1.
 
+        After the gamma-3 sims it was decided that the subsampling was not
+        needed but we leave it here just in case.
+
         """
 
-        data = numpy.array(Model.select(Model.catalogid,
-                                        Model.ks_m,
-                                        Model.parallax).tuples(),
-                           dtype=[('catalogid', numpy.int64),
-                                  ('ks_m', float),
-                                  ('parallax', float)])
+        return
 
-        self.log.debug(f'Number of initial rows: {len(data)}.')
+        # data = numpy.array(Model.select(Model.catalogid,
+        #                                 Model.ks_m,
+        #                                 Model.parallax).tuples(),
+        #                    dtype=[('catalogid', numpy.int64),
+        #                           ('ks_m', float),
+        #                           ('parallax', float)])
 
-        data = data[data['parallax'] > 0]
-        M_K_star = data['ks_m'] + 5. * numpy.log10(data['parallax'] / 100.)
-        data_sel_idx = numpy.isfinite(M_K_star)
-        data_sel = data[data_sel_idx]
-        M_K_star = M_K_star[data_sel_idx]
+        # self.log.debug(f'Number of initial rows: {len(data)}.')
 
-        alpha = 0.4
-        M_K = numpy.arange(min(M_K_star), 0., 0.01)
-        p = erf(-alpha * (M_K - 0.1))
+        # data = data[data['parallax'] > 0]
+        # M_K_star = data['ks_m'] + 5. * numpy.log10(data['parallax'] / 100.)
+        # data_sel_idx = numpy.isfinite(M_K_star)
+        # data_sel = data[data_sel_idx]
+        # M_K_star = M_K_star[data_sel_idx]
 
-        catalogid_new = []
+        # alpha = 0.4
+        # M_K = numpy.arange(min(M_K_star), 0., 0.01)
+        # p = erf(-alpha * (M_K - 0.1))
 
-        # p ~ 3000 so this for loop is actually not that inefficient.
-        for i in range(len(p) - 1):
+        # catalogid_new = []
 
-            w = numpy.where((M_K_star < M_K[i + 1]) & (M_K_star >= M_K[i]))
-            p_ = numpy.mean(p[i:i + 1])
+        # # p ~ 3000 so this for loop is actually not that inefficient.
+        # for i in range(len(p) - 1):
 
-            N = len(data[w])
-            N_new = numpy.int(numpy.round(p_ * N, 2))
-            catalogid_ = numpy.random.choice(data_sel['catalogid'][w], N_new,
-                                             replace=False)
-            catalogid_new += catalogid_.tolist()
+        #     w = numpy.where((M_K_star < M_K[i + 1]) & (M_K_star >= M_K[i]))
+        #     p_ = numpy.mean(p[i:i + 1])
 
-        catalogid_new = set(catalogid_new)
+        #     N = len(data[w])
+        #     N_new = numpy.int(numpy.round(p_ * N, 2))
+        #     catalogid_ = numpy.random.choice(data_sel['catalogid'][w], N_new,
+        #                                      replace=False)
+        #     catalogid_new += catalogid_.tolist()
 
-        self.log.debug(f'Number of selected rows: {len(catalogid_new)}.')
+        # catalogid_new = set(catalogid_new)
 
-        self.log.debug('Applying selected mask.')
+        # self.log.debug(f'Number of selected rows: {len(catalogid_new)}.')
 
-        values = ValuesList(zip(catalogid_new), columns=('catalogid',),
-                            alias='vl')
+        # self.log.debug('Applying selected mask.')
 
-        with self.database.atomic():
-            # Change everything to selected=False
-            (Model.update({Model.selected: False}).execute())
-            # Select the catalogids we calculated. If we tried to do a
-            # .where(Model.catalogid != values.c.catalogid) that would take
-            # forever, not sure why.
-            (Model
-             .update({Model.selected: True})
-             .from_(values)
-             .where(Model.catalogid == values.c.catalogid)
-             .execute())
+        # values = ValuesList(zip(catalogid_new), columns=('catalogid',),
+        #                     alias='vl')
+
+        # with self.database.atomic():
+        #     # Change everything to selected=False
+        #     (Model.update({Model.selected: False}).execute())
+        #     # Select the catalogids we calculated. If we tried to do a
+        #     # .where(Model.catalogid != values.c.catalogid) that would take
+        #     # forever, not sure why.
+        #     (Model
+        #      .update({Model.selected: True})
+        #      .from_(values)
+        #      .where(Model.catalogid == values.c.catalogid)
+        #      .execute())
 
 
 class MWM_OB_MC_Carton(BaseCarton):
@@ -184,6 +188,7 @@ class MWM_OB_MC_Carton(BaseCarton):
     """
 
     name = 'mwm_ob_mc'
+    survey = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
 
@@ -238,6 +243,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     """
 
     name = 'mwm_ob_cepheids'
+    survey = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
 
