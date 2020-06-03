@@ -55,7 +55,7 @@ class MWM_OB_Carton(BaseCarton):
     """
 
     name = 'mwm_ob'
-    survey = 'MWM'
+    mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
 
@@ -188,7 +188,7 @@ class MWM_OB_MC_Carton(BaseCarton):
     """
 
     name = 'mwm_ob_mc'
-    survey = 'MWM'
+    mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
 
