@@ -121,12 +121,14 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
 #            )
 #            .join(c2t)
 #            .join(t)
-        query = query.where(
-             (t.skewt_qso == 1) &
-             (t.mi <  self.parameters['i_mag_max']) &
-             (t.mi >  self.parameters['i_mag_min']) &
-             (t.pmsig <  self.parameters['pmsig_max']) &
-             (t.plxsig <  self.parameters['plxsig_min'])))
+        query = query.where
+        (
+            (t.skewt_qso == 1),
+            (t.mi <  self.parameters['i_mag_max']),
+            (t.mi >  self.parameters['i_mag_min']),
+            (t.pmsig <  self.parameters['pmsig_max']),
+            (t.plxsig <  self.parameters['plxsig_min']),
+        )
 
         print(f"This query will return nrows={query.count()}")
 
