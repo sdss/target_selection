@@ -1,4 +1,3 @@
-
 import glob
 import importlib
 import inspect
@@ -37,4 +36,3 @@ for file_ in files:
                       TargetSelectionImportWarning)
 
 os.chdir(cwd)
->>>>>>> master

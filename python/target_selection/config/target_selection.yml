@@ -2,7 +2,7 @@
     xmatch_plan: 0.1.0-beta.1
     cartons:
         - guide
-        - bhm_spiders_agn_efeds
+        - bhm_rm_core
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
@@ -17,8 +17,6 @@
             g_max: 17
             min_separation: 0.002777778
         bhm_spiders_agn_wide_ls:
-            ismock: false
-            catalogdb_table: 'BhmSpidersAgnSuperset'
             req_ntargets: 300000
             value_boost: 1.0
             mag_r_min: 17.0
@@ -27,8 +25,6 @@
             det_like_min: 8.0
             p_any_min: 0.1
         bhm_spiders_agn_efeds:
-            ismock: false
-            catalogdb_table: 'BhmSpidersAgnSuperset'
             value_boost: 1.0
             ero_version: 'efeds_c940_V2T'
             mag_r_min: 17.0
@@ -41,28 +37,31 @@
             veto_sn_thresh: 1.00000000
             veto_z_err_thresh: 0.002
         bhm_spiders_agn_deep:
-            ismock: false
-            catalogdb_table: 'BhmSpidersAgnSuperset'
             req_ntargets: 30000
             value_boost: 1.0
             mag_r_min: 17.0
             mag_r_max: 22.5
             det_like_0_min: 6.0
+        bhm_rm_base:
+            fields:
+            - {name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49,  cadence: bhm_rm_174x8 }
+            - {name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49,  cadence: bhm_rm_174x8 }
+            - {name: XMM-LSS,  racen: 35.5,     deccen: -4.6,      radius: 1.49,  cadence: bhm_rm_174x8 }
+            - {name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00,  cadence: bhm_rm_lite5_100x8 }
+            - {name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00,  cadence: bhm_rm_174x8 }
+            - {name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00,  cadence: bhm_rm_174x8 }
         bhm_rm_core:
-            ismock: false
             value_boost: 100.0
             mag_i_min: 15.0
             mag_i_max: 21.5
             pmsig_max: 5.0
             plxsig_max: 5.0
         bhm_rm_known_spec:
-            ismock: false
             value_boost: 100.0
             mag_i_min: 15.0
             mag_i_max: 21.5
             specz_min: 0.005
         bhm_rm_var:
-            ismock: false
             value_boost: 100.0
             mag_i_min: 15.0
             mag_i_max: 21.5
@@ -74,7 +73,6 @@
             pmsig_max: 5.0
             plxsig_max: 5.0
         bhm_rm_ancillary:
-            ismock: false
             value_boost: 100.0
             photo_bitmask: 3
             mag_i_min: 15.0

@@ -26,6 +26,9 @@ from target_selection.xmatch import XMatchPlanner
 with warnings.catch_warnings():
     from target_selection.cartons import BaseCarton
 
+def all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
 def connect(profile=None, dbname=None, user=None, host=None, port=None):
     """Connects the database."""
@@ -88,8 +91,11 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
+#    carton_classes = {Carton.name: Carton
+#                      for Carton in BaseCarton.__subclasses__()}
+    # find grandchilden Cartons as well
     carton_classes = {Carton.name: Carton
-                      for Carton in BaseCarton.__subclasses__()}
+                      for Carton in all_subclasses(BaseCarton)}
 
     if len(carton_classes) == 0:
         raise TargetSelectionError('no carton classes found.')
