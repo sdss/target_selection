@@ -72,7 +72,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
     name = None
     cadence = None
     category = None
-    survey = None
+    program = None
+    mapper = None
 
     query_region = None
 
@@ -81,6 +82,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
+        assert self.program, 'carton subclass must override program'
 
         self.plan = targeting_plan
         self.tag = __version__
@@ -458,30 +460,30 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             self._setup_transaction()
-            self._create_program_metadata()
+            self._create_carton_metadata()
             self._load_data(RModel)
             self._load_magnitudes(RModel)
-            self._load_program_to_target(RModel)
+            self._load_carton_to_target(RModel)
 
             self.log.debug('Committing records and checking constraints.')
 
     def check_targets(self):
         """Check if data has been loaded for this carton and targeting plan."""
 
-        has_targets = (tdb.ProgramToTarget
+        has_targets = (tdb.CartonToTarget
                        .select()
-                       .join(tdb.Program)
+                       .join(tdb.Carton)
                        .join(tdb.Version)
-                       .where(tdb.Program.label == self.name,
+                       .where(tdb.Carton.label == self.name,
                               tdb.Version.plan == self.plan,
                               tdb.Version.target_selection >> True)
                        .exists())
 
         return has_targets
 
-    def _create_program_metadata(self):
+    def _create_carton_metadata(self):
 
-        survey_pk = None
+        mapper_pk = None
         category_pk = None
 
         # Create targeting plan in tdb.
@@ -491,17 +493,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if created:
             log.info(f'Created record in targetdb.version for {self.plan!r}.')
 
-        if (tdb.Program.select()
-                       .where(tdb.Program.label == self.name,
-                              tdb.Program.version_pk == version_pk)
-                       .exists()):
+        if (tdb.carton.select()
+                      .where(tdb.carton.label == self.name,
+                             tdb.carton.version_pk == version_pk)
+                      .exists()):
             return
 
-        # Create program and associated values.
-        if self.survey:
-            survey_pk, created_pk = tdb.Survey.get_or_create(label=self.name)
+        # Create carton and associated values.
+        if self.mapper:
+            mapper_pk, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
             if created:
-                log.debug(f'Created survey {self.survey!r}')
+                log.debug(f'Created mapper {self.mapper!r}')
 
         if self.category:
             category_pk, created = tdb.Category.get_or_create(
@@ -509,9 +511,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if created:
                 log.debug(f'Created category {self.category!r}')
 
-        tdb.Program.create(label=self.name, category_pk=category_pk,
-                           survey_pk=survey_pk, version_pk=version_pk)
-        log.debug(f'Created program {self.name!r}')
+        tdb.carton.create(label=self.name, category_pk=category_pk,
+                          program=self.program, mapper_pk=mapper_pk,
+                          version_pk=version_pk)
+        log.debug(f'Created carton {self.name!r}')
 
     def _load_data(self, RModel):
         """Load data from the intermediate table tp targetdb.target."""
@@ -607,30 +610,30 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug(f'Inserted {n_inserted:,} rows into targetdb.magnitude.')
 
-    def _load_program_to_target(self, RModel):
-        """Populate targetdb.program_to_target."""
+    def _load_carton_to_target(self, RModel):
+        """Populate targetdb.carton_to_target."""
 
-        log.debug('Loading data into targetdb.program_to_target.')
+        log.debug('Loading data into targetdb.carton_to_target.')
 
         version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
-        program_pk = tdb.Program.get(label=self.name, version_pk=version_pk).pk
+        carton_pk = tdb.Carton.get(label=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
-        ProgramToTarget = tdb.ProgramToTarget
+        CartonToTarget = tdb.CartonToTarget
 
         select_from = (RModel
                        .select(Target.pk,
-                               program_pk)
+                               carton_pk)
                        .join(Target,
                              on=(Target.catalogid == RModel.catalogid))
                        .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
-                           ProgramToTarget
+                           CartonToTarget
                            .select(peewee.SQL('1'))
-                           .join(tdb.Program)
-                           .where(ProgramToTarget.target_pk == Target.pk,
-                                  ProgramToTarget.program_pk == program_pk,
-                                  tdb.Program.version_pk == version_pk))))
+                           .join(tdb.Carton)
+                           .where(CartonToTarget.target_pk == Target.pk,
+                                  CartonToTarget.carton_pk == carton_pk,
+                                  tdb.Carton.version_pk == version_pk))))
 
         if self.cadence is not None:
 
@@ -658,11 +661,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
         # Now do the insert
-        n_inserted = ProgramToTarget.insert_from(
+        n_inserted = CartonToTarget.insert_from(
             select_from,
-            [ProgramToTarget.target_pk,
-             ProgramToTarget.program_pk,
-             ProgramToTarget.cadence_pk]).returning().execute()
+            [CartonToTarget.target_pk,
+             CartonToTarget.carton_pk,
+             CartonToTarget.cadence_pk]).returning().execute()
 
         log.debug(f'Inserted {n_inserted:,} rows into '
-                  'targetdb.program_to_target.')
+                  'targetdb.carton_to_target.')
