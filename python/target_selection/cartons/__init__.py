@@ -1,10 +1,40 @@
 
-# flake8: noqa
+import glob
+import importlib
+import inspect
+import os
+import warnings
 
-
+from ..exceptions import TargetSelectionImportWarning
 from .base import BaseCarton
 
-# Import cartons so that they can be discovered by calling Carton.__subclasses__().
-# Eventually maybe automate this with a glob.
-from .guide import GuideCarton
-from .bhm_spiders_agn import BhmSpidersAgnEfedsCarton
+
+# Import cartons so that they can be discovered by
+# calling Carton.__subclasses__().
+
+exclusions = ['__init__.py', 'base.py']
+
+cwd = os.getcwd()
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+files = [file_ for file_ in glob.glob('**/*.py', recursive=True)
+         if file_ not in exclusions]
+
+for file_ in files:
+
+    try:
+
+        modname = file_[0:-3].replace('/', '.')
+        mod = importlib.import_module('target_selection.cartons.' + modname)
+        for objname in dir(mod):
+            obj = getattr(mod, objname)
+            if inspect.isclass(obj) and issubclass(obj, BaseCarton):
+                locals().update({objname: obj})
+
+    except Exception as ee:
+
+        warnings.warn(f'cannot import file {file_}: {ee}',
+                      TargetSelectionImportWarning)
+
+os.chdir(cwd)
+>>>>>>> master

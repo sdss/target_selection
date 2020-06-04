@@ -1,86 +1,89 @@
-'0.1.0':
-    xmatch_version: 0.1.0-alpha.4
+'0.1.0-beta.1':
+    xmatch_plan: 0.1.0-beta.1
     cartons:
         - guide
         - bhm_spiders_agn_efeds
     schema: sandbox
-    guide:
-        g_min: 13
-        g_max: 17
-        min_separation: 0.016667
-    bhm_spiders_agn_wide_ls:
-        ismock: false
-        catalogdb_table: 'BhmSpidersAgnSuperset'
-        req_ntargets: 300000
-        value_boost: 1.0
-        mag_r_min: 17.0
-        mag_r_max: 22.0
-        mag_z_max: 21.5
-        det_like_min: 8.0
-        p_any_min: 0.1
-    bhm_spiders_agn_efeds:
-        ismock: false
-        catalogdb_table: 'BhmSpidersAgnSuperset'
-        value_boost: 1.0
-        ero_version: 'efeds_c940_V2T'
-        mag_r_min: 17.0
-        mag_r_max: 22.5
-        mag_z_max: 21.5
-        det_like_min: 8.0
-        p_any_min: 0.1
-        lr_min: 0.2
-        veto_join_radius: 1.0
-        veto_sn_thresh: 1.00000000
-        veto_z_err_thresh: 0.002
-    bhm_spiders_agn_deep:
-        ismock: false
-        catalogdb_table: 'BhmSpidersAgnSuperset'
-        req_ntargets: 30000
-        value_boost: 1.0
-        mag_r_min: 17.0
-        mag_r_max: 22.5
-        det_like_0_min: 6.0
-#    bhm_spiders_agn_wide_mock:
-#        ismock: true
-#        catalogdb_table: 'ErositaAGNMock'
-#        req_ntargets: 300000
-#        value_boost: 1.0
-#        mag_r_min: 17.0
-#        mag_r_max: 22.0
-#        det_like_0_min: 6.0
-    bhm_rm_core:
-        ismock: false
-        value_boost: 100.0
-        mag_i_min: 15.0
-        mag_i_max: 21.5
-        pmsig_max: 5.0
-        plxsig_max: 5.0
-    bhm_rm_known_spec:
-        ismock: false
-        value_boost: 100.0
-        mag_i_min: 15.0
-        mag_i_max: 21.5
-        specz_min: 0.005
-    bhm_rm_var:
-        ismock: false
-        value_boost: 100.0
-        mag_i_min: 15.0
-        mag_i_max: 21.5
-        mag_g_max: 21.0
-        des_var_sn_min: 5.0
-        des_var_rms_min: 0.05
-        ps1_var_sn_min: 5.0
-        ps1_var_rms_min: 0.05
-        pmsig_max: 5.0
-        plxsig_max: 5.0
-    bhm_rm_ancillary:
-        ismock: false
-        value_boost: 100.0
-        photo_bitmask: 3
-        mag_i_min: 15.0
-        mag_i_max: 21.5
-        pmsig_max: 5.0
-        plxsig_max: 5.0
-    bhm_aqmes_med:
-        mag_i_min: 16.0
-        mag_i_max: 19.1
+    magnitudes:
+        g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
+        r: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_r]
+        i: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_i]
+        h: [catalog_to_tic_v8, tic_v8.hmag]
+        bp: [catalog_to_tic_v8, tic_v8.gaiarp]
+        rp: [catalog_to_tic_v8, tic_v8.gaiabp]
+    parameters:
+        guide:
+            g_min: 13
+            g_max: 17
+            min_separation: 0.002777778
+        bhm_spiders_agn_wide_ls:
+            ismock: false
+            catalogdb_table: 'BhmSpidersAgnSuperset'
+            req_ntargets: 300000
+            value_boost: 1.0
+            mag_r_min: 17.0
+            mag_r_max: 22.0
+            mag_z_max: 21.5
+            det_like_min: 8.0
+            p_any_min: 0.1
+        bhm_spiders_agn_efeds:
+            ismock: false
+            catalogdb_table: 'BhmSpidersAgnSuperset'
+            value_boost: 1.0
+            ero_version: 'efeds_c940_V2T'
+            mag_r_min: 17.0
+            mag_r_max: 22.5
+            mag_z_max: 21.5
+            det_like_min: 8.0
+            p_any_min: 0.1
+            lr_min: 0.2
+            veto_join_radius: 1.0
+            veto_sn_thresh: 1.00000000
+            veto_z_err_thresh: 0.002
+        bhm_spiders_agn_deep:
+            ismock: false
+            catalogdb_table: 'BhmSpidersAgnSuperset'
+            req_ntargets: 30000
+            value_boost: 1.0
+            mag_r_min: 17.0
+            mag_r_max: 22.5
+            det_like_0_min: 6.0
+        bhm_rm_core:
+            ismock: false
+            value_boost: 100.0
+            mag_i_min: 15.0
+            mag_i_max: 21.5
+            pmsig_max: 5.0
+            plxsig_max: 5.0
+        bhm_rm_known_spec:
+            ismock: false
+            value_boost: 100.0
+            mag_i_min: 15.0
+            mag_i_max: 21.5
+            specz_min: 0.005
+        bhm_rm_var:
+            ismock: false
+            value_boost: 100.0
+            mag_i_min: 15.0
+            mag_i_max: 21.5
+            mag_g_max: 21.0
+            des_var_sn_min: 5.0
+            des_var_rms_min: 0.05
+            ps1_var_sn_min: 5.0
+            ps1_var_rms_min: 0.05
+            pmsig_max: 5.0
+            plxsig_max: 5.0
+        bhm_rm_ancillary:
+            ismock: false
+            value_boost: 100.0
+            photo_bitmask: 3
+            mag_i_min: 15.0
+            mag_i_max: 21.5
+            pmsig_max: 5.0
+            plxsig_max: 5.0
+        bhm_aqmes_med:
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+    database_options:
+        work_mem: '2GB'
+        temp_buffers: '2GB'

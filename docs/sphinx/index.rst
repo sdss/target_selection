@@ -1,20 +1,21 @@
-
-:tocdepth: 2
-
 Target Selection
 ================
 
-``target_selection`` provides the framework for defining cross-matching and target selection algorithms against the parent catalogues in `catalogdb <https://sdssdb.readthedocs.io/en/stable/_static/schema_graphs/auto/sdss5db.catalogdb.pdf>`__.
+``target_selection`` provides the framework for defining cross-matching and target selection algorithms using the parent catalogues in :ref:`catalogdb <sdssdb:available-databases>`.
 
 
 Contents
 --------
 
 .. toctree::
+  :maxdepth: 2
 
-  Changelog <changelog>
+  database
   cross-match
+  target-selection
+  cli
   api
+  Changelog <changelog>
 
 
 Indices and tables

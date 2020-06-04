@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import contextlib
+import hashlib
 import io
 import time
 
@@ -73,16 +74,17 @@ def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
 
     """
 
-    pmra_field = fn.coalesce(pmra_field, 0) / 1000 / 3600
-    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000 / 3600
+    pmra_field = fn.coalesce(pmra_field, 0) / 1000. / 3600.
+    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000. / 3600.
+    epoch = fn.coalesce(epoch_delta, 0)
 
     if is_pmra_cos:
         cos_dec = fn.cos(fn.radians(fn.coalesce(dec_field, 0)))
-        ra_corr = ra_field + pmra_field / cos_dec * fn.coalesce(epoch_delta, 0)
+        ra_corr = ra_field + pmra_field / cos_dec * epoch
     else:
-        ra_corr = ra_field + pmra_field * fn.coalesce(epoch_delta, 0)
+        ra_corr = ra_field + pmra_field * epoch
 
-    dec_corr = dec_field + pmdec_field * fn.coalesce(epoch_delta, 0)
+    dec_corr = dec_field + pmdec_field * epoch
 
     return ra_corr, dec_corr
 
@@ -166,6 +168,9 @@ def get_epoch(xmodel):
     xmatch = xmodel._meta.xmatch
     fields = xmodel._meta.fields
 
+    if not xmatch.epoch and not xmatch.epoch_column:
+        return None
+
     # If epoch == 0, make it null. This helps with q3c functions.
     if xmatch.epoch:
         epoch = xmatch.epoch
@@ -186,7 +191,9 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
 
     try:
 
-        orig_value = database.execute_sql(f'show {parameter}').fetchone()[0].upper()
+        orig_value = (database
+                      .execute_sql(f'SHOW {parameter}')
+                      .fetchone()[0].upper())
         value_changed = orig_value != new_value
 
         if value_changed:
@@ -204,15 +211,18 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
                 log.debug(f'{parameter} reset to {orig_value}.')
 
 
-def remove_version(database, version, schema='catalogdb',
+def remove_version(database, plan, schema='catalogdb',
                    table='catalog', delete_version=True):
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
     models = []
-    for table_name in database.models:
+    for path in database.models:
+        schema, table_name = path.split('.')
+        if schema != schema:
+            continue
         if table_name != table and not table_name.startswith(table + '_to_'):
             continue
-        model = database.models[table_name]
+        model = database.models[path]
         if not model.table_exists() or model._meta.schema != schema:
             continue
         models.append(model)
@@ -220,29 +230,41 @@ def remove_version(database, version, schema='catalogdb',
     if len(models) == 0:
         raise ValueError('No table matches the input parameters.')
 
-    print(f'Tables that will be truncated on {version!r}: ' +
+    print(f'Tables that will be truncated on {plan!r}: ' +
           ', '.join(model._meta.table_name for model in models))
 
-    Catalog = database.models[table]
-    Version = database.models['version']
+    Catalog = database.models[schema + '.' + table]
+    Version = database.models[schema + '.version']
 
     try:
-        version_id = Version.get(version=version).id
+        version_id = Version.get(plan=plan).id
     except DoesNotExist:
-        raise ValueError(f'Version {version!r} does not exist.')
+        raise ValueError(f'Version {plan!r} does not exist.')
 
     print(f'version_id={version_id}')
 
-    n_targets = Catalog.select().where(Catalog.version_id == version_id).count()
-    print(f'Number of targets found in {Catalog._meta.table_name}: {n_targets:,}')
+    n_targets = (Catalog
+                 .select()
+                 .where(Catalog.version_id == version_id)
+                 .count())
+    print(f'Number of targets found in '
+          f'{Catalog._meta.table_name}: {n_targets:,}')
 
     if not click.confirm('Do you really want to proceed?'):
         return
 
     for model in models:
-        n_removed = model.delete().where(model.version_id == version_id).execute()
-        vacuum_table(database, f'{model._meta.schema}.{model._meta.table_name}')
+        n_removed = (model
+                     .delete()
+                     .where(model.version_id == version_id)
+                     .execute())
         print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
+
+    md5 = hashlib.md5(plan.encode()).hexdigest()[0:16]
+    for table in database.get_tables(schema=schema):
+        if table.endswith(md5):
+            print(f'Dropping temporary table {table}.')
+            database.execute_sql(f'DROP TABLE IF EXISTS {table};')
 
     if delete_version:
         Version.delete().where(Version.id == version_id).execute()
@@ -278,7 +300,8 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
     tables = []
     for table_name in database.models:
         if table_name != table:
-            if not table_name.startswith(table + '_to_') or not relational_tables:
+            is_relational = table_name.startswith(table + '_to_')
+            if not is_relational or not relational_tables:
                 continue
         model = database.models[table_name]
         if not model.table_exists() or model._meta.schema != schema:
@@ -286,7 +309,9 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
         tables.append(table_name)
 
     for table_name in tables:
-        table_name = table_name if schema is None else schema + '.' + table_name
+        table_name = (table_name
+                      if schema is None
+                      else schema + '.' + table_name)
         vacuum_table(database, table_name, vacuum=vacuum, analyze=analyze)
 
 
