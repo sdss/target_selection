@@ -474,7 +474,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        .select()
                        .join(tdb.Carton)
                        .join(tdb.Version)
-                       .where(tdb.Carton.label == self.name,
+                       .where(tdb.Carton.carton == self.name,
                               tdb.Version.plan == self.plan,
                               tdb.Version.target_selection >> True)
                        .exists())
@@ -494,8 +494,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             log.info(f'Created record in targetdb.version for {self.plan!r}.')
 
         if (tdb.carton.select()
-                      .where(tdb.carton.label == self.name,
-                             tdb.carton.version_pk == version_pk)
+                      .where(tdb.Carton.carton == self.name,
+                             tdb.Carton.version_pk == version_pk)
                       .exists()):
             return
 
