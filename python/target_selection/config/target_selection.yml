@@ -17,6 +17,9 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        mwm_wd:
+            gmag: 20
+            pwd: 0.5
     database_options:
         work_mem: '2GB'
         temp_buffers: '2GB'
