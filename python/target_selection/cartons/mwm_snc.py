@@ -49,6 +49,7 @@ class MWM_SNC_100pc(BaseCarton):
 
     name = 'mwm_100pc'
     category = 'science'
+    program = 'SNC'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
@@ -68,12 +69,10 @@ class MWM_SNC_100pc(BaseCarton):
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
-                 .where(
-                     ((TIC_v8.plx - TIC_v8.e_plx) > 10) &
-                     ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
-                     ~(gal_cut))
-                 .where(Catalog.version_id == version_id,
-                        CatalogToTIC_v8.version_id == version_id))
+                 .where((TIC_v8.plx - TIC_v8.e_plx) > 10,
+                        ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
+                        ~(gal_cut))
+                 .where(CatalogToTIC_v8.version_id == version_id))
 
         if query_region:
             query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
@@ -119,6 +118,7 @@ class MWM_SNC_250pc(BaseCarton):
 
     name = 'mwm_250pc'
     category = 'science'
+    program = 'SNC'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
@@ -139,7 +139,8 @@ class MWM_SNC_250pc(BaseCarton):
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
-                 .where(colour_cut & ((TIC_v8.plx - TIC_v8.e_plx) > 4) &
+                 .where(colour_cut,
+                        (TIC_v8.plx - TIC_v8.e_plx) > 4,
                         ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
                         ~(gal_cut))
                  .where(Catalog.version_id == version_id,
