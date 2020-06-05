@@ -396,13 +396,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                    *mag_fields,
                                    tdb.Cadence.label.alias('cadence'))
                            .join(tdb.Magnitude)
-                           .switch(tdb.Target)
-                           .join(tdb.ProgramToTarget)
+                           .join_from(tdb.Target, tdb.CartonToTarget)
                            .join(tdb.Cadence, peewee.JOIN.LEFT_OUTER)
-                           .switch(tdb.ProgramToTarget)
-                           .join(tdb.Program)
+                           .join_from(tdb.CartonToTarget, tdb.Carton)
                            .join(tdb.Version)
-                           .where(tdb.Program.label == self.name,
+                           .where(tdb.Carton.carton == self.name,
                                   tdb.Version.plan == self.plan,
                                   tdb.Version.target_selection >> True))
 
@@ -493,7 +491,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if created:
             log.info(f'Created record in targetdb.version for {self.plan!r}.')
 
-        if (tdb.carton.select()
+        if (tdb.Carton.select()
                       .where(tdb.Carton.carton == self.name,
                              tdb.Carton.version_pk == version_pk)
                       .exists()):
@@ -511,7 +509,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if created:
                 log.debug(f'Created category {self.category!r}')
 
-        tdb.carton.create(label=self.name, category_pk=category_pk,
+        tdb.Carton.create(carton=self.name, category_pk=category_pk,
                           program=self.program, mapper_pk=mapper_pk,
                           version_pk=version_pk)
         log.debug(f'Created carton {self.name!r}')
@@ -616,7 +614,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         log.debug('Loading data into targetdb.carton_to_target.')
 
         version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
-        carton_pk = tdb.Carton.get(label=self.name, version_pk=version_pk).pk
+        carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
         CartonToTarget = tdb.CartonToTarget
