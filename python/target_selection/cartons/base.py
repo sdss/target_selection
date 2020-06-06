@@ -293,6 +293,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         ResultsModel = self.get_model()
 
+        n_rows = ResultsModel.select().count()
+        log.debug(f'Table {self.path!r} contains {n_rows:,} rows.')
+
         log.debug('Running post-process.')
         with self.database.atomic():
             self._setup_transaction()
