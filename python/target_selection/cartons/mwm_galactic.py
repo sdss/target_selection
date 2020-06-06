@@ -68,8 +68,9 @@ class GalacticGenesisCarton(BaseCarton):
                      peewee.fn.substr(cc_flg, 2, 1) == '0',
                      rd_flag_1 > 0, rd_flag_1 <= 3,
                      (((Gmag - Hmag) > self.parameters['g_h']) |
-                      TIC_v8.gaia >> None),
-                     Catalog.version_id == version_id))
+                      TIC_v8.gaia >> None))
+              .where(CatalogToTIC_v8.version_id == version_id,
+                     CatalogToTIC_v8.best >> True))
 
         if query_region:
             gg = gg.where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
