@@ -144,8 +144,8 @@ class MWM_SNC_250pc(BaseCarton):
                         (TIC_v8.plx - TIC_v8.e_plx) > 4,
                         ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
                         ~(gal_cut))
-                 .where(Catalog.version_id == version_id,
-                        CatalogToTIC_v8.version_id == version_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
