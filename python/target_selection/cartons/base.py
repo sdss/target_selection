@@ -293,6 +293,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         ResultsModel = self.get_model()
 
+        n_rows = ResultsModel.select().count()
+        log.debug(f'Table {self.path!r} contains {n_rows:,} rows.')
+
         log.debug('Running post-process.')
         with self.database.atomic():
             self._setup_transaction()
@@ -383,6 +386,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if mode == 'results':
 
             results_model = self.get_model()
+            assert results_model.table_exists(), \
+                'temporary table does not exist.'
+
             write_query = results_model.select()
 
             colnames = [field.name for field in write_query._returning]
