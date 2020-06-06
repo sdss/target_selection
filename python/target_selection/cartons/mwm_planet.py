@@ -43,8 +43,8 @@ class TESS_Planets_Carton(BaseCarton):
                  .join(Catalog)
                  .where(TIC_v8.hmag > self.parameters['h_min'],
                         TIC_v8.hmag < self.parameters['h_max'],
-                        Catalog.version_id == version_id,
-                        CatalogToTIC_v8.version_id == version_id)
+                        CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True)
                  .distinct([TESS_TOI.ticid]))
 
         if query_region:
