@@ -47,7 +47,7 @@ class MWM_SNC_100pc(BaseCarton):
 
     """
 
-    name = 'mwm_100pc'
+    name = 'mwm_snc_100pc'
     category = 'science'
     program = 'SNC'
     mapper = 'MWM'
@@ -117,7 +117,7 @@ class MWM_SNC_250pc(BaseCarton):
 
     """
 
-    name = 'mwm_250pc'
+    name = 'mwm_snc_250pc'
     category = 'science'
     program = 'SNC'
     mapper = 'MWM'
