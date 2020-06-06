@@ -259,14 +259,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                            query_region[1],
                                                            query_region[2])))
 
+        query_sql, params = query.sql()
         log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                             str(query), 'darkgrey'))
+                             query_sql % tuple(params), 'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
                 self._setup_transaction()
                 self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
-                                          f'{self.path} AS ' + str(query))
+                                          f'{self.path} AS ' + query_sql,
+                                          params)
 
         log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
 
