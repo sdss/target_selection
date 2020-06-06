@@ -56,9 +56,9 @@ class MWM_CB_300_Carton(BaseCarton):
                  .where(GD.r_est < 300,
                         FUV_abs < 14 * (FUV - NUV) - 46,
                         CatalogToGUVCat.version_id == version_id,
-                        CatalogToGUVCat.best >> peewee.SQL('true'),
+                        CatalogToGUVCat.best >> True,
                         CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> peewee.SQL('true')))
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
