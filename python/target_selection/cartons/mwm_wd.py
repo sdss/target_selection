@@ -40,7 +40,8 @@ class MWM_WD_Carton(BaseCarton):
                  .join(Catalog)
                  .where(Gaia_DR2_WD.pwd > self.parameters['pwd'],
                         Gaia_DR2_WD.gmag <= self.parameters['gmag'],
-                        CatalogToTIC_v8.version_id == version_id))
+                        CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
