@@ -383,6 +383,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if mode == 'results':
 
             results_model = self.get_model()
+            assert results_model.table_exists(), \
+                'temporary table does not exist.'
+
             write_query = results_model.select()
 
             colnames = [field.name for field in write_query._returning]
