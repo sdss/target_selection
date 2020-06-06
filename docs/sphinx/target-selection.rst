@@ -214,6 +214,31 @@ Let's rewrite our Galactic Genesis example with a radial query option ::
 
 If we don't implement the region condition explicitely, `~.BaseCarton.run` will add it by converting the main query into a subquery and joining with the ``catalog`` table. Depending on the query this may result in very poor performance (the results could be restricted to the radial region only after the query has run on the whole sky). It's recommended to implement ``query_region`` in `.build_query`.
 
+Writing results to a file
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For QA purposes it's useful to be able to write the result of running the carton query to a file. The method `.write_table` allows to do that. It must be called after `.run` has been invoked and writes the temporary table to a gzip'd FITS file with all the columns returned by the query and modified in post-processing (including ``selected`` and ``cadence``). ::
+
+    >>> carton.write_table()
+    <Table masked=True length=5459267>
+    catalogid selected cadence        ra        ... cc_flg rd_flg gal_contam
+    int64     bool   float64     float64      ...  str3   str3    int64
+    --------- -------- ------- ---------------- ... ------ ------ ----------
+    565437025     True     nan 314.977316146069 ...    000    222          0
+    757228297     True     nan 315.101352793936 ...    000    111          0
+    757228365     True     nan 315.115427475258 ...    000    111          0
+    757228396     True     nan 315.124831714726 ...    000    222          0
+    757654361     True     nan   315.3227486863 ...    000    222          0
+    565379603     True     nan 314.673172098268 ...    000    111          0
+          ...      ...     ...              ... ...    ...    ...        ...
+    476312142     True     nan        41.850288 ...    000    222          0
+    649921691     True     nan        44.536546 ...    000    222          0
+    476311240     True     nan 41.5986734774755 ...    000    222          0
+
+After `.load` has run and the carton has been ingested into ``targetdb``, it's possible to call `.write_table` with ``mode='targetdb'``. This will write a selection of the ``targetdb`` columns for the carton (catalogid, astrometric coordinates, cadence, magnitudes) ::
+
+    carton.write('carton_loaded-0.2.3.fits.gz', mode='targetdb')
+
 
 Running target selection
 ------------------------
