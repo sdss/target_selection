@@ -338,10 +338,31 @@
         gaia_unwise_agn:  # Only for joining.
             join_weight: 0.3
 
-'0-beta.2':
+'0.1.0-beta.2':
     base_plan: '0.1.0-beta.1'
     log_path: xmatch_{plan}.log
     show_sql: true
+    order:
+        - tic_v8
+        - legacy_survey_dr8
+        - sdss_dr13_photoobj_primary
+        - skymapper_dr1_1
+        - kepler_input_10
+        - bhm_rm_v0
+        - ps1_g18
+        - tycho2
+        - gaia_qso
+        - bhm_csc
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - allwise
+        - unwise
+        - catwise
+        - glimpse
+    tables:
+        sdss_dr13_photoobj_primary:
+            ra_column: ra
+            dec_column: dec
     database_options:
         work_mem: '10GB'
         temp_buffers: '10GB'

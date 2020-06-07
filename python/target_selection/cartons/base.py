@@ -74,6 +74,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     category = None
     program = None
     mapper = None
+    priority = None
 
     query_region = None
 
@@ -176,6 +177,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
             cadence = peewee.TextField(null=True)
+            priority = peewee.IntegerField()
 
             class Meta:
                 database = self.database
@@ -285,6 +287,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'cadence' not in columns:
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
+        if 'priority' not in columns:
+            self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                      'ADD COLUMN priority INTEGER '
+                                      'DEFAULT NULL;')
 
         self.database.execute_sql(f'ALTER TABLE {self.path} '
                                   'ADD PRIMARY KEY (catalogid);')
@@ -292,6 +298,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.database.execute_sql(f'ANALYZE {self.path};')
 
         ResultsModel = self.get_model()
+
+        n_rows = ResultsModel.select().count()
+        log.debug(f'Table {self.path!r} contains {n_rows:,} rows.')
 
         log.debug('Running post-process.')
         with self.database.atomic():
@@ -383,6 +392,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if mode == 'results':
 
             results_model = self.get_model()
+            assert results_model.table_exists(), \
+                'temporary table does not exist.'
+
             write_query = results_model.select()
 
             colnames = [field.name for field in write_query._returning]
@@ -660,12 +672,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                .join(tdb.Cadence, 'LEFT OUTER JOIN',
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
+        if self.cadence is None:
+            select_from = select_from.select_extend(RModel.priority)
+        else:
+            select_from = select_from.select_extend(self.priority)
+
         # Now do the insert
         n_inserted = CartonToTarget.insert_from(
             select_from,
             [CartonToTarget.target_pk,
              CartonToTarget.carton_pk,
-             CartonToTarget.cadence_pk]).returning().execute()
+             CartonToTarget.cadence_pk,
+             CartonToTarget.priority]).returning().execute()
 
         log.debug(f'Inserted {n_inserted:,} rows into '
                   'targetdb.carton_to_target.')
