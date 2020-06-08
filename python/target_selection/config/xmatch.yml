@@ -359,7 +359,18 @@
         - unwise
         - catwise
         - glimpse
+    exclude:
+        - skymapper_gaia
     tables:
+        tic_v8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+            join_weight: 0.1
         sdss_dr13_photoobj_primary:
             ra_column: ra
             dec_column: dec
