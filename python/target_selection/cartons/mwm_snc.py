@@ -54,9 +54,10 @@ class MWM_SNC_100pc(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        l = TIC_v8.gallong  # noqa
-        b = TIC_v8.gallat
+        l = Gaia_DR2.l  # noqa
+        b = Gaia_DR2.b
 
+        # Dense regions (Galactic plane, SMC, LMC).
         gal_cut = (((l <= 180) & (b < (-0.139 * l + 25)) & (b > (0.139 * l - 25))) |  # noqa
                    ((l > 180) & (b > (-0.139 * l + 25)) & (b < (0.139 * l - 25))) |
                    (fn.sqrt(fn.pow(l - 303.2, 2) + 2 * fn.pow(b + 44.4, 2)) < 5) |
@@ -69,7 +70,7 @@ class MWM_SNC_100pc(BaseCarton):
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
-                 .where((TIC_v8.plx - TIC_v8.e_plx) > 10,
+                 .where((Gaia_DR2.parallax - Gaia_DR2.parallax_error) > 10,
                         ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
                         ~(gal_cut))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -124,10 +125,12 @@ class MWM_SNC_250pc(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        l = TIC_v8.gallong  # noqa
-        b = TIC_v8.gallat
+        l = Gaia_DR2.l  # noqa
+        b = Gaia_DR2.b
 
-        colour_cut = (TIC_v8.gaiamag + 5 * fn.log(TIC_v8.plx / 1000) + 5) < 6
+        colour_cut = (Gaia_DR2.phot_g_mean_mag +
+                      5 * fn.log(Gaia_DR2.parallax / 1000) + 5) < 6
+
         gal_cut = (((l <= 180) & (b < (-0.139 * l + 25)) & (b > (0.139 * l - 25))) |  # noqa
                    ((l > 180) & (b > (-0.139 * l + 25)) & (b < (0.139 * l - 25))) |
                    (fn.sqrt(fn.pow(l - 303.2, 2) + 2 * fn.pow(b + 44.4, 2)) < 5) |
@@ -141,7 +144,7 @@ class MWM_SNC_250pc(BaseCarton):
                  .join(CatalogToTIC_v8)
                  .join(Catalog)
                  .where(colour_cut,
-                        (TIC_v8.plx - TIC_v8.e_plx) > 4,
+                        (Gaia_DR2.parallax - Gaia_DR2.parallax_error) > 4,
                         ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
                         ~(gal_cut))
                  .where(CatalogToTIC_v8.version_id == version_id,
