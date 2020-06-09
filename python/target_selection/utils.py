@@ -326,3 +326,21 @@ def get_configuration_values(database, parameters):
             values[parameter] = value
 
     return values
+
+
+def is_view(database, view_name, schema='public', materialized=False):
+    """Determines if a view exists."""
+
+    if not materialized:
+        query = (f'SELECT * FROM pg_views where schemaname = {schema!r} '
+                 f'AND viewname = {view_name!r};')
+    else:
+        query = (f'SELECT pc.* FROM pg_class pc '
+                 f'JOIN pg_namespace pn ON pc.relnamespace = pn.oid '
+                 f'WHERE pn.nspname = {schema!r} AND '
+                 f'pc.relname = {view_name!r};')
+
+    if len(database.execute_sql(query).fetchall()) > 0:
+        return True
+    else:
+        return False
