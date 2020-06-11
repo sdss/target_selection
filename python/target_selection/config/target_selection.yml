@@ -49,7 +49,7 @@
             mag_i_min: 15.0
             mag_i_max: 21.5
             specz_min: 0.005
-            specz_max: 5.0
+            specz_max: 7.0
         bhm_rm_var:
             priority: 1003
             value: 1000.0
@@ -120,7 +120,7 @@
             p_any_min: 0.1
             lr_min: 0.2
             veto_join_radius: 1.0
-            veto_sn_thresh: 1.00000000
+            veto_sn_thresh: 1.50
             veto_z_err_thresh: 0.002
         bhm_spiders_agn_wide_ls:
             req_ntargets: 300000

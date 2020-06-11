@@ -83,14 +83,13 @@ class BhmRmBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    peewee.Value(0.0).alias('pmra'),
                     target_priority,
                     target_value,
                     pmra,
                     pmdec,
-                    t.mg.alias('magnitude_g'),
+                    t.psfmag_sdss[1].alias('magnitude_g'),
                     t.psfmag_sdss[2].alias('magnitude_r'),   ## will not be available for targets outside SDSS
-                    t.mi.alias('magnitude_i'),
+                    t.psfmag_sdss[3].alias('magnitude_i'),   ## ditto
                     t.psfmag_sdss[4].alias('magnitude_z'),   ## ditto
             )
             .join(c2t)
@@ -158,8 +157,7 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-        query = query.where
-        (
+        query = query.where(
             (t.specz >= self.parameters['specz_min']) &
             (t.specz <= self.parameters['specz_max'])
         )
@@ -169,7 +167,7 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
 
 
 
-class BhmRmVar(BhmRmBaseCarton):
+class BhmRmVarCarton(BhmRmBaseCarton):
     '''
     bhm_rm_var: selected based on g-band variability > 0.05 mag and bright enough to be detected by Gaia (G<~21)
 
@@ -180,6 +178,8 @@ class BhmRmVar(BhmRmBaseCarton):
         AND WHERE plxsig < 5.0
         AND WHERE gaia = 1
 
+    #debug
+    select t.pk, t.ra, t.dec, t.mi, t.psfmag_sdss[4] as psfmag_i,t.pmsig,t.ps1_var_sn[1],t.ps1_var_rms[1],t.des_var_sn[1],t.des_var_rms[1] from bhm_rm_v0 as t where (t.gaia = 1 AND t.mi < 21.5 AND t.pmsig < 5.0 AND t.plxsig < 5.0 AND t.ps1_var_sn[1] > 5.0 AND t.ps1_var_rms[1] > 0.05 ) limit 10;
     '''
 
     name = 'bhm_rm_var'
@@ -187,8 +187,7 @@ class BhmRmVar(BhmRmBaseCarton):
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-        query = query.where
-        (
+        query = query.where(
             (
                 (
                     (t.des_var_sn[0] > self.parameters['des_var_sn_min']) &
@@ -200,10 +199,10 @@ class BhmRmVar(BhmRmBaseCarton):
                 )
             ) &
             (t.gaia == 1) &
-            (t.pmsig <  self.parameters['pmsig_max']) &
-            (t.plxsig <  self.parameters['plxsig_max'])
-            #& (t.mg <  self.parameters['g_mag_max'])  # TBD
+            (t.pmsig < self.parameters['pmsig_max']) &
+            (t.plxsig < self.parameters['plxsig_max'])
         )
+            #& (t.mg <  self.parameters['g_mag_max'])  # TBD
 
         return query
 
@@ -227,14 +226,22 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
 
-        query = query.where
-        (
+        query = query.where(
             (t.photo_bitmask.bin_and(self.parameters['photo_bitmask']) != 0 ) &
             (t.pmsig <  self.parameters['pmsig_max']) &
             (t.plxsig <  self.parameters['plxsig_max'])
         )
 
         return query
+
+
+
+
+
+
+
+
+
 
 #######################################################################
 #######################################################################
@@ -267,7 +274,11 @@ from sdssdb.peewee.sdss5db.catalogdb import database
 database.set_profile('tunnel_operations')
 from target_selection.cartons.bhm_rm import *
 c = BhmRmCoreCarton(targeting_plan='0.1.0-beta.1')
+c = BhmRmKnownSpecCarton(targeting_plan='0.1.0-beta.1')
+c = BhmRmVarCarton(targeting_plan='0.1.0-beta.1')
+c = BhmRmAncillaryCarton(targeting_plan='0.1.0-beta.1')
 q = c.build_query(version_id=13)
+q.count()
 for r in q.limit(5).namedtuples():
     print(r)
 
