@@ -10,33 +10,20 @@
 import peewee
 import sdssdb
 
-sdssdb.peewee.sdss5db.database.set_profile('tunnel_operations')
-
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0, CatalogToBHM_RM_v0)
 
 from target_selection.cartons.base import BaseCarton
-#from target_selection.cartons.skymask import SkyMask
-#import pkg_resources
 
 
 # Carton descriptions here:
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms#Definingtargetselectionandcadencealgorithms-ReverberationMapping(RM)
 
 ## This module provides the following BHM cartons:
-#  BHM_RM_CORE
-#  BHM_RM_KNOWN_SPEC
-#  BHM_RM_VAR
-#  BHM_RM_ANCILLARY
-#gaia_epoch = 2015.5
+#  bhm_rm_core
+#  bhm_rm_known_spec
+#  bhm_rm_var
+#  bhm_rm_ancillary
 
-'''
-t = BHM_RM_v0.alias()
-for f in t._meta.fields:
-    print (f)
-'''
-
-# sql, param = qq.sql()
-# print (sql.replace("%s","{}").format(*param))
 
 
 class BhmRmBaseCarton(BaseCarton):
@@ -50,43 +37,80 @@ class BhmRmBaseCarton(BaseCarton):
     mapper = 'BHM'
     cadence = 'bhm_rm_174x8'
     tile = False
-    priority = 1000
+    priority = None
+    alias_c = None
     alias_t = None
 
-    # form a peewee sub-query using the RM field centres
-    def append_query_region(self, cat_alias, query):
+    def get_fieldlist(self):
+        '''Read the RM field centres from the yaml'''
+        fieldlist = []
         base_parameters = self.config['parameters'].get(self.base_name, None)
+        if base_parameters:
+            fieldlist = base_parameters['fieldlist'];
+        return fieldlist
+
+
+    def append_spatial_query(self, query, fieldlist):
+        '''extend the peewee query using a list of field centres'''
+        if fieldlist is None :
+            return query
+        elif len(fieldlist) == 0 :
+            return query
+
         q = False
-        for field in base_parameters['fields']:
-            q = ( q | peewee.fn.q3c_radial_query(cat_alias.ra,
-                                                 cat_alias.dec,
-                                                 field['racen'],
-                                                 field['deccen'],
-                                                 field['radius']))
+        for f in fieldlist:
+            q = ( q | peewee.fn.q3c_radial_query(self.alias_c.ra,
+                                                 self.alias_c.dec,
+                                                 f['racen'],
+                                                 f['deccen'],
+                                                 f['radius']))
         return query.where(q)
 
 
-    def build_query(self):
-        t = BHM_RM_v0.alias()
-        self.alias_t = t
+    def build_query(self, version_id, query_region=None):
+        c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
+        t = BHM_RM_v0.alias()
+        self.alias_c = c
+        self.alias_t = t
+
+        # set the Carton priority+values here - read from yaml
+        target_priority = peewee.Value(self.parameters.get('priority', 10000)).alias('priority')
+        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
+        pmra = peewee.Value(0.0).alias('pmra')
+        pmdec = peewee.Value(0.0).alias('pmdec')
 
         query = (
             c
             .select(c.catalogid,
-                    c.ra,
-                    c.dec,
-                    t.mi.alias('mag_i')
+                    peewee.Value(0.0).alias('pmra'),
+                    target_priority,
+                    target_value,
+                    pmra,
+                    pmdec,
+                    t.mg.alias('magnitude_g'),
+                    t.psfmag_sdss[2].alias('magnitude_r'),   ## will not be available for targets outside SDSS
+                    t.mi.alias('magnitude_i'),
+                    t.psfmag_sdss[4].alias('magnitude_z'),   ## ditto
             )
             .join(c2t)
             .join(t)
+            .where(c.version_id == version_id,
+                   c2t.version_id == version_id)
+            .where
+            (
+                (t.mi >= self.parameters['mag_i_min']),
+                (t.mi <  self.parameters['mag_i_max']),
             )
-        query = self.append_query_region(c, query)
+            .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
+        )
+        query = self.append_spatial_query(query, self.get_fieldlist())
+
+#        # also set the Carton priority+value here - read from yaml
+#        self.priority = self.parameters['priority']
+#        self.value = self.parameters['value']
 
         return query
-
-
-
 
 
 
@@ -103,37 +127,17 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
     '''
 
     name = 'bhm_rm_core'
-    priority = 1002
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-#        c = Catalog.alias()
-#        t = BHM_RM_v0.alias()
-#        c2t = CatalogToBHM_RM_v0.alias()
-
-#        query = (
-#            c
-#            .select(c.catalogid,
-#                    c.ra,
-#                    c.dec,
-#                    t.mi.alias('mag_i')
-#            )
-#            .join(c2t)
-#            .join(t)
-        query = query.where
-        (
-            (t.skewt_qso == 1),
-            (t.mi <  self.parameters['i_mag_max']),
-            (t.mi >  self.parameters['i_mag_min']),
-            (t.pmsig <  self.parameters['pmsig_max']),
-            (t.plxsig <  self.parameters['plxsig_min']),
+        query = query.where(
+            (t.skewt_qso == 1) &
+            (t.pmsig <  self.parameters['pmsig_max']) &
+            (t.plxsig <  self.parameters['plxsig_max'])
         )
 
-        print(f"This query will return nrows={query.count()}")
-
         return query
-
 
 class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     '''
@@ -147,40 +151,18 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
         WHERE specz > 0.005
         AND WHERE mi BETWEEN 15.0 AND 21.5   # <- exact limits TBD
 
-    # functional SQL for one field:
-    ##SELECT c.*,t.specz,t.mi FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
-    SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
-    \copy (SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 35.5, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 22.0 AND mi > 16.0)) to ./test_faint.csv csv header;
     '''
 
     name = 'bhm_rm_known_spec'
 
-    priority = 1001
-
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-#        c = Catalog.alias()
-#        t = BHM_RM_v0.alias()
-#        c2t = CatalogToBHM_RM_v0.alias()
-
-#        query = (
-#            c
-#            .select(c.catalogid,
-#                    c.ra,
-#                    c.dec,
-#                    t.mi.alias('mag_i')
-#             )
-#            .join(c2t)
-#            .join(t)
         query = query.where
         (
-            (t.specz > self.parameters['specz_min']),
-            (t.mi <  self.parameters['i_mag_max']),
-            (t.mi >  self.parameters['i_mag_min'])
+            (t.specz >= self.parameters['specz_min']) &
+            (t.specz <= self.parameters['specz_max'])
         )
-
-        print(f"This query will return nrows={query.count()}")
 
         return query
 
@@ -202,24 +184,9 @@ class BhmRmVar(BhmRmBaseCarton):
 
     name = 'bhm_rm_var'
 
-    priority = 1003
-
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-#        c = Catalog.alias()
-#        t = BHM_RM_v0.alias()
-#        c2t = CatalogToBHM_RM_v0.alias()
-#
-#        query = (
-#            c
-#            .select(c.catalogid,
-#                    c.ra,
-#                    c.dec,
-#                    t.mi.alias('mag_i')
-#             )
-#            .join(c2t)
-#            .join(t)
         query = query.where
         (
             (
@@ -231,17 +198,12 @@ class BhmRmVar(BhmRmBaseCarton):
                     (t.ps1_var_sn[0] > self.parameters['ps1_var_sn_min']) &
                     (t.ps1_var_rms[0] > self.parameters['ps1_var_rms_min'])
                 )
-            ),
-            (t.mi <  self.parameters['i_mag_max']),
-            (t.mi >  self.parameters['i_mag_min']),
-            (t.gaia == 1),
-            (t.pmsig <  self.parameters['pmsig_max']),
-            (t.plxsig <  self.parameters['plxsig_min']),
-            # (t.mg <  self.parameters['g_mag_max']) &  # TBD
+            ) &
+            (t.gaia == 1) &
+            (t.pmsig <  self.parameters['pmsig_max']) &
+            (t.plxsig <  self.parameters['plxsig_max'])
+            #& (t.mg <  self.parameters['g_mag_max'])  # TBD
         )
-
-
-        print(f"This query will return nrows={query.count()}")
 
         return query
 
@@ -261,34 +223,58 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
 
     name = 'bhm_rm_ancillary'
 
-    priority = 1004
-
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
-#        c = Catalog.alias()
-#        t = BHM_RM_v0.alias()
-#        c2t = CatalogToBHM_RM_v0.alias()
-#
-#        query = (
-#            c
-#            .select(c.catalogid,
-#                    c.ra,
-#                    c.dec,
-#                    t.mi.alias('mag_i')
-#             )
-#            .join(c2t)
-#            .join(t)
 
         query = query.where
         (
-            (t.photo_bitmask.bin_and(self.parameters['photo_bitmask']) != 0 ),
-            (t.mi <  self.parameters['i_mag_max']),
-            (t.mi >  self.parameters['i_mag_min']),
-            (t.pmsig <  self.parameters['pmsig_max']),
-            (t.plxsig <  self.parameters['plxsig_min']),
+            (t.photo_bitmask.bin_and(self.parameters['photo_bitmask']) != 0 ) &
+            (t.pmsig <  self.parameters['pmsig_max']) &
+            (t.plxsig <  self.parameters['plxsig_max'])
         )
 
-        print(f"This query will return nrows={query.count()}")
-
         return query
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+# Notes and debug
+#
+# '''
+# t = BHM_RM_v0.alias()
+# for f in t._meta.fields:
+#     print (f)
+# '''
+#
+# sql, param = qq.sql()
+# print (sql.replace("%s","{}").format(*param))
+#    # some functional SQL for one field:
+#    ##SELECT c.*,t.specz,t.mi FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
+#    SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
+#    \copy (SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 35.5, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 22.0 AND mi > 16.0)) to ./test_faint.csv csv header;
+#
+
+
+
+'''
+# for testing do domething like this
+
+import peewee
+import sdssdb
+from sdssdb.peewee.sdss5db.catalogdb import database
+database.set_profile('tunnel_operations')
+from target_selection.cartons.bhm_rm import *
+c = BhmRmCoreCarton(targeting_plan='0.1.0-beta.1')
+q = c.build_query(version_id=13)
+for r in q.limit(5).namedtuples():
+    print(r)
+
+'''
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################

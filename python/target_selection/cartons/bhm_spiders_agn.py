@@ -9,16 +9,23 @@
 
 import peewee
 from peewee import JOIN
+from peewee import fn
 import sdssdb
 
-##database = sdssdb.connection.PeeweeDatabaseConnection('sdss5db')
-##database.set_profile('operations')
-##database.connected
 
-#from sdssdb.peewee.sdss5db.catalogdb import database
-#database.set_profile('tunnel_operations')
-#database.connected
+'''
+# for testing do this
 
+import peewee
+import sdssdb
+from sdssdb.peewee.sdss5db.catalogdb import database
+database.set_profile('tunnel_operations')
+from target_selection.cartons.bhm_spiders_agn import BhmSpidersAgnEfedsCarton
+b = BhmSpidersAgnEfedsCarton(targeting_plan='0.1.0-beta.1')
+q = b.build_query(version_id=13)
+for r in q[:5]: print(r))
+
+'''
 
 
 
@@ -26,9 +33,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              BHM_Spiders_AGN_Superset,
                                              Legacy_Survey_DR8,
                                              BHM_eFEDS_Veto,
+                                             CatalogToLegacy_Survey_DR8,
                                              )
-
-from sdssdb.peewee.sdss5db.catalogdb import (CatalogToLegacy_Survey_DR8, )
 
 
 #waiting_for_psdr2# ,  PanStarrsDr2)
@@ -155,9 +161,10 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
         ls = Legacy_Survey_DR8.alias()
         c2ls = CatalogToLegacy_Survey_DR8.alias()
 
-        flux_r_max =  AB2nMgy(self.config['r_mag_min'])
-        flux_r_min =  AB2nMgy(self.config['r_mag_max'])
-        flux_z_min =  AB2nMgy(self.config['z_mag_max'])
+        flux_r_max =  AB2nMgy(self.parameters['mag_r_min'])
+        flux_r_min =  AB2nMgy(self.parameters['mag_r_max'])
+        flux_z_min =  AB2nMgy(self.parameters['mag_z_max'])
+        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
 
         query = (
             c
@@ -169,23 +176,24 @@ class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
                     x.target_priority.alias('priority'),
                     ls.fiberflux_g.alias('lsfiberflux_g'),
                     ls.fiberflux_r.alias('lsfiberflux_r'),
-                    ls.fiberflux_z.alias('lsfiberflux_z'))
+                    ls.fiberflux_z.alias('lsfiberflux_z'),
+            )
             .join(c2ls)
             .join(ls)
             .join(x)
             .where(c.version_id == version_id,
                    c2ls.version_id == version_id)
             .where(
-                (x.ero_version == self.config['ero_version'] ),
+                (x.ero_version == self.parameters['ero_version'] ),
                 (ls.fibertotflux_r < flux_r_max),
                 ((ls.fiberflux_r   > flux_r_min) |
                  (ls.fiberflux_z > flux_z_min) ),
-                (x.ero_det_like > self.config['det_like_min']),
-                (x.xmatch_metric > self.config['p_any_min']),
+                (x.ero_det_like > self.parameters['det_like_min']),
+                (x.xmatch_metric > self.parameters['p_any_min']),
             )
         )
 
-        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
 
         return query
 
@@ -243,58 +251,61 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         c2ls = CatalogToLegacy_Survey_DR8.alias()
         v = BHM_eFEDS_Veto.alias()
 
-        flux_r_max =  AB2nMgy(self.config['r_mag_min'])
-        flux_r_min =  AB2nMgy(self.config['r_mag_max'])
-        flux_z_min =  AB2nMgy(self.config['z_mag_max'])
+        flux_r_max = AB2nMgy(self.parameters['mag_r_min'])
+        flux_r_min = AB2nMgy(self.parameters['mag_r_max'])
+        flux_z_min = AB2nMgy(self.parameters['mag_z_max'])
+
+        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
+        match_radius_spectro = self.parameters['veto_join_radius']/3600.0
 
         query = (
             c
             .select(c.catalogid,
-                    c.ra,
-                    c.dec,
-                    c.pmra,
-                    c.pmdec,
-                    x.target_priority.alias('priority'),    ## always == 1
-                    ls.fiberflux_g.alias('lsfiberflux_g'),
-                    ls.fiberflux_r.alias('lsfiberflux_r'),
-                    ls.fiberflux_z.alias('lsfiberflux_z'))
+                    (1510 + x.target_priority).alias('priority'),    ## catalog input is always == 1
+                    target_value,
+                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_g))).alias('magnitude_g'),
+                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_r))).alias('magnitude_r'),
+                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_z))).alias('magnitude_z'),
+            )
             .join(c2ls)
             .join(ls)
             .join(x)
             .join(v, JOIN.LEFT_OUTER,
-                  on=peewee.fn.q3c_join(c.ra,c.dec,v.plug_ra,v.plug_dec,
-                                        self.config['veto_join_radius']/3600.0))
+                  on=peewee.fn.q3c_join(c.ra,c.dec,
+                                        v.plug_ra,v.plug_dec,
+                                        match_radius_spectro))
             .where(c.version_id == version_id,
                    c2ls.version_id == version_id)
+            .distinct([ls.ls_id])   # avoid duplicates - trust the ls_id
             .where(
-                (x.ero_version == self.config['ero_version'] ),
+                (x.ero_version == self.parameters['ero_version'] ),
                 (
                     (v.plate.is_null()) |
-                    (v.sn_median_all < self.config['veto_sn_thresh']) |
+                    (v.sn_median_all < self.parameters['veto_sn_thresh']) |
                     (v.zwarning > 0) |
-                    (v.z_err >= self.config['veto_z_err_thresh']) |
+                    (v.z_err >= self.parameters['veto_z_err_thresh']) |
                     (v.z_err <= 0.0)
                 ),
                 (ls.fibertotflux_r < flux_r_max),
                 (
-                    (ls.fiberflux_r > flux_r_min) |
-                    (ls.fiberflux_z > flux_z_min)
+                    (ls.fiberflux_r >= flux_r_min) |
+                    (ls.fiberflux_z >= flux_z_min)
                 ),
-                (x.ero_det_like > self.config['det_like_min']),
+                (x.ero_det_like > self.parameters['det_like_min']),
                 (
                     (
                         (x.xmatch_method == 'XPS-ML/NWAY') &
-                        (x.xmatch_metric >= self.config['p_any_min'])
+                        (x.xmatch_metric >= self.parameters['p_any_min'])
                     ) |
                     (
                         (x.xmatch_method == 'XPS-LR') &
-                        (x.xmatch_metric >= self.config['lr_min'])
+                        (x.xmatch_metric >= self.parameters['lr_min'])
                     )
                 )
             )
         )
 
-        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+#        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
 
         return query
 
@@ -329,9 +340,9 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 #waiting_for_psdr2#         ps = PanStarrsDr2.alias()
 #waiting_for_psdr2#         c2ps = CatalogToPanStarrsDr2.alias()
 #waiting_for_psdr2#
-#waiting_for_psdr2#         flux_r_max =  AB2Jy(self.config['r_mag_min'])
-#waiting_for_psdr2#         flux_r_min =  AB2Jy(self.config['r_mag_max'])
-#waiting_for_psdr2#         flux_z_min =  AB2Jy(self.config['z_mag_max'])
+#waiting_for_psdr2#         flux_r_max =  AB2Jy(self.parameters['r_mag_min'])
+#waiting_for_psdr2#         flux_r_min =  AB2Jy(self.parameters['r_mag_max'])
+#waiting_for_psdr2#         flux_z_min =  AB2Jy(self.parameters['z_mag_max'])
 #waiting_for_psdr2#
 #waiting_for_psdr2#         query = (
 #waiting_for_psdr2#             c
@@ -350,12 +361,12 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 #waiting_for_psdr2#             .where(
 #waiting_for_psdr2#                 (ps.r_stk_aper_flux < flux_r_max) &
 #waiting_for_psdr2#                 ((ps.r_stk_aper_flux > flux_r_min) | (ps.z_stk_aper_flux > flux_z_min) ) &
-#waiting_for_psdr2#                 (tab.ero_det_like > self.config['det_like_min']) &
-#waiting_for_psdr2#                 (tab.xmatch_metric > self.config['p_any_min'])
+#waiting_for_psdr2#                 (tab.ero_det_like > self.parameters['det_like_min']) &
+#waiting_for_psdr2#                 (tab.xmatch_metric > self.parameters['p_any_min'])
 #waiting_for_psdr2#             )
 #waiting_for_psdr2#         )
 #waiting_for_psdr2#
-#waiting_for_psdr2#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+#waiting_for_psdr2#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
 #waiting_for_psdr2#
 #waiting_for_psdr2#         return query
 
@@ -417,11 +428,11 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 #                             tab.target_mag_r.alias('magnitude_g'),
 #                             tab.target_mag_r.alias('magnitude_r'),
 #                             tab.target_mag_r.alias('magnitude_z'))
-#                  .where((tab.target_mag_r > self.config['r_mag_min']) &
-#                         (tab.target_mag_r < self.config['r_mag_max']) &
-#                         (tab.ero_det_like_0 > self.config['det_like_0_min'])))
+#                  .where((tab.target_mag_r > self.parameters['r_mag_min']) &
+#                         (tab.target_mag_r < self.parameters['r_mag_max']) &
+#                         (tab.ero_det_like_0 > self.parameters['det_like_0_min'])))
 #
-#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.config['req_ntargets']})")
+#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
 #
 #         return query
 #
