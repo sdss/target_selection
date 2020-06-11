@@ -30,8 +30,9 @@ import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
                                          TargetSelectionUserWarning,
                                          XMatchError)
-from target_selection.utils import (Timer, get_configuration_values, get_epoch,
-                                    sql_apply_pm, vacuum_outputs, vacuum_table)
+from target_selection.utils import (Timer, get_configuration_values,
+                                    get_epoch, is_view, sql_apply_pm,
+                                    vacuum_outputs, vacuum_table)
 
 
 EPOCH = 2015.5
@@ -546,8 +547,7 @@ class XMatchPlanner(object):
         schema = config['schema']
 
         models = {model._meta.table_name: model for model in models
-                  if (model.table_exists() and
-                      model._meta.schema == schema and
+                  if (model._meta.schema == schema and
                       model._meta.table_name not in exclude)}
 
         xmatch_models = {}
@@ -612,7 +612,10 @@ class XMatchPlanner(object):
             model = self.models[tname]
             meta = model._meta
 
-            if not model.table_exists():
+            view_exists = (is_view(self.database, tname, self.schema, True) or
+                           is_view(self.database, tname, self.schema, False))
+
+            if not model.table_exists() and not view_exists:
                 self.log.warning(f'table {tname!r} does not exist.')
             elif tname == catalog_tname:
                 pass
@@ -1112,8 +1115,8 @@ class XMatchPlanner(object):
         class BaseModel(peewee.Model):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
-            target_id = model_pk_class(null=False, index=True)
-            version_id = peewee.SmallIntegerField(null=False)
+            target_id = model_pk_class(null=False)
+            version_id = peewee.SmallIntegerField(null=False, index=True)
             distance = peewee.DoubleField(null=True)
             best = peewee.BooleanField(null=False, index=True)
 
@@ -1121,7 +1124,6 @@ class XMatchPlanner(object):
                 database = meta.database
                 schema = meta.schema
                 primary_key = False
-                indexes = [(('version_id', 'target_id'), False)]
                 constraints = [SQL('UNIQUE(catalogid, target_id, version_id) '
                                    'DEFERRABLE INITIALLY DEFERRED')]
 
@@ -1248,8 +1250,8 @@ class XMatchPlanner(object):
                               temp_model.version_id, temp_model.best]
 
                     nids = rel_model.insert_from(
-                        temp_model.select(rel_model.target_id,
-                                          rel_model.catalogid,
+                        temp_model.select(temp_model.target_id,
+                                          temp_model.catalogid,
                                           peewee.Value(self._version_id),
                                           peewee.SQL('true')),
                         fields).returning().execute()
@@ -1619,8 +1621,11 @@ class XMatchPlanner(object):
     def _get_sql(self, query):
         """Returns coulourised SQL text for logging."""
 
+        query_str, query_params = query.sql()
+        query_str = query_str % query_params
+
         if self._options['show_sql']:
-            return f': {color_text(str(query), "darkgrey")}'
+            return f': {color_text(query_str, "darkgrey")}'
         else:
             return '.'
 
