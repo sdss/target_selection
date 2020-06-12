@@ -63,7 +63,9 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(AllWise)
-                 .where(AllWise.h_m_2mass < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        TwoMassPSC.h_m < 13,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
@@ -158,7 +160,9 @@ and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(AllWise)
-                 .where(AllWise.h_m_2mass < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        TwoMassPSC.h_m < 13,
                         Gaia_DR2.phot_g_mean_mag > 18.5 or
                         Gaia_DR2.phot_g_mean_mag is null,
                         (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
@@ -237,7 +241,9 @@ and (b>-5 or l>180) and b<-5
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(AllWise)
-                 .where(AllWise.h_m_2mass < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        TwoMassPSC.h_m < 13,
                         ((AllWise.w2mpro - AllWise.w3mpro) > 4 and
                          AllWise.w4mpro is null) or
                         (AllWise.w3mpro is null and
@@ -332,7 +338,9 @@ sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(Gaia_DR2)
-                 .where(Gaia_DR2.phot_g_mean_mag < 18.5,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
                         Gaia_DR2.parallax > 0.3,
                         Gaia_DR2.bp_rp * 2.5 + 2.5 >
@@ -422,7 +430,9 @@ phot_g_mean_mag-5*(log10(1000/parallax)-1) <
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(Gaia_DR2)
-                 .where(TwoMassPSC.h_m < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        TwoMassPSC.h_m < 13,
                         (Gaia_DR2.bp_rp > -0.2) and (Gaia_DR2.bp_rp < 1.1),
                         Gaia_DR2.phot_g_mean_mag < 18,
                         Gaia_DR2.phot_g_mean_mag -
@@ -492,7 +502,9 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                  .join(TIC_v8)
                  .join(TwoMassPSC)
                  .join(MIPSGAL)
-                 .where(MIPSGAL.hmag < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        MIPSGAL.hmag < 13,
                         (MIPSGAL.glon > 358) or (MIPSGAL.glon < 2),
                         (MIPSGAL.glat > -1) and (MISPSGAL.lat < 1),
                         (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
@@ -552,7 +564,9 @@ Implementation: age<7.5 and h<13
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .join(YSO_Clustering)
-                 .where(YSO_Clustering.h < 13,
+                 .where(CatalogToTIC_v8.version_id == Catalog.version_id,
+                        CatalogToTIC_v8.best >> True,
+                        YSO_Clustering.h < 13,
                         YSO_Clustering.age < 7.5))
 
         if query_region:
