@@ -58,6 +58,7 @@ class BhmAqmesBaseCarton(BaseCarton):
     base_name = 'bhm_aqmes_base'
     category = 'science'
     mapper = 'BHM'
+    program = 'BHM-AQMES'
     tile = False
     priority = None
     alias_c = None

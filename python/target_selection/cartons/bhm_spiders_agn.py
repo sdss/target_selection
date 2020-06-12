@@ -84,7 +84,8 @@ class BhmSpidersBaseCarton(BaseCarton):
 
     name = 'bhm_spiders'
     category = 'science'
-    survey = 'BHM'
+    mapper = 'BHM'
+    program = 'BHM-SPIDERS'
     tile = False
 
     # list of skymasks - move to the config file?
@@ -116,7 +117,8 @@ class BhmSpidersWideBaseCarton(BhmSpidersBaseCarton):
 
     name = 'bhm_spiders_wide'
     category = 'science'
-    survey = 'BHM'
+    mapper = 'BHM'
+    program = 'BHM-SPIDERS'
     tile = False
 
     # list of skymasks
@@ -221,7 +223,8 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
     '''
 
     category = 'science'
-    survey = 'BHM'
+    mapper = 'BHM'
+    program = 'BHM-SPIDERS'
     tile = False
 
 

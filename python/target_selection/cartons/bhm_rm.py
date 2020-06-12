@@ -35,6 +35,7 @@ class BhmRmBaseCarton(BaseCarton):
     base_name = 'bhm_rm_base'
     category = 'science'
     mapper = 'BHM'
+    program = 'BHM-RM'
     cadence = 'bhm_rm_174x8'
     tile = False
     priority = None
