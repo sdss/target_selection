@@ -3,9 +3,8 @@
 #
 # @Author: Tom Dwelly
 # @Date: 2020-03-03
-# @Filename: bhm_spiders_agn.py
+# @Filename: bhm_aqmes.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
-# derived from guide.py
 
 
 import peewee
@@ -14,7 +13,7 @@ from astropy.io import fits
 import pkg_resources
 
 #debug
-import os
+#import os
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
@@ -23,15 +22,13 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              SDSS_DR14_QSO,
                                              CatalogToSDSS_DR13_PhotoObj)
 
-# when DR16Q is avaialable
+# when DR16Q is available
 #from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 #                                             SDSS_DR16_QSO )
 #                                             CatalogToSDSS_DR16_QSO,)
 
 
 from target_selection.cartons.base import BaseCarton
-#from target_selection.cartons.skymask import SkyMask
-#from target_selection.mag_flux import *
 
 radius_apo = 1.49 # degrees
 
@@ -52,7 +49,7 @@ radius_apo = 1.49 # degrees
 
 
 class BhmAqmesBaseCarton(BaseCarton):
-    ''' Parent class that provides the mask selections for all AQMES cartons'''
+    ''' Parent class that provides the underlying selections for all AQMES cartons'''
 
     name = 'bhm_aqmes_base'
     base_name = 'bhm_aqmes_base'

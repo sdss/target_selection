@@ -15,6 +15,9 @@
         - bhm_aqmes_bonus_dark
         - bhm_aqmes_bonus_bright
         - bhm_spiders_agn_efeds
+        - bhm_csc_boss_dark
+        - bhm_csc_boss_bright
+        - bhm_csc_apogee
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
@@ -137,6 +140,31 @@
             mag_r_min: 17.0
             mag_r_max: 22.5
             det_like_0_min: 6.0
+        bhm_csc_boss_dark:
+            mag_i_min: 16.0
+            mag_i_max: 22.0
+            priority: 3000
+            value: 1.0
+        bhm_csc_boss_bright:
+            mag_i_min: 13.0
+            mag_i_max: 18.0
+            priority: 4000
+            value: 1.0
+        bhm_csc_apogee:
+            mag_h_min: 10.0
+            mag_h_max: 15.0
+            priority: 4000
+            value: 1.0
+        bhm_gaia_unwise_agn_faint:
+            mag_g_min: 16.5
+            mag_g_max: 21.5
+            priority: 3400
+            value: 1.0
+        bhm_gaia_unwise_agn_bright:
+            mag_g_min: 13.0
+            mag_g_max: 18.0
+            priority: 4040
+            value: 1.0
     database_options:
         work_mem: '2GB'
         temp_buffers: '2GB'
