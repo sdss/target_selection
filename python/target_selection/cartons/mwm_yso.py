@@ -6,12 +6,15 @@
 # @Filename: mwm_yso.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 import peewee
+
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              TIC_v8,
                                              Gaia_DR2,
                                              TwoMassPSC,
-                                             AllWise)
+                                             AllWise,
+                                             MIPSGAL,
+                                             YSO_Clustering)
 # from . import BaseCarton
 from target_selection.cartons import BaseCarton
 
@@ -60,7 +63,7 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
                  .join(AllWise)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
@@ -141,7 +144,7 @@ and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
                  .join(AllWise)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
                         (Gaia_DR2.phot_g_mean_mag > 18.5) |
                         (Gaia_DR2.phot_g_mean_mag >> None),
@@ -217,7 +220,7 @@ and (b>-5 or l>180) and b<-5
                  .join(AllWise)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
                         (((AllWise.w2mpro - AllWise.w3mpro) > 4) &
                          (AllWise.w4mpro >> None)) |
@@ -309,42 +312,45 @@ sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
                  .join(Gaia_DR2)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         Gaia_DR2.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
                         Gaia_DR2.parallax > 0.3,
                         Gaia_DR2.bp_rp * 2.5 + 2.5 >
                         Gaia_DR2.phot_g_mean_mag -
-                        5 * (log(1000 / Gaia_DR2.parallax) - 1),
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
                         Gaia_DR2.bp_rp * 2.5 - 1 <
                         Gaia_DR2.phot_g_mean_mag -
-                        5 * (log(1000 / Gaia_DR2.parallax) - 1),
-                        sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
                         Gaia_DR2.phot_bp_mean_flux_over_error >
-                        sqrt(Gaia_DR2.phot_g_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
                         Gaia_DR2.phot_g_mean_flux_over_error,
-                        sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
                         Gaia_DR2.phot_rp_mean_flux_over_error >
-                        sqrt(Gaia_DR2.phot_g_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
                         Gaia_DR2.phot_g_mean_flux_over_error * 0.75,
-                        sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
                         Gaia_DR2.phot_bp_mean_flux_over_error <
-                        power(sqrt(Gaia_DR2.phot_g_n_obs) /
-                              Gaia_DR2.phot_g_mean_flux_over_error, 0.75),
-                        sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        peewee.fn.power(
+                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                            Gaia_DR2.phot_g_mean_flux_over_error, 0.75),
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
                         Gaia_DR2.phot_rp_mean_flux_over_error <
-                        power(sqrt(Gaia_DR2.phot_g_n_obs) /
-                              Gaia_DR2.phot_g_mean_flux_over_error, 0.95),
-                        log(sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        peewee.fn.power(
+                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                            Gaia_DR2.phot_g_mean_flux_over_error, 0.95),
+                        peewee.fn.log(
+                            peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
                             Gaia_DR2.phot_bp_mean_flux_over_error) * 5 + 11 <
                         Gaia_DR2.phot_bp_mean_mag -
-                        5 * (log(1000 / Gaia_DR2.parallax) - 1),
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
                         Gaia_DR2.bp_rp > 1.3,
-                        sqrt(Gaia_DR2.phot_g_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
                         Gaia_DR2.phot_g_mean_flux_over_error > 0.02,
-                        sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
                         Gaia_DR2.phot_bp_mean_flux_over_error > 0.02,
-                        sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
                         Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
         if query_region:
             query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
@@ -396,12 +402,12 @@ phot_g_mean_mag-5*(log10(1000/parallax)-1) <
                  .join(Gaia_DR2)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
                         (Gaia_DR2.bp_rp > -0.2) & (Gaia_DR2.bp_rp < 1.1),
                         Gaia_DR2.phot_g_mean_mag < 18,
                         Gaia_DR2.phot_g_mean_mag -
-                        5 * (log(1000 / Gaia_DR2.parallax) - 1) <
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1) <
                         1.6 * Gaia_DR2.bp_rp - 2.2,
                         Gaia_DR2.parallax > 0.3))
         if query_region:
@@ -462,7 +468,7 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                  .join(MIPSGAL)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         MIPSGAL.hmag < 13,
                         (MIPSGAL.glon > 358) | (MIPSGAL.glon < 2),
                         (MIPSGAL.glat > -1) & (MIPSGAL.lat < 1),
@@ -518,7 +524,7 @@ Implementation: age<7.5 and h<13
                  .join(YSO_Clustering)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
-                        CatalogToTIC_v8.best is True,
+                        CatalogToTIC_v8.best >> True,
                         YSO_Clustering.h < 13,
                         YSO_Clustering.age < 7.5))
         if query_region:
