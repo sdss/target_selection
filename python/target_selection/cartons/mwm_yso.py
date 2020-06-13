@@ -53,6 +53,8 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
                  .select(Catalog.catalogid)
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
+                 .join(Gaia_DR2)
+                 .switch(TIC_v8)
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
                  .join(AllWise)
@@ -63,28 +65,16 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        TIC_v8.plx > 0.3))
+                        Gaia_DR2.parallax > 0.3))
 
 # Gaia_DR2 pweewee model class corresponds to
 # table catalogdb.gaia_dr2_source.
-# TIC_v8.plx (for non-null entries) has
-# same value as Gaia_DR2.parallax.
-# Hence, we can use TIC_v8.plx above instead
-# of using join(Gaia_DR2) like below
-#       query  = (Catalog
-#                 .select(Catalog.catalogid)
-#                 .join(CatalogToTIC_v8)
-#                 .join(TIC_v8)
-#                 .join(Gaia_DR2)
-#                 .switch(TIC_v8)
-#                 .join(TwoMassPSC)
-#                 .switch(TIC_v8)
-#                 .join(AllWise)
-#                 .where(AllWise.h_m_2mass < 13,
-#                       (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-#                       (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-#                       (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-#                       Gaia_DR2.parallax > 0.3) )
+#
+# All values of TIC_v8.plx (for non-null entries) are not the same as
+# values of Gaia_DR2.parallax.
+# Hence, we cannot use TIC_v8.plx instead
+# of Gaia_DR2.parallax.
+
         if query_region:
             query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                            Catalog.dec,
