@@ -471,7 +471,7 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                         CatalogToTIC_v8.best >> True,
                         MIPSGAL.hmag < 13,
                         (MIPSGAL.glon > 358) | (MIPSGAL.glon < 2),
-                        (MIPSGAL.glat > -1) & (MIPSGAL.lat < 1),
+                        (MIPSGAL.glat > -1) & (MIPSGAL.glat < 1),
                         (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
                         (Gaia_DR2.parallax < 0.2) |
                         (Gaia_DR2.parallax >> None)))
