@@ -454,6 +454,7 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
 # b is glat (galactic latitude)
 # mipsgal is a subset of 2MASS can can be joined to twomass_psc via
 # mipsgal.twomass_name. Then join via TIC and catalog_to_tic.
+#
 # table catalogdb.mipsgal
 # Foreign-key constraints:
 #    "twomass_name_fk" FOREIGN KEY (twomass_name)
@@ -465,7 +466,9 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(TwoMassPSC)
-                 .join(MIPSGAL)
+                 .join(MIPSGAL, on=(TwoMassPSC.designation==MIPSGAL.twomass_name))
+                 .switch(TIC_v8)
+                 .join(Gaia_DR2)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
@@ -510,6 +513,7 @@ Implementation: age<7.5 and h<13
 # Implementation:  age<7.5 and h<13
 # yso_clustering is a subset of gaia and
 # can be joined to gaia_dr2_source via source_id.
+#
 # table catalogdb.yso_clustering
 # Foreign-key constraints:
 #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
