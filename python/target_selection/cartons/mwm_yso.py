@@ -7,6 +7,11 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 import peewee
 
+# See catalog.py for the name of peewee model names corresponding
+# to postgres table names:
+# https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
+
+
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              TIC_v8,
@@ -466,7 +471,7 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(TwoMassPSC)
-                 .join(MIPSGAL, on=(TwoMassPSC.designation==MIPSGAL.twomass_name))
+                 .join(MIPSGAL, on=(TwoMassPSC.designation == MIPSGAL.twomass_name))
                  .switch(TIC_v8)
                  .join(Gaia_DR2)
                  .where(CatalogToTIC_v8.version_id == version_id,
