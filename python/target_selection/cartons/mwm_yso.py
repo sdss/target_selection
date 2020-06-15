@@ -226,7 +226,7 @@ and (b>-5 or l>180) and b<-5
                          (AllWise.w4mpro >> None)) |
                         ((AllWise.w3mpro >> None) &
                          (AllWise.w4mpro >> None) &
-                         (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.1),
+                         ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.1)),
                         ((Gaia_DR2.b > -5) & (Gaia_DR2.b < 5)) |
                         ((Gaia_DR2.b < -5) & (Gaia_DR2.l > 180))))
         if query_region:
