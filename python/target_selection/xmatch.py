@@ -1626,7 +1626,9 @@ class XMatchPlanner(object):
         """Returns coulourised SQL text for logging."""
 
         query_str, query_params = query.sql()
-        query_str = query_str % query_params
+
+        if query_params:
+            query_str = query_str % tuple(query_params)
 
         if self._options['show_sql']:
             return f': {color_text(query_str, "darkgrey")}'
