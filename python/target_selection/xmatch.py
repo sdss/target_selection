@@ -1201,17 +1201,24 @@ class XMatchPlanner(object):
 
         for n_path, path in enumerate(join_paths):
 
-            join_models = [self.model_graph.nodes[node]['model'] for node in path]
+            # Remove the temporary catalog table at the end of the join path
+            # because we only need catalogid and we can get that from the
+            # relational model, saving us one join.
+            path = path[0:-1]
+
+            join_models = [self.model_graph.nodes[node]['model']
+                           for node in path]
 
             # Get the relational model that leads to the temporary catalog
             # table in the join. We'll want to filter on version_id to avoid
             # a sequential scan.
-            join_rel_model = join_models[-2]
+            join_rel_model = join_models[-1]
 
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             TempCatalog.catalogid)
-                     .where(join_rel_model.version_id == self._version_id)
+                             join_rel_model.catalogid)
+                     .where(join_rel_model.version_id == self._version_id,
+                            join_rel_model.best >> True)
                      .where(~fn.EXISTS(
                          rel_model
                          .select(SQL('1'))
