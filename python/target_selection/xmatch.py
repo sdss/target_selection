@@ -19,7 +19,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, Model, fn
+from peewee import SQL, CompositeKey, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
@@ -1114,18 +1114,17 @@ class XMatchPlanner(object):
 
         class BaseModel(peewee.Model):
 
-            catalogid = peewee.BigIntegerField(null=False, index=True)
-            target_id = model_pk_class(null=False, index=True)
-            version_id = peewee.SmallIntegerField(null=False, index=True)
-            distance = peewee.DoubleField(null=True)
-            best = peewee.BooleanField(null=False, index=True)
+            catalogid = peewee.BigIntegerField()
+            target_id = model_pk_class()
+            version_id = peewee.SmallIntegerField()
+            distance = peewee.DoubleField()
+            best = peewee.BooleanField()
 
             class Meta:
                 database = meta.database
                 schema = meta.schema
-                primary_key = False
-                constraints = [SQL('UNIQUE(catalogid, target_id, version_id) '
-                                   'DEFERRABLE INITIALLY DEFERRED')]
+                primary_key = CompositeKey('version_id', 'catalogid', 'target_id')
+                indexes = ((('version_id', 'target_id', 'best'), False),)
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))
