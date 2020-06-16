@@ -34,6 +34,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              Legacy_Survey_DR8,
                                              BHM_eFEDS_Veto,
                                              CatalogToLegacy_Survey_DR8,
+#TODO                                             CatalogToSDSS_DR16_SpecObj,
+#TODO                                             SDSS_DR16_SpecObj,
                                              )
 
 
@@ -253,6 +255,8 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         ls = Legacy_Survey_DR8.alias()
         c2ls = CatalogToLegacy_Survey_DR8.alias()
         v = BHM_eFEDS_Veto.alias()
+#TODO        c2s = CatalogToSDSS_dr16_SpecObj.alias()
+#TODO        s = SDSS_dr16_SpecObj.alias()
 
         flux_r_max = AB2nMgy(self.parameters['mag_r_min'])
         flux_r_min = AB2nMgy(self.parameters['mag_r_max'])
@@ -260,6 +264,12 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 
         target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
         match_radius_spectro = self.parameters['veto_join_radius']/3600.0
+
+#        priority_val = Case(None, (
+#            (s.specobjid.is_null(), 1510),
+#            (s.specNumber.val == 2, 'two'),
+#            (Number.val == 3, 'three')),
+#                            'a lot')
 
         query = (
             c
@@ -274,9 +284,12 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
             .join(ls)
             .join(x)
             .join(v, JOIN.LEFT_OUTER,
-                  on=peewee.fn.q3c_join(c.ra,c.dec,
-                                        v.plug_ra,v.plug_dec,
-                                        match_radius_spectro))
+                  on=fn.q3c_join(c.ra,c.dec,
+                                 v.plug_ra,v.plug_dec,
+                                 match_radius_spectro))
+#TODO            .switch(c)
+#TODO            .join(c2s, JOIN.LEFT_OUTER)
+#TODO            .join(s, JOIN.LEFT_OUTER)
             .where(c.version_id == version_id,
                    c2ls.version_id == version_id)
             .distinct([ls.ls_id])   # avoid duplicates - trust the ls_id

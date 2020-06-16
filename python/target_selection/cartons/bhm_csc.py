@@ -73,9 +73,11 @@ class BhmCscBaseCarton(BaseCarton):
             .join(t)
             .where(c.version_id == version_id,
                    c2t.version_id == version_id)
-            .distinct([t.pk])   # avoid duplicates - trust the CSC parent sample
+            .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample, also trust the Catalog as final arbiter
+#            .distinct([c.catalogid])  # avoid duplicates - initially trust the CSC parent sample, also trust the Catalog as final arbiter
             .where
             (
+                c2t.best == True
             )
         )
 
@@ -90,15 +92,16 @@ class BhmCscBossDarkCarton(BhmCscBaseCarton):
     '''
     name = 'bhm_csc_boss_dark'
     cadence = 'bhm_csc_boss_1x4'
-    instrument_code = 'BOSS'
+    instrument = 'BOSS'
 
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
+        t = self.alias_t
         query = query.where(
             (t.mag_i >= self.parameters['mag_i_min']) &
             (t.mag_i <  self.parameters['mag_i_max']) &
-            (t.spectrograph = self.instrument_code)
+            (t.spectrograph == self.instrument)
         )
         return query
 
@@ -110,14 +113,15 @@ class BhmCscBossBrightCarton(BhmCscBaseCarton):
     '''
     name = 'bhm_csc_boss_bright'
     cadence = 'bhm_csc_boss_1x1'
-    instrument_code = 'BOSS'
+    instrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
+        t = self.alias_t
         query = query.where(
             (t.mag_i >= self.parameters['mag_i_min']) &
             (t.mag_i <  self.parameters['mag_i_max']) &
-            (t.spectrograph = self.instrument_code)
+            (t.spectrograph == self.instrument)
         )
         return query
 
@@ -129,13 +133,14 @@ class BhmCscApogeeCarton(BhmCscBaseCarton):
     '''
     name = 'bhm_csc_apogee'
     cadence = 'bhm_csc_apogee_3x1'
-    instrument_code = 'APOGEE'
+    instrument = 'APOGEE'
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
+        t = self.alias_t
         query = query.where(
             (t.mag_h >= self.parameters['mag_h_min']) &
             (t.mag_h <  self.parameters['mag_h_max']) &
-            (t.spectrograph = self.instrument_code)
+            (t.spectrograph == self.instrument)
         )
         return query

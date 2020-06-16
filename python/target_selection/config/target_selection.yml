@@ -18,6 +18,8 @@
         - bhm_csc_boss_dark
         - bhm_csc_boss_bright
         - bhm_csc_apogee
+        - bhm_gaia_unwise_agn_faint
+        - bhm_gaia_unwise_agn_bright
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
@@ -157,14 +159,24 @@
             value: 1.0
         bhm_gaia_unwise_agn_faint:
             mag_g_min: 16.5
-            mag_g_max: 21.5
+            mag_g_max: 21.2
+            mag_rp_min: 16.5
+            mag_rp_max: 21.0
+            prob_rf_min: 0.80
+            spec_sn_thresh: 1.50
+            spec_z_err_thresh: 0.002
             priority: 3400
-            value: 1.0
+            value: 0.5
         bhm_gaia_unwise_agn_bright:
             mag_g_min: 13.0
-            mag_g_max: 18.0
+            mag_g_max: 18.5
+            mag_rp_min: 13.5
+            mag_rp_max: 18.5
+            prob_rf_min: 0.80
+            spec_sn_thresh: 1.50
+            spec_z_err_thresh: 0.002
             priority: 4040
-            value: 1.0
+            value: 0.5
     database_options:
         work_mem: '2GB'
         temp_buffers: '2GB'

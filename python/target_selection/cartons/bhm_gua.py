@@ -13,10 +13,14 @@ import sdssdb
 #import pkg_resources
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToGaia_unWISE_AGN,
-#                                             CatalogToSDSS_DR16_SpecObj,
-                                             Gaia_unWISE_AGN,
-                                             SDSS_DR16_SpecObj)
+                                             CatalogToTIC_v8,
+                                             TIC_v8,
+                                             Gaia_DR2,
+####                                             CatalogToGaia_unWISE_AGN,
+#TODO                                             CatalogToSDSS_DR16_SpecObj,
+#TODO                                             SDSS_DR16_SpecObj,
+                                             Gaia_unWISE_AGN)
+
 
 
 from target_selection.cartons.base import BaseCarton
@@ -52,23 +56,29 @@ class BhmGuaBaseCarton(BaseCarton):
     '''
     Parent class that provides the basic selections for both Gaia UnWISE AGN cartons
     To be sub-classed, not to be called directly.
+
+    To get from Catalog to GUA we join tables via :
+    Catalog -> CatalogToTIC_v8 -> Gaia_DR2 -> Gaia_unWISE_AGN
     '''
 
-    name = 'bhm_gua_base'
+    name = 'bhm_gaia_unwise_agn_base'
     category = 'science'
     mapper = 'BHM'
     program = 'BHM-GUA'
     tile = False
     priority = None
-    alias_c = None
-    alias_t = None
+#    alias_c = None
+#    alias_t = None
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2t = CatalogToGaia_unWISE_AGN.alias()
-        t = CatalogToGaia_unWISE_AGN.alias()
-        self.alias_c = c
-        self.alias_t = t
+        c2tic = CatalogToTIC_v8.alias()
+        tic = TIC_v8.alias()
+#        c2t = CatalogToGaia_unWISE_AGN.alias()
+#TODO        c2s = CatalogToSDSS_dr16_SpecObj.alias()
+        g = Gaia_DR2.alias()
+        t = Gaia_unWISE_AGN.alias()
+#TODO        s = SDSS_dr16_SpecObj.alias()
 
         # set the Carton priority+values here - read from yaml
         target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
@@ -83,18 +93,32 @@ class BhmGuaBaseCarton(BaseCarton):
                     pmra,
                     pmdec,
                     target_value,
-                    t.g.alias('magnitude_g'),
             )
-            .join(c2t)
-            .join(t)
+            .join(c2tic)
+            .join(tic)
+            .join(g)
+            .join(t, on=(g.source_id == t.gaia_sourceid))
+#TODO            .switch(c)
+#TODO            .join(c2s)
+#TODO            .join(s)
             .where(c.version_id == version_id,
-                   c2t.version_id == version_id)
-            .distinct([t.gaia_sourceid])   # avoid duplicates - trust the GUA parent sample
-            .where
-            (
+                   c2tic.version_id == version_id)
+            .where(
+                (t.prob_rf >= self.parameters['prob_rf_min']),
                 (t.g >= self.parameters['mag_g_min']),
-                (t.g >= self.parameters['mag_g_min']),
+                (t.rp >= self.parameters['mag_rp_min']),
+                (
+                    (t.g < self.parameters['mag_g_max']) |
+                    (t.rp < self.parameters['mag_rp_max'])
+                )
             )
+#TODO            .where(
+#TODO                (s.specobjid.is_null()) |
+#TODO                (s.zwarning != 0 ) |
+#TODO                (s.sn_median_all < self.parameters['spec_sn_thresh']) |
+#TODO                (s.z_err >  self.parameters['spec_z_err_thresh'])
+#TODO            )
+            .distinct([t.gaia_sourceid])   # avoid duplicates - trust the GUA parent sample
         )
 
         return query
@@ -104,57 +128,16 @@ class BhmGuaBaseCarton(BaseCarton):
 
 class BhmGuaDarkCarton(BhmGuaBaseCarton):
     '''
-        AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5)
-
+        AND WHERE ( gua.g > 16.x AND gua.rp > 16.x)
     '''
     name = 'bhm_gaia_unwise_agn_dark'
     cadence = 'bhm_spiders_1x4'
 
+#-------  bhm_gaia_unwise_agn_bright   ------ #
 
-#    def build_query(self, version_id, query_region=None):
-#        query = super().build_query(version_id, query_region)
-#        query = query.where(
-#            (t.mag_i >= self.parameters['mag_i_min']) &
-#            (t.mag_i <  self.parameters['mag_i_max']) &
-#            (t.spectrograph = self.instrument_code)
-#        )
-#        return query
-
-#-------bhm_csc_boss_bright ------ #
-
-#-# class BhmCscBossBrightCarton(BhmCscBaseCarton):
-#-#     '''
-#-#         SELECT * from bhm_csc AS c WHERE c.spectrograph = "BOSS" AND WHERE c.mag_i BETWEEN 1x.0 AND 18.x
-#-#     '''
-#-#     name = 'bhm_csc_boss_bright'
-#-#     cadence = 'bhm_csc_boss_1x1'
-#-#     instrument_code = 'BOSS'
-#-#
-#-#     def build_query(self, version_id, query_region=None):
-#-#         query = super().build_query(version_id, query_region)
-#-#         query = query.where(
-#-#             (t.mag_i >= self.parameters['mag_i_min']) &
-#-#             (t.mag_i <  self.parameters['mag_i_max']) &
-#-#             (t.spectrograph = self.instrument_code)
-#-#         )
-#-#         return query
-#-#
-#-# #-------bhm_csc_apogee ------ #
-#-#
-#-# class BhmCscApogeeCarton(BhmCscBaseCarton):
-#-#     '''
-#-#         SELECT * from bhm_csc AS c WHERE c.spectrograph = "APOGEE" AND WHERE c.mag_H BETWEEN 1x.x AND 1x.x
-#-#     '''
-#-#     name = 'bhm_csc_apogee'
-#-#     cadence = 'bhm_csc_apogee_3x1'
-#-#     instrument_code = 'APOGEE'
-#-#
-#-#     def build_query(self, version_id, query_region=None):
-#-#         query = super().build_query(version_id, query_region)
-#-#         query = query.where(
-#-#             (t.mag_h >= self.parameters['mag_h_min']) &
-#-#             (t.mag_h <  self.parameters['mag_h_max']) &
-#-#             (t.spectrograph = self.instrument_code)
-#-#         )
-#-#         return query
-#-#
+class BhmGuaBrightCarton(BhmGuaBaseCarton):
+    '''
+        AND WHERE ( gua.g < 18.x OR gua.rp < 18.x)
+    '''
+    name = 'bhm_gaia_unwise_agn_bright'
+    cadence = 'bhm_boss_bright_3x1'
