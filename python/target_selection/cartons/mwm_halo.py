@@ -50,11 +50,10 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToAllWise
+                 .select(CatalogToAllWise.catalogid,
                          BestBrightest.designation,
                          BestBrightest.version)
-                 .join(CatalogToAllWise)
                  .join(AllWise)
                  .join(BestBrightest,
                        on=(BestBrightest.designation == AllWise.designation))
@@ -62,11 +61,13 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
                         CatalogToAllWise.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToAllWise, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
 
@@ -92,10 +93,9 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid,
                          SkyMapperGaia.gaia_source_id)
-                 .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(SkyMapperGaia,
                        on=(TIC_v8.gaia_int == SkyMapperGaia.gaia_source_id))
@@ -104,10 +104,12 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
