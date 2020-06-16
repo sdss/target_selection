@@ -77,10 +77,10 @@ class TempCatalog(Catalog):
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
-                epoch_format='jyear', has_duplicates=False,
-                has_missing_coordinates=False, skip=False,
-                skip_phases=None, query_radius=None, join_weight=1,
-                database_options=None):
+                epoch_format='jyear', relational_table=None,
+                has_duplicates=False, has_missing_coordinates=False,
+                skip=False, skip_phases=None, query_radius=None,
+                join_weight=1, database_options=None):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -116,6 +116,10 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     epoch_format : str
         The format of the epoch. Either Julian year (``'jyear'``) or Julian
         date (``'jd'``).
+    table_name : str
+        Overrides the default model table name. This can be useful sometimes
+        if, for example, a view has been created that contains only the
+        columns from the main table needed for cross-matching.
     has_duplicates : bool
         Whether the table contains duplicates.
     has_missing_coordinates : bool
@@ -184,6 +188,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.epoch = epoch
     meta.xmatch.epoch_column = epoch_column
     meta.xmatch.epoch_format = epoch_format
+
+    meta.xmatch.relational_table = relational_table
 
     meta.xmatch.has_duplicates = has_duplicates
     meta.xmatch.has_missing_coordinates = has_missing_coordinates
@@ -1138,7 +1144,10 @@ class XMatchPlanner(object):
             RelationalModel._meta.schema = None
             return RelationalModel
 
-        RelationalModel._meta.table_name = prefix + meta.table_name
+        if meta.xmatch.relational_table is not None:
+            RelationalModel._meta.table_name = meta.xmatch.relational_table
+        else:
+            RelationalModel._meta.table_name = prefix + meta.table_name
 
         if create and not RelationalModel.table_exists():
             RelationalModel.add_index(RelationalModel.version_id,
