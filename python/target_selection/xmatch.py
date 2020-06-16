@@ -952,7 +952,7 @@ class XMatchPlanner(object):
         else:
 
             # Add Q3C index for TempCatalog
-            TempCatalog.add_index(SQL(f'CREATE INDEX temp_catalog_q3c_idx ON '
+            TempCatalog.add_index(SQL(f'CREATE INDEX {self._temp_table}_q3c_idx ON '
                                       f'{self.schema}.{self._temp_table} '
                                       f'(q3c_ang2ipix(ra, dec))'))
 
@@ -1120,11 +1120,11 @@ class XMatchPlanner(object):
 
         class BaseModel(peewee.Model):
 
-            catalogid = peewee.BigIntegerField()
-            target_id = model_pk_class()
-            version_id = peewee.SmallIntegerField()
-            distance = peewee.DoubleField()
-            best = peewee.BooleanField()
+            catalogid = peewee.BigIntegerField(null=False)
+            target_id = model_pk_class(null=False)
+            version_id = peewee.SmallIntegerField(null=False)
+            distance = peewee.DoubleField(null=True)
+            best = peewee.BooleanField(null=False)
 
             class Meta:
                 database = meta.database
@@ -1150,8 +1150,6 @@ class XMatchPlanner(object):
             RelationalModel._meta.table_name = prefix + meta.table_name
 
         if create and not RelationalModel.table_exists():
-            RelationalModel.add_index(RelationalModel.version_id,
-                                      RelationalModel.target_id)
             RelationalModel.create_table()
 
         # Add foreign key field here. We want to avoid Peewee creating it
