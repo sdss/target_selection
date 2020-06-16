@@ -1591,8 +1591,6 @@ class XMatchPlanner(object):
         self.log.debug(f'Inserted {n_rows:,} rows. '
                        f'Total time: {timer.elapsed:.3f} s.')
 
-        self._analyze(rel_model, catalog=True)
-
         self._phases_run.add(3)
 
     def _load_output_table(self, keep_temp=False):
