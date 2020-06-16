@@ -1700,19 +1700,19 @@ class XMatchPlanner(object):
                 for path in paths:
                     print(path)
 
-    def _analyze(self, rel_model, catalog=False):
+    def _analyze(self, rel_model, vacuum=False, catalog=False):
         """Analyses a relational model after insertion."""
 
         table_name = rel_model._meta.table_name
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{self.schema}.{table_name}',
-                     vacuum=False, analyze=True)
+                     vacuum=vacuum, analyze=True)
 
         if catalog:
             self.log.debug(f'Running ANALYZE on {self._temp_table}.')
             vacuum_table(self.database, f'{self.schema}.{self._temp_table}',
-                         vacuum=False, analyze=True)
+                         vacuum=vacuum, analyze=True)
 
     def _log_table_configuration(self, model):
         """Logs the configuration used to cross-match a table."""
