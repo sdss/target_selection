@@ -346,6 +346,7 @@
         - tic_v8
         - legacy_survey_dr8
         - sdss_dr13_photoobj_primary
+        - sdss_dr16_specobj
         - skymapper_dr1_1
         - kepler_input_10
         - bhm_rm_v0
@@ -371,6 +372,9 @@
             parallax_column: plx
             epoch: 2000.0
             join_weight: 0.1
+        sdss_dr16_specobj:
+            ra_column: ra
+            dec_column: dec
         sdss_dr13_photoobj_primary:
             ra_column: ra
             dec_column: dec
