@@ -9,8 +9,6 @@
 
 import peewee
 import sdssdb
-#from astropy.io import fits
-#import pkg_resources
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
@@ -41,13 +39,13 @@ from target_selection.cartons.base import BaseCarton
         SELECT * FROM gaia_unwise_agn AS gua
         LEFT JOIN sdss_specobj_dr16 AS so ON  q3c_join(gua.ra, gua.dec, so.plug_ra, so.plug_dec, 1.0)
         AND WHERE gua.prob_rf > 0.8
-        AND WHERE (so.plug_ra = NULL OR so.zwarning != 0 OR so.sn_median_all < x.x OR so.z_err > 0.0xx )
+        AND WHERE (so.specobjid = NULL OR so.zwarning != 0 OR so.sn_median_all < x.x OR so.z_err > 0.0xx )
 
     bhm_gaia_unwise_agn_dark
-        AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5)
+        AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5 AND (gua.g < 21.2 OR gua.rp < 21.5 ) )
 
-    bhm_gaia_unwise_agn_dark
-        AND WHERE (gua.g < 18.5 OR gua.rp < 18.5)
+    bhm_gaia_unwise_agn_bright
+        AND WHERE ( gua.g > 13.5 AND gua.rp > 13.5 AND (gua.g < 18.0 OR gua.rp < 18.0) )
 '''
 
 
@@ -67,14 +65,11 @@ class BhmGuaBaseCarton(BaseCarton):
     program = 'BHM-GUA'
     tile = False
     priority = None
-#    alias_c = None
-#    alias_t = None
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2tic = CatalogToTIC_v8.alias()
         tic = TIC_v8.alias()
-#        c2t = CatalogToGaia_unWISE_AGN.alias()
 #TODO        c2s = CatalogToSDSS_dr16_SpecObj.alias()
         g = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()

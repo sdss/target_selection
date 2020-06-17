@@ -9,8 +9,6 @@
 
 import peewee
 import sdssdb
-#from astropy.io import fits
-#import pkg_resources
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              BHM_CSC,
@@ -43,15 +41,13 @@ class BhmCscBaseCarton(BaseCarton):
     program = 'BHM-CSC'
     tile = False
     priority = None
-    alias_c = None
     alias_t = None
-    instrument_code = None
+    instrument = None
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2t = CatalogToBHM_CSC.alias()
         t = BHM_CSC.alias()
-        self.alias_c = c
         self.alias_t = t
 
         # set the Carton priority+values here - read from yaml
@@ -73,11 +69,10 @@ class BhmCscBaseCarton(BaseCarton):
             .join(t)
             .where(c.version_id == version_id,
                    c2t.version_id == version_id)
-            .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample, also trust the Catalog as final arbiter
-#            .distinct([c.catalogid])  # avoid duplicates - initially trust the CSC parent sample, also trust the Catalog as final arbiter
+            .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample,
             .where
             (
-                c2t.best == True
+                c2t.best == True  # this polishes off some stray duplicates
             )
         )
 
