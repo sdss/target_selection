@@ -52,7 +52,6 @@ class BhmAqmesBaseCarton(BaseCarton):
     ''' Parent class that provides the underlying selections for all AQMES cartons'''
 
     name = 'bhm_aqmes_base'
-    base_name = 'bhm_aqmes_base'
     category = 'science'
     mapper = 'BHM'
     program = 'BHM-AQMES'
@@ -142,7 +141,8 @@ class BhmAqmesBaseCarton(BaseCarton):
             .join(s, on=(p.objid == s.bestobjid))
             .join(t, on=((s.plate == t.plate) & (s.mjd == t.mjd) & (s.fiberid == t.fiberid)))
             .where(c.version_id == version_id,
-                   c2p.version_id == version_id)
+                   c2p.version_id == version_id,
+                   c2p.best == True)
             .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
             .where
             (

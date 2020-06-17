@@ -30,12 +30,12 @@ for r in q[:5]: print(r))
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             BHM_Spiders_AGN_Superset,
-                                             Legacy_Survey_DR8,
-                                             BHM_eFEDS_Veto,
                                              CatalogToLegacy_Survey_DR8,
+                                             Legacy_Survey_DR8,
+                                             BHM_Spiders_AGN_Superset,
+                                             BHM_eFEDS_Veto,
 #TODO                                             CatalogToSDSS_DR16_SpecObj,
-#TODO                                             SDSS_DR16_SpecObj,
+                                             SDSS_DR16_SpecObj,
                                              )
 
 
@@ -43,10 +43,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 #waiting_for_psdr2# ,  CatalogToPanStarrsDr2)
 
 from target_selection.cartons.base import BaseCarton
-from target_selection.cartons.skymask import SkyMask
+#from target_selection.cartons.skymask import SkyMask
 from target_selection.mag_flux import *
 
-import pkg_resources
+#import pkg_resources
 
 
 #### some useful snippets:
@@ -74,138 +74,15 @@ for f in ls._meta.fields:
 
 ## This provides the following BHM cartons:
 
-# BHM_SPIDERS_AGN_WIDE
-# BHM_SPIDERS_AGN_DEEP
-# BHM_SPIDERS_AGN_EFEDS
-# EROSITA_POINTLIKE_BRIGHT_BOSS
-
-
-
-class BhmSpidersBaseCarton(BaseCarton):
-    ''' Parent class that provides the mask selections for any SPIDERs catalogue'''
-
-    name = 'bhm_spiders'
-    category = 'science'
-    mapper = 'BHM'
-    program = 'BHM-SPIDERS'
-    tile = False
-
-    # list of skymasks - move to the config file?
-    skymasks = [
-    ]
-
-
-    def post_process(self, model, **kwargs):
-        # this is where we select on mask location
-        # get the ids and coords of all of the objects in the temp table
-        cat_id = np.array(model.catalog_id[:])
-        ra = np.array(model.ra[:])
-        dec = np.array(model.dec[:])
-
-        flags = np.ones(len(cat_id), np.bool)
-
-        for sm in self.skymasks:
-            sm.apply(lon=ra, lat=dec, flags=flags)
-
-        # not sure what to return at this point - a list of tuples?
-        result = [(i,flag) for i,flag in zip(cat_id,flags)]
-
-        return result
-
-
-
-class BhmSpidersWideBaseCarton(BhmSpidersBaseCarton):
-    ''' Parent class that provides the mask slections for any SPIDER-wide catalogue'''
-
-    name = 'bhm_spiders_wide'
-    category = 'science'
-    mapper = 'BHM'
-    program = 'BHM-SPIDERS'
-    tile = False
-
-    # list of skymasks
-    skymasks = [
-        SkyMask(filename=pkg_resources.resource_filename(
-            __name__,
-            'masks/eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply'),
-                name="spiders_wide",
-                masktype="mangle",
-                sense="include",
-        ),
-        SkyMask(filename=pkg_resources.resource_filename(
-            __name__,
-            'masks/rsFields-annotated-lco-deep_proc.ply'),
-                name="spiders_deep",
-                masktype="mangle",
-                sense="exclude",
-        ),
-    ]
-
-
-class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
-
-    '''
-    spiders_agn_wide_ls:
-
-    SELECT * from bhm_spiders_agn_superset AS x
-    INNER JOIN legacy_survey_dr8 AS ls ON x.ls_id = ls.ls_id
-    WHERE x.ero_version = "version_code_TBD"
-    AND WHERE x.ero_det_like > X.X
-    AND WHERE x.xmatch_metric > 0.x
-    AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
-    AND WHERE ls.fibertotflux_r < CCC.C
-    '''
-
-    name = 'bhm_spiders_agn_wide_ls'
-    cadence = 'bhm_spiders_1x4'
-
-    def build_query(self, version_id):
-        c = Catalog.alias()
-        x = BHM_Spiders_AGN_Superset.alias()
-        ls = Legacy_Survey_DR8.alias()
-        c2ls = CatalogToLegacy_Survey_DR8.alias()
-
-        flux_r_max =  AB2nMgy(self.parameters['mag_r_min'])
-        flux_r_min =  AB2nMgy(self.parameters['mag_r_max'])
-        flux_z_min =  AB2nMgy(self.parameters['mag_z_max'])
-        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
-
-        query = (
-            c
-            .select(c.catalogid,
-                    c.ra,
-                    c.dec,
-                    c.pmra,
-                    c.pmdec,
-                    x.target_priority.alias('priority'),
-                    ls.fiberflux_g.alias('lsfiberflux_g'),
-                    ls.fiberflux_r.alias('lsfiberflux_r'),
-                    ls.fiberflux_z.alias('lsfiberflux_z'),
-            )
-            .join(c2ls)
-            .join(ls)
-            .join(x)
-            .where(c.version_id == version_id,
-                   c2ls.version_id == version_id)
-            .where(
-                (x.ero_version == self.parameters['ero_version'] ),
-                (ls.fibertotflux_r < flux_r_max),
-                ((ls.fiberflux_r   > flux_r_min) |
-                 (ls.fiberflux_z > flux_z_min) ),
-                (x.ero_det_like > self.parameters['det_like_min']),
-                (x.xmatch_metric > self.parameters['p_any_min']),
-            )
-        )
-
-        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
-
-        return query
+# bhm_spiders_agn_wide
+# bhm_spiders_agn_deep
+# bhm_spiders_agn_efeds
+# erosita_pointlike_bright_boss
 
 
 
 
 
-#class BhmSpidersAgnEfedsCarton(BhmSpidersBaseCarton):
 class BhmSpidersAgnEfedsCarton(BaseCarton):
 
     '''
@@ -231,81 +108,83 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 
 
     name = 'bhm_spiders_agn_efeds'
-    cadence = None # 'bhm_spiders_1x8'
-
-    # config = {
-    #     'ero_version':'efeds_c940_V2T',
-    #     'mag_r_min': 17.0,
-    #     'mag_r_max': 22.5,
-    #     'mag_z_max': 21.5,
-    #     'det_like_min': 6.0,
-    #     'p_any_min': 0.1,
-    #     'lr_min': 0.2,
-    #     'veto_join_radius': 1.0,
-    #     'veto_sn_thresh': 1.0000,
-    #     'veto_z_err_thresh': 0.002,
-    # }
+    cadence = 'bhm_spiders_1x8'
 
 
 
-    def build_query(self, version_id):
+    def build_query(self, version_id, query_region=None):
 
         c = Catalog.alias()
         x = BHM_Spiders_AGN_Superset.alias()
         ls = Legacy_Survey_DR8.alias()
         c2ls = CatalogToLegacy_Survey_DR8.alias()
         v = BHM_eFEDS_Veto.alias()
-#TODO        c2s = CatalogToSDSS_dr16_SpecObj.alias()
-#TODO        s = SDSS_dr16_SpecObj.alias()
+#TODO        c2s = CatalogToSDSS_DR16_SpecObj.alias()
+        s = SDSS_DR16_SpecObj.alias()
 
-        flux_r_max = AB2nMgy(self.parameters['mag_r_min'])
-        flux_r_min = AB2nMgy(self.parameters['mag_r_max'])
-        flux_z_min = AB2nMgy(self.parameters['mag_z_max'])
+        fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
+        fiberflux_r_min = AB2nMgy(self.parameters['fibermag_r_max'])
+        fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
+
+        flux30 = AB2nMgy(30.0)
 
         target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
-        match_radius_spectro = self.parameters['veto_join_radius']/3600.0
+        match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
-#        priority_val = Case(None, (
-#            (s.specobjid.is_null(), 1510),
-#            (s.specNumber.val == 2, 'two'),
-#            (Number.val == 3, 'three')),
-#                            'a lot')
+        p_f = self.parameters['priority_floor']
+        priority_val = peewee.Case(None,
+                                   (
+                                       ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
+                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+1),
+                                       ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
+                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+6),
+                                   ),
+                                   p_f+9) ## should never get here
 
         query = (
             c
             .select(c.catalogid,
-                    (1510 + x.target_priority).alias('priority'),    ## catalog input is always == 1
+                    priority_val.alias('priority'),
+#                    (1510 + x.target_priority).alias('priority'),    ## catalog input priority is always == 1 for eFEDS
                     target_value,
-                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_g))).alias('magnitude_g'),
-                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_r))).alias('magnitude_r'),
-                    (22.5-2.5*fn.log10(fn.greatest(1e-10,ls.flux_z))).alias('magnitude_z'),
+                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),
+                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('magnitude_r'),
+                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).alias('magnitude_z'),
             )
             .join(c2ls)
             .join(ls)
             .join(x)
             .join(v, JOIN.LEFT_OUTER,
-                  on=fn.q3c_join(c.ra,c.dec,
+                  on=(fn.q3c_join(c.ra,c.dec,
                                  v.plug_ra,v.plug_dec,
-                                 match_radius_spectro))
-#TODO            .switch(c)
-#TODO            .join(c2s, JOIN.LEFT_OUTER)
-#TODO            .join(s, JOIN.LEFT_OUTER)
+                                 match_radius_spectro) &
+                      (v.sn_median_all >= self.parameters['spec_sn_thresh']) &
+                      (v.zwarning == 0) &
+                      (v.z_err <= self.parameters['spec_z_err_thresh']) &
+                      (v.z_err > 0.0)
+                      )
+                  )
+            .join(s, JOIN.LEFT_OUTER,
+                  on=(fn.q3c_join(c.ra,c.dec,
+                                  s.ra,s.dec,
+                                  match_radius_spectro) &
+                      (s.snmedian >= self.parameters['spec_sn_thresh']) &
+                      (s.zwarning == 0) &
+                      (s.zerr <= self.parameters['spec_z_err_thresh']) &
+                      (s.zerr > 0.0) &
+                      (s.scienceprimary > 0)
+                  )
+            )
             .where(c.version_id == version_id,
-                   c2ls.version_id == version_id)
-            .distinct([ls.ls_id])   # avoid duplicates - trust the ls_id
+                   c2ls.version_id == version_id,
+                   c2ls.best == True)
             .where(
                 (x.ero_version == self.parameters['ero_version'] ),
+                (v.pk.is_null()),
+                (ls.fibertotflux_r < fiberflux_r_max),
                 (
-                    (v.plate.is_null()) |
-                    (v.sn_median_all < self.parameters['veto_sn_thresh']) |
-                    (v.zwarning > 0) |
-                    (v.z_err >= self.parameters['veto_z_err_thresh']) |
-                    (v.z_err <= 0.0)
-                ),
-                (ls.fibertotflux_r < flux_r_max),
-                (
-                    (ls.fiberflux_r >= flux_r_min) |
-                    (ls.fiberflux_z >= flux_z_min)
+                    (ls.fiberflux_r >= fiberflux_r_min) |
+                    (ls.fiberflux_z >= fiberflux_z_min)
                 ),
                 (x.ero_det_like > self.parameters['det_like_min']),
                 (
@@ -319,9 +198,14 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
                     )
                 )
             )
-        )
+            .distinct([ls.ls_id])   # avoid duplicates - trust the ls_id
+#            .switch(c)
+#            .join(c2s, JOIN.LEFT_OUTER)
+#            .where(c2s.version_id == version_id,
+#                   c2s.best == True)
+#            .join(s, JOIN.LEFT_OUTER)
 
-#        print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
+        )
 
         return query
 
@@ -332,178 +216,314 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 
 
 
-#waiting_for_psdr2# class BhmSpidersAgnWidePsCarton(BhmSpidersWideBaseCarton):
-#waiting_for_psdr2#
-#waiting_for_psdr2#     '''
-#waiting_for_psdr2#     spiders_agn_wide_ps:
-#waiting_for_psdr2#
-#waiting_for_psdr2#     SELECT * from bhm_spiders_agn_superset AS x
-#waiting_for_psdr2#     INNER JOIN panstarrs_dr2 AS ps ON x.ps1_dr2_objid = ls.ls_id
-#waiting_for_psdr2#     WHERE x.ero_version = "version_code_TBD"
-#waiting_for_psdr2#     AND WHERE x.ero_det_like > X.X
-#waiting_for_psdr2#     AND WHERE x.xmatch_metric > 0.x
-#waiting_for_psdr2#     AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
-#waiting_for_psdr2#     AND WHERE ls.fiberflux_r < CCC.C
-#waiting_for_psdr2#     '''
-#waiting_for_psdr2#
-#waiting_for_psdr2#     name = 'bhm_spiders_agn_wide_ls'
-#waiting_for_psdr2#     cadence = 'bhm_spiders_1x4'
-#waiting_for_psdr2#
-#waiting_for_psdr2#     def build_query(self, version_id):
-#waiting_for_psdr2#
-#waiting_for_psdr2#         c = Catalog.alias()
-#waiting_for_psdr2#         x = BHM_Spiders_AGN_Superset.alias()
-#waiting_for_psdr2#         ps = PanStarrsDr2.alias()
-#waiting_for_psdr2#         c2ps = CatalogToPanStarrsDr2.alias()
-#waiting_for_psdr2#
-#waiting_for_psdr2#         flux_r_max =  AB2Jy(self.parameters['r_mag_min'])
-#waiting_for_psdr2#         flux_r_min =  AB2Jy(self.parameters['r_mag_max'])
-#waiting_for_psdr2#         flux_z_min =  AB2Jy(self.parameters['z_mag_max'])
-#waiting_for_psdr2#
-#waiting_for_psdr2#         query = (
-#waiting_for_psdr2#             c
-#waiting_for_psdr2#             .select(c.catalogid,
-#waiting_for_psdr2#                     c.ra,
-#waiting_for_psdr2#                     c.dec,
-#waiting_for_psdr2#                     c.pmra,
-#waiting_for_psdr2#                     c.pmdec,
-#waiting_for_psdr2#                     x.target_priority.alias('priority'),
-#waiting_for_psdr2#                     ps.g_stk_aper_flux.alias('psaperflux_g'),
-#waiting_for_psdr2#                     ps.r_stk_aper_flux.alias('psaperflux_r'),
-#waiting_for_psdr2#                     ps.i_stk_aper_flux.alias('psaperflux_i'),
-#waiting_for_psdr2#                     ps.z_stk_aper_flux.alias('psaperflux_z'))
-#waiting_for_psdr2#             .join(ps)
-#waiting_for_psdr2#             .join(c2ps)
-#waiting_for_psdr2#             .where(
-#waiting_for_psdr2#                 (ps.r_stk_aper_flux < flux_r_max) &
-#waiting_for_psdr2#                 ((ps.r_stk_aper_flux > flux_r_min) | (ps.z_stk_aper_flux > flux_z_min) ) &
-#waiting_for_psdr2#                 (tab.ero_det_like > self.parameters['det_like_min']) &
-#waiting_for_psdr2#                 (tab.xmatch_metric > self.parameters['p_any_min'])
-#waiting_for_psdr2#             )
-#waiting_for_psdr2#         )
-#waiting_for_psdr2#
-#waiting_for_psdr2#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
-#waiting_for_psdr2#
-#waiting_for_psdr2#         return query
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-#
-# ##############################################################
-# ##############################################################
-# ##############################################################
-# ## MOCK TARGETS ##############################################
-# class BhmSpidersAgnWideMockCarton(BaseCarton):
-#
-#     name = 'bhm_spiders_agn_wide_mock'
-#     category = 'science'
-#     survey = 'BHM'
-#     cadence = 'bhm_spiders_1x4'
-#     tile = False
-#
-#     # list of masks - remove to config file?
-#     masks = [
-#         {"name": "wide",
-#          "type": "mangle",
-#          "polarity": "include",
-#          "filename": "eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply",
-#         },
-#         {"name": "deep",
-#          "type": "mangle",
-#          "polarity": "exclude",
-#          "filename" : "rsFields-annotated-lco-deep_proc.ply",
-#         },
-#     ]
-#
-#     def build_query(self):
-#         '''
-#         Pure database level query - generates a super-set of potential targets
-#         '''
-#         # get the table name from the config - maybe replace this with a list of options
-#         exec(f'tab = catalogdb.{params["catalogdb_table"]}')
-#         assert tab is not None, 'Failed to locate catalogdb_table'
-#
-#         query = (tab.select(tab.gaia_dr2_source_id.alias('catalog_id'),
-#                             tab.target_ra.alias('ra'),
-#                             tab.target_dec.alias('dec'),
-#                             tab.target_pmra.alias('pmra'),
-#                             tab.target_pmdec.alias('pmdec'),
-#                             tab.target_epoch.alias('epoch'),
-#                             tab.target_mag_r.alias('magnitude_g'),
-#                             tab.target_mag_r.alias('magnitude_r'),
-#                             tab.target_mag_r.alias('magnitude_z'))
-#                  .where((tab.target_mag_r > self.parameters['r_mag_min']) &
-#                         (tab.target_mag_r < self.parameters['r_mag_max']) &
-#                         (tab.ero_det_like_0 > self.parameters['det_like_0_min'])))
-#
-#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
-#
-#         return query
-#
-#
-#     def post_process(self, model, **kwargs):
-#         # this is where we select on mask location
-#         # get the coords of all of the objects oin the temp table
-#         ra = np.array(model.ra[:])
-#         dec = np.array(model.dec[:])
-#
-#         return True
-#
-# ## MOCK TARGETS ##############################################
-# ##############################################################
-# ##############################################################
-# ##############################################################
-
-
-
-
-def _test_xmatch_stuff():
-    # check numbers of targets in a test patch
-
-    version_id = 11
-    search_radius_deg = 0.01
-    ra0 = 135.0
-    dec0 = 1.0
-
-    c = Catalog.alias()
-#    x = BHM_Spiders_AGN_Superset.alias()
-    ls = Legacy_Survey_DR8.alias()
-    c2ls = CatalogToLegacy_Survey_DR8.alias()
-
-
-    query = (
-        c
-        .select(c.catalogid,
-                c.ra,
-                c.dec,
-                c.lead,
-                c.version,
-                ls.ls_id,
-                ls.ra,
-                ls.dec,
-        )
-        .join(c2ls)
-        .join(ls)
-        .where(c.version_id == version_id,
-               c2ls.version_id == version_id)
-        .where(
-            peewee.fn.q3c_radial_query(c.ra,c.dec,
-                                       ra0, dec0,
-                                       search_radius_deg)
-        )
-    )
-
-
-    query.select().limit(1000).count()
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred# class BhmSpidersBaseCarton(BaseCarton):
+#deferred#     ''' Parent class that provides the mask selections for any SPIDERs catalogue'''
+#deferred#
+#deferred#     name = 'bhm_spiders'
+#deferred#     category = 'science'
+#deferred#     mapper = 'BHM'
+#deferred#     program = 'BHM-SPIDERS'
+#deferred#     tile = False
+#deferred#
+#deferred#     # list of skymasks - move to the config file?
+#deferred#     skymasks = [
+#deferred#     ]
+#deferred#
+#deferred#
+#deferred#     def post_process(self, model, **kwargs):
+#deferred#         # this is where we select on mask location
+#deferred#         # get the ids and coords of all of the objects in the temp table
+#deferred#         cat_id = np.array(model.catalog_id[:])
+#deferred#         ra = np.array(model.ra[:])
+#deferred#         dec = np.array(model.dec[:])
+#deferred#
+#deferred#         flags = np.ones(len(cat_id), np.bool)
+#deferred#
+#deferred#         for sm in self.skymasks:
+#deferred#             sm.apply(lon=ra, lat=dec, flags=flags)
+#deferred#
+#deferred#         # not sure what to return at this point - a list of tuples?
+#deferred#         result = [(i,flag) for i,flag in zip(cat_id,flags)]
+#deferred#
+#deferred#         return result
+#deferred#
+#deferred#
+#deferred#
+#deferred# class BhmSpidersWideBaseCarton(BhmSpidersBaseCarton):
+#deferred#     ''' Parent class that provides the mask slections for any SPIDER-wide catalogue'''
+#deferred#
+#deferred#     name = 'bhm_spiders_wide'
+#deferred#     category = 'science'
+#deferred#     mapper = 'BHM'
+#deferred#     program = 'BHM-SPIDERS'
+#deferred#     tile = False
+#deferred#
+#deferred#     # list of skymasks
+#deferred#     skymasks = [
+#deferred#         SkyMask(filename=pkg_resources.resource_filename(
+#deferred#             __name__,
+#deferred#             'masks/eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply'),
+#deferred#                 name="spiders_wide",
+#deferred#                 masktype="mangle",
+#deferred#                 sense="include",
+#deferred#         ),
+#deferred#         SkyMask(filename=pkg_resources.resource_filename(
+#deferred#             __name__,
+#deferred#             'masks/rsFields-annotated-lco-deep_proc.ply'),
+#deferred#                 name="spiders_deep",
+#deferred#                 masktype="mangle",
+#deferred#                 sense="exclude",
+#deferred#         ),
+#deferred#     ]
+#deferred#
+#deferred#
+#deferred# class BhmSpidersAgnWideLsCarton(BhmSpidersWideBaseCarton):
+#deferred#
+#deferred#     '''
+#deferred#     spiders_agn_wide_ls:
+#deferred#
+#deferred#     SELECT * from bhm_spiders_agn_superset AS x
+#deferred#     INNER JOIN legacy_survey_dr8 AS ls ON x.ls_id = ls.ls_id
+#deferred#     WHERE x.ero_version = "version_code_TBD"
+#deferred#     AND WHERE x.ero_det_like > X.X
+#deferred#     AND WHERE x.xmatch_metric > 0.x
+#deferred#     AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
+#deferred#     AND WHERE ls.fibertotflux_r < CCC.C
+#deferred#     '''
+#deferred#
+#deferred#     name = 'bhm_spiders_agn_wide_ls'
+#deferred#     cadence = 'bhm_spiders_1x4'
+#deferred#
+#deferred#     def build_query(self, version_id, query_region=None):
+#deferred#         c = Catalog.alias()
+#deferred#         x = BHM_Spiders_AGN_Superset.alias()
+#deferred#         ls = Legacy_Survey_DR8.alias()
+#deferred#         c2ls = CatalogToLegacy_Survey_DR8.alias()
+#deferred#
+#deferred#         flux_r_max =  AB2nMgy(self.parameters['mag_r_min'])
+#deferred#         flux_r_min =  AB2nMgy(self.parameters['mag_r_max'])
+#deferred#         flux_z_min =  AB2nMgy(self.parameters['mag_z_max'])
+#deferred#         target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
+#deferred#
+#deferred#         query = (
+#deferred#             c
+#deferred#             .select(c.catalogid,
+#deferred#                     c.ra,
+#deferred#                     c.dec,
+#deferred#                     c.pmra,
+#deferred#                     c.pmdec,
+#deferred#                     x.target_priority.alias('priority'),
+#deferred#                     ls.fiberflux_g.alias('lsfiberflux_g'),
+#deferred#                     ls.fiberflux_r.alias('lsfiberflux_r'),
+#deferred#                     ls.fiberflux_z.alias('lsfiberflux_z'),
+#deferred#             )
+#deferred#             .join(c2ls)
+#deferred#             .join(ls)
+#deferred#             .join(x)
+#deferred#             .where(c.version_id == version_id,
+#deferred#                    c2ls.version_id == version_id)
+#deferred#             .where(
+#deferred#                 (x.ero_version == self.parameters['ero_version'] ),
+#deferred#                 (ls.fibertotflux_r < flux_r_max),
+#deferred#                 ((ls.fiberflux_r   > flux_r_min) |
+#deferred#                  (ls.fiberflux_z > flux_z_min) ),
+#deferred#                 (x.ero_det_like > self.parameters['det_like_min']),
+#deferred#                 (x.xmatch_metric > self.parameters['p_any_min']),
+#deferred#             )
+#deferred#         )
+#deferred#
+#deferred#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
+#deferred#
+#deferred#         return query
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred# #waiting_for_psdr2# class BhmSpidersAgnWidePsCarton(BhmSpidersWideBaseCarton):
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#     '''
+#deferred# #waiting_for_psdr2#     spiders_agn_wide_ps:
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#     SELECT * from bhm_spiders_agn_superset AS x
+#deferred# #waiting_for_psdr2#     INNER JOIN panstarrs_dr2 AS ps ON x.ps1_dr2_objid = ls.ls_id
+#deferred# #waiting_for_psdr2#     WHERE x.ero_version = "version_code_TBD"
+#deferred# #waiting_for_psdr2#     AND WHERE x.ero_det_like > X.X
+#deferred# #waiting_for_psdr2#     AND WHERE x.xmatch_metric > 0.x
+#deferred# #waiting_for_psdr2#     AND WHERE (ls.fiberflux_r > A.A OR ls.fiberflux_z > B.B)
+#deferred# #waiting_for_psdr2#     AND WHERE ls.fiberflux_r < CCC.C
+#deferred# #waiting_for_psdr2#     '''
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#     name = 'bhm_spiders_agn_wide_ls'
+#deferred# #waiting_for_psdr2#     cadence = 'bhm_spiders_1x4'
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#     def build_query(self, version_id, query_region=None):
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#         c = Catalog.alias()
+#deferred# #waiting_for_psdr2#         x = BHM_Spiders_AGN_Superset.alias()
+#deferred# #waiting_for_psdr2#         ps = PanStarrsDr2.alias()
+#deferred# #waiting_for_psdr2#         c2ps = CatalogToPanStarrsDr2.alias()
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#         flux_r_max =  AB2Jy(self.parameters['r_mag_min'])
+#deferred# #waiting_for_psdr2#         flux_r_min =  AB2Jy(self.parameters['r_mag_max'])
+#deferred# #waiting_for_psdr2#         flux_z_min =  AB2Jy(self.parameters['z_mag_max'])
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#         query = (
+#deferred# #waiting_for_psdr2#             c
+#deferred# #waiting_for_psdr2#             .select(c.catalogid,
+#deferred# #waiting_for_psdr2#                     c.ra,
+#deferred# #waiting_for_psdr2#                     c.dec,
+#deferred# #waiting_for_psdr2#                     c.pmra,
+#deferred# #waiting_for_psdr2#                     c.pmdec,
+#deferred# #waiting_for_psdr2#                     x.target_priority.alias('priority'),
+#deferred# #waiting_for_psdr2#                     ps.g_stk_aper_flux.alias('psaperflux_g'),
+#deferred# #waiting_for_psdr2#                     ps.r_stk_aper_flux.alias('psaperflux_r'),
+#deferred# #waiting_for_psdr2#                     ps.i_stk_aper_flux.alias('psaperflux_i'),
+#deferred# #waiting_for_psdr2#                     ps.z_stk_aper_flux.alias('psaperflux_z'))
+#deferred# #waiting_for_psdr2#             .join(ps)
+#deferred# #waiting_for_psdr2#             .join(c2ps)
+#deferred# #waiting_for_psdr2#             .where(
+#deferred# #waiting_for_psdr2#                 (ps.r_stk_aper_flux < flux_r_max) &
+#deferred# #waiting_for_psdr2#                 ((ps.r_stk_aper_flux > flux_r_min) | (ps.z_stk_aper_flux > flux_z_min) ) &
+#deferred# #waiting_for_psdr2#                 (tab.ero_det_like > self.parameters['det_like_min']) &
+#deferred# #waiting_for_psdr2#                 (tab.xmatch_metric > self.parameters['p_any_min'])
+#deferred# #waiting_for_psdr2#             )
+#deferred# #waiting_for_psdr2#         )
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
+#deferred# #waiting_for_psdr2#
+#deferred# #waiting_for_psdr2#         return query
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred# #
+#deferred# # ##############################################################
+#deferred# # ##############################################################
+#deferred# # ##############################################################
+#deferred# # ## MOCK TARGETS ##############################################
+#deferred# # class BhmSpidersAgnWideMockCarton(BaseCarton):
+#deferred# #
+#deferred# #     name = 'bhm_spiders_agn_wide_mock'
+#deferred# #     category = 'science'
+#deferred# #     survey = 'BHM'
+#deferred# #     cadence = 'bhm_spiders_1x4'
+#deferred# #     tile = False
+#deferred# #
+#deferred# #     # list of masks - remove to config file?
+#deferred# #     masks = [
+#deferred# #         {"name": "wide",
+#deferred# #          "type": "mangle",
+#deferred# #          "polarity": "include",
+#deferred# #          "filename": "eROSITA-DE_exgal_lsdr8_or_psdr2_proc.ply",
+#deferred# #         },
+#deferred# #         {"name": "deep",
+#deferred# #          "type": "mangle",
+#deferred# #          "polarity": "exclude",
+#deferred# #          "filename" : "rsFields-annotated-lco-deep_proc.ply",
+#deferred# #         },
+#deferred# #     ]
+#deferred# #
+#deferred# #     def build_query(self, version_id, query_region=None):
+#deferred# #         '''
+#deferred# #         Pure database level query - generates a super-set of potential targets
+#deferred# #         '''
+#deferred# #         # get the table name from the config - maybe replace this with a list of options
+#deferred# #         exec(f'tab = catalogdb.{params["catalogdb_table"]}')
+#deferred# #         assert tab is not None, 'Failed to locate catalogdb_table'
+#deferred# #
+#deferred# #         query = (tab.select(tab.gaia_dr2_source_id.alias('catalog_id'),
+#deferred# #                             tab.target_ra.alias('ra'),
+#deferred# #                             tab.target_dec.alias('dec'),
+#deferred# #                             tab.target_pmra.alias('pmra'),
+#deferred# #                             tab.target_pmdec.alias('pmdec'),
+#deferred# #                             tab.target_epoch.alias('epoch'),
+#deferred# #                             tab.target_mag_r.alias('magnitude_g'),
+#deferred# #                             tab.target_mag_r.alias('magnitude_r'),
+#deferred# #                             tab.target_mag_r.alias('magnitude_z'))
+#deferred# #                  .where((tab.target_mag_r > self.parameters['r_mag_min']) &
+#deferred# #                         (tab.target_mag_r < self.parameters['r_mag_max']) &
+#deferred# #                         (tab.ero_det_like_0 > self.parameters['det_like_0_min'])))
+#deferred# #
+#deferred# #         print(f"This query will return nrows={query.count()}  (c.f. req_ntargets={self.parameters['req_ntargets']})")
+#deferred# #
+#deferred# #         return query
+#deferred# #
+#deferred# #
+#deferred# #     def post_process(self, model, **kwargs):
+#deferred# #         # this is where we select on mask location
+#deferred# #         # get the coords of all of the objects oin the temp table
+#deferred# #         ra = np.array(model.ra[:])
+#deferred# #         dec = np.array(model.dec[:])
+#deferred# #
+#deferred# #         return True
+#deferred# #
+#deferred# # ## MOCK TARGETS ##############################################
+#deferred# # ##############################################################
+#deferred# # ##############################################################
+#deferred# # ##############################################################
+#deferred#
+#deferred#
+#deferred#
+#deferred#
+#deferred# def _test_xmatch_stuff():
+#deferred#     # check numbers of targets in a test patch
+#deferred#
+#deferred#     version_id = 11
+#deferred#     search_radius_deg = 0.01
+#deferred#     ra0 = 135.0
+#deferred#     dec0 = 1.0
+#deferred#
+#deferred#     c = Catalog.alias()
+#deferred# #    x = BHM_Spiders_AGN_Superset.alias()
+#deferred#     ls = Legacy_Survey_DR8.alias()
+#deferred#     c2ls = CatalogToLegacy_Survey_DR8.alias()
+#deferred#
+#deferred#
+#deferred#     query = (
+#deferred#         c
+#deferred#         .select(c.catalogid,
+#deferred#                 c.ra,
+#deferred#                 c.dec,
+#deferred#                 c.lead,
+#deferred#                 c.version,
+#deferred#                 ls.ls_id,
+#deferred#                 ls.ra,
+#deferred#                 ls.dec,
+#deferred#         )
+#deferred#         .join(c2ls)
+#deferred#         .join(ls)
+#deferred#         .where(c.version_id == version_id,
+#deferred#                c2ls.version_id == version_id)
+#deferred#         .where(
+#deferred#             peewee.fn.q3c_radial_query(c.ra,c.dec,
+#deferred#                                        ra0, dec0,
+#deferred#                                        search_radius_deg)
+#deferred#         )
+#deferred#     )
+#deferred#
+#deferred#
+#deferred#     query.select().limit(1000).count()
+#deferred#

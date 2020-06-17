@@ -15,10 +15,14 @@
         - bhm_aqmes_bonus_dark
         - bhm_aqmes_bonus_bright
         - bhm_spiders_agn_efeds
+        - bhm_spiders_clusters_efeds_sdss_redmapper
+        - bhm_spiders_clusters_efeds_hsc_redmapper
+        - bhm_spiders_clusters_efeds_ls_redmapper
+        - bhm_spiders_clusters_efeds_erosita
         - bhm_csc_boss_dark
         - bhm_csc_boss_bright
         - bhm_csc_apogee
-        - bhm_gaia_unwise_agn_faint
+        - bhm_gaia_unwise_agn_dark
         - bhm_gaia_unwise_agn_bright
     schema: sandbox
     magnitudes:
@@ -119,29 +123,41 @@
         bhm_spiders_agn_efeds:
             value: 1.0
             ero_version: 'efeds_c940_V2T'
-            mag_r_min: 17.0
-            mag_r_max: 22.5
-            mag_z_max: 21.5
+            fibermag_r_min: 17.0
+            fibermag_r_max: 22.5
+            fibermag_z_max: 21.5
             det_like_min: 8.0
             p_any_min: 0.1
             lr_min: 0.2
-            veto_join_radius: 1.0
-            veto_sn_thresh: 1.50
-            veto_z_err_thresh: 0.002
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.50
+            spec_z_err_thresh: 0.002
+            priority_floor: 1510
         bhm_spiders_agn_wide_ls:
             req_ntargets: 300000
             value: 1.0
-            mag_r_min: 17.0
-            mag_r_max: 22.0
-            mag_z_max: 21.5
+            fibermag_r_min: 17.0
+            fibermag_r_max: 22.0
+            fibermag_z_max: 21.5
             det_like_min: 8.0
             p_any_min: 0.1
         bhm_spiders_agn_deep:
             req_ntargets: 30000
             value: 1.0
-            mag_r_min: 17.0
-            mag_r_max: 22.5
+            fibermag_r_min: 17.0
+            fibermag_r_max: 22.5
             det_like_0_min: 6.0
+        bhm_spiders_clusters_efeds_base:
+            value: 1.0
+            ero_version: 'efeds_c940_clus'
+            fibermag_r_min: 17.0
+            fibermag_r_max: 21.5
+            fibermag_z_max: 20.5
+            det_like_min: 8.0
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.50
+            spec_z_err_thresh: 0.002
+            priority_floor: 1500
         bhm_csc_boss_dark:
             mag_i_min: 16.0
             mag_i_max: 22.0
@@ -157,14 +173,15 @@
             mag_h_max: 15.0
             priority: 4000
             value: 1.0
-        bhm_gaia_unwise_agn_faint:
+        bhm_gaia_unwise_agn_dark:
             mag_g_min: 16.5
             mag_g_max: 21.2
             mag_rp_min: 16.5
             mag_rp_max: 21.0
             prob_rf_min: 0.80
-            spec_sn_thresh: 1.50
-            spec_z_err_thresh: 0.002
+            spec_join_radius: 1.0
+            spec_sn_thresh: 2.0
+            spec_z_err_thresh: 0.01
             priority: 3400
             value: 0.5
         bhm_gaia_unwise_agn_bright:
@@ -173,8 +190,9 @@
             mag_rp_min: 13.5
             mag_rp_max: 18.5
             prob_rf_min: 0.80
-            spec_sn_thresh: 1.50
-            spec_z_err_thresh: 0.002
+            spec_join_radius: 1.0
+            spec_sn_thresh: 2.0
+            spec_z_err_thresh: 0.01
             priority: 4040
             value: 0.5
     database_options:

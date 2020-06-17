@@ -68,7 +68,8 @@ class BhmCscBaseCarton(BaseCarton):
             .join(c2t)
             .join(t)
             .where(c.version_id == version_id,
-                   c2t.version_id == version_id)
+                   c2t.version_id == version_id,
+                   c2t.best == True)
             .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample,
             .where
             (

@@ -9,6 +9,7 @@
 
 import peewee
 import sdssdb
+from peewee import JOIN
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
@@ -16,7 +17,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              Gaia_DR2,
 ####                                             CatalogToGaia_unWISE_AGN,
 #TODO                                             CatalogToSDSS_DR16_SpecObj,
-#TODO                                             SDSS_DR16_SpecObj,
+                                             SDSS_DR16_SpecObj,
                                              Gaia_unWISE_AGN)
 
 
@@ -70,34 +71,43 @@ class BhmGuaBaseCarton(BaseCarton):
         c = Catalog.alias()
         c2tic = CatalogToTIC_v8.alias()
         tic = TIC_v8.alias()
-#TODO        c2s = CatalogToSDSS_dr16_SpecObj.alias()
+#TODO        c2s = CatalogToSDSS_DR16_SpecObj.alias()
         g = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
-#TODO        s = SDSS_dr16_SpecObj.alias()
+        s = SDSS_DR16_SpecObj.alias()
 
         # set the Carton priority+values here - read from yaml
         target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
         target_value = peewee.Value(float(self.parameters.get('value', 1.0))).alias('value')
         pmra = peewee.Value(0.0).alias('pmra')
         pmdec = peewee.Value(0.0).alias('pmdec')
+        match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
         query = (
-            c
-            .select(c.catalogid,
-                    target_priority,
-                    pmra,
-                    pmdec,
-                    target_value,
+            c.select(c.catalogid,
+                     target_priority,
+                     pmra,
+                     pmdec,
+                     target_value,
             )
             .join(c2tic)
             .join(tic)
             .join(g)
             .join(t, on=(g.source_id == t.gaia_sourceid))
-#TODO            .switch(c)
-#TODO            .join(c2s)
-#TODO            .join(s)
+            .join(s, JOIN.LEFT_OUTER,
+                  on=(peewee.fn.q3c_join(c.ra,c.dec,
+                                         s.ra,s.dec,
+                                         match_radius_spectro) &
+                      (s.snmedian >= self.parameters['spec_sn_thresh']) &
+                      (s.zwarning == 0) &
+                      (s.zerr <= self.parameters['spec_z_err_thresh']) &
+                      (s.zerr > 0.0) &
+                      (s.scienceprimary > 0)
+                      )
+            )
             .where(c.version_id == version_id,
-                   c2tic.version_id == version_id)
+                   c2tic.version_id == version_id,
+                   c2tic.best == True)
             .where(
                 (t.prob_rf >= self.parameters['prob_rf_min']),
                 (t.g >= self.parameters['mag_g_min']),
@@ -105,8 +115,12 @@ class BhmGuaBaseCarton(BaseCarton):
                 (
                     (t.g < self.parameters['mag_g_max']) |
                     (t.rp < self.parameters['mag_rp_max'])
-                )
+                ),
+                (s.specobjid.is_null()),
             )
+#TODO            .switch(c)
+#TODO            .join(c2s)
+#TODO            .join(s)
 #TODO            .where(
 #TODO                (s.specobjid.is_null()) |
 #TODO                (s.zwarning != 0 ) |

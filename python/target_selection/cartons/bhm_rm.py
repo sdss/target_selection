@@ -97,6 +97,7 @@ class BhmRmBaseCarton(BaseCarton):
             .join(t)
             .where(c.version_id == version_id,
                    c2t.version_id == version_id)
+                   c2t.best == True)
             .where
             (
                 (t.mi >= self.parameters['mag_i_min']),
