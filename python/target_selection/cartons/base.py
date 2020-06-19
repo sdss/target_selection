@@ -633,7 +633,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Loading data into targetdb.carton_to_target.')
 
-        version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
+        version_pk = tdb.Version.get(plan=self.plan, tag=self.tag,
+                                     target_selection=True)
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
