@@ -1120,8 +1120,8 @@ class XMatchPlanner(object):
 
         class BaseModel(peewee.Model):
 
-            catalogid = peewee.BigIntegerField(null=False)
-            target_id = model_pk_class(null=False)
+            catalogid = peewee.BigIntegerField(null=False, index=True)
+            target_id = model_pk_class(null=False, index=True)
             version_id = peewee.SmallIntegerField(null=False)
             distance = peewee.DoubleField(null=True)
             best = peewee.BooleanField(null=False)
@@ -1418,12 +1418,10 @@ class XMatchPlanner(object):
                             .where(~fn.EXISTS(
                                 rel_model
                                 .select(SQL('1'))
-                                .where(rel_model.catalogid == xmatched.c.catalogid)))
-                            .where(~fn.EXISTS(
-                                rel_model
-                                .select(SQL('1'))
-                                .where((rel_model.version_id == self._version_id) &
-                                       (rel_model.target_id == xmatched.c.target_id)))))
+                                .where(((rel_model.version_id == self._version_id) &
+                                        (rel_model.catalogid == xmatched.c.catalogid)) |
+                                       ((rel_model.version_id == self._version_id) &
+                                        (rel_model.target_id == xmatched.c.target_id))))))
 
         with Timer() as timer:
 
@@ -1612,7 +1610,7 @@ class XMatchPlanner(object):
 
                 insert_query = Catalog.insert_from(
                     TempCatalog.select(),
-                    Catalog._meta.fields.values()).returning()
+                    TempCatalog.select()._returning).returning()
 
                 self.log.debug(f'Running INSERT query into {self.output_table}'
                                f'{self._get_sql(insert_query)}')
