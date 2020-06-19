@@ -267,7 +267,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             with Timer() as timer:
-                self._setup_transaction()
+                self.setup_transaction()
                 self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
                                           f'{self.path} AS ' + query_sql,
                                           params)
@@ -304,7 +304,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Running post-process.')
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
@@ -342,8 +342,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return True
 
-    def _setup_transaction(self):
-        """Setups the transaction locally modifying the datbase parameters."""
+    def setup_transaction(self):
+        """Setups the transaction locally modifying the datbase parameters.
+
+        This method runs inside a transaction and can be overridden to set the
+        parameters of the transaction manually. It applies to both `.run` and
+        `.load`.
+
+        """
 
         if 'database_options' not in self.config:
             return
@@ -471,7 +477,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        'intermediate table.')
 
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self._create_carton_metadata()
             self._load_data(RModel)
             self._load_magnitudes(RModel)
@@ -627,7 +633,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Loading data into targetdb.carton_to_target.')
 
-        version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
+        version_pk = tdb.Version.get(plan=self.plan, tag=self.tag,
+                                     target_selection=True)
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target

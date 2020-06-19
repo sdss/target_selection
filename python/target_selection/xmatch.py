@@ -19,7 +19,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, Model, fn
+from peewee import SQL, CompositeKey, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
@@ -77,10 +77,10 @@ class TempCatalog(Catalog):
 def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
                 pmra_column=None, pmdec_column=None, is_pmra_cos=True,
                 parallax_column=None, epoch_column=None, epoch=None,
-                epoch_format='jyear', has_duplicates=False,
-                has_missing_coordinates=False, skip=False,
-                skip_phases=None, query_radius=None, join_weight=1,
-                database_options=None):
+                epoch_format='jyear', relational_table=None,
+                has_duplicates=False, has_missing_coordinates=False,
+                skip=False, skip_phases=None, query_radius=None,
+                join_weight=1, database_options=None):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
 
     The parameters defined can be accessed with the same name as
@@ -116,6 +116,10 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     epoch_format : str
         The format of the epoch. Either Julian year (``'jyear'``) or Julian
         date (``'jd'``).
+    table_name : str
+        Overrides the default model table name. This can be useful sometimes
+        if, for example, a view has been created that contains only the
+        columns from the main table needed for cross-matching.
     has_duplicates : bool
         Whether the table contains duplicates.
     has_missing_coordinates : bool
@@ -184,6 +188,8 @@ def XMatchModel(Model, resolution=None, ra_column=None, dec_column=None,
     meta.xmatch.epoch = epoch
     meta.xmatch.epoch_column = epoch_column
     meta.xmatch.epoch_format = epoch_format
+
+    meta.xmatch.relational_table = relational_table
 
     meta.xmatch.has_duplicates = has_duplicates
     meta.xmatch.has_missing_coordinates = has_missing_coordinates
@@ -946,7 +952,7 @@ class XMatchPlanner(object):
         else:
 
             # Add Q3C index for TempCatalog
-            TempCatalog.add_index(SQL(f'CREATE INDEX temp_catalog_q3c_idx ON '
+            TempCatalog.add_index(SQL(f'CREATE INDEX {self._temp_table}_q3c_idx ON '
                                       f'{self.schema}.{self._temp_table} '
                                       f'(q3c_ang2ipix(ra, dec))'))
 
@@ -1115,17 +1121,16 @@ class XMatchPlanner(object):
         class BaseModel(peewee.Model):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
-            target_id = model_pk_class(null=False)
-            version_id = peewee.SmallIntegerField(null=False, index=True)
+            target_id = model_pk_class(null=False, index=True)
+            version_id = peewee.SmallIntegerField(null=False)
             distance = peewee.DoubleField(null=True)
-            best = peewee.BooleanField(null=False, index=True)
+            best = peewee.BooleanField(null=False)
 
             class Meta:
                 database = meta.database
                 schema = meta.schema
-                primary_key = False
-                constraints = [SQL('UNIQUE(catalogid, target_id, version_id) '
-                                   'DEFERRABLE INITIALLY DEFERRED')]
+                primary_key = CompositeKey('version_id', 'catalogid', 'target_id')
+                indexes = ((('version_id', 'target_id', 'best'), False),)
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))
@@ -1139,11 +1144,12 @@ class XMatchPlanner(object):
             RelationalModel._meta.schema = None
             return RelationalModel
 
-        RelationalModel._meta.table_name = prefix + meta.table_name
+        if meta.xmatch.relational_table is not None:
+            RelationalModel._meta.table_name = meta.xmatch.relational_table
+        else:
+            RelationalModel._meta.table_name = prefix + meta.table_name
 
         if create and not RelationalModel.table_exists():
-            RelationalModel.add_index(RelationalModel.version_id,
-                                      RelationalModel.target_id)
             RelationalModel.create_table()
 
         # Add foreign key field here. We want to avoid Peewee creating it
@@ -1202,17 +1208,24 @@ class XMatchPlanner(object):
 
         for n_path, path in enumerate(join_paths):
 
-            join_models = [self.model_graph.nodes[node]['model'] for node in path]
+            # Remove the temporary catalog table at the end of the join path
+            # because we only need catalogid and we can get that from the
+            # relational model, saving us one join.
+            path = path[0:-1]
+
+            join_models = [self.model_graph.nodes[node]['model']
+                           for node in path]
 
             # Get the relational model that leads to the temporary catalog
             # table in the join. We'll want to filter on version_id to avoid
             # a sequential scan.
-            join_rel_model = join_models[-2]
+            join_rel_model = join_models[-1]
 
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             TempCatalog.catalogid)
-                     .where(join_rel_model.version_id == self._version_id)
+                             join_rel_model.catalogid)
+                     .where(join_rel_model.version_id == self._version_id,
+                            join_rel_model.best >> True)
                      .where(~fn.EXISTS(
                          rel_model
                          .select(SQL('1'))
@@ -1405,12 +1418,10 @@ class XMatchPlanner(object):
                             .where(~fn.EXISTS(
                                 rel_model
                                 .select(SQL('1'))
-                                .where(rel_model.catalogid == xmatched.c.catalogid)))
-                            .where(~fn.EXISTS(
-                                rel_model
-                                .select(SQL('1'))
-                                .where((rel_model.version_id == self._version_id) &
-                                       (rel_model.target_id == xmatched.c.target_id)))))
+                                .where(((rel_model.version_id == self._version_id) &
+                                        (rel_model.catalogid == xmatched.c.catalogid)) |
+                                       ((rel_model.version_id == self._version_id) &
+                                        (rel_model.target_id == xmatched.c.target_id))))))
 
         with Timer() as timer:
 
@@ -1585,8 +1596,6 @@ class XMatchPlanner(object):
         self.log.debug(f'Inserted {n_rows:,} rows. '
                        f'Total time: {timer.elapsed:.3f} s.')
 
-        self._analyze(rel_model, catalog=True)
-
         self._phases_run.add(3)
 
     def _load_output_table(self, keep_temp=False):
@@ -1601,7 +1610,7 @@ class XMatchPlanner(object):
 
                 insert_query = Catalog.insert_from(
                     TempCatalog.select(),
-                    Catalog._meta.fields.values()).returning()
+                    TempCatalog.select()._returning).returning()
 
                 self.log.debug(f'Running INSERT query into {self.output_table}'
                                f'{self._get_sql(insert_query)}')
@@ -1622,7 +1631,9 @@ class XMatchPlanner(object):
         """Returns coulourised SQL text for logging."""
 
         query_str, query_params = query.sql()
-        query_str = query_str % query_params
+
+        if query_params:
+            query_str = query_str % tuple(query_params)
 
         if self._options['show_sql']:
             return f': {color_text(query_str, "darkgrey")}'
@@ -1694,19 +1705,19 @@ class XMatchPlanner(object):
                 for path in paths:
                     print(path)
 
-    def _analyze(self, rel_model, catalog=False):
+    def _analyze(self, rel_model, vacuum=False, catalog=False):
         """Analyses a relational model after insertion."""
 
         table_name = rel_model._meta.table_name
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{self.schema}.{table_name}',
-                     vacuum=False, analyze=True)
+                     vacuum=vacuum, analyze=True)
 
         if catalog:
             self.log.debug(f'Running ANALYZE on {self._temp_table}.')
             vacuum_table(self.database, f'{self.schema}.{self._temp_table}',
-                         vacuum=False, analyze=True)
+                         vacuum=vacuum, analyze=True)
 
     def _log_table_configuration(self, model):
         """Logs the configuration used to cross-match a table."""
