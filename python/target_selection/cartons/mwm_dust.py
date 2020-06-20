@@ -143,6 +143,7 @@ class MWM_Dust_Carton(BaseCarton):
 
         fn = peewee.fn
 
+        # Not sure this makes the query more efficient but ...
         twomass_cte = (TwoMassPSC
                        .select(TwoMassPSC.designation,
                                TwoMassPSC.k_m,
@@ -237,11 +238,11 @@ class MWM_Dust_Carton(BaseCarton):
         ghs = ghselect(data)
         jks = jkselect(data)
 
+        # Subsample based on (G-H) and update DB.
         dust_gh_subsel = subselect(data, ghs)
         dust_gh_cid = peewee.ValuesList(zip(data.catalogid[dust_gh_subsel]),
                                         columns=('catalogid',), alias='vl')
 
-        # Subsample based on (G-H) and update DB.
         model.update({model.dustghsubsel: False}).execute()
         (model
          .update({model.dustghsubsel: True})
@@ -249,11 +250,11 @@ class MWM_Dust_Carton(BaseCarton):
          .where(model.catalogid == dust_gh_cid.c.catalogid)
          .execute())
 
+        # Subsample based on (J-Ks) and update DB.
         dust_jks_subsel = subselect(data, jks)
         dust_jks_cid = peewee.ValuesList(zip(data.catalogid[dust_jks_subsel]),
                                          columns=('catalogid',), alias='vl')
 
-        # Subsample based on (J-Ks) and update DB.
         model.update({model.dustjksubsel: False}).execute()
         (model
          .update({model.dustjksubsel: True})
