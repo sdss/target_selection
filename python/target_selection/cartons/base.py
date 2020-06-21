@@ -188,7 +188,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if not Model.table_exists():
             raise TargetSelectionError(f'temporary table {self.path!r} does '
-                                       'exist.')
+                                       'not exist.')
 
         return Model
 
