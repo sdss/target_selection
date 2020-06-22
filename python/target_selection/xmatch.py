@@ -1392,7 +1392,7 @@ class XMatchPlanner(object):
             xmatched = xmatched.where(model_ra.is_null(False),
                                       model_dec.is_null(False))
 
-        xmatched = xmatched.cte('xmatched')
+        xmatched = xmatched.cte('xmatched', materialized=True)
 
         # We'll partition over each group of targets that match the same
         # catalogid and mark the one with the smallest distance to it as best.
