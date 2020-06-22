@@ -1651,6 +1651,8 @@ class XMatchPlanner(object):
             return
 
         for param in options:
+            if param == 'maintenance_work_mem':
+                continue
             param_config = options[param]
             if isinstance(param_config, dict):
                 value = param_config.get('value')
@@ -1709,6 +1711,11 @@ class XMatchPlanner(object):
         """Analyses a relational model after insertion."""
 
         table_name = rel_model._meta.table_name
+
+        db_opts = self._options['database_options']
+        work_mem = db_opts.get('maintenance_work_mem', None)
+        if work_mem:
+            self.database.execute_sql(f'SET maintenance_work_mem = {work_mem!r}')
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{self.schema}.{table_name}',
