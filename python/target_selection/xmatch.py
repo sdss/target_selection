@@ -1223,20 +1223,30 @@ class XMatchPlanner(object):
             # a sequential scan.
             join_rel_model = join_models[-1]
 
+            # We can have join catalogues that produce more than
+            # one result for each target or different targets that
+            # are joined to the same catalogid. In the future we may
+            # want to order by something that selects the best
+            # candidate.
+
+            partition = (fn.first_value(model_pk)
+                         .over(partition_by=[join_rel_model.catalogid],
+                               order_by=[model_pk.asc()]))
+            best = peewee.Value(partition == model_pk)
+
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             join_rel_model.catalogid)
+                             join_rel_model.catalogid,
+                             best.alias('best'))
                      .where(join_rel_model.version_id == self._version_id,
                             join_rel_model.best >> True)
                      .where(~fn.EXISTS(
                          rel_model
                          .select(SQL('1'))
                          .where(rel_model.version_id == self._version_id,
-                                rel_model.target_id == model_pk)))
-                     # We can have join catalogues that produce more than
-                     # one result for each target. In the future we may
-                     # want to order by something that selects the best
-                     # candidate.
+                                ((rel_model.target_id == model_pk) |
+                                 (rel_model.catalogid == join_rel_model.catalogid)))))
+                     # In case we have duplicates in the catalogue.
                      .distinct(model_pk))
 
             # In query we do not include a Q3C where for the sample region
@@ -1268,7 +1278,7 @@ class XMatchPlanner(object):
                         temp_model.select(temp_model.target_id,
                                           temp_model.catalogid,
                                           peewee.Value(self._version_id),
-                                          peewee.SQL('true')),
+                                          temp_model.best),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
