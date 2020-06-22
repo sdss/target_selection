@@ -402,3 +402,13 @@
         - [45.0, 0.0, 5.]      # Stripe-82-West
         - [135.0, 1.0, 5.]     # eFEDS
         - [315.0, 0.0, 5.]     # Stripe-82-East
+
+'0.1.0-alpha.6':
+    base_plan: '0.1.0-alpha.5'
+
+'0.1.0-alpha.7':
+    base_plan: '0.1.0-alpha.5'
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '10GB'
+        maintenance_work_mem: '60GB'
