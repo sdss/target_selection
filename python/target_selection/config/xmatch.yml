@@ -360,6 +360,8 @@
         - unwise
         - catwise
         - glimpse
+        - uvotssc1
+        - xmm_om_suss_4_1
     exclude:
         - skymapper_gaia
     tables:
@@ -378,6 +380,16 @@
         sdss_dr13_photoobj_primary:
             ra_column: ra
             dec_column: dec
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_4_1:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
     database_options:
         work_mem: '10GB'
         temp_buffers: '10GB'
