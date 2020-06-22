@@ -992,6 +992,8 @@ class XMatchPlanner(object):
             vacuum_outputs(self.database, vacuum=vacuum, analyze=analyze,
                            schema=Catalog._meta.schema,
                            table=Catalog._meta.table_name)
+            if TempCatalog.table_exists():
+                vacuum_table(self.database, f'{self.schema}.{self._temp_table}')
 
         self._create_models(force or (from_ is not None))
         self._max_cid = None
@@ -1270,8 +1272,9 @@ class XMatchPlanner(object):
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
+            self._analyze(rel_model)
 
-            self._phases_run.add(1)
+        self._phases_run.add(1)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1453,7 +1456,8 @@ class XMatchPlanner(object):
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
-        self._phases_run.add(1)
+        self._phases_run.add(2)
+        self._analyze(rel_model)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
@@ -1597,6 +1601,7 @@ class XMatchPlanner(object):
                        f'Total time: {timer.elapsed:.3f} s.')
 
         self._phases_run.add(3)
+        self._analyze(rel_model, catalog=True)
 
     def _load_output_table(self, keep_temp=False):
         """Copies the temporary table to the real output table."""
