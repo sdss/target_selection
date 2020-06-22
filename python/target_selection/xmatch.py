@@ -963,7 +963,7 @@ class XMatchPlanner(object):
             self._temp_count = 0
 
     def run(self, vacuum=False, analyze=False, from_=None,
-            force=False, keep_temp=False):
+            force=False, keep_temp=False, start_catalogid=None):
         """Runs the cross-matching process.
 
         Parameters
@@ -995,8 +995,18 @@ class XMatchPlanner(object):
             if TempCatalog.table_exists():
                 vacuum_table(self.database, f'{self.schema}.{self._temp_table}')
 
+        # Checks if there are multiple cross-matching plans running at the same
+        # time. This is problematic because there can be catalogid collisions.
+        # This should only be allowed if we define the starting catalogid
+        # manually and make sure there cannot be collisions.
+        temp_tables = [table for table in self.database.get_tables(self.schema)
+                       if table.startswith(self.output_table + '_') and
+                       table != self._temp_table]
+        if len(temp_tables) > 0 and not start_catalogid:
+            raise XMatchError('Another cross-matching plan is currently running.')
+
         self._create_models(force or (from_ is not None))
-        self._max_cid = None
+        self._max_cid = start_catalogid
 
         with Timer() as timer:
             p_order = self.process_order
