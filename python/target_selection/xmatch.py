@@ -1421,10 +1421,13 @@ class XMatchPlanner(object):
                             .where(~fn.EXISTS(
                                 rel_model
                                 .select(SQL('1'))
-                                .where(((rel_model.version_id == self._version_id) &
-                                        (rel_model.catalogid == xmatched.c.catalogid)) |
-                                       ((rel_model.version_id == self._version_id) &
-                                        (rel_model.target_id == xmatched.c.target_id))))))
+                                .where((rel_model.version_id == self._version_id) &
+                                       (rel_model.catalogid == xmatched.c.catalogid))))
+                            .where(~fn.EXISTS(
+                                rel_model
+                                .select(SQL('1'))
+                                .where((rel_model.version_id == self._version_id) &
+                                       (rel_model.target_id == xmatched.c.target_id)))))
 
         with Timer() as timer:
 
