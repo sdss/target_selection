@@ -120,6 +120,11 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
     category = 'science'
     program = 'CB'
 
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL join_collapse_limit = 1;')
+        super().setup_transaction()
+
     def build_query(self, version_id, query_region=None):
 
         colour_cuts = (fuv_magerr < 0.2,
@@ -133,8 +138,8 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
                        ((fuvg < 6.08) | ((fuvg < 11.82 * B_AB_R_AB + 2.58) &
                                          (fuvg < -0.79 * B_AB_R_AB + 9.21))))
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (GUVCat
+                 .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2.source_id,
                          Gaia_DR2.pmra,
                          Gaia_DR2.pmdec,
@@ -151,12 +156,12 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
                          GUVCat.fuv_mag,
                          GUVCat.nuv_magerr,
                          GUVCat.fuv_magerr)
-                 .join(CatalogToTIC_v8)
+                 .join(CatalogToGUVCat)
+                 .join(CatalogToTIC_v8, on=(CatalogToGUVCat.catalogid ==
+                                            CatalogToTIC_v8.catalogid))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .join(BJ)
-                 .join_from(Catalog, CatalogToGUVCat)
-                 .join(GUVCat)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
                  .where(CatalogToGUVCat.version_id == version_id,
@@ -239,6 +244,11 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
     category = 'science'
     program = 'CB'
 
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL join_collapse_limit = 1;')
+        super().setup_transaction()
+
     def build_query(self, version_id, query_region=None):
 
         colour_cuts = (nuv_magerr < 0.2,
@@ -249,8 +259,8 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
                         (((nuv_mag - gmagab) < 6.725 * B_AB_R_AB - 1.735) &
                          ((nuv_mag - gmagab) < -0.983 * B_AB_R_AB + 8.24))))
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (GUVCat
+                 .select(CatalogToGUVCat.catalogid,
                          Gaia_DR2.source_id,
                          Gaia_DR2.pmra,
                          Gaia_DR2.pmdec,
@@ -267,12 +277,12 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
                          GUVCat.fuv_mag,
                          GUVCat.nuv_magerr,
                          GUVCat.fuv_magerr)
-                 .join(CatalogToTIC_v8)
+                 .join(CatalogToGUVCat)
+                 .join(CatalogToTIC_v8, on=(CatalogToGUVCat.catalogid ==
+                                            CatalogToTIC_v8.catalogid))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .join(BJ)
-                 .join_from(Catalog, CatalogToGUVCat)
-                 .join(GUVCat)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
                  .where(CatalogToGUVCat.version_id == version_id,
@@ -464,7 +474,15 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
