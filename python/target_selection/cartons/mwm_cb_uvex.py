@@ -9,8 +9,10 @@
 import peewee
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (XMM_OM_SUSS_4_1, Catalog,
-                                             CatalogToGUVCat, CatalogToTIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (UVOT_SSC_1, XMM_OM_SUSS_4_1,
+                                             Catalog, CatalogToGUVCat,
+                                             CatalogToTIC_v8,
+                                             CatalogToUVOT_SSC_1,
                                              CatalogToXMM_OM_SUSS_4_1,
                                              Gaia_DR2,
                                              GeometricDistances_Gaia_DR2,
@@ -483,6 +485,168 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
         return query
 
 
+class MWM_CB_UVEX4_Carton(BaseCarton):
+    """MWM Compact Binaries UV excess 4.
+
+    Definition:
+
+       Match Gaia - SWUVOTSSC (Swift UVOT catalog), apply color cuts to select
+       objects with UV excess between main sequence and WD sequence. Remove
+       objects with low parallax and proper motion accuracy to not get swamped
+       by AGN and QSO.
+
+    Pseudo-SQL:
+
+        - Apply some general UV quality flags and work on subset of entries
+        in UVOT catalog::
+            - (UVW2_AB_MAG >-100) || (UVW1_AB_MAG >-100) || (UVM2_AB_MAG>-100)
+            - !(equals(substring(UVW1_QUALITY_FLAG_BIN,8,9),"1") ||
+                equals(substring(UVW2_QUALITY_FLAG_BIN,8,9),"1") ||
+                equals(substring(UVM2_QUALITY_FLAG_BIN,8,9),"1") ||
+                (equals(substring(UVW1_QUALITY_FLAG_BIN,7,8),"1") && UVW1_SIGNIF <10) ||
+                (equals(substring(UVW2_QUALITY_FLAG_BIN,7,8),"1") && UVW2_SIGNIF <10) ||
+                (equals(substring(UVM2_QUALITY_FLAG_BIN,7,8),"1") && UVM2_SIGNIF <10) ||
+                (equals(substring(UVW1_QUALITY_FLAG_BIN,6,7),"1") && UVW1_SIGNIF <10) ||
+                (equals(substring(UVW2_QUALITY_FLAG_BIN,6,7),"1") && UVW2_SIGNIF <10) ||
+                (equals(substring(UVM2_QUALITY_FLAG_BIN,6,7),"1") && UVM2_SIGNIF <10) ||
+                (equals(substring(UVW1_QUALITY_FLAG_BIN,3,4),"1") && UVW1_SIGNIF <10) ||
+                (equals(substring(UVW2_QUALITY_FLAG_BIN,3,4),"1") && UVW2_SIGNIF <10) ||
+                (equals(substring(UVM2_QUALITY_FLAG_BIN,3,4),"1") && UVM2_SIGNIF <10) ||
+                equals(substring(UVW1_QUALITY_FLAG_BIN,2,3),"1") ||
+                equals(substring(UVW2_QUALITY_FLAG_BIN,2,3),"1") ||
+                equals(substring(UVM2_QUALITY_FLAG_BIN,2,3),"1"))
+
+        - Match UV catalog with Gaia DR2 within 3 arcsec, keep the nearest
+          match only, add distance and lower limit distance (columns r_est,
+          r_lo; estimated and lower limit to estimated distance)
+          from catalog gdr2_contrib/geometric_distance.
+
+        - Definitions:
+            - pm = sqrt(pmra*pmra+pmdec*pmdec)
+            - pm_error = sqrt((pmra_error*pmra/pm)*(pmra_error*pmra/pm) +
+                         (pmdec_error*pmdec/pm)*(pmdec_error*pmdec/pm))
+            - logpmdpm = log10(pm/pm_error)
+            - gmagab = phot_g_mean_mag-25.688+25.792
+            - bmagab = phot_bp_mean_mag-25.351+25.386
+            - rmagab = phot_rp_mean_mag-24.762+25.116
+            - B_AB-R_AB = bmagab-rmagab
+            - absg=phot_g_mean_mag-5*log10(r_est)+5
+            - nuvg=nuv_mag-gmagab
+            - fuvg=fuv_mag-gmagab
+            - fuvnub=fuv_mag-nuv_mag
+            - bp_rp=phot_bp_mean_mag-phot_rp_mean_mag
+
+        - General cut:
+            - Gaia: visibility_periods_used >5
+
+        - Colour and magnitude cuts:
+            - absg < 4.5457*bp_rp+9.9 &&
+                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
+            - ((UVM2_AB_MAG - gmagab) < 2.25 ||
+               ((UVM2_AB_MAG - gmagab) < 6 &&
+                (UVM2_AB_MAG - gmagab) < 5.57377*(B_AB-R_AB)+0.2049))
+
+        - Astrometric cuts:
+            - !((logpmdpm <0.301 &&
+                (parallax/parallax_error)>-1.4995*logpmdpm-4.05 &&
+                (parallax/parallax_error)<1.4995*logpmdpm+4.05) ||
+               (logpmdpm-0.301)*(logpmdpm-0.301)/(0.39794*0.39794) +
+               (parallax/parallax_error)^2/(4.5*4.5)<=1)
+            - r_lo <= 1500
+
+    """
+
+    name = 'mwm_cb_uvex4'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'CB'
+
+    def build_query(self, version_id, query_region=None):
+
+        uvw2_ab_mag = UVOT_SSC_1.uvw2_ab
+        uvm2_ab_mag = UVOT_SSC_1.uvm2_ab
+        uvw1_ab_mag = UVOT_SSC_1.uvw1_ab
+
+        uvw2_quality_flag = UVOT_SSC_1.fuvw2
+        uvm2_quality_flag = UVOT_SSC_1.fuvm2
+        uvw1_quality_flag = UVOT_SSC_1.fuvw1
+
+        uvw2_signif = UVOT_SSC_1.suvw2
+        uvm2_signif = UVOT_SSC_1.suvm2
+        uvw1_signif = UVOT_SSC_1.suvw1
+
+        # uvXY_quality_flag is a 9-bit integer so character 8 (0-indexed) in
+        # the binary string is the first bit, 7 is the second, etc.
+
+        quality_flags = (
+            (uvw2_ab_mag > -100) | (uvw1_ab_mag > -100) | (uvm2_ab_mag > -100),
+            ~((uvw1_quality_flag.bin_and(2**0) > 0) |
+              (uvw2_quality_flag.bin_and(2**0) > 0) |
+              (uvm2_quality_flag.bin_and(2**0) > 0) |
+              (uvw1_quality_flag.bin_and(2**1) > 0) & (uvw1_signif < 10) |
+              (uvw2_quality_flag.bin_and(2**1) > 0) & (uvw2_signif < 10) |
+              (uvm2_quality_flag.bin_and(2**1) > 0) & (uvm2_signif < 10) |
+              (uvw1_quality_flag.bin_and(2**2) > 0) & (uvw1_signif < 10) |
+              (uvw2_quality_flag.bin_and(2**2) > 0) & (uvw2_signif < 10) |
+              (uvm2_quality_flag.bin_and(2**2) > 0) & (uvm2_signif < 10) |
+              (uvw1_quality_flag.bin_and(2**5) > 0) & (uvw1_signif < 10) |
+              (uvw2_quality_flag.bin_and(2**5) > 0) & (uvw2_signif < 10) |
+              (uvm2_quality_flag.bin_and(2**5) > 0) & (uvm2_signif < 10) |
+              (uvw1_quality_flag.bin_and(2**6) > 0) |
+              (uvw2_quality_flag.bin_and(2**6) > 0) |
+              (uvm2_quality_flag.bin_and(2**6) > 0))
+        )
+
+        quality_cte = (UVOT_SSC_1
+                       .select(UVOT_SSC_1,
+                               CatalogToUVOT_SSC_1.catalogid)
+                       .join(CatalogToUVOT_SSC_1)
+                       .where(CatalogToUVOT_SSC_1.version_id == version_id,
+                              CatalogToUVOT_SSC_1.best >> True)
+                       .where(*quality_flags)
+                       .cte('quality_cte', materialized=True))
+
+        colour_cuts = (colour_absg,
+                       ((quality_cte.c.uvm2_ab - gmagab) < 2.25) |
+                       (((quality_cte.c.uvm2_ab - gmagab) < 6) &
+                        ((quality_cte.c.uvm2_ab - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
+
+        query = (Catalog
+                 .select(Catalog.catalogid,
+                         Gaia_DR2.source_id,
+                         Gaia_DR2.pmra,
+                         Gaia_DR2.pmdec,
+                         Gaia_DR2.pmra_error,
+                         Gaia_DR2.pmdec_error,
+                         Gaia_DR2.parallax,
+                         Gaia_DR2.parallax_error,
+                         Gaia_DR2.phot_g_mean_mag,
+                         Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         gmagab.alias('gmagab'),
+                         BJ.r_est,
+                         BJ.r_lo,
+                         quality_cte.c.uvm2_ab.alias('uvm2_ab'),
+                         quality_cte.c.uvw2_ab.alias('uvw2_ab'),
+                         quality_cte.c.uvw1_ab.alias('uvw1_ab'),
+                         quality_cte.c.fuvw2.alias('fuvw2'),
+                         quality_cte.c.fuvm2.alias('fuvm2'),
+                         quality_cte.c.fuvw1.alias('fuvw1'))
+                 .join(CatalogToTIC_v8)
+                 .join(TIC_v8)
+                 .join(Gaia_DR2)
+                 .join(BJ)
+                 .join_from(Catalog, quality_cte,
+                            on=(quality_cte.c.catalogid == Catalog.catalogid))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True)
+                 .where(Gaia_DR2.visibility_periods_used > 5)
+                 .where(*colour_cuts)
+                 .where(*astrometric_cuts)
+                 .with_cte(quality_cte))
+
+        if query_region:
+            query = (query
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
