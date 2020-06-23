@@ -457,8 +457,17 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
 # (parallax<0.2 or parallax is null)
 # l is glon (galactic longitude)
 # b is glat (galactic latitude)
-# mipsgal is a subset of 2MASS can can be joined to twomass_psc via
-# mipsgal.twomass_name. Then join via TIC and catalog_to_tic.
+# mipsgal is a subset of 2MASS 
+# mipsgal can be joined to twomass_psc via
+# mipsgal.twomass_name = TwoMassPSC.designation.
+# Then join via TIC and catalog_to_tic.
+#
+# mipsgal is a subset of 2MASS
+# 2MASS is a subset of TIC_v8
+# Gaia_DR2 is a subset of TIC_v8
+# 
+# 2MASS is not a subset of Gaia_DR2
+# Gaia_DR2 is not a subset of 2MASS
 #
 # table catalogdb.mipsgal
 # Foreign-key constraints:
@@ -473,7 +482,7 @@ b between -1 and 1 and _8_0_-_24_>2.5 and
                  .join(TwoMassPSC)
                  .join(MIPSGAL, on=(TwoMassPSC.designation == MIPSGAL.twomass_name))
                  .switch(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(Gaia_DR2, JOIN.LEFT_OUTER)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
