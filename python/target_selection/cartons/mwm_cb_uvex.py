@@ -16,7 +16,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (UVOT_SSC_1, XMM_OM_SUSS_4_1,
                                              CatalogToXMM_OM_SUSS_4_1,
                                              Gaia_DR2,
                                              GeometricDistances_Gaia_DR2,
-                                             GUVCat, TIC_v8)
+                                             GUVCat, TIC_v8, TwoMassPSC)
 
 from . import BaseCarton
 
@@ -647,6 +647,145 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
 
         if query_region:
             query = (query
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_CB_UVEX5_Carton(BaseCarton):
+    """MWM Compact Binaries UV excess 5.
+
+    Definition:
+
+       Match Gaia - GALEX, use both bands of GALEX (FUV and NUV), apply colour
+       cuts to select objects with UV excess between main sequence and WD
+       sequence. Remove objects with low parallax and proper motion accuracy to
+       not get swamped by AGN and QSO.
+
+    Pseudo-SQL:
+
+        - Match Gaia DR2 with GALEX within 5 arcsec, keep the nearest match
+          only, add distance and lower limit distance (columns r_est, r_lo;
+          estimated and lower limit to estimated distance) from catalog
+          gdr2_contrib/geometric_distance; use columns fuv_mag, nuv_mag,
+          fuv_magerr, nuv_magerr from GALEX catalog.
+
+        - Match with 2MASS.
+
+        - Definitions:
+            - pm = sqrt(pmra*pmra+pmdec*pmdec)
+            - pm_error = sqrt((pmra_error*pmra/pm)*(pmra_error*pmra/pm) +
+                         (pmdec_error*pmdec/pm)*(pmdec_error*pmdec/pm))
+            - logpmdpm = log10(pm/pm_error)
+            - gmr = phot_g_mean_mag - phot_rp_mean_mag
+            - absg = phot_g_mean_mag-5*log10(r_est)+5
+            - Main-sequence defined as polynomial:
+                GMS = 0.00206868742*gmr**6 + 0.0401594518*gmr**5 -
+                0.842512410*gmr**4 + 4.89384979*gmr**3 -
+                12.3826637*gmr**2 + 17.0197205*gmr - 3.19987835
+
+        - General cut:
+            - Gaia: visibility_periods_used >5
+            - astrometric_excess_noise <= 1
+
+        - Colour and magnitude cuts:
+            - Hmag < 15
+            - fuv_magerr < 0.2 && nuv_magerr < 0.2 &&
+              fuv_mag > -100 && nuv_mag > -100
+            - abs(GMS-absg) <=0.5 && absg >=4.0866
+            - r_est < 0.51 * pow(10, 0.2291*phot_g_mean_mag)
+
+        - Astrometric cuts:
+            - !((logpmdpm <0.301 &&
+                (parallax/parallax_error)>-1.4995*logpmdpm-4.05 &&
+                (parallax/parallax_error)<1.4995*logpmdpm+4.05) ||
+               (logpmdpm-0.301)*(logpmdpm-0.301)/(0.39794*0.39794) +
+               (parallax/parallax_error)^2/(4.5*4.5)<=1)
+            - r_lo <= 1500
+
+        This sequence yields 10.766 objects whose UV emission is though
+        to arise from an unseen compact companion.
+
+    """
+
+    name = 'mwm_cb_uvex5'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'CB'
+
+    # def setup_transaction(self):
+
+    #     self.database.execute_sql('SET LOCAL join_collapse_limit = 1;')
+    #     super().setup_transaction()
+
+    def build_query(self, version_id, query_region=None):
+
+        gmr = Gaia_DR2.phot_g_mean_mag - Gaia_DR2.phot_rp_mean_mag
+        GMS = (0.00206868742 * fn.pow(gmr, 6) + 0.0401594518 * fn.pow(gmr, 5) -
+               0.842512410 * fn.pow(gmr, 4) + 4.89384979 * fn.pow(gmr, 3) -
+               12.3826637 * fn.pow(gmr, 2) + 17.0197205 * gmr - 3.19987835)
+
+        colour_cuts = (fn.abs(GMS - absg) <= 0.5,
+                       absg >= 4.0866,
+                       BJ.r_est < 0.51 * fn.pow(10, 0.2291 * Gaia_DR2.phot_g_mean_mag))
+
+        # This should limit GUVCat to ~1M sources.
+        guvcat_cte = (GUVCat
+                      .select(GUVCat.objid,
+                              GUVCat.nuv_mag,
+                              GUVCat.fuv_mag,
+                              GUVCat.nuv_magerr,
+                              GUVCat.fuv_magerr)
+                      .where(fuv_magerr < 0.2,
+                             nuv_magerr < 0.2,
+                             fuv_mag > -100,
+                             nuv_mag > -100)
+                      .cte('guvcat_cte', materialized=True))
+
+        query = (CatalogToGUVCat
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.source_id,
+                         Gaia_DR2.pmra,
+                         Gaia_DR2.pmdec,
+                         Gaia_DR2.pmra_error,
+                         Gaia_DR2.pmdec_error,
+                         Gaia_DR2.parallax,
+                         Gaia_DR2.parallax_error,
+                         Gaia_DR2.phot_g_mean_mag,
+                         Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         BJ.r_est,
+                         BJ.r_lo,
+                         guvcat_cte.c.nuv_mag,
+                         guvcat_cte.c.fuv_mag,
+                         guvcat_cte.c.nuv_magerr,
+                         guvcat_cte.c.fuv_magerr,
+                         GMS.alias('GMS'))
+                 .join(guvcat_cte,
+                       on=(guvcat_cte.c.objid == CatalogToGUVCat.target_id))
+                 .join_from(CatalogToGUVCat, CatalogToTIC_v8,
+                            on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8)
+                 .join(TwoMassPSC)
+                 .join_from(TIC_v8, Gaia_DR2)
+                 .join(BJ)
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True)
+                 .where(CatalogToGUVCat.version_id == version_id,
+                        CatalogToGUVCat.best >> True)
+                 .where(Gaia_DR2.visibility_periods_used > 5,
+                        Gaia_DR2.astrometric_excess_noise <= 1)
+                 .where(*colour_cuts)
+                 .where(*astrometric_cuts)
+                 .with_cte(guvcat_cte))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
