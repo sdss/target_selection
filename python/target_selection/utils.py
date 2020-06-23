@@ -306,14 +306,14 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
     assert database.is_connection_usable(), 'connection is not usable.'
 
     tables = []
-    for table_name in database.models:
+    for full_name in database.models:
+        table_schema, table_name = full_name.split('.')
+        if table_schema != schema:
+            continue
         if table_name != table:
             is_relational = table_name.startswith(table + '_to_')
             if not is_relational or not relational_tables:
                 continue
-        model = database.models[table_name]
-        if not model.table_exists() or model._meta.schema != schema:
-            continue
         tables.append(table_name)
 
     for table_name in tables:
