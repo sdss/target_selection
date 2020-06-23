@@ -689,7 +689,7 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                 12.3826637*gmr**2 + 17.0197205*gmr - 3.19987835
 
         - General cut:
-            - Gaia: visibility_periods_used >5
+            - Gaia: visibility_periods_used > 5
             - astrometric_excess_noise <= 1
 
         - Colour and magnitude cuts:
@@ -707,7 +707,7 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                (parallax/parallax_error)^2/(4.5*4.5)<=1)
             - r_lo <= 1500
 
-        This sequence yields 10.766 objects whose UV emission is though
+        This sequence yields 10,766 objects whose UV emission is though
         to arise from an unseen compact companion.
 
     """
@@ -717,10 +717,10 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
     category = 'science'
     program = 'CB'
 
-    # def setup_transaction(self):
+    def setup_transaction(self):
 
-    #     self.database.execute_sql('SET LOCAL join_collapse_limit = 1;')
-    #     super().setup_transaction()
+        self.database.execute_sql('SET LOCAL join_collapse_limit = 1;')
+        super().setup_transaction()
 
     def build_query(self, version_id, query_region=None):
 
@@ -729,24 +729,12 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                0.842512410 * fn.pow(gmr, 4) + 4.89384979 * fn.pow(gmr, 3) -
                12.3826637 * fn.pow(gmr, 2) + 17.0197205 * gmr - 3.19987835)
 
-        colour_cuts = (fn.abs(GMS - absg) <= 0.5,
+        colour_cuts = (TwoMassPSC.h_m < 15,
+                       fn.abs(GMS - absg) <= 0.5,
                        absg >= 4.0866,
                        BJ.r_est < 0.51 * fn.pow(10, 0.2291 * Gaia_DR2.phot_g_mean_mag))
 
-        # This should limit GUVCat to ~1M sources.
-        guvcat_cte = (GUVCat
-                      .select(GUVCat.objid,
-                              GUVCat.nuv_mag,
-                              GUVCat.fuv_mag,
-                              GUVCat.nuv_magerr,
-                              GUVCat.fuv_magerr)
-                      .where(fuv_magerr < 0.2,
-                             nuv_magerr < 0.2,
-                             fuv_mag > -100,
-                             nuv_mag > -100)
-                      .cte('guvcat_cte', materialized=True))
-
-        query = (CatalogToGUVCat
+        query = (GUVCat
                  .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2.source_id,
                          Gaia_DR2.pmra,
@@ -760,15 +748,14 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag,
                          BJ.r_est,
                          BJ.r_lo,
-                         guvcat_cte.c.nuv_mag,
-                         guvcat_cte.c.fuv_mag,
-                         guvcat_cte.c.nuv_magerr,
-                         guvcat_cte.c.fuv_magerr,
+                         GUVCat.nuv_mag,
+                         GUVCat.fuv_mag,
+                         GUVCat.nuv_magerr,
+                         GUVCat.fuv_magerr,
                          GMS.alias('GMS'))
-                 .join(guvcat_cte,
-                       on=(guvcat_cte.c.objid == CatalogToGUVCat.target_id))
-                 .join_from(CatalogToGUVCat, CatalogToTIC_v8,
-                            on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(CatalogToGUVCat)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8)
                  .join(TwoMassPSC)
                  .join_from(TIC_v8, Gaia_DR2)
@@ -779,9 +766,12 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                         CatalogToGUVCat.best >> True)
                  .where(Gaia_DR2.visibility_periods_used > 5,
                         Gaia_DR2.astrometric_excess_noise <= 1)
+                 .where(fuv_magerr < 0.2,
+                        nuv_magerr < 0.2,
+                        fuv_mag > -100,
+                        nuv_mag > -100)
                  .where(*colour_cuts)
-                 .where(*astrometric_cuts)
-                 .with_cte(guvcat_cte))
+                 .where(*astrometric_cuts))
 
         if query_region:
             query = (query
