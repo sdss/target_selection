@@ -12,6 +12,7 @@ import warnings
 
 import numpy
 import peewee
+import pkg_resources
 from astropy import table
 
 from sdssdb.peewee import BaseModel
@@ -35,7 +36,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
     Parameters
     ----------
     targeting_plan : str
-        The target selection plan version.
+        The target selection plan version. The plan is normalised to PEP 440
+        standards.
     config_file : str
         The path to the configuration file to use. If undefined, uses the
         internal ``target_selection.yml`` file.
@@ -85,7 +87,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert self.category, 'carton subclass must override category'
         assert self.program, 'carton subclass must override program'
 
-        self.plan = targeting_plan
+        self.plan = str(pkg_resources
+                        .packaging
+                        .version
+                        .Version(targeting_plan))
         self.tag = __version__
 
         if config_file:

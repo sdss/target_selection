@@ -17,6 +17,7 @@ import warnings
 import networkx
 import numpy
 import peewee
+import pkg_resources
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, CompositeKey, Model, fn
@@ -320,7 +321,8 @@ class XMatchPlanner(object):
         The list of `.XMatchModel` classes to be cross-matched. If the model
         correspond to a non-existing table it will be silently ignored.
     plan : str
-        The cross-matching plan version.
+        The cross-matching plan version. The plan is normalised to PEP 440
+        standards.
     extra_nodes : list
         List of PeeWee models to be used as extra nodes for joins (i.e.,
         already established cross-matches between catalogues). This models
@@ -388,6 +390,9 @@ class XMatchPlanner(object):
                  debug=False, show_sql=False, sample_region=None,
                  database_options=None):
 
+        # For consistency, normalise the plan to PEP 440
+        plan = str(pkg_resources.packaging.version.Version(plan))
+
         self.log = target_selection.log
         self.log.header = ''
 
@@ -416,8 +421,8 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.plan = plan
-        self.log.info(f'plan = {self.plan!r}; '
-                      f'tag = {target_selection.__version__!r}.')
+        self.tag = target_selection.__version__
+        self.log.info(f'plan = {self.plan!r}; tag = {self.tag!r}.')
 
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
@@ -905,7 +910,7 @@ class XMatchPlanner(object):
             self.log.info(f'Created table {Version._meta.table_name}.')
 
         version, vcreated = Version.get_or_create(plan=self.plan,
-                                                  tag=target_selection.__version__)
+                                                  tag=self.tag)
 
         self._version_id = version.id
 
@@ -914,8 +919,7 @@ class XMatchPlanner(object):
         else:
             vmsg = 'Using version record '
 
-        self.log.info(vmsg + f'({self._version_id}, {self.plan}, '
-                             f'{target_selection.__version__}).')
+        self.log.info(vmsg + f'({self._version_id}, {self.plan}, {self.tag}).')
 
         # Make sure the output table exists.
         if not Catalog.table_exists():
