@@ -12,6 +12,7 @@ import warnings
 
 import numpy
 import peewee
+import pkg_resources
 from astropy import table
 
 from sdssdb.peewee import BaseModel
@@ -35,7 +36,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
     Parameters
     ----------
     targeting_plan : str
-        The target selection plan version.
+        The target selection plan version. The plan is normalised to PEP 440
+        standards.
     config_file : str
         The path to the configuration file to use. If undefined, uses the
         internal ``target_selection.yml`` file.
@@ -74,6 +76,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     category = None
     program = None
     mapper = None
+    priority = None
 
     query_region = None
 
@@ -84,7 +87,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert self.category, 'carton subclass must override category'
         assert self.program, 'carton subclass must override program'
 
-        self.plan = targeting_plan
+        self.plan = str(pkg_resources
+                        .packaging
+                        .version
+                        .Version(targeting_plan))
         self.tag = __version__
 
         if config_file:
@@ -176,6 +182,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
             cadence = peewee.TextField(null=True)
+            priority = peewee.IntegerField()
 
             class Meta:
                 database = self.database
@@ -186,7 +193,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if not Model.table_exists():
             raise TargetSelectionError(f'temporary table {self.path!r} does '
-                                       'exist.')
+                                       'not exist.')
 
         return Model
 
@@ -265,7 +272,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             with Timer() as timer:
-                self._setup_transaction()
+                self.setup_transaction()
                 self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
                                           f'{self.path} AS ' + query_sql,
                                           params)
@@ -285,6 +292,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'cadence' not in columns:
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
+        if 'priority' not in columns:
+            self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                      'ADD COLUMN priority INTEGER '
+                                      'DEFAULT NULL;')
 
         self.database.execute_sql(f'ALTER TABLE {self.path} '
                                   'ADD PRIMARY KEY (catalogid);')
@@ -298,7 +309,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Running post-process.')
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
@@ -336,8 +347,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return True
 
-    def _setup_transaction(self):
-        """Setups the transaction locally modifying the datbase parameters."""
+    def setup_transaction(self):
+        """Setups the transaction locally modifying the datbase parameters.
+
+        This method runs inside a transaction and can be overridden to set the
+        parameters of the transaction manually. It applies to both `.run` and
+        `.load`.
+
+        """
 
         if 'database_options' not in self.config:
             return
@@ -465,7 +482,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        'intermediate table.')
 
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self._create_carton_metadata()
             self._load_data(RModel)
             self._load_magnitudes(RModel)
@@ -621,7 +638,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Loading data into targetdb.carton_to_target.')
 
-        version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
+        version_pk = tdb.Version.get(plan=self.plan, tag=self.tag,
+                                     target_selection=True)
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
@@ -666,12 +684,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                .join(tdb.Cadence, 'LEFT OUTER JOIN',
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
+        if self.cadence is None:
+            select_from = select_from.select_extend(RModel.priority)
+        else:
+            select_from = select_from.select_extend(self.priority)
+
         # Now do the insert
         n_inserted = CartonToTarget.insert_from(
             select_from,
             [CartonToTarget.target_pk,
              CartonToTarget.carton_pk,
-             CartonToTarget.cadence_pk]).returning().execute()
+             CartonToTarget.cadence_pk,
+             CartonToTarget.priority]).returning().execute()
 
         log.debug(f'Inserted {n_inserted:,} rows into '
                   'targetdb.carton_to_target.')
