@@ -56,8 +56,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         The label of the cadence rule for this carton.
     category : str
         The category of targets for this carton.
-    survey : str
-        The survey associated with this carton.
+    mapper : str
+        The mapper with which this carton is associated.
     orm : str
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
     tag : str
