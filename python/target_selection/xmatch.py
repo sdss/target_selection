@@ -17,7 +17,6 @@ import warnings
 import networkx
 import numpy
 import peewee
-import pkg_resources
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, CompositeKey, Model, fn
@@ -321,8 +320,7 @@ class XMatchPlanner(object):
         The list of `.XMatchModel` classes to be cross-matched. If the model
         correspond to a non-existing table it will be silently ignored.
     plan : str
-        The cross-matching plan version. The plan is normalised to PEP 440
-        standards.
+        The cross-matching plan version.
     extra_nodes : list
         List of PeeWee models to be used as extra nodes for joins (i.e.,
         already established cross-matches between catalogues). This models
@@ -389,9 +387,6 @@ class XMatchPlanner(object):
                  output_table='catalog', log_path='./xmatch_{plan}.log',
                  debug=False, show_sql=False, sample_region=None,
                  database_options=None):
-
-        # For consistency, normalise the plan to PEP 440
-        plan = str(pkg_resources.packaging.version.Version(plan))
 
         self.log = target_selection.log
         self.log.header = ''
