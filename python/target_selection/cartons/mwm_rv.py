@@ -3,7 +3,7 @@
 #
 # @Author: Pramod Gupta (psgupta@uw.edu)
 # @Date: 2020-06-10
-# @Filename: mwm_yso.py
+# @Filename: mwm_rv.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 import peewee
 
@@ -15,6 +15,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              TIC_v8,
+                                             SDSS_APOGEE_AllStarMerge_r13,
                                              Gaia_DR2,
                                              TwoMassPSC,
                                              AllWise,
@@ -24,44 +25,90 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from target_selection.cartons import BaseCarton
 
 
-class MWM_YSO_S1_Carton(BaseCarton):
-    """2.5.1. YSOs - S1 (IR excess)
-    Shorthand name: mwm_yso_s1
-Simplified Description of selection criteria:
-selection of YSOs based on IR excess,
-with WISE colors W1-W2>0.25, W2-W3>0.5, W3-W4>1.5,
-closer than parallax>0.3, and brighter than H<13
-(should have ~21.5K sources)
-Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
-Additional source catalogs needed: Gaia, 2mass, allwise
-Additional cross-matching needed:
-Note: Using the Gaia xmatch somehow misses half the sources.
-Selection was done on the allwise catalog that had 2mass photometry,
-and then the resulting selection was crossmatched against against
-Gaia with 1" search radius.
-Return columns: Gaia id, 2mass id, allwise id, G, BP, RP,
-J, H, K, W1, W2, W3, W4,parallax
-cadence options for these targets
-(list all options,
-even though no single target will receive more than one):
-Pseudo SQL (optional):
-Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
- w2mpro-w3mpro>0.5 and w3mpro-w4mpro>1.5 and parallax>0.3
+class MWM_YSO_RV_Long_RM_Carton(BaseCarton):
+    """ 2.2.1. Long Baseline (Legacy Targets)
+
+Shorthand name: mwm_rv_long (Not an actual target class. 
+Defined as a parent sample to select from for 2.2.1.x sections below)
+
+Simplified Description of selection criteria: 
+APOGEE-1&-2 "main survey" targets with at least 3 previous epochs 
+brighter than H of 12.8 that have a Gaia parallax.
+
+Wiki page: Binaries and Substellar Companions
+
+Additional source catalogs needed: Just need sdss_apogeeallstarmerge_r13
+
+Additional cross-matching needed: (None)
+
+Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec, h, baseline, fields
+
+cadence options for these targets (list all options, 
+even though no single target will receive more than one): 
+(See entries for this in 2.2.1.x below)
+
+Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec, 
+pmra, pmdec, h, baseline, fields FROM sdss_apogeeallstarmerge_r13 
+WHERE h<12.8 AND nvisits>=3 AND dist_src == 'gaia' AND 
+[targflags contains 'APOGEE_SHORT' OR 'APOGEE_INTERMEDIATE' OR 
+'APOGEE_LONG' OR '*APOGEE2_*BIN_’] AS mwm_rv_long
+
+Implementation:
+
+Non-SQL implementation:
+
+lead contact: Nicholas Troup 
+
+Target selection final for v0?: No
+2.2.1.1. Long Baseline Targets for RM Plates
+
+Shorthand name: mwm_rv_long_rm
+
+Simplified Description of selection criteria: 
+Select from long-baseline targets (above) within 
+the 3 BHM-RM fields observable from APO 
+(sexagesimal coordinates given in Pseudo SQL below)
+
+Wiki page: Binaries and Substellar Companions
+
+Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
+
+Additional cross-matching needed: (None)
+
+Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec, h, 
+baseline, fields (Same as 2.2.1 above)
+
+cadence options for these targets (list all options, 
+even though no single target will receive more than one): 
+mwm_rv_<nn>x8 (where <nn> = number of visits to RM fields)
+
+Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec, 
+pmra, pmdec, h, baseline, fields FROM mwm_rv_long 
+WHERE [(ra,dec) < 3 degrees on sky from 
+(14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
+
+Implementation:
+
+Non-SQL implementation:
+
+lead contact: Nicholas Troup 
+
+Target selection final for v0?: No
+
     """
-    name = 'mwm_yso_s1'
+    name = 'mwm_rv_long_rm'
     category = 'science'
     cadence = None
-    program = 'program_mwm_yso_s1'
+    program = 'program_mwm_rv_long_rm'
 
-# Implementation: h_m<13 and w1mpro-w2mpro>0.25 and w2mpro-w3mpro>0.5 and
-# w3mpro-w4mpro>1.5 and parallax>0.3
+# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
         query = (Catalog
                  .select(Catalog.catalogid)
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(SDSS_APOGEE_AllStarMerge_r13)
                  .switch(TIC_v8)
                  .join(TwoMassPSC)
                  .switch(TIC_v8)
@@ -446,25 +493,6 @@ Pseudo SQL (optional):
 Implementation: Hmag<13 and (l> 358 or l< 2) and
 b between -1 and 1 and _8_0_-_24_>2.5 and
 (parallax<0.2 or parallax is null)
-
-For CMZ, the raw sql query would be:
-select ct.catalogid from mipsgal m
-join twomass_psc t on twomass_name = designation
-join tic_v8 tic on tic.twomass_psc = t.designation
-left outer join gaia_dr2_source g on g.source_id = tic.gaia_int
-join catalog_to_tic_v8 ct on ct.target_id = tic.id
-where m.hmag < 13 and
-(m.glon > 358 or m.glon < 2) and
-(m.glat > -1 and m.glat < 1) and
-(m.mag_8_0 - m.mag_24) > 2.5 and
-(g.parallax < 0.2 or g.parallax is null)
-and ct.version_id = 13 and ct.best is true;
-
-Note you only need one left outer join between TIC and Gaia
-(all MIPSGAL targets have a counterpart in 2MASS,
-and all 2MASS have an entry in TIC,
-but not all the TIC entries have a Gaia counterpart).
-
     """
     name = 'mwm_yso_cmz'
     category = 'science'
@@ -476,7 +504,7 @@ but not all the TIC entries have a Gaia counterpart).
 # (parallax<0.2 or parallax is null)
 # l is glon (galactic longitude)
 # b is glat (galactic latitude)
-# mipsgal is a subset of 2MASS
+# mipsgal is a subset of 2MASS 
 # mipsgal can be joined to twomass_psc via
 # mipsgal.twomass_name = TwoMassPSC.designation.
 # Then join via TIC and catalog_to_tic.
@@ -484,7 +512,7 @@ but not all the TIC entries have a Gaia counterpart).
 # mipsgal is a subset of 2MASS
 # 2MASS is a subset of TIC_v8
 # Gaia_DR2 is a subset of TIC_v8
-#
+# 
 # 2MASS is not a subset of Gaia_DR2
 # Gaia_DR2 is not a subset of 2MASS
 #
@@ -494,13 +522,14 @@ but not all the TIC entries have a Gaia counterpart).
 # REFERENCES twomass_psc(designation)
 
     def build_query(self, version_id, query_region=None):
-        query = (MIPSGAL.select(Catalog.catalogid)
-                 .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
-                 .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                 on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
+        query = (Catalog
+                 .select(Catalog.catalogid)
+                 .join(CatalogToTIC_v8)
+                 .join(TIC_v8)
+                 .join(TwoMassPSC)
+                 .join(MIPSGAL, on=(TwoMassPSC.designation == MIPSGAL.twomass_name))
                  .switch(TIC_v8)
-                 .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, JOIN.LEFT_OUTER)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
