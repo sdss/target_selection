@@ -136,17 +136,23 @@ and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
 # w2mpro-w3mpro>1 and
 #  w3mpro-w4mpro>1.5 and
 #  w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
+# TODO
 
     def build_query(self, version_id, query_region=None):
         query = (Catalog
                  .select(Catalog.catalogid)
-                 .join(CatalogToTIC_v8)
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
-                 .join(TwoMassPSC)
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
-                 .join(AllWise)
+                 .join(AllWise,
+                       on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
@@ -212,17 +218,22 @@ and (b>-5 or l>180) and b<-5
 # We are using the values from Gaia since
 # TIC propagates the coordinates back to epoch 2000.0
 # (b>-5 or l>180) and b<-5
-
+# S2_5 query below has the same part before where() as S2 query.
     def build_query(self, version_id, query_region=None):
         query = (Catalog
                  .select(Catalog.catalogid)
-                 .join(CatalogToTIC_v8)
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id), )
                  .switch(TIC_v8)
-                 .join(TwoMassPSC)
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
-                 .join(AllWise)
+                 .join(AllWise,
+                       on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
@@ -501,7 +512,7 @@ but not all the TIC entries have a Gaia counterpart).
                  on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
                  .switch(TIC_v8)
                  .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Catalog,on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(Catalog, on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
