@@ -501,6 +501,7 @@ but not all the TIC entries have a Gaia counterpart).
                  on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
                  .switch(TIC_v8)
                  .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Catalog,on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         Catalog.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
