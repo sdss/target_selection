@@ -135,17 +135,20 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         priority_val = peewee.Case(None,
                                    (
                                        ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
-                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+1),
+                                       ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(True)), p_f+1),
+                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+2),
                                        ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
-                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+6),
+                                       ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+6),
+                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+7),
                                    ),
                                    p_f+9) ## should never get here
 
         query = (
             c
             .select(c.catalogid,
+                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
+                    x.xmatch_method, x.xmatch_metric, x.xmatch_flags, ## debug
                     priority_val.alias('priority'),
-#                    (1510 + x.target_priority).alias('priority'),    ## catalog input priority is always == 1 for eFEDS
                     target_value,
                     (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),
                     (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('magnitude_r'),
@@ -527,3 +530,13 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 #deferred#
 #deferred#     query.select().limit(1000).count()
 #deferred#
+
+
+'''
+Exporting from the temp table
+
+\copy (SELECT * FROM sandbox.temp_bhm_spiders_agn_efeds)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_agn_efeds.csv' with csv header
+stilts tpipe in=~/scratch/targetdb/bhm_spiders_agn_efeds.csv out=~/scratch/targetdb/bhm_spiders_agn_efeds.fits ifmt=csv ofmt=fits-basic
+
+
+'''

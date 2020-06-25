@@ -108,6 +108,18 @@
             fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
             mag_i_min: 19.1
             mag_i_max: 21.0
+        bhm_aqmes_wide2:
+            priority: 1210
+            value: 100.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+        bhm_aqmes_wide2_faint:
+            priority: 3210
+            value: 1.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 19.1
+            mag_i_max: 21.0
         bhm_aqmes_bonus_dark:
             priority: 3300
             value: 0.1

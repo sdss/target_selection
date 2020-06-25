@@ -127,6 +127,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
+                    t.plate, t.mjd, t.fiberid, t.ra.alias("dr14q_ra"), t.dec.alias("dr14q_dec"), ## debug
                     target_priority,
                     target_value,
                     pmra,
@@ -278,5 +279,16 @@ for r in q.limit(5).namedtuples():
 
 '''
 
+
+'''
+Exporting from the temp table
+
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_med)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med.csv' with csv header
+stilts tpipe in=~/scratch/targetdb/bhm_aqmes_med.csv out=~/scratch/targetdb/bhm_aqmes_med.fits ifmt=csv ofmt=fits-basic
+
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_med_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med_faint.csv' with csv header
+stilts tpipe in=~/scratch/targetdb/bhm_aqmes_med_faint.csv out=~/scratch/targetdb/bhm_aqmes_med_faint.fits ifmt=csv ofmt=fits-basic
+
+'''
 
 ###################################################################################

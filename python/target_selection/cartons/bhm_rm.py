@@ -84,19 +84,22 @@ class BhmRmBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
+                    t.pk.alias("rm_pk"), t.ra.alias("rm_ra"), t.dec.alias("rm_dec"), t.field_name.alias("rm_field"), ## debug
                     target_priority,
                     target_value,
                     pmra,
                     pmdec,
-                    t.psfmag_sdss[1].alias('magnitude_g'),
-                    t.psfmag_sdss[2].alias('magnitude_r'),   ## will not be available for targets outside SDSS
-                    t.psfmag_sdss[3].alias('magnitude_i'),   ## ditto
-                    t.psfmag_sdss[4].alias('magnitude_z'),   ## ditto
+                    t.mg.alias('magnitude_g'),
+                    t.mi.alias('magnitude_i')
+#                    t.psfmag_sdss[1].alias('magnitude_g'),   ## will not be available for targets outside SDSS
+#                    t.psfmag_sdss[2].alias('magnitude_r'),   ## will not be available for targets outside SDSS
+#                    t.psfmag_sdss[3].alias('magnitude_i'),   ## ditto
+#                    t.psfmag_sdss[4].alias('magnitude_z'),   ## ditto
             )
             .join(c2t)
             .join(t)
             .where(c.version_id == version_id,
-                   c2t.version_id == version_id)
+                   c2t.version_id == version_id,
                    c2t.best == True)
             .where
             (
@@ -200,7 +203,7 @@ class BhmRmVarCarton(BhmRmBaseCarton):
                     (t.ps1_var_rms[0] > self.parameters['ps1_var_rms_min'])
                 )
             ) &
-            (t.gaia == 1) &
+            (t.source_id_gaia > 0 ) &
             (t.pmsig < self.parameters['pmsig_max']) &
             (t.plxsig < self.parameters['plxsig_max'])
         )
@@ -287,6 +290,26 @@ for r in q.limit(5).namedtuples():
 '''
 
 
+'''
+target_selection  --profile tunnel_operations --verbose run --include bhm_rm_core,bhm_rm_var,bhm_rm_ancillary,bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
+
+# Exporting from the temp table
+# in psql terminal:
+
+\copy (SELECT * FROM sandbox.temp_bhm_rm_var)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_var.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_rm_core)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_core.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_rm_ancillary)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_ancillary.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_rm_known_spec)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_known_spec.csv' with csv header
+
+
+head -n 1 bhm_rm_core.csv  > bhm_rm.csv
+tail -q -n +2 bhm_rm_*.csv  >> bhm_rm.csv
+stilts tpipe in=bhm_rm.csv out=bhm_rm.fits ifmt=csv ofmt=fits-basic
+ftcopy "bhm_rm.fits[1][col *,bhm_rm_core(L)=priority==1002?1:0,bhm_rm_known_spec(L)=priority==1001?1:0,bhm_rm_var(L)=priority==1003?1:0,bhm_rm_ancillary(L)=priority==1004?1:0]" bhm_rm.fits clobber=yes mode=q
+ftsort bhm_rm.fits bhm_rm_unique.fits catalogid method=heap unique=yes clobber=yes mode=q
+
+
+'''
 
 #######################################################################
 #######################################################################
