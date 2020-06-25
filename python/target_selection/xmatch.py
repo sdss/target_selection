@@ -416,8 +416,8 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.plan = plan
-        self.log.info(f'plan = {self.plan!r}; '
-                      f'tag = {target_selection.__version__!r}.')
+        self.tag = target_selection.__version__
+        self.log.info(f'plan = {self.plan!r}; tag = {self.tag!r}.')
 
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
@@ -905,7 +905,7 @@ class XMatchPlanner(object):
             self.log.info(f'Created table {Version._meta.table_name}.')
 
         version, vcreated = Version.get_or_create(plan=self.plan,
-                                                  tag=target_selection.__version__)
+                                                  tag=self.tag)
 
         self._version_id = version.id
 
@@ -914,8 +914,7 @@ class XMatchPlanner(object):
         else:
             vmsg = 'Using version record '
 
-        self.log.info(vmsg + f'({self._version_id}, {self.plan}, '
-                             f'{target_selection.__version__}).')
+        self.log.info(vmsg + f'({self._version_id}, {self.plan}, {self.tag}).')
 
         # Make sure the output table exists.
         if not Catalog.table_exists():
