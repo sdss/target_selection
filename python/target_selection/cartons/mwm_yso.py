@@ -139,20 +139,6 @@ and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
 # TODO
 
     def build_query(self, version_id, query_region=None):
-#        query = (Catalog
-#                 .select(Catalog.catalogid)
-#                 .join(CatalogToTIC_v8,
-#                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-#                 .join(TIC_v8,
-#                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-#                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-#                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-#                 .switch(TIC_v8)
-#                 .join(TwoMassPSC,
-#                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-#                 .switch(TIC_v8)
-#                 .join(AllWise,
-#                       on=(TIC_v8.allwise == AllWise.designation))
         query = (AllWise
                  .select(Catalog.catalogid)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
@@ -233,21 +219,6 @@ and (b>-5 or l>180) and b<-5
 # (b>-5 or l>180) and b<-5
 # S2_5 query below has the same part before where() as S2 query.
     def build_query(self, version_id, query_region=None):
-#        query = (
-#        Catalog
-#                  .select(Catalog.catalogid)
-#                  .join(CatalogToTIC_v8,
-#                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-#                  .join(TIC_v8,
-#                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-#                  .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-#                        on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-#                  .switch(TIC_v8)
-#                  .join(TwoMassPSC,
-#                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-#                  .switch(TIC_v8)
-#                  .join(AllWise,
-#                        on=(TIC_v8.allwise == AllWise.designation))
         query = (AllWise
                  .select(Catalog.catalogid)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
