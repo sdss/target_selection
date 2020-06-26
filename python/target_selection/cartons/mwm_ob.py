@@ -9,11 +9,11 @@
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2_RUWE,
+                                             GAIA_ASSAS_SN_Cepheids,
+                                             Gaia_DR2, Gaia_DR2_RUWE,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8)
 
-from ..exceptions import TargetSelectionNotImplemented
 from . import BaseCarton
 
 
@@ -58,6 +58,7 @@ class MWM_OB_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
+    program = 'OB'
 
     def build_query(self, version_id, query_region=None):
 
@@ -192,6 +193,7 @@ class MWM_OB_MC_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
+    program = 'OB'
 
     def build_query(self, version_id, query_region=None):
 
@@ -245,11 +247,26 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     """
 
     name = 'mwm_ob_cepheids'
-    survey = 'MWM'
+    mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
+    program = 'OB'
 
     def build_query(self, version_id, query_region=None):
 
-        raise TargetSelectionNotImplemented('mwm_ob_cepheids not '
-                                            'implemented in v0.')
+        query = (GAIA_ASSAS_SN_Cepheids
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.source_id)
+                 .join(Gaia_DR2)
+                 .join(TIC_v8)
+                 .join(CatalogToTIC_v8)
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True))
+
+        if query_region:
+            query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                    query_region[0],
+                                                    query_region[1],
+                                                    query_region[2]))
+
+        return query
