@@ -1000,7 +1000,9 @@ class XMatchPlanner(object):
         # manually and make sure there cannot be collisions.
         temp_tables = [table for table in self.database.get_tables(self.schema)
                        if table.startswith(self.output_table + '_') and
+                       not table.startswith(self.output_table + '_to_') and
                        table != self._temp_table]
+
         if len(temp_tables) > 0 and not start_catalogid:
             raise XMatchError('Another cross-matching plan is currently running.')
 
