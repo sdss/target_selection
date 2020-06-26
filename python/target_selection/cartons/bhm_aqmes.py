@@ -239,7 +239,7 @@ class BhmAqmesBonusBrightCarton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 14.0 AND 18.0
     '''
     name = 'bhm_aqmes_bonus_bright'
-    cadence = 'csc_bright_apogee_3x1'   # could add a new cadence name for this
+    cadence = 'bhm_boss_bright_3x1'   # could add a new cadence name for this
 
 #-------AQMES bonus ------ #
 
@@ -284,10 +284,16 @@ for r in q.limit(5).namedtuples():
 Exporting from the temp table
 
 \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med.csv' with csv header
-stilts tpipe in=~/scratch/targetdb/bhm_aqmes_med.csv out=~/scratch/targetdb/bhm_aqmes_med.fits ifmt=csv ofmt=fits-basic
-
 \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med_faint.csv' with csv header
-stilts tpipe in=~/scratch/targetdb/bhm_aqmes_med_faint.csv out=~/scratch/targetdb/bhm_aqmes_med_faint.fits ifmt=csv ofmt=fits-basic
+
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide2.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide3.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide2_faint.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide3_faint.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_bright)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_bonus_bright.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_dark)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_bonus_dark.csv' with csv header
+
+for F in bhm_aqmes_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
 
 '''
 

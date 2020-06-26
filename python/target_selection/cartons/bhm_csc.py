@@ -57,6 +57,7 @@ class BhmCscBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
+                    c.ra, c.dec, t.cxo_name, t.oir_ra.alias("csc_oir_ra"), t.oir_dec.alias("csc_oir_dec"), ## debug
                     target_priority,
                     target_value,
                     t.mag_g.alias('magnitude_g'),
@@ -140,3 +141,14 @@ class BhmCscApogeeCarton(BhmCscBaseCarton):
             (t.spectrograph == self.instrument)
         )
         return query
+
+'''
+Exporting from the temp table
+
+\copy (SELECT * FROM sandbox.temp_bhm_csc_boss_dark)  TO '/home/tdwelly/scratch/targetdb/bhm_csc_boss_dark.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_csc_boss_bright)  TO '/home/tdwelly/scratch/targetdb/bhm_csc_boss_bright.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_csc_apogee)  TO '/home/tdwelly/scratch/targetdb/bhm_csc_apogee.csv' with csv header
+
+for F in bhm_csc_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
+m
+'''

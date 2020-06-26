@@ -128,6 +128,9 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
             AND WHERE mi BETWEEN 15.0 AND 21.5
             AND WHERE pmsig < 5.0
             AND WHERE plxsig < 5.0
+
+
+    also require t.skewt_qso_prior == 1 in CVZ-S
     '''
 
     name = 'bhm_rm_core'
@@ -137,6 +140,10 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
         t = self.alias_t
         query = query.where(
             (t.skewt_qso == 1) &
+            (
+                ~(t.field_name.contains('S-CVZ')) |
+                ((t.field_name.contains('S-CVZ')) & (t.skewt_qso_prior == 1))
+            ) &
             (t.pmsig <  self.parameters['pmsig_max']) &
             (t.plxsig <  self.parameters['plxsig_max'])
         )
@@ -205,7 +212,9 @@ class BhmRmVarCarton(BhmRmBaseCarton):
             ) &
             (t.source_id_gaia > 0 ) &
             (t.pmsig < self.parameters['pmsig_max']) &
-            (t.plxsig < self.parameters['plxsig_max'])
+            (t.plxsig < self.parameters['plxsig_max']) &
+            (t.pmsig >= 0.0) &  # this catches cases with NULL=-9
+            (t.plxsig >= 0.0)
         )
             #& (t.mg <  self.parameters['g_mag_max'])  # TBD
 
@@ -296,11 +305,12 @@ target_selection  --profile tunnel_operations --verbose run --include bhm_rm_cor
 # Exporting from the temp table
 # in psql terminal:
 
-\copy (SELECT * FROM sandbox.temp_bhm_rm_var)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_var.csv' with csv header
 \copy (SELECT * FROM sandbox.temp_bhm_rm_core)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_core.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_rm_ancillary)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_ancillary.csv' with csv header
 \copy (SELECT * FROM sandbox.temp_bhm_rm_known_spec)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_known_spec.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_rm_var)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_var.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_rm_ancillary)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_ancillary.csv' with csv header
 
+for F in bhm_rm_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
 
 head -n 1 bhm_rm_core.csv  > bhm_rm.csv
 tail -q -n +2 bhm_rm_*.csv  >> bhm_rm.csv
@@ -308,6 +318,7 @@ stilts tpipe in=bhm_rm.csv out=bhm_rm.fits ifmt=csv ofmt=fits-basic
 ftcopy "bhm_rm.fits[1][col *,bhm_rm_core(L)=priority==1002?1:0,bhm_rm_known_spec(L)=priority==1001?1:0,bhm_rm_var(L)=priority==1003?1:0,bhm_rm_ancillary(L)=priority==1004?1:0]" bhm_rm.fits clobber=yes mode=q
 ftsort bhm_rm.fits bhm_rm_unique.fits catalogid method=heap unique=yes clobber=yes mode=q
 
+tar -cvzf bhm_core_cartons.tar.gz bhm_rm*.fits bhm_aqmes_*fits bhm_spiders_*fits bhm_csc_*fits
 
 '''
 

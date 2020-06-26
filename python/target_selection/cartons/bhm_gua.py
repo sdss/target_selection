@@ -85,10 +85,16 @@ class BhmGuaBaseCarton(BaseCarton):
 
         query = (
             c.select(c.catalogid,
+                     t.ra, t.dec, t.gaia_sourceid, ## debug
                      target_priority,
                      pmra,
                      pmdec,
                      target_value,
+                     t.g.alias('magnitude_g'),
+                     t.bp.alias('magnitude_bp'), ## debug
+                     t.rp.alias('magnitude_rp'), ## debug
+                     t.w1.alias('magnitude_w1'), ## debug
+                     t.w2.alias('magnitude_w2'), ## debug
             )
             .join(c2tic)
             .join(tic)
@@ -150,3 +156,13 @@ class BhmGuaBrightCarton(BhmGuaBaseCarton):
     '''
     name = 'bhm_gaia_unwise_agn_bright'
     cadence = 'bhm_boss_bright_3x1'
+
+'''
+Exporting from the temp table
+
+\copy (SELECT * FROM sandbox.temp_bhm_gaia_unwise_agn_dark)  TO '/home/tdwelly/scratch/targetdb/bhm_gaia_unwise_agn_dark.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_gaia_unwise_agn_bright)  TO '/home/tdwelly/scratch/targetdb/bhm_gaia_unwise_agn_bright.csv' with csv header
+
+for F in bhm_gaia_unwise_agn_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
+m
+'''

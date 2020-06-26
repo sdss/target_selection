@@ -110,10 +110,9 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    c.ra,
-                    c.dec,
+                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
+                    x.xmatch_flags, #debug
                     priority_val.alias('priority'),
-#                    (p_f + x.target_priority).alias('priority'),
                     target_value,
                     (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),
                     (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('magnitude_r'),
@@ -219,3 +218,20 @@ class BhmSpidersClusEfedsErositaCarton(BhmSpidersClusEfedsCarton):
                 2**5 + 2**11 +
                 2**1 + 2**3 + 2**8 + 2**15)
     mask_sense = False
+
+
+
+
+
+'''
+Exporting from the temp table
+
+\copy (SELECT * FROM sandbox.temp_bhm_spiders_clusters_efeds_sdss_redmapper)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_clusters_efeds_sdss_redmapper.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_spiders_clusters_efeds_hsc_redmapper)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_clusters_efeds_hsc_redmapper.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_spiders_clusters_efeds_ls_redmapper)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_clusters_efeds_ls_redmapper.csv' with csv header
+\copy (SELECT * FROM sandbox.temp_bhm_spiders_clusters_efeds_erosita)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_clusters_efeds_erosita.csv' with csv header
+
+
+for F in bhm_spiders_clusters_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
+
+'''
