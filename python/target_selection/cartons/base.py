@@ -454,19 +454,25 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return carton_table
 
-    def load(self):
+    def load(self, overwrite=False):
         """Loads the output of the intermediate table into targetdb."""
 
         if self.check_targets():
-            raise TargetSelectionError(f'Found existing targets for carton '
-                                       f'{self.name!r} with plan '
-                                       f'{self.plan!r}.')
-
-        if not self.has_run:
-            raise TargetSelectionError('The query needs to be run before '
-                                       'calling load().')
+            if overwrite:
+                warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
+                              f'and tag {self.tag!r} already has targets '
+                              'loaded. Dropping them.')
+                self.drop_carton()
+            else:
+                raise TargetSelectionError(f'Found existing targets for '
+                                           f'carton {self.name!r} with plan '
+                                           f'{self.plan!r} and tag '
+                                           f'{self.tag!r}.')
 
         RModel = self.get_model()
+        if not RModel.table_exists():
+            raise TargetSelectionError(f'No temporary table found '
+                                       f'{self.full}. Did you call run()?')
 
         has_targets = (RModel.select()
                        .where(RModel.selected >> True)
@@ -479,7 +485,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         with self.database.atomic():
             self.setup_transaction()
             self._create_carton_metadata()
-            self._load_data(RModel)
+            self._load_targets(RModel)
             self._load_magnitudes(RModel)
             self._load_carton_to_target(RModel)
 
@@ -509,7 +515,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                         tag=self.tag,
                                                         target_selection=True)
         if created:
-            log.info(f'Created record in targetdb.version for {self.plan!r}.')
+            log.info(f'Created record in targetdb.version for '
+                     f'{self.plan!r} with tag {self.tag!r}.')
 
         if (tdb.Carton.select()
                       .where(tdb.Carton.carton == self.name,
@@ -534,7 +541,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                           version_pk=version_pk)
         log.debug(f'Created carton {self.name!r}')
 
-    def _load_data(self, RModel):
+    def _load_targets(self, RModel):
         """Load data from the intermediate table tp targetdb.target."""
 
         log.debug('loading data into targetdb.target.')
@@ -559,7 +566,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
              tdb.Target.pmdec,
              tdb.Target.parallax]).returning().execute()
 
-        log.info(f'Inserted {n_inserted:,} rows into targetdb.target.')
+        log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
 
         return
 
@@ -626,7 +633,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                       .insert_from(select_from, fields)
                       .returning().execute())
 
-        log.debug(f'Inserted {n_inserted:,} rows into targetdb.magnitude.')
+        log.info(f'Inserted {n_inserted:,} new rows into targetdb.magnitude.')
 
     def _load_carton_to_target(self, RModel):
         """Populate targetdb.carton_to_target."""
@@ -692,5 +699,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
              CartonToTarget.cadence_pk,
              CartonToTarget.priority]).returning().execute()
 
-        log.debug(f'Inserted {n_inserted:,} rows into '
-                  'targetdb.carton_to_target.')
+        log.info(f'Inserted {n_inserted:,} rows '
+                 'into targetdb.carton_to_target.')
+
+    def drop_carton(self):
+        """Drops the entry in ``targetdb.carton``."""
+
+        version = (tdb.Version
+                   .select()
+                   .where(tdb.Version.plan == self.plan,
+                          tdb.Version.tag == self.tag,
+                          tdb.Version.target_selection >> True))
+
+        if version.count() == 0:
+            return
+
+        tdb.Carton.delete().where(tdb.Carton.carton == self.name,
+                                  tdb.Carton.version == version).execute()
