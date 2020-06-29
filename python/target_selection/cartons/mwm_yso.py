@@ -52,6 +52,7 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_s1'
+    mapper = 'MWM'
 
 # Implementation: h_m<13 and w1mpro-w2mpro>0.25 and w2mpro-w3mpro>0.5 and
 # w3mpro-w4mpro>1.5 and parallax>0.3
@@ -126,6 +127,7 @@ and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_s2'
+    mapper = 'MWM'
 
 # Implementation: h_m<13 and
 # (phot_g_mean_mag>18.5 or phot_g_mean_mag is null) and
@@ -197,6 +199,7 @@ and (b>-5 or l>180) and b<-5
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_s2_5'
+    mapper = 'MWM'
 
 # Implementation: h_m<13 and (w2mpro-w3mpro>4 and w4mpro is null) or
 # (w3mpro is null and w4mpro is null and j_m-h_m>1.1) and
@@ -289,6 +292,7 @@ sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_3'
+    mapper = 'MWM'
 
 # Implementation:
 # phot_g_mean_mag < 18.5 and h_m <13 and
@@ -391,6 +395,7 @@ phot_g_mean_mag-5*(log10(1000/parallax)-1) <
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_ob'
+    mapper = 'MWM'
 
 # Implementation: h_m<13 and bp_rp between -0.2 and 1.1 and
 # phot_g_mean_mag<18 and
@@ -468,6 +473,7 @@ but not all the TIC entries have a Gaia counterpart).
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_cmz'
+    mapper = 'MWM'
 
 # Implementation:  Hmag<13 and (l> 358 or l< 2) and
 # b between -1 and 1 and _8_0_-_24_>2.5 and
@@ -543,6 +549,7 @@ Implementation: age<7.5 and h<13
     category = 'science'
     cadence = None
     program = 'program_mwm_yso_cluster'
+    mapper = 'MWM'
 
 # Implementation:  age<7.5 and h<13
 # yso_clustering is a subset of gaia and
