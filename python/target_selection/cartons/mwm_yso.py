@@ -59,12 +59,12 @@ Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
     def build_query(self, version_id, query_region=None):
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
-                 .join(TwoMassPSC)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
-                 .join(AllWise)
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
@@ -312,10 +312,10 @@ sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
     def build_query(self, version_id, query_region=None):
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8)
-                 .join(TwoMassPSC)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         Gaia_DR2.phot_g_mean_mag < 18.5,
@@ -400,10 +400,10 @@ phot_g_mean_mag-5*(log10(1000/parallax)-1) <
     def build_query(self, version_id, query_region=None):
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8)
-                 .join(TwoMassPSC)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
-                 .join(Gaia_DR2)
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 13,
@@ -556,9 +556,10 @@ Implementation: age<7.5 and h<13
     def build_query(self, version_id, query_region=None):
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
-                 .join(YSO_Clustering)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(YSO_Clustering,
+                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         YSO_Clustering.h < 13,
