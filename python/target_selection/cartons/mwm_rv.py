@@ -127,6 +127,7 @@ sdss5db=# select trim( leading '2M' from apogee_id) from
     category = 'science'
     cadence = None
     program = 'program_mwm_rv_long_rm'
+    mapper = 'MWM'
 
 # peewee Model name ---> postgres table name
 # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
