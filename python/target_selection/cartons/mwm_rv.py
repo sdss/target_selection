@@ -115,13 +115,31 @@ sdss5db=# select apogee_id from  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
  2M14033676-1554164
 (2 rows)
 
-sdss5db=# select trim( leading '2M' from apogee_id) from
+sdss5db=# select ltrim(apogee_id,'2M') from
  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
       ltrim
 ------------------
  14044120-1550575
  14033676-1554164
 (2 rows)
+
+
+sdss5db=# select count(1) from
+ catalogdb.sdss_apogeeallstarmerge_r13 where dist_src='gaia';
+ count 
+-------
+     0
+(1 row)
+
+Hence use trim(dist_src) like below:
+
+sdss5db=# select count(1) from
+ catalogdb.sdss_apogeeallstarmerge_r13 where trim(dist_src)='gaia';
+ count  
+--------
+ 487508
+(1 row)
+
 
     """
     name = 'mwm_rv_long_rm'
@@ -159,12 +177,12 @@ sdss5db=# select trim( leading '2M' from apogee_id) from
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits > 3,
-                        SDSS_APOGEE_AllStarMerge_r13.dist_src == 'gaia',
+                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
+                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%')))#,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
