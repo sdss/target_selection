@@ -22,7 +22,7 @@ from target_selection.cartons import BaseCarton
 from astropy.coordinates import Angle
 
 
-class MWM_YSO_RV_Long_RM_Carton(BaseCarton):
+class MWM_RV_Long_RM_Carton(BaseCarton):
     """ 2.2.1. Long Baseline (Legacy Targets)
 
 Shorthand name: mwm_rv_long (Not an actual target class.
