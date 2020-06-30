@@ -19,6 +19,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              TwoMassPSC)
 # from . import BaseCarton
 from target_selection.cartons import BaseCarton
+from astropy.coordinates import Angle
 
 
 class MWM_YSO_RV_Long_RM_Carton(BaseCarton):
@@ -133,6 +134,18 @@ sdss5db=# select trim( leading '2M' from apogee_id) from
 # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
+        # WHERE [(ra,dec) < 3 degrees on sky from
+        # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
+
+        a_ra = Angle('14h14m49s').degree
+        a_dec = Angle('53d05m00s').degree
+
+        b_ra = Angle('10h00m00s').degree
+        b_dec = Angle('02d12m00s').degree
+
+        c_ra = Angle('02h23m30s').degree
+        c_dec = Angle('-04d15m00s').degree
+
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8,
@@ -151,7 +164,14 @@ sdss5db=# select trim( leading '2M' from apogee_id) from
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%')))
+                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
         if query_region:
             query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                            Catalog.dec,
