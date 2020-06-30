@@ -126,7 +126,7 @@ sdss5db=# select ltrim(apogee_id,'2M') from
 
 sdss5db=# select count(1) from
  catalogdb.sdss_apogeeallstarmerge_r13 where dist_src='gaia';
- count 
+ count
 -------
      0
 (1 row)
@@ -135,7 +135,7 @@ Hence use trim(dist_src) like below:
 
 sdss5db=# select count(1) from
  catalogdb.sdss_apogeeallstarmerge_r13 where trim(dist_src)='gaia';
- count  
+ count
 --------
  487508
 (1 row)
@@ -182,7 +182,7 @@ sdss5db=# select count(1) from
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
                         (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%')))#,
+                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
