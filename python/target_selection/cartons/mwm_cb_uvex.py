@@ -724,10 +724,10 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        gmr = Gaia_DR2.phot_g_mean_mag - Gaia_DR2.phot_rp_mean_mag
-        GMS = (0.00206868742 * fn.pow(gmr, 6) + 0.0401594518 * fn.pow(gmr, 5) -
-               0.842512410 * fn.pow(gmr, 4) + 4.89384979 * fn.pow(gmr, 3) -
-               12.3826637 * fn.pow(gmr, 2) + 17.0197205 * gmr - 3.19987835)
+        bmr = Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag
+        GMS = (0.00206868742 * fn.pow(bmr, 6) + 0.0401594518 * fn.pow(bmr, 5) -
+               0.842512410 * fn.pow(bmr, 4) + 4.89384979 * fn.pow(bmr, 3) -
+               12.3826637 * fn.pow(bmr, 2) + 17.0197205 * bmr - 3.19987835)
 
         colour_cuts = (TwoMassPSC.h_m < 15,
                        fn.abs(GMS - absg) <= 0.5,
