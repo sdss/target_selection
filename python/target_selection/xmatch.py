@@ -416,8 +416,8 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.plan = plan
-        self.log.info(f'plan = {self.plan!r}; '
-                      f'tag = {target_selection.__version__!r}.')
+        self.tag = target_selection.__version__
+        self.log.info(f'plan = {self.plan!r}; tag = {self.tag!r}.')
 
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
@@ -905,7 +905,7 @@ class XMatchPlanner(object):
             self.log.info(f'Created table {Version._meta.table_name}.')
 
         version, vcreated = Version.get_or_create(plan=self.plan,
-                                                  tag=target_selection.__version__)
+                                                  tag=self.tag)
 
         self._version_id = version.id
 
@@ -914,8 +914,7 @@ class XMatchPlanner(object):
         else:
             vmsg = 'Using version record '
 
-        self.log.info(vmsg + f'({self._version_id}, {self.plan}, '
-                             f'{target_selection.__version__}).')
+        self.log.info(vmsg + f'({self._version_id}, {self.plan}, {self.tag}).')
 
         # Make sure the output table exists.
         if not Catalog.table_exists():
@@ -963,7 +962,7 @@ class XMatchPlanner(object):
             self._temp_count = 0
 
     def run(self, vacuum=False, analyze=False, from_=None,
-            force=False, keep_temp=False):
+            force=False, keep_temp=False, start_catalogid=None):
         """Runs the cross-matching process.
 
         Parameters
@@ -992,9 +991,23 @@ class XMatchPlanner(object):
             vacuum_outputs(self.database, vacuum=vacuum, analyze=analyze,
                            schema=Catalog._meta.schema,
                            table=Catalog._meta.table_name)
+            if TempCatalog.table_exists():
+                vacuum_table(self.database, f'{self.schema}.{self._temp_table}')
+
+        # Checks if there are multiple cross-matching plans running at the same
+        # time. This is problematic because there can be catalogid collisions.
+        # This should only be allowed if we define the starting catalogid
+        # manually and make sure there cannot be collisions.
+        temp_tables = [table for table in self.database.get_tables(self.schema)
+                       if table.startswith(self.output_table + '_') and
+                       not table.startswith(self.output_table + '_to_') and
+                       table != self._temp_table]
+
+        if len(temp_tables) > 0 and not start_catalogid:
+            raise XMatchError('Another cross-matching plan is currently running.')
 
         self._create_models(force or (from_ is not None))
-        self._max_cid = None
+        self._max_cid = start_catalogid
 
         with Timer() as timer:
             p_order = self.process_order
@@ -1124,7 +1137,7 @@ class XMatchPlanner(object):
             target_id = model_pk_class(null=False, index=True)
             version_id = peewee.SmallIntegerField(null=False)
             distance = peewee.DoubleField(null=True)
-            best = peewee.BooleanField(null=False)
+            best = peewee.BooleanField(null=False, index=True)
 
             class Meta:
                 database = meta.database
@@ -1221,20 +1234,30 @@ class XMatchPlanner(object):
             # a sequential scan.
             join_rel_model = join_models[-1]
 
+            # We can have join catalogues that produce more than
+            # one result for each target or different targets that
+            # are joined to the same catalogid. In the future we may
+            # want to order by something that selects the best
+            # candidate.
+
+            partition = (fn.first_value(model_pk)
+                         .over(partition_by=[join_rel_model.catalogid],
+                               order_by=[model_pk.asc()]))
+            best = peewee.Value(partition == model_pk)
+
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
-                             join_rel_model.catalogid)
+                             join_rel_model.catalogid,
+                             best.alias('best'))
                      .where(join_rel_model.version_id == self._version_id,
                             join_rel_model.best >> True)
                      .where(~fn.EXISTS(
                          rel_model
                          .select(SQL('1'))
                          .where(rel_model.version_id == self._version_id,
-                                rel_model.target_id == model_pk)))
-                     # We can have join catalogues that produce more than
-                     # one result for each target. In the future we may
-                     # want to order by something that selects the best
-                     # candidate.
+                                ((rel_model.target_id == model_pk) |
+                                 (rel_model.catalogid == join_rel_model.catalogid)))))
+                     # In case we have duplicates in the catalogue.
                      .distinct(model_pk))
 
             # In query we do not include a Q3C where for the sample region
@@ -1266,12 +1289,13 @@ class XMatchPlanner(object):
                         temp_model.select(temp_model.target_id,
                                           temp_model.catalogid,
                                           peewee.Value(self._version_id),
-                                          peewee.SQL('true')),
+                                          temp_model.best),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
+            self._analyze(rel_model)
 
-            self._phases_run.add(1)
+        self._phases_run.add(1)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1389,7 +1413,7 @@ class XMatchPlanner(object):
             xmatched = xmatched.where(model_ra.is_null(False),
                                       model_dec.is_null(False))
 
-        xmatched = xmatched.cte('xmatched')
+        xmatched = xmatched.cte('xmatched', materialized=True)
 
         # We'll partition over each group of targets that match the same
         # catalogid and mark the one with the smallest distance to it as best.
@@ -1418,10 +1442,13 @@ class XMatchPlanner(object):
                             .where(~fn.EXISTS(
                                 rel_model
                                 .select(SQL('1'))
-                                .where(((rel_model.version_id == self._version_id) &
-                                        (rel_model.catalogid == xmatched.c.catalogid)) |
-                                       ((rel_model.version_id == self._version_id) &
-                                        (rel_model.target_id == xmatched.c.target_id))))))
+                                .where((rel_model.version_id == self._version_id) &
+                                       (rel_model.catalogid == xmatched.c.catalogid))))
+                            .where(~fn.EXISTS(
+                                rel_model
+                                .select(SQL('1'))
+                                .where((rel_model.version_id == self._version_id) &
+                                       (rel_model.target_id == xmatched.c.target_id)))))
 
         with Timer() as timer:
 
@@ -1453,7 +1480,8 @@ class XMatchPlanner(object):
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
-        self._phases_run.add(1)
+        self._phases_run.add(2)
+        self._analyze(rel_model)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
@@ -1597,6 +1625,7 @@ class XMatchPlanner(object):
                        f'Total time: {timer.elapsed:.3f} s.')
 
         self._phases_run.add(3)
+        self._analyze(rel_model, catalog=True)
 
     def _load_output_table(self, keep_temp=False):
         """Copies the temporary table to the real output table."""
@@ -1643,14 +1672,16 @@ class XMatchPlanner(object):
     def _setup_transaction(self, model=None, phase=None):
         """Sets database parameters for the transaction."""
 
-        options = self._options['database_options'].copy()
-        if model:
-            options.update(model._meta.xmatch.database_options)
-
-        if not options:
+        if not self._options['database_options']:
             return
 
+        options = self._options['database_options'].copy()
+        if model and model._meta.xmatch.database_options:
+            options.update(model._meta.xmatch.database_options)
+
         for param in options:
+            if param == 'maintenance_work_mem':
+                continue
             param_config = options[param]
             if isinstance(param_config, dict):
                 value = param_config.get('value')
@@ -1709,6 +1740,12 @@ class XMatchPlanner(object):
         """Analyses a relational model after insertion."""
 
         table_name = rel_model._meta.table_name
+
+        db_opts = self._options['database_options']
+        if db_opts:
+            work_mem = db_opts.get('maintenance_work_mem', None)
+            if work_mem:
+                self.database.execute_sql(f'SET maintenance_work_mem = {work_mem!r}')
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{self.schema}.{table_name}',

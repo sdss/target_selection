@@ -14,7 +14,9 @@ config = get_config('target_selection',
 log = get_logger(NAME)
 
 
-__version__ = get_package_version(path=__file__, package_name=NAME)
+__version__ = get_package_version(path=__file__,
+                                  package_name=NAME,
+                                  pep_440=True)
 
 
 from .xmatch import XMatchPlanner, XMatchModel  # isort:skip
