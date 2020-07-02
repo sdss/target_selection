@@ -10,7 +10,8 @@
 import peewee
 import sdssdb
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0, CatalogToBHM_RM_v0)
+#from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0, CatalogToBHM_RM_v0)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0_2, CatalogToBHM_RM_v0)
 
 from target_selection.cartons.base import BaseCarton
 
@@ -71,7 +72,8 @@ class BhmRmBaseCarton(BaseCarton):
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
-        t = BHM_RM_v0.alias()
+        #t = BHM_RM_v0.alias()
+        t = BHM_RM_v0_2.alias()
         self.alias_c = c
         self.alias_t = t
 
@@ -97,7 +99,7 @@ class BhmRmBaseCarton(BaseCarton):
 #                    t.psfmag_sdss[4].alias('magnitude_z'),   ## ditto
             )
             .join(c2t)
-            .join(t)
+            .join(t, on=(c2t.target_id == t.pk))  # needed because using c2t for Catalog_to_BHM_RM_v0
             .where(c.version_id == version_id,
                    c2t.version_id == version_id,
                    c2t.best == True)
@@ -170,6 +172,7 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
         query = query.where(
+            (t.spec_q == 1 ) &
             (t.specz >= self.parameters['specz_min']) &
             (t.specz <= self.parameters['specz_max'])
         )
@@ -300,7 +303,12 @@ for r in q.limit(5).namedtuples():
 
 
 '''
+target_selection  --profile tunnel_operations --verbose run --include bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
+
 target_selection  --profile tunnel_operations --verbose run --include bhm_rm_core,bhm_rm_var,bhm_rm_ancillary,bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
+
+# to get a psql prompt:
+#> psql -d sdss5db -U sdss_user -h localhost -p 7502
 
 # Exporting from the temp table
 # in psql terminal:
