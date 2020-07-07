@@ -20,8 +20,6 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-
-
 class MWM_YSO_S1_Carton(BaseCarton):
     """2.5.1. YSOs - S1 (IR excess)
     Shorthand name: mwm_yso_s1
