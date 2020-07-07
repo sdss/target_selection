@@ -1,6 +1,6 @@
 
-'0.1.0-beta.1':
-    xmatch_plan: 0.1.0-beta.1
+'0.1.0':
+    xmatch_plan: 0.1.0
     cartons:
         - guide
         - mwm_tess_rgb
