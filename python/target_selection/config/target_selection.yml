@@ -3,6 +3,8 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_100pc
+        - mwm_250pc
         - mwm_cb_300pc
         - mwm_cb_gaiagalex
         - mwm_cb_cvcandidates
