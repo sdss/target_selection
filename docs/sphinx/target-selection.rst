@@ -144,6 +144,14 @@ As with :ref:`cross-matching <cross-match-db-params>`, it's possible to locally 
 
 The custom parameters are applying within the transactions used to execute `.run`, `.post_process`, and `.load`.
 
+Another possibility is to override the `~BaseCarton.setup_transaction` method completely for the carton implementation. This method prepares the transactions used to run and load the carton. To set ``random_page_cost=0.1`` for a given carton we can do ::
+
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL random_page_cost = 0.1;')
+
+Note that if `~BaseCarton.setup_transaction` is overridden, the ``database_options`` configuration is ignored for that carton.
+
 Custom magnitudes
 ^^^^^^^^^^^^^^^^^
 
