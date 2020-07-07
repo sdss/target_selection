@@ -73,16 +73,17 @@ class MWM_YSO_S1_Carton(BaseCarton):
 #
 # All values of TIC_v8.plx (for non-null entries) are not the same as
 # values of Gaia_DR2.parallax.
-# Hence, we cannot use TIC_v8.plx instead
+# Hence, in the above query, we cannot use TIC_v8.plx instead
 # of Gaia_DR2.parallax.
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
-        return query
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
 
 class MWM_YSO_S2_Carton(BaseCarton):
@@ -150,11 +151,13 @@ class MWM_YSO_S2_Carton(BaseCarton):
                         (AllWise.w3mpro - AllWise.w4mpro) >
                         (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -230,11 +233,13 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
                         ((Gaia_DR2.b < -5) & (Gaia_DR2.l > 180)) |
                         ((Gaia_DR2.b >> None) & (Gaia_DR2.l >> None))))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -336,11 +341,13 @@ class MWM_YSO_S3_Carton(BaseCarton):
                         peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
                         Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -389,11 +396,13 @@ class MWM_YSO_OB_Carton(BaseCarton):
                         1.6 * Gaia_DR2.bp_rp - 2.2,
                         Gaia_DR2.parallax > 0.3))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -476,7 +485,7 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
                  .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
                  .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                 on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
+                       on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
                  .switch(TIC_v8)
                  .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -488,11 +497,13 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
                         (Gaia_DR2.parallax < 0.2) |
                         (Gaia_DR2.parallax >> None)))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -541,9 +552,11 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
                         YSO_Clustering.h < 13,
                         YSO_Clustering.age < 7.5))
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
