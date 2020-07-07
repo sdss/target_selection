@@ -7,21 +7,19 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 import peewee
 
+from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
+                                             CatalogToTIC_v8, Gaia_DR2, TIC_v8,
+                                             TwoMassPSC, YSO_Clustering)
+
+# from . import BaseCarton
+from target_selection.cartons import BaseCarton
+
+
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToTIC_v8,
-                                             TIC_v8,
-                                             Gaia_DR2,
-                                             TwoMassPSC,
-                                             AllWise,
-                                             MIPSGAL,
-                                             YSO_Clustering)
-# from . import BaseCarton
-from target_selection.cartons import BaseCarton
 
 
 class MWM_YSO_S1_Carton(BaseCarton):
