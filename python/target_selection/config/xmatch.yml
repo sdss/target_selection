@@ -413,3 +413,6 @@
         work_mem: '10GB'
         temp_buffers: '10GB'
         maintenance_work_mem: '60GB'
+
+'0.1.0':
+    base_plan: '0.1.0-beta.2'
