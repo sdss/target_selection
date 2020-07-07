@@ -291,7 +291,7 @@ def vacuum_table(database, table_name, vacuum=True, analyze=True,
         connection.set_isolation_level(0)
 
         database.execute_sql(
-            f'SET LOCAL maintenance_work_mem = {maintenance_work_mem!r}')
+            f'SET maintenance_work_mem = {maintenance_work_mem!r}')
 
         database.execute_sql(statement)
 

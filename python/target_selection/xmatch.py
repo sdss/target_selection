@@ -1000,7 +1000,9 @@ class XMatchPlanner(object):
         # manually and make sure there cannot be collisions.
         temp_tables = [table for table in self.database.get_tables(self.schema)
                        if table.startswith(self.output_table + '_') and
+                       not table.startswith(self.output_table + '_to_') and
                        table != self._temp_table]
+
         if len(temp_tables) > 0 and not start_catalogid:
             raise XMatchError('Another cross-matching plan is currently running.')
 
@@ -1441,12 +1443,8 @@ class XMatchPlanner(object):
                                 rel_model
                                 .select(SQL('1'))
                                 .where((rel_model.version_id == self._version_id) &
-                                       (rel_model.catalogid == xmatched.c.catalogid))))
-                            .where(~fn.EXISTS(
-                                rel_model
-                                .select(SQL('1'))
-                                .where((rel_model.version_id == self._version_id) &
-                                       (rel_model.target_id == xmatched.c.target_id)))))
+                                       ((rel_model.catalogid == xmatched.c.catalogid) |
+                                        (rel_model.target_id == xmatched.c.target_id))))))
 
         with Timer() as timer:
 
@@ -1670,12 +1668,12 @@ class XMatchPlanner(object):
     def _setup_transaction(self, model=None, phase=None):
         """Sets database parameters for the transaction."""
 
-        options = self._options['database_options'].copy()
-        if model:
-            options.update(model._meta.xmatch.database_options)
-
-        if not options:
+        if not self._options['database_options']:
             return
+
+        options = self._options['database_options'].copy()
+        if model and model._meta.xmatch.database_options:
+            options.update(model._meta.xmatch.database_options)
 
         for param in options:
             if param == 'maintenance_work_mem':
@@ -1740,9 +1738,10 @@ class XMatchPlanner(object):
         table_name = rel_model._meta.table_name
 
         db_opts = self._options['database_options']
-        work_mem = db_opts.get('maintenance_work_mem', None)
-        if work_mem:
-            self.database.execute_sql(f'SET maintenance_work_mem = {work_mem!r}')
+        if db_opts:
+            work_mem = db_opts.get('maintenance_work_mem', None)
+            if work_mem:
+                self.database.execute_sql(f'SET maintenance_work_mem = {work_mem!r}')
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{self.schema}.{table_name}',
