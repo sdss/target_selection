@@ -56,8 +56,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         The label of the cadence rule for this carton.
     category : str
         The category of targets for this carton.
-    survey : str
-        The survey associated with this carton.
+    mapper : str
+        The mapper with which this carton is associated.
     orm : str
         The ORM library to be used, ``peewee`` or ``sqlalchemy``.
     tag : str
@@ -74,6 +74,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     category = None
     program = None
     mapper = None
+    priority = None
 
     query_region = None
 
@@ -176,6 +177,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
             cadence = peewee.TextField(null=True)
+            priority = peewee.IntegerField()
 
             class Meta:
                 database = self.database
@@ -186,7 +188,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if not Model.table_exists():
             raise TargetSelectionError(f'temporary table {self.path!r} does '
-                                       'exist.')
+                                       'not exist.')
 
         return Model
 
@@ -265,7 +267,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
             with Timer() as timer:
-                self._setup_transaction()
+                self.setup_transaction()
                 self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
                                           f'{self.path} AS ' + query_sql,
                                           params)
@@ -285,6 +287,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'cadence' not in columns:
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN cadence BOOL DEFAULT NULL;')
+        if 'priority' not in columns:
+            self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                      'ADD COLUMN priority INTEGER '
+                                      'DEFAULT NULL;')
 
         self.database.execute_sql(f'ALTER TABLE {self.path} '
                                   'ADD PRIMARY KEY (catalogid);')
@@ -293,9 +299,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         ResultsModel = self.get_model()
 
+        n_rows = ResultsModel.select().count()
+        log.debug(f'Table {self.path!r} contains {n_rows:,} rows.')
+
         log.debug('Running post-process.')
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
 
         self.has_run = True
@@ -333,8 +342,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return True
 
-    def _setup_transaction(self):
-        """Setups the transaction locally modifying the datbase parameters."""
+    def setup_transaction(self):
+        """Setups the transaction locally modifying the datbase parameters.
+
+        This method runs inside a transaction and can be overridden to set the
+        parameters of the transaction manually. It applies to both `.run` and
+        `.load`.
+
+        """
 
         if 'database_options' not in self.config:
             return
@@ -383,6 +398,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if mode == 'results':
 
             results_model = self.get_model()
+            assert results_model.table_exists(), \
+                'temporary table does not exist.'
+
             write_query = results_model.select()
 
             colnames = [field.name for field in write_query._returning]
@@ -436,19 +454,25 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return carton_table
 
-    def load(self):
+    def load(self, overwrite=False):
         """Loads the output of the intermediate table into targetdb."""
 
         if self.check_targets():
-            raise TargetSelectionError(f'Found existing targets for carton '
-                                       f'{self.name!r} with plan '
-                                       f'{self.plan!r}.')
-
-        if not self.has_run:
-            raise TargetSelectionError('The query needs to be run before '
-                                       'calling load().')
+            if overwrite:
+                warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
+                              f'and tag {self.tag!r} already has targets '
+                              'loaded. Dropping them.')
+                self.drop_carton()
+            else:
+                raise TargetSelectionError(f'Found existing targets for '
+                                           f'carton {self.name!r} with plan '
+                                           f'{self.plan!r} and tag '
+                                           f'{self.tag!r}.')
 
         RModel = self.get_model()
+        if not RModel.table_exists():
+            raise TargetSelectionError(f'No temporary table found '
+                                       f'{self.full}. Did you call run()?')
 
         has_targets = (RModel.select()
                        .where(RModel.selected >> True)
@@ -459,9 +483,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        'intermediate table.')
 
         with self.database.atomic():
-            self._setup_transaction()
+            self.setup_transaction()
             self._create_carton_metadata()
-            self._load_data(RModel)
+            self._load_targets(RModel)
             self._load_magnitudes(RModel)
             self._load_carton_to_target(RModel)
 
@@ -487,11 +511,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         category_pk = None
 
         # Create targeting plan in tdb.
-        version_pk, created = tdb.Version.get_or_create(plan=self.plan,
-                                                        tag=self.tag,
-                                                        target_selection=True)
+        version, created = tdb.Version.get_or_create(plan=self.plan,
+                                                     tag=self.tag,
+                                                     target_selection=True)
+        version_pk = version.pk
+
         if created:
-            log.info(f'Created record in targetdb.version for {self.plan!r}.')
+            log.info(f'Created record in targetdb.version for '
+                     f'{self.plan!r} with tag {self.tag!r}.')
 
         if (tdb.Carton.select()
                       .where(tdb.Carton.carton == self.name,
@@ -501,22 +528,24 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Create carton and associated values.
         if self.mapper:
-            mapper_pk, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper_pk = mapper.pk
             if created:
                 log.debug(f'Created mapper {self.mapper!r}')
 
         if self.category:
-            category_pk, created = tdb.Category.get_or_create(
-                label=self.category)
+            category, created = tdb.Category.get_or_create(label=self.category)
+            category_pk = category.pk
             if created:
                 log.debug(f'Created category {self.category!r}')
 
         tdb.Carton.create(carton=self.name, category_pk=category_pk,
                           program=self.program, mapper_pk=mapper_pk,
-                          version_pk=version_pk)
+                          version_pk=version_pk).save()
+
         log.debug(f'Created carton {self.name!r}')
 
-    def _load_data(self, RModel):
+    def _load_targets(self, RModel):
         """Load data from the intermediate table tp targetdb.target."""
 
         log.debug('loading data into targetdb.target.')
@@ -541,7 +570,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
              tdb.Target.pmdec,
              tdb.Target.parallax]).returning().execute()
 
-        log.info(f'Inserted {n_inserted:,} rows into targetdb.target.')
+        log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
 
         return
 
@@ -608,14 +637,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
                       .insert_from(select_from, fields)
                       .returning().execute())
 
-        log.debug(f'Inserted {n_inserted:,} rows into targetdb.magnitude.')
+        log.info(f'Inserted {n_inserted:,} new rows into targetdb.magnitude.')
 
     def _load_carton_to_target(self, RModel):
         """Populate targetdb.carton_to_target."""
 
         log.debug('Loading data into targetdb.carton_to_target.')
 
-        version_pk = tdb.Version.get(plan=self.plan, target_selection=True)
+        version_pk = tdb.Version.get(plan=self.plan, tag=self.tag,
+                                     target_selection=True)
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
@@ -660,12 +690,33 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                .join(tdb.Cadence, 'LEFT OUTER JOIN',
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
+        if self.cadence is None:
+            select_from = select_from.select_extend(RModel.priority)
+        else:
+            select_from = select_from.select_extend(self.priority)
+
         # Now do the insert
         n_inserted = CartonToTarget.insert_from(
             select_from,
             [CartonToTarget.target_pk,
              CartonToTarget.carton_pk,
-             CartonToTarget.cadence_pk]).returning().execute()
+             CartonToTarget.cadence_pk,
+             CartonToTarget.priority]).returning().execute()
 
-        log.debug(f'Inserted {n_inserted:,} rows into '
-                  'targetdb.carton_to_target.')
+        log.info(f'Inserted {n_inserted:,} rows '
+                 'into targetdb.carton_to_target.')
+
+    def drop_carton(self):
+        """Drops the entry in ``targetdb.carton``."""
+
+        version = (tdb.Version
+                   .select()
+                   .where(tdb.Version.plan == self.plan,
+                          tdb.Version.tag == self.tag,
+                          tdb.Version.target_selection >> True))
+
+        if version.count() == 0:
+            return
+
+        tdb.Carton.delete().where(tdb.Carton.carton == self.name,
+                                  tdb.Carton.version == version).execute()
