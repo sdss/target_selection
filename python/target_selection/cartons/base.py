@@ -511,9 +511,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         category_pk = None
 
         # Create targeting plan in tdb.
-        version_pk, created = tdb.Version.get_or_create(plan=self.plan,
-                                                        tag=self.tag,
-                                                        target_selection=True)
+        version, created = tdb.Version.get_or_create(plan=self.plan,
+                                                     tag=self.tag,
+                                                     target_selection=True)
+        version_pk = version.pk
+
         if created:
             log.info(f'Created record in targetdb.version for '
                      f'{self.plan!r} with tag {self.tag!r}.')
@@ -526,19 +528,21 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Create carton and associated values.
         if self.mapper:
-            mapper_pk, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper_pk = mapper.pk
             if created:
                 log.debug(f'Created mapper {self.mapper!r}')
 
         if self.category:
-            category_pk, created = tdb.Category.get_or_create(
-                label=self.category)
+            category, created = tdb.Category.get_or_create(label=self.category)
+            category_pk = category.pk
             if created:
                 log.debug(f'Created category {self.category!r}')
 
         tdb.Carton.create(carton=self.name, category_pk=category_pk,
                           program=self.program, mapper_pk=mapper_pk,
-                          version_pk=version_pk)
+                          version_pk=version_pk).save()
+
         log.debug(f'Created carton {self.name!r}')
 
     def _load_targets(self, RModel):
