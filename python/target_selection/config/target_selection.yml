@@ -9,6 +9,13 @@
         - mwm_cb_uvex4
         - mwm_cb_uvex5
         - mwm_tess_rgb
+        - mwm_yso_s1
+        - mwm_yso_s2
+        - mwm_yso_s2_5
+        - mwm_yso_s3
+        - mwm_yso_ob
+        - mwm_yso_cmz
+        - mwm_yso_cluster  
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
