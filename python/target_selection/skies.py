@@ -10,10 +10,10 @@ import multiprocessing
 from functools import partial
 
 import healpy
-import matplotlib.pyplot as plt
 import numpy
 import pandas
 from astropy.coordinates import SkyCoord, match_coordinates_sky
+from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from peewee import PostgresqlDatabase
 

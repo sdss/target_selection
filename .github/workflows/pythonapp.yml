@@ -42,4 +42,4 @@ jobs:
     - name: Lint with isort
       run: |
         pip install isort
-        isort -c -rc python/
+        isort -c python/

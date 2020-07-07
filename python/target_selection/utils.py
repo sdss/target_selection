@@ -211,8 +211,8 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
                 log.debug(f'{parameter} reset to {orig_value}.')
 
 
-def remove_version(database, plan, schema='catalogdb',
-                   table='catalog', delete_version=True):
+def remove_version(database, plan, schema='catalogdb', table='catalog',
+                   delete_version=True, vacuum=True):
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
     models = []
@@ -259,6 +259,10 @@ def remove_version(database, plan, schema='catalogdb',
                      .where(model.version_id == version_id)
                      .execute())
         print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
+        if vacuum:
+            print('Vacuuming ...')
+            vacuum_table(database,
+                         f'{model._meta.schema}.{model._meta.table_name}')
 
     md5 = hashlib.md5(plan.encode()).hexdigest()[0:16]
     for table in database.get_tables(schema=schema):
@@ -271,7 +275,8 @@ def remove_version(database, plan, schema='catalogdb',
         print('Removed entry in \'version\'.')
 
 
-def vacuum_table(database, table_name, vacuum=True, analyze=True):
+def vacuum_table(database, table_name, vacuum=True, analyze=True,
+                 maintenance_work_mem='50GB'):
     """Vacuums and analyses a table."""
 
     statement = (('VACUUM ' if vacuum else '') +
@@ -284,6 +289,9 @@ def vacuum_table(database, table_name, vacuum=True, analyze=True):
         connection = database.connection()
         original_isolation_level = connection.isolation_level
         connection.set_isolation_level(0)
+
+        database.execute_sql(
+            f'SET maintenance_work_mem = {maintenance_work_mem!r}')
 
         database.execute_sql(statement)
 
@@ -298,14 +306,14 @@ def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
     assert database.is_connection_usable(), 'connection is not usable.'
 
     tables = []
-    for table_name in database.models:
+    for full_name in database.models:
+        table_schema, table_name = full_name.split('.')
+        if table_schema != schema:
+            continue
         if table_name != table:
             is_relational = table_name.startswith(table + '_to_')
             if not is_relational or not relational_tables:
                 continue
-        model = database.models[table_name]
-        if not model.table_exists() or model._meta.schema != schema:
-            continue
         tables.append(table_name)
 
     for table_name in tables:
