@@ -3,6 +3,8 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_ob
+        - mwm_ob_mc
         - mwm_galactic
         - mwm_planet
         - mwm_100pc
