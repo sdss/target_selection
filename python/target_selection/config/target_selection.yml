@@ -3,6 +3,7 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_halo_sm
         - mwm_cb_uvex1
         - mwm_cb_uvex2
         - mwm_cb_uvex3
@@ -24,6 +25,8 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        mwm_halo_sm:
+            feh: -1.7
     database_options:
         work_mem: '2GB'
         temp_buffers: '2GB'
