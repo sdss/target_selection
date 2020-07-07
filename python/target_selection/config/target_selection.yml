@@ -3,6 +3,7 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_galactic
         - mwm_planet
         - mwm_100pc
         - mwm_250pc
@@ -31,6 +32,9 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        mwm_galactic:
+            h_max: 11
+            g_h: 3.5
         mwm_planet:
             h_min: 7
             h_max: 12
