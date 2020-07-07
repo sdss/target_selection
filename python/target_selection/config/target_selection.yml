@@ -3,6 +3,11 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_cb_uvex1
+        - mwm_cb_uvex2
+        - mwm_cb_uvex3
+        - mwm_cb_uvex4
+        - mwm_cb_uvex5
         - mwm_tess_rgb
     schema: sandbox
     magnitudes:
