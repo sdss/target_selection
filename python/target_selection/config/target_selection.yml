@@ -3,6 +3,7 @@
     xmatch_plan: 0.1.0
     cartons:
         - guide
+        - mwm_planet
         - mwm_100pc
         - mwm_250pc
         - mwm_cb_300pc
@@ -30,6 +31,9 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        mwm_planet:
+            h_min: 7
+            h_max: 12
         mwm_halo_sm:
             feh: -1.7
     database_options:
