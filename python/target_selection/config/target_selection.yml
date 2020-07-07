@@ -1,9 +1,23 @@
 
-'0.1.0-beta.1':
-    xmatch_plan: 0.1.0-beta.1
+'0.1.0':
+    xmatch_plan: 0.1.0
     cartons:
         - guide
         - mwm_galactic
+        - mwm_planet
+        - mwm_100pc
+        - mwm_250pc
+        - mwm_cb_300pc
+        - mwm_cb_gaiagalex
+        - mwm_cb_cvcandidates
+        - mwm_cb_uvex1
+        - mwm_cb_uvex2
+        - mwm_cb_uvex3
+        - mwm_cb_uvex4
+        - mwm_cb_uvex5
+        - mwm_halo_sm
+        - mwm_tess_rgb
+        - mwm_dust
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
@@ -21,6 +35,11 @@
         mwm_galactic:
             h_max: 11
             g_h: 3.5
+        mwm_planet:
+            h_min: 7
+            h_max: 12
+        mwm_halo_sm:
+            feh: -1.7
     database_options:
         work_mem: '2GB'
         temp_buffers: '2GB'
