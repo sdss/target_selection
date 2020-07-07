@@ -20,6 +20,7 @@
         - mwm_halo_sm
         - mwm_tess_rgb
         - mwm_dust
+        - mwm_wd
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
@@ -34,6 +35,9 @@
             g_min: 13
             g_max: 17
             min_separation: 0.002777778
+        mwm_wd:
+            gmag: 20
+            pwd: 0.5
         mwm_galactic:
             h_max: 11
             g_h: 3.5
