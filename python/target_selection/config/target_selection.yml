@@ -42,7 +42,7 @@
             fieldlist:
             - {name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49,  cadence: bhm_rm_174x8 }
             - {name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49,  cadence: bhm_rm_174x8 }
-            - {name: XMM-LSS,  racen: 36.33572, deccen: -4.52486,  radius: 1.49,  cadence: bhm_rm_174x8 }
+            - {name: XMM-LSS,  racen: 35.70833, deccen: -4.75000,  radius: 1.49,  cadence: bhm_rm_174x8 }
             - {name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00,  cadence: bhm_rm_lite5_100x8 }
             - {name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00,  cadence: bhm_rm_174x8 }
             - {name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00,  cadence: bhm_rm_174x8 }

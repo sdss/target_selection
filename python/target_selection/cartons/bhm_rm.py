@@ -303,7 +303,7 @@ for r in q.limit(5).namedtuples():
 
 
 '''
-target_selection  --profile tunnel_operations --verbose run --include bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
+#target_selection  --profile tunnel_operations --verbose run --include bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
 
 target_selection  --profile tunnel_operations --verbose run --include bhm_rm_core,bhm_rm_var,bhm_rm_ancillary,bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
 
@@ -326,6 +326,7 @@ stilts tpipe in=bhm_rm.csv out=bhm_rm.fits ifmt=csv ofmt=fits-basic
 ftcopy "bhm_rm.fits[1][col *,bhm_rm_core(L)=priority==1002?1:0,bhm_rm_known_spec(L)=priority==1001?1:0,bhm_rm_var(L)=priority==1003?1:0,bhm_rm_ancillary(L)=priority==1004?1:0]" bhm_rm.fits clobber=yes mode=q
 ftsort bhm_rm.fits bhm_rm_unique.fits catalogid method=heap unique=yes clobber=yes mode=q
 
+gnuplot plot_rm_target_stats.plot
 tar -cvzf bhm_core_cartons.tar.gz bhm_rm*.fits bhm_aqmes_*fits bhm_spiders_*fits bhm_csc_*fits
 
 '''
