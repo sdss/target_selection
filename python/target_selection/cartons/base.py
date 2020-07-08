@@ -142,7 +142,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         return self.schema + '.' + self.table_name
 
     @abc.abstractmethod
-    def build_query(self, version_id):
+    def build_query(self, version_id, query_region=None):
         """Builds and returns the query.
 
         The ORM query for the target class. Note that this must be the
