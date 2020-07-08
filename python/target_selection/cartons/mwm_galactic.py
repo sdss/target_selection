@@ -9,7 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             TIC_v8, TwoMassPSC)
+                                             Gaia_DR2, TIC_v8, TwoMassPSC)
 
 from . import BaseCarton
 
@@ -45,8 +45,8 @@ class GalacticGenesisCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        Hmag = TIC_v8.hmag
-        Gmag = TIC_v8.gaiamag
+        Hmag = TwoMassPSC.h_m
+        Gmag = Gaia_DR2.phot_g_mean_mag
 
         ph_qual = TwoMassPSC.ph_qual
         cc_flg = TwoMassPSC.cc_flg
@@ -55,19 +55,22 @@ class GalacticGenesisCarton(BaseCarton):
 
         gal_contam = TwoMassPSC.gal_contam
 
+        h_max = self.parameters['h_max']
+        g_h = self.parameters['g_h']
+
         gg = (TIC_v8
               .select(CatalogToTIC_v8.catalogid,
                       Hmag, Gmag,
                       ph_qual, cc_flg, rd_flg, gal_contam)
               .join(TwoMassPSC)
+              .join_from(TIC_v8, Gaia_DR2)
               .join_from(TIC_v8, CatalogToTIC_v8)
-              .where(Hmag < self.parameters['h_max'],
-                     ph_qual.regexp('.(A|B).'),
+              .where(ph_qual.regexp('.(A|B).'),
                      gal_contam == 0,
                      peewee.fn.substr(cc_flg, 2, 1) == '0',
-                     rd_flag_1 > 0, rd_flag_1 <= 3,
-                     (((Gmag - Hmag) > self.parameters['g_h']) |
-                      TIC_v8.gaia >> None))
+                     rd_flag_1 > 0, rd_flag_1 <= 3)
+              .where(Hmag < h_max,
+                     ((Gmag - Hmag) > g_h) | (TIC_v8.gaia >> None))
               .where(CatalogToTIC_v8.version_id == version_id,
                      CatalogToTIC_v8.best >> True))
 
