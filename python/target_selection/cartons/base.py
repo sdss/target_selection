@@ -234,7 +234,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise RuntimeError(f'Temporary table {self.path!r} '
                                    'already exists.')
 
-        log.debug('Building query ...')
+        log.info('Running query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
 
         # If build_query accepts a query_region parameter, call with the query
