@@ -121,11 +121,11 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             carton = Carton(targeting_plan, config_file=config_file)
 
             tsmod.log.header = f'({carton.name}): '
-            tsmod.log.info(f'running target selection for '
+            tsmod.log.info(f'Running target selection for '
                            f'carton {carton.name!r}.')
 
             if carton.check_targets():
-                raise ValueError(f'found existing targets for carton '
+                raise ValueError(f'Found existing targets for carton '
                                  f'{carton.name!r} with plan {carton.plan!r}.')
 
             if not skip_query:
@@ -133,28 +133,27 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                 if write_table:
                     carton.write_table()
             else:
-                carton.has_run = True
-                tsmod.log.debug('skipping query.')
+                tsmod.log.debug('Skipping query.')
 
             if load:
-                carton.load()
+                carton.load(overwrite=overwrite)
             else:
-                tsmod.log.debug('not loading data into targetdb.target.')
+                tsmod.log.debug('Not loading data into targetdb.target.')
 
             if write_table:
                 carton.write_table(mode='targetdb')
 
             if not keep:
-                tsmod.log.info(f'dropping temporary table {carton.path!r}.')
+                tsmod.log.info(f'Dropping temporary table {carton.path!r}.')
                 carton.drop_table()
 
         except Exception as ee:
 
             if allow_errors:
                 if carton_name not in carton_classes:
-                    tsmod.log.error(f'no carton class found for {carton_name}')
+                    tsmod.log.error(f'No carton class found for {carton_name}')
                 else:
-                    tsmod.log.error(f'errored processing carton '
+                    tsmod.log.error(f'Errored processing carton '
                                     f'{carton_name}: {ee}')
             else:
                 raise
