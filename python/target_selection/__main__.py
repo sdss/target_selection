@@ -47,11 +47,16 @@ def connect(profile=None, dbname=None, user=None, host=None, port=None):
 @click.option('--port', '-P', type=int, default=None)
 @click.option('--verbose', '-v', is_flag=True,
               help='outputs extra debug information')
-def target_selection(profile, dbname, user, host, port, verbose):
+@click.option('--save-log', type=str, default=None,
+              help='saves the log to a file.')
+def target_selection(profile, dbname, user, host, port, verbose, save_log):
     """Performs tasks related to target selection for SDSS-V."""
 
     if verbose:
         tsmod.log.set_level(logging.DEBUG)
+
+    if save_log:
+        tsmod.log.start_file_logger(save_log, rotating=False)
 
     if not connect(profile, dbname, user, host, port):
         raise TargetSelectionError('database is not connected.')
