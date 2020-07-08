@@ -177,9 +177,18 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-# TODO join with Catalog
-        query = (CatalogToTIC_v8
+# In the query for cartons in mwmw_yso.py, we do not need a join with Catalog
+# because the query does not use ra and dec in the WHERE clause.
+# Here, for RV cartons, we are using ra and dec in the WHERE clause in
+# q3c_radial_query() . Hence we need a join with Catalog because
+# when using coordinates in the cartons we want to always
+# use Catalog.ra and Catalog.dec.
+#  This is because those coordinates have all been put in a common epoch 2015.5.
+
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
@@ -199,8 +208,9 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
+            # Here we do not need a join with Catalog since query already contains
+            # a join with Catalog above.
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -268,8 +278,10 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (CatalogToTIC_v8
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
@@ -290,7 +302,6 @@ Target selection final for v0?: No
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -354,8 +365,10 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (CatalogToTIC_v8
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
@@ -376,7 +389,6 @@ Target selection final for v0?: No
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -494,8 +506,10 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (CatalogToTIC_v8
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
@@ -519,7 +533,6 @@ Target selection final for v0?: No
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -582,8 +595,10 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (CatalogToTIC_v8
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
@@ -607,7 +622,6 @@ Target selection final for v0?: No
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -663,8 +677,10 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (CatalogToTIC_v8
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
@@ -688,7 +704,6 @@ Target selection final for v0?: No
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
