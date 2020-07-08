@@ -16,7 +16,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              TIC_v8,
                                              SDSS_APOGEE_AllStarMerge_r13,
-                                             TwoMassPSC)
+                                             TwoMassPSC,
+                                             Gaia_DR2,
+                                             AllWise)
 # from . import BaseCarton
 from target_selection.cartons import BaseCarton
 from astropy.coordinates import Angle
@@ -103,6 +105,19 @@ from astropy.coordinates import Angle
 # (1 row)
 #
 
+mwm_rv_long_condition = (SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
+                         peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) ==
+                         'gaia',
+                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                          '%APOGEE_SHORT%') |
+                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                          '%APOGEE_INTERMEDIATE%') |
+                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                          '%APOGEE_LONG%') |
+                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                          '%APOGEE2_%BIN_%'))
+
 
 class MWM_RV_Long_RM_Carton(BaseCarton):
     """2.2.1.1. Long Baseline Targets for RM Plates
@@ -162,6 +177,7 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
+# TODO join with Catalog
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8,
@@ -174,13 +190,7 @@ Target selection final for v0?: No
                                            '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        *mwm_rv_long_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -189,11 +199,13 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -268,13 +280,7 @@ Target selection final for v0?: No
                                            '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        *mwm_rv_long_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -283,15 +289,16 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
-# TODO
 class MWM_RV_Long_FPS_Carton(BaseCarton):
     """2.2.1.3. Long Baseline Targets for FPS
 
@@ -359,13 +366,7 @@ Target selection final for v0?: No
                                            '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        *mwm_rv_long_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -374,11 +375,13 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
@@ -428,6 +431,14 @@ Target selection final for v0?: No
 # Target selection final for v0?: No
 
 # TODO
+mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,)
+
+
+# (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+#                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+#                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+#                        Gaia_DR2.parallax > 0.3,
+
 class MWM_RV_Short_RM_Carton(BaseCarton):
     """ 2.2.2.1. Short Baseline Targets for RM Plates
 
@@ -470,9 +481,6 @@ Target selection final for v0?: No
     program = 'program_mwm_rv_short_rm'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
-
     def build_query(self, version_id, query_region=None):
         # WHERE [(ra,dec) < 3 degrees on sky from
         # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
@@ -488,23 +496,20 @@ Target selection final for v0?: No
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_APOGEE_AllStarMerge_r13,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                                           '2M')))
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        TwoMassPSC.h_m < 13,
+                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                        Gaia_DR2.parallax > 0.3,
+                        *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -513,15 +518,16 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
-# TODO
 class MWM_RV_Short_Bplates_Carton(BaseCarton):
     """ 2.2.2.2. Short Baseline Targets for Bright Time Plates
 
@@ -563,9 +569,6 @@ Target selection final for v0?: No
     program = 'program_mwm_rv_short_bplates'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
-
     def build_query(self, version_id, query_region=None):
         # WHERE [(ra,dec) < 3 degrees on sky from
         # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
@@ -581,23 +584,20 @@ Target selection final for v0?: No
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_APOGEE_AllStarMerge_r13,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                                           '2M')))
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        TwoMassPSC.h_m < 13,
+                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                        Gaia_DR2.parallax > 0.3,
+                        *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -606,15 +606,16 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
 
 
-# TODO
 class MWM_RV_Short_FPS_Carton(BaseCarton):
     """ 2.2.2.3. Short Baseline Targets for FPS
 
@@ -649,9 +650,6 @@ Target selection final for v0?: No
     program = 'program_mwm_rv_short_fps'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
-
     def build_query(self, version_id, query_region=None):
         # WHERE [(ra,dec) < 3 degrees on sky from
         # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
@@ -667,23 +665,20 @@ Target selection final for v0?: No
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_APOGEE_AllStarMerge_r13,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                                           '2M')))
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                        peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) == 'gaia',
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_SHORT%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_INTERMEDIATE%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE_LONG%') |
-                        (SDSS_APOGEE_AllStarMerge_r13.targflags % '%APOGEE2_%BIN_%'),
+                        TwoMassPSC.h_m < 13,
+                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                        Gaia_DR2.parallax > 0.3,
+                        *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
                         peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
@@ -692,9 +687,11 @@ Target selection final for v0?: No
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
         return query
