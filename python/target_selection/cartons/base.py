@@ -25,6 +25,9 @@ from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import Timer
 
 
+EPOCH = 2015.5
+
+
 class BaseCarton(metaclass=abc.ABCMeta):
     """A base class for target cartons.
 
@@ -556,7 +559,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                cdb.Catalog.dec,
                                cdb.Catalog.pmra,
                                cdb.Catalog.pmdec,
-                               cdb.Catalog.parallax)
+                               cdb.Catalog.parallax,
+                               peewee.Value(EPOCH))
             .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
             .where(RModel.selected >> True)
             .where(~peewee.fn.EXISTS(
@@ -568,7 +572,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              tdb.Target.dec,
              tdb.Target.pmra,
              tdb.Target.pmdec,
-             tdb.Target.parallax]).returning().execute()
+             tdb.Target.parallax,
+             tdb.Target.epoch]).returning().execute()
 
         log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
 
