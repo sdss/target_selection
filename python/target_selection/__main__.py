@@ -130,6 +130,8 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
 
             if not skip_query:
                 carton.run(query_region=(region or None), overwrite=overwrite)
+                if write_table:
+                    carton.write_table()
             else:
                 carton.has_run = True
                 tsmod.log.debug('skipping query.')
