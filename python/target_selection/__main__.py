@@ -138,7 +138,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             if load:
                 carton.load(overwrite=overwrite)
             else:
-                tsmod.log.debug('Not loading data into targetdb.target.')
+                tsmod.log.info('Not loading data into targetdb.target.')
 
             if write_table:
                 carton.write_table(mode='targetdb')
