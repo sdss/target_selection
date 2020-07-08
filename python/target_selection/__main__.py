@@ -56,7 +56,7 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
         tsmod.log.set_level(logging.DEBUG)
 
     if save_log:
-        tsmod.log.start_file_logger(save_log, rotating=False)
+        tsmod.log.start_file_logger(save_log, mode='a', rotating=False)
 
     if not connect(profile, dbname, user, host, port):
         raise TargetSelectionError('database is not connected.')
