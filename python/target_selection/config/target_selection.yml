@@ -24,7 +24,7 @@
         - mwm_yso_s3
         - mwm_yso_ob
         - mwm_yso_cmz
-        - mwm_yso_cluster  
+        - mwm_yso_cluster
         - mwm_dust
         - mwm_wd
     schema: sandbox
@@ -49,5 +49,5 @@
         mwm_halo_sm:
             feh: -1.7
     database_options:
-        work_mem: '2GB'
-        temp_buffers: '2GB'
+        work_mem: '5GB'
+        temp_buffers: '10GB'
