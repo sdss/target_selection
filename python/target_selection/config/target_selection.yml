@@ -4,6 +4,7 @@
     cartons:
         - mwm_ob
         - mwm_ob_mc
+        - mwm_ob_cepheids
         - mwm_galactic
         - mwm_planet
         - mwm_100pc
