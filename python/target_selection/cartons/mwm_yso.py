@@ -5,6 +5,7 @@
 # @Date: 2020-06-10
 # @Filename: mwm_yso.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
@@ -20,7 +21,8 @@ from target_selection.cartons import BaseCarton
 
 
 class MWM_YSO_S1_Carton(BaseCarton):
-    """2.5.1. YSOs - S1 (IR excess)
+    """YSOs - S1 (IR excess).
+
     Shorthand name: mwm_yso_s1
     Simplified Description of selection criteria:
     selection of YSOs based on IR excess,
@@ -44,7 +46,9 @@ class MWM_YSO_S1_Carton(BaseCarton):
     Pseudo SQL (optional):
     Implementation: h_m<13 and w1mpro-w2mpro>0.25 and
     w2mpro-w3mpro>0.5 and w3mpro-w4mpro>1.5 and parallax>0.3
+
     """
+
     name = 'mwm_yso_s1'
     category = 'science'
     cadence = None
@@ -52,6 +56,7 @@ class MWM_YSO_S1_Carton(BaseCarton):
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
+
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -68,13 +73,13 @@ class MWM_YSO_S1_Carton(BaseCarton):
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         Gaia_DR2.parallax > 0.3))
 
-# Gaia_DR2 pweewee model class corresponds to
-# table catalogdb.gaia_dr2_source.
-#
-# All values of TIC_v8.plx (for non-null entries) are not the same as
-# values of Gaia_DR2.parallax.
-# Hence, in the above query, we cannot use TIC_v8.plx instead
-# of Gaia_DR2.parallax.
+        # Gaia_DR2 pweewee model class corresponds to
+        # table catalogdb.gaia_dr2_source.
+        #
+        # All values of TIC_v8.plx (for non-null entries) are not the same as
+        # values of Gaia_DR2.parallax.
+        # Hence, in the above query, we cannot use TIC_v8.plx instead
+        # of Gaia_DR2.parallax.
 
         if query_region:
             query = (query
@@ -87,7 +92,8 @@ class MWM_YSO_S1_Carton(BaseCarton):
 
 
 class MWM_YSO_S2_Carton(BaseCarton):
-    """ 2.5.2. YSOs - S2 (optically invisble)
+    """YSOs - S2 (optically invisible).
+
     Shorthand name: mwm_yso_s2
     Simplified Description of selection criteria:
     selection of YSOs, brighter than H<13, fainter than G>15 or
@@ -119,7 +125,9 @@ class MWM_YSO_S2_Carton(BaseCarton):
     and w2mpro-w3mpro>1
     and w3mpro-w4mpro>1.5
     and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
+
     """
+
     name = 'mwm_yso_s2'
     category = 'science'
     cadence = None
@@ -127,6 +135,7 @@ class MWM_YSO_S2_Carton(BaseCarton):
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
+
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
@@ -150,6 +159,7 @@ class MWM_YSO_S2_Carton(BaseCarton):
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         (AllWise.w3mpro - AllWise.w4mpro) >
                         (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -162,7 +172,8 @@ class MWM_YSO_S2_Carton(BaseCarton):
 
 
 class MWM_YSO_S2_5_Carton(BaseCarton):
-    """ 2.5.3. YSOs - S2.5 (optically invisible, WISE saturated)
+    """YSOs - S2.5 (optically invisible, WISE saturated).
+
     Shorthand name: mwm_yso_s2_5
     Simplified Description of selection criteria:
     selection of YSOs, brighter than H<15,
@@ -187,29 +198,32 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
     (w2mpro-w3mpro>4 and w4mpro is null) or
     (w3mpro is null and w4mpro is null and j_m-h_m>1.1)
     and (b>-5 or l>180) and b<-5
+
     """
+
     name = 'mwm_yso_s2_5'
     category = 'science'
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
 
-# Above implementation has below clause
-# and (b>-5 or l>180) and b<-5
-# Replace (b>-5 or l>180) and b<-5 as below based on the text.
-# In words:
-# all the targets should be within 5 deg of the plane+
-# few sources that can be
-# located further south of the plane if l>180
-# Hence:
-# ((b>-5) and (b<5)) or ((b<-5) and (l > 180))
-#  l, b in Gaia_DR2 are gallong and gallat in TIC_v8.
-# We are using the values from Gaia since
-# TIC propagates the coordinates back to epoch 2000.0
-# (b>-5 or l>180) and b<-5
-# S2_5 query below has the same part before where() as S2 query.
+    # Above implementation has below clause
+    # and (b>-5 or l>180) and b<-5
+    # Replace (b>-5 or l>180) and b<-5 as below based on the text.
+    # In words:
+    # all the targets should be within 5 deg of the plane+
+    # few sources that can be
+    # located further south of the plane if l>180
+    # Hence:
+    # ((b>-5) and (b<5)) or ((b<-5) and (l > 180))
+    #  l, b in Gaia_DR2 are gallong and gallat in TIC_v8.
+    # We are using the values from Gaia since
+    # TIC propagates the coordinates back to epoch 2000.0
+    # (b>-5 or l>180) and b<-5
+    # S2_5 query below has the same part before where() as S2 query.
 
     def build_query(self, version_id, query_region=None):
+
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
@@ -232,6 +246,7 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
                         ((Gaia_DR2.b > -5) & (Gaia_DR2.b < 5)) |
                         ((Gaia_DR2.b < -5) & (Gaia_DR2.l > 180)) |
                         ((Gaia_DR2.b >> None) & (Gaia_DR2.l >> None))))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -244,7 +259,8 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
 
 
 class MWM_YSO_S3_Carton(BaseCarton):
-    """ 2.5.4. YSOs - S3 (pre-main sequence optical variables)
+    """YSOs - S3 (pre-main sequence optical variables).
+
     Shorthand name: mwm_yso_s3
     Simplified Description of selection criteria:
     selection of YSOs brighter than H<13, closer than parallax>0.3.
@@ -285,7 +301,9 @@ class MWM_YSO_S3_Carton(BaseCarton):
     and
     sqrt(phot_bp_n_obs)/phot_bp_mean_flux_over_error>0.02 and
     sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
+
     """
+
     name = 'mwm_yso_s3'
     category = 'science'
     cadence = None
@@ -293,6 +311,7 @@ class MWM_YSO_S3_Carton(BaseCarton):
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
+
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -340,6 +359,7 @@ class MWM_YSO_S3_Carton(BaseCarton):
                         Gaia_DR2.phot_bp_mean_flux_over_error > 0.02,
                         peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
                         Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -352,7 +372,8 @@ class MWM_YSO_S3_Carton(BaseCarton):
 
 
 class MWM_YSO_OB_Carton(BaseCarton):
-    """  2.5.5. YSOs - Upper (pre-)Main Sequence
+    """YSOs - Upper (pre-)Main Sequence.
+
     Shorthand name: mwm_yso_ob
     Simplified Description of selection criteria:
     Selecting the OB stars at the tip of the main sequence,
@@ -372,7 +393,9 @@ class MWM_YSO_OB_Carton(BaseCarton):
     phot_g_mean_mag<18 and
     phot_g_mean_mag-5*(log10(1000/parallax)-1) <
     1.6*bp_rp-2.2 and parallax>0.3
+
     """
+
     name = 'mwm_yso_ob'
     category = 'science'
     cadence = None
@@ -380,6 +403,7 @@ class MWM_YSO_OB_Carton(BaseCarton):
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
+
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -395,6 +419,7 @@ class MWM_YSO_OB_Carton(BaseCarton):
                         5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1) <
                         1.6 * Gaia_DR2.bp_rp - 2.2,
                         Gaia_DR2.parallax > 0.3))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -403,11 +428,13 @@ class MWM_YSO_OB_Carton(BaseCarton):
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
+
         return query
 
 
 class MWM_YSO_CMZ_Carton(BaseCarton):
-    """ 2.5.6. YSOs - Central Molecular Zone
+    """YSOs - Central Molecular Zone.
+
     Shorthand name: mwm_yso_cmz
     Simplified Description of selection criteria:
     selection of sources in the central molecular zone
@@ -448,39 +475,42 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     (all MIPSGAL targets have a counterpart in 2MASS,
     and all 2MASS have an entry in TIC,
     but not all the TIC entries have a Gaia counterpart).
+
     """
+
     name = 'mwm_yso_cmz'
     category = 'science'
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
 
-# l is glon (galactic longitude)
-# b is glat (galactic latitude)
-# mipsgal is a subset of 2MASS
-# mipsgal can be joined to twomass_psc via
-# mipsgal.twomass_name = TwoMassPSC.designation.
-# Then join via TIC and catalog_to_tic.
-#
-# mipsgal is a subset of 2MASS
-# 2MASS is a subset of TIC_v8
-# Gaia_DR2 is a subset of TIC_v8
-#
-# 2MASS is not a subset of Gaia_DR2
-# Gaia_DR2 is not a subset of 2MASS
-#
-# table catalogdb.mipsgal
-# Foreign-key constraints:
-#    "twomass_name_fk" FOREIGN KEY (twomass_name)
-# REFERENCES twomass_psc(designation)
-#
-# Due to below, we do not need a between to Catalog and CatalogToTIC_v8
-# Catalog.catalogid == CatalogToTIC_v8.catalogid
-# We can remove the join with Catalog in all the cartons
-# since catalogid is completely unique (even across different version_id)
-# so the join with Catalog doesn't give us anything extra and it's a costly join.
+    # l is glon (galactic longitude)
+    # b is glat (galactic latitude)
+    # mipsgal is a subset of 2MASS
+    # mipsgal can be joined to twomass_psc via
+    # mipsgal.twomass_name = TwoMassPSC.designation.
+    # Then join via TIC and catalog_to_tic.
+    #
+    # mipsgal is a subset of 2MASS
+    # 2MASS is a subset of TIC_v8
+    # Gaia_DR2 is a subset of TIC_v8
+    #
+    # 2MASS is not a subset of Gaia_DR2
+    # Gaia_DR2 is not a subset of 2MASS
+    #
+    # table catalogdb.mipsgal
+    # Foreign-key constraints:
+    #    "twomass_name_fk" FOREIGN KEY (twomass_name)
+    # REFERENCES twomass_psc(designation)
+    #
+    # Due to below, we do not need a between to Catalog and CatalogToTIC_v8
+    # Catalog.catalogid == CatalogToTIC_v8.catalogid
+    # We can remove the join with Catalog in all the cartons
+    # since catalogid is completely unique (even across different version_id)
+    # so the join with Catalog doesn't give us anything extra and it's a costly join.
 
     def build_query(self, version_id, query_region=None):
+
         query = (MIPSGAL.select(CatalogToTIC_v8.catalogid)
                  .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
                  .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
@@ -496,6 +526,7 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
                         (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
                         (Gaia_DR2.parallax < 0.2) |
                         (Gaia_DR2.parallax >> None)))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -504,11 +535,12 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
+
         return query
 
 
 class MWM_YSO_Cluster_Carton(BaseCarton):
-    """   2.5.7. YSOs - Cluster Catalog
+    """YSOs - Cluster Catalog
     Shorthand name: mwm_yso_cluster
     Simplified Description of selection criteria:
     Selecting the clustered sources from
@@ -525,22 +557,25 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
     even though no single target will receive more than one):
     Pseudo SQL (optional):
     Implementation: age<7.5 and h<13
+
     """
+
     name = 'mwm_yso_cluster'
     category = 'science'
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
 
-# yso_clustering is a subset of gaia and
-# can be joined to gaia_dr2_source via source_id.
-#
-# table catalogdb.yso_clustering
-# Foreign-key constraints:
-#    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
-# REFERENCES gaia_dr2_source(source_id)
+    # yso_clustering is a subset of gaia and
+    # can be joined to gaia_dr2_source via source_id.
+    #
+    # table catalogdb.yso_clustering
+    # Foreign-key constraints:
+    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
+    # REFERENCES gaia_dr2_source(source_id)
 
     def build_query(self, version_id, query_region=None):
+
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -551,6 +586,7 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True,
                         YSO_Clustering.h < 13,
                         YSO_Clustering.age < 7.5))
+
         if query_region:
             query = (query
                      .join_from(CatalogToTIC_v8, Catalog)
@@ -559,4 +595,5 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
+
         return query
