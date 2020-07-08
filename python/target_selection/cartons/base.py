@@ -142,7 +142,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         return self.schema + '.' + self.table_name
 
     @abc.abstractmethod
-    def build_query(self, version_id):
+    def build_query(self, version_id, query_region=None):
         """Builds and returns the query.
 
         The ORM query for the target class. Note that this must be the
@@ -234,7 +234,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise RuntimeError(f'Temporary table {self.path!r} '
                                    'already exists.')
 
-        log.debug('Building query ...')
+        log.info('Running query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
 
         # If build_query accepts a query_region parameter, call with the query
@@ -265,8 +265,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                            query_region[2])))
 
         query_sql, params = query.sql()
+        cursor = self.database.cursor()
+        query_str = cursor.mogrify(query_sql, params).decode()
+
         log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                             query_sql % tuple(params), 'darkgrey'))
+                             query_str, 'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
