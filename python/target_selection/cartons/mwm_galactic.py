@@ -40,7 +40,8 @@ class GalacticGenesisCarton(BaseCarton):
 
     name = 'mwm_galactic'
     category = 'science'
-    cadence = 'mwm_galactic_1x1'
+    cadence = None
+    program = 'Galactic'
 
     def build_query(self, version_id, query_region=None):
 
@@ -55,13 +56,11 @@ class GalacticGenesisCarton(BaseCarton):
         gal_contam = TwoMassPSC.gal_contam
 
         gg = (TIC_v8
-              .select(Catalog.catalogid,
-                      Catalog.ra, Catalog.dec,
+              .select(CatalogToTIC_v8.catalogid,
                       Hmag, Gmag,
                       ph_qual, cc_flg, rd_flg, gal_contam)
               .join(TwoMassPSC)
               .join_from(TIC_v8, CatalogToTIC_v8)
-              .join(Catalog)
               .where(Hmag < self.parameters['h_max'],
                      ph_qual.regexp('.(A|B).'),
                      gal_contam == 0,
@@ -73,9 +72,11 @@ class GalacticGenesisCarton(BaseCarton):
                      CatalogToTIC_v8.best >> True))
 
         if query_region:
-            gg = gg.where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
-                                                     query_region[0],
-                                                     query_region[1],
-                                                     query_region[2]))
+            gg = (gg
+                  .join_from(CatalogToTIC_v8, Catalog)
+                  .where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                    query_region[0],
+                                                    query_region[1],
+                                                    query_region[2])))
 
         return gg
