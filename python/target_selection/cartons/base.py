@@ -265,8 +265,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                            query_region[2])))
 
         query_sql, params = query.sql()
+        cursor = self.database.cursor()
+        query_str = cursor.mogrify(query_sql, params).decode()
+
         log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                             query_sql % tuple(params), 'darkgrey'))
+                             query_str, 'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
