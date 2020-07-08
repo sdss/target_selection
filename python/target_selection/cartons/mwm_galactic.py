@@ -42,6 +42,7 @@ class GalacticGenesisCarton(BaseCarton):
     category = 'science'
     cadence = None
     program = 'Galactic'
+    mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
 
