@@ -11,7 +11,6 @@ config = get_config('target_selection',
                     os.path.join(os.path.dirname(__file__),
                                  'config/target_selection.yml'))
 
-
 log = get_logger(NAME)
 
 

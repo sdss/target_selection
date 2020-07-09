@@ -58,10 +58,6 @@
         bp: [catalog_to_tic_v8, tic_v8.gaiarp]
         rp: [catalog_to_tic_v8, tic_v8.gaiabp]
     parameters:
-        guide:
-            g_min: 13
-            g_max: 17
-            min_separation: 0.002777778
         bhm_rm_base:
             fieldlist:
             - {name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49,  cadence: bhm_rm_174x8 }

@@ -1,3 +1,2 @@
-#recursive-include python/target_selection/etc *
-#recursive-include cextern/**/*
-#recursive-include python/target_selection/masks *
+recursive-include python/target_selection/etc *
+recursive-include cextern/**/*
