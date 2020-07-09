@@ -85,7 +85,7 @@ class BhmGuaBaseCarton(BaseCarton):
 
         query = (
             c.select(c.catalogid,
-                     t.ra, t.dec, t.gaia_sourceid, ## debug
+#                     t.ra, t.dec, t.gaia_sourceid, ## debug
                      target_priority,
                      pmra,
                      pmdec,

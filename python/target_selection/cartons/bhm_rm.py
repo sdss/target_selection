@@ -86,7 +86,7 @@ class BhmRmBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    t.pk.alias("rm_pk"), t.ra.alias("rm_ra"), t.dec.alias("rm_dec"), t.field_name.alias("rm_field"), ## debug
+#                    t.pk.alias("rm_pk"), t.ra.alias("rm_ra"), t.dec.alias("rm_dec"), t.field_name.alias("rm_field"), ## debug
                     target_priority,
                     target_value,
                     pmra,

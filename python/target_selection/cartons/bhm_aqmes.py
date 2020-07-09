@@ -127,7 +127,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    t.plate, t.mjd, t.fiberid, t.ra.alias("dr14q_ra"), t.dec.alias("dr14q_dec"), ## debug
+#                    t.plate, t.mjd, t.fiberid, t.ra.alias("dr14q_ra"), t.dec.alias("dr14q_dec"), ## debug
                     target_priority,
                     target_value,
                     pmra,

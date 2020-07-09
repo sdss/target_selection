@@ -110,8 +110,8 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
-                    x.xmatch_flags, #debug
+#                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
+#                    x.xmatch_flags, #debug
                     priority_val.alias('priority'),
                     target_value,
                     (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),

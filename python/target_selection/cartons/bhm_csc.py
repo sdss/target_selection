@@ -57,7 +57,7 @@ class BhmCscBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-                    c.ra, c.dec, t.cxo_name, t.oir_ra.alias("csc_oir_ra"), t.oir_dec.alias("csc_oir_dec"), ## debug
+#                    c.ra, c.dec, t.cxo_name, t.oir_ra.alias("csc_oir_ra"), t.oir_dec.alias("csc_oir_dec"), ## debug
                     target_priority,
                     target_value,
                     t.mag_g.alias('magnitude_g'),
