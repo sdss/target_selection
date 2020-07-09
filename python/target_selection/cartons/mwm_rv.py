@@ -200,9 +200,9 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -293,9 +293,9 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -380,9 +380,9 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -556,9 +556,9 @@ Target selection final for v0?: No
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -645,9 +645,9 @@ Target selection final for v0?: No
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -727,9 +727,9 @@ Target selection final for v0?: No
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(TIC_v8.ra, TIC_v8.dec, c_ra, c_dec, 3)))
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
+                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
