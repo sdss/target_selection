@@ -7,6 +7,9 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 # derived from guide.py
 
+# flake8: noqa
+# isort: skip_file
+
 import peewee
 from peewee import JOIN
 from peewee import fn

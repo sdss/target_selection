@@ -7,6 +7,8 @@
 # @License: BSD 3-Clause
 # @Copyright: Tom Dwelly
 
+# flake8: noqa
+# isort: skip_file
 
 from __future__ import division
 from __future__ import print_function

@@ -6,6 +6,8 @@
 # @Filename: bhm_gua.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+# flake8: noqa
+# isort: skip_file
 
 import peewee
 import sdssdb
