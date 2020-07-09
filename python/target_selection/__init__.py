@@ -11,9 +11,6 @@ config = get_config('target_selection',
                     os.path.join(os.path.dirname(__file__),
                                  'config/target_selection.yml'))
 
-#config = get_config('target_selection',
-#                    os.path.expanduser('~/SDSSV/gitwork/target_selection/python/target_selection/config/target_selection.yml'))
-
 
 log = get_logger(NAME)
 

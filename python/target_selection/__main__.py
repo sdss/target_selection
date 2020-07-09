@@ -175,7 +175,9 @@ def clear(targeting_plan, tables):
     """Clear all data for a target selection plan."""
 
     if tables:
-        Cartons = BaseCarton.__subclasses__()
+        # Cartons = BaseCarton.__subclasses__()
+        # find grandchildren classes as well
+        Cartons = all_subclasses(BaseCarton)
         for Carton in Cartons:
             Carton(targeting_plan).drop_table()
     try:
