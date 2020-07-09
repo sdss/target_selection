@@ -15,7 +15,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (TESS_TOI, Catalog,
 from . import BaseCarton
 
 
-class TESS_Planets_Carton(BaseCarton):
+class MWM_TESS_Planets_Carton(BaseCarton):
     """TESS Planets.
 
     Definition:
@@ -31,6 +31,7 @@ class TESS_Planets_Carton(BaseCarton):
     name = 'mwm_planet'
     program = 'TESS Planet'
     category = 'science'
+    mapper = 'MWM'
     cadence = None
 
     def build_query(self, version_id, query_region=None):
