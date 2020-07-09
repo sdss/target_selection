@@ -17,6 +17,7 @@
         - mwm_cb_uvex3
         - mwm_cb_uvex4
         - mwm_cb_uvex5
+        - mwm_halo_bb
         - mwm_halo_sm
         - mwm_tess_rgb
         - mwm_yso_s1
