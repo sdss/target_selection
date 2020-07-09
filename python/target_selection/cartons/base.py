@@ -25,6 +25,9 @@ from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import Timer
 
 
+EPOCH = 2015.5
+
+
 class BaseCarton(metaclass=abc.ABCMeta):
     """A base class for target cartons.
 
@@ -139,7 +142,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         return self.schema + '.' + self.table_name
 
     @abc.abstractmethod
-    def build_query(self, version_id):
+    def build_query(self, version_id, query_region=None):
         """Builds and returns the query.
 
         The ORM query for the target class. Note that this must be the
@@ -231,7 +234,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise RuntimeError(f'Temporary table {self.path!r} '
                                    'already exists.')
 
-        log.debug('Building query ...')
+        log.info('Running query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
 
         # If build_query accepts a query_region parameter, call with the query
@@ -262,8 +265,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                                            query_region[2])))
 
         query_sql, params = query.sql()
+        cursor = self.database.cursor()
+        query_str = cursor.mogrify(query_sql, params).decode()
+
         log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                             query_sql % tuple(params), 'darkgrey'))
+                             query_str, 'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
@@ -511,9 +517,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         category_pk = None
 
         # Create targeting plan in tdb.
-        version_pk, created = tdb.Version.get_or_create(plan=self.plan,
-                                                        tag=self.tag,
-                                                        target_selection=True)
+        version, created = tdb.Version.get_or_create(plan=self.plan,
+                                                     tag=self.tag,
+                                                     target_selection=True)
+        version_pk = version.pk
+
         if created:
             log.info(f'Created record in targetdb.version for '
                      f'{self.plan!r} with tag {self.tag!r}.')
@@ -526,19 +534,21 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Create carton and associated values.
         if self.mapper:
-            mapper_pk, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
+            mapper_pk = mapper.pk
             if created:
                 log.debug(f'Created mapper {self.mapper!r}')
 
         if self.category:
-            category_pk, created = tdb.Category.get_or_create(
-                label=self.category)
+            category, created = tdb.Category.get_or_create(label=self.category)
+            category_pk = category.pk
             if created:
                 log.debug(f'Created category {self.category!r}')
 
         tdb.Carton.create(carton=self.name, category_pk=category_pk,
                           program=self.program, mapper_pk=mapper_pk,
-                          version_pk=version_pk)
+                          version_pk=version_pk).save()
+
         log.debug(f'Created carton {self.name!r}')
 
     def _load_targets(self, RModel):
@@ -552,7 +562,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                cdb.Catalog.dec,
                                cdb.Catalog.pmra,
                                cdb.Catalog.pmdec,
-                               cdb.Catalog.parallax)
+                               cdb.Catalog.parallax,
+                               peewee.Value(EPOCH))
             .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
             .where(RModel.selected >> True)
             .where(~peewee.fn.EXISTS(
@@ -564,7 +575,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              tdb.Target.dec,
              tdb.Target.pmra,
              tdb.Target.pmdec,
-             tdb.Target.parallax]).returning().execute()
+             tdb.Target.parallax,
+             tdb.Target.epoch]).returning().execute()
 
         log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
 
