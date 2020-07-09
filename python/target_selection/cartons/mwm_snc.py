@@ -47,9 +47,9 @@ class MWM_SNC_100pc(BaseCarton):
 
     """
 
-    name = 'mwm_snc_100pc'
+    name = 'mwm_100pc'
     category = 'science'
-    program = 'SNC'
+    program = '100pc'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
@@ -69,18 +69,19 @@ class MWM_SNC_100pc(BaseCarton):
                          l, b)
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
-                 .join(Catalog)
                  .where((Gaia_DR2.parallax - Gaia_DR2.parallax_error) > 10,
-                        ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
-                        ~(gal_cut))
+                        ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) | ~(gal_cut))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
-                                                    query_region[0],
-                                                    query_region[1],
-                                                    query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(fn.q3c_radial_query(Catalog.ra,
+                                                Catalog.dec,
+                                                query_region[0],
+                                                query_region[1],
+                                                query_region[2])))
 
         return query
 
@@ -118,9 +119,9 @@ class MWM_SNC_250pc(BaseCarton):
 
     """
 
-    name = 'mwm_snc_250pc'
+    name = 'mwm_250pc'
     category = 'science'
-    program = 'SNC'
+    program = '250pc'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
@@ -137,23 +138,24 @@ class MWM_SNC_250pc(BaseCarton):
                    (fn.sqrt(fn.pow(l - 280.3, 2) + 2 * fn.pow(b + 33.0, 2)) < 8))
 
         query = (Gaia_DR2
-                 .select(Catalog.catalogid,
+                 .select(CatalogToTIC_v8.catalogid,
                          TIC_v8.gaia_int.alias('gaia_source_id'),
                          l, b)
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
-                 .join(Catalog)
                  .where(colour_cut,
                         (Gaia_DR2.parallax - Gaia_DR2.parallax_error) > 4,
-                        ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) |
-                        ~(gal_cut))
+                        ((Gaia_DR2.astrometric_excess_noise < 2) & gal_cut) | ~(gal_cut))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(fn.q3c_radial_query(Catalog.ra, Catalog.dec,
-                                                    query_region[0],
-                                                    query_region[1],
-                                                    query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(fn.q3c_radial_query(Catalog.ra,
+                                                Catalog.dec,
+                                                query_region[0],
+                                                query_region[1],
+                                                query_region[2])))
 
         return query

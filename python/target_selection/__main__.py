@@ -130,7 +130,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             tsmod.log.info(f'Running target selection for '
                            f'carton {carton.name!r}.')
 
-            if carton.check_targets():
+            if carton.check_targets() and not overwrite:
                 raise ValueError(f'Found existing targets for carton '
                                  f'{carton.name!r} with plan {carton.plan!r}.')
 
