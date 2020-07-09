@@ -442,14 +442,46 @@ Target selection final for v0?: No
 #
 # Target selection final for v0?: No
 
-# TODO
-mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,)
+mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
+                          ((TwoMassPSC.j_m - TwoMassPSC.k_m) -
+                           (1.5 * 0.918 *
+                            (TwoMassPSC.h_m - AllWise.w2mpro - 0.05))) >= 0.5,
+                          TwoMassPSC.j_msigcom <= 0.1,
+                          TwoMassPSC.h_msigcom <= 0.1,
+                          TwoMassPSC.k_msigcom <= 0.1,
+                          AllWise.w2sigmpro <= 0.1,
+                          ((AllWise.ph_qual == 'AAA') |
+                           (AllWise.ph_qual == 'AAB') |
+                           (AllWise.ph_qual == 'ABA') |
+                           (AllWise.ph_qual == 'BAA') |
+                           (AllWise.ph_qual == 'ABB') |
+                           (AllWise.ph_qual == 'BAB') |
+                           (AllWise.ph_qual == 'BBA') |
+                           (AllWise.ph_qual == 'BBB')),
+                          TwoMassPSC.prox >= 6,
+                          AllWise.cc_flags == '000',
+                          TwoMassPSC.gal_contam == '000',
+                          ((TwoMassPSC.rd_flg == '111') |
+                           (TwoMassPSC.rd_flg == '112') |
+                           (TwoMassPSC.rd_flg == '121') |
+                           (TwoMassPSC.rd_flg == '211') |
+                           (TwoMassPSC.rd_flg == '122') |
+                           (TwoMassPSC.rd_flg == '212') |
+                           (TwoMassPSC.rd_flg == '221') |
+                           (TwoMassPSC.rd_flg == '222')),
+                          TwoMassPSC.ext_key >> None)
 
 
-# (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-#                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-#                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-#                        Gaia_DR2.parallax > 0.3,
+# WHERE h_m < 12.8 AND ((j_m-k_m) - (1.5*0.918*(h_m-w2mpro-0.05))) >= 0.5
+# AND (j_msigcom <= 0.1 AND h_msigcom<=0.1 AND k_msigcom <= 0.1) AND w2_sigmpro <=0.1
+# AND (ph_qual= 'AAA' OR ph_qual= 'AAB' OR ph_qual= 'ABA'
+# OR ph_qual= 'BAA' OR ph_qual= 'ABB' OR ph_qual= 'BAB'
+# OR ph_qual= 'BBA' OR ph_qual = 'BBB')
+# AND prox >= 6 AND cc_flag='000' AND gal_contam='000'
+# AND (rd_flg='111' OR rd_flg='112'  OR rd_flg='121'  OR rd_flg='211'
+#   OR rd_flg='122'  OR rd_flg='212'  OR rd_flg='221'  OR rd_flg='222')
+# AND ext_key=Null AS mwm_rv_short
+
 
 class MWM_RV_Short_RM_Carton(BaseCarton):
     """ 2.2.2.1. Short Baseline Targets for RM Plates
