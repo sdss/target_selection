@@ -346,6 +346,7 @@
         - tic_v8
         - legacy_survey_dr8
         - sdss_dr13_photoobj_primary
+        - sdss_dr16_specobj
         - skymapper_dr1_1
         - kepler_input_10
         - bhm_rm_v0
@@ -359,6 +360,8 @@
         - unwise
         - catwise
         - glimpse
+        - uvotssc1
+        - xmm_om_suss_4_1
     exclude:
         - skymapper_gaia
     tables:
@@ -371,9 +374,45 @@
             parallax_column: plx
             epoch: 2000.0
             join_weight: 0.1
+        sdss_dr16_specobj:
+            ra_column: ra
+            dec_column: dec
         sdss_dr13_photoobj_primary:
             ra_column: ra
             dec_column: dec
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_4_1:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
     database_options:
         work_mem: '10GB'
         temp_buffers: '10GB'
+        maintenance_work_mem: '10GB'
+
+'0.1.0-alpha.5':
+    base_plan: '0.1.0-beta.2'
+    sample_region:
+        - [270., 66.56, 5.]    # North CVZ
+        - [90., -66.56, 5.]    # South CVZ
+        - [45.0, 0.0, 5.]      # Stripe-82-West
+        - [135.0, 1.0, 5.]     # eFEDS
+        - [315.0, 0.0, 5.]     # Stripe-82-East
+
+'0.1.0-alpha.6':
+    base_plan: '0.1.0-alpha.5'
+
+'0.1.0-alpha.7':
+    base_plan: '0.1.0-alpha.5'
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '10GB'
+        maintenance_work_mem: '60GB'
+
+'0.1.0':
+    base_plan: '0.1.0-beta.2'
