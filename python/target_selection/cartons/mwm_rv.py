@@ -469,8 +469,13 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                            (TwoMassPSC.rd_flg == '212') |
                            (TwoMassPSC.rd_flg == '221') |
                            (TwoMassPSC.rd_flg == '222')),
-                          TwoMassPSC.ext_key >> None)
+                          TwoMassPSC.ext_key >> None,
+                          Gaia_DR2.parallax.is_null(False))
 
+# Gaia_DR2.parallax.is_null(False) is not in the pseudo SQL
+# but is in the text description as in the below line from the text:
+# "with the additional requirement of having a Gaia parallax.
+#
 
 # WHERE h_m < 12.8 AND ((j_m-k_m) - (1.5*0.918*(h_m-w2mpro-0.05))) >= 0.5
 # AND (j_msigcom <= 0.1 AND h_msigcom<=0.1 AND k_msigcom <= 0.1) AND w2_sigmpro <=0.1
@@ -550,11 +555,6 @@ Target selection final for v0?: No
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
@@ -639,11 +639,6 @@ Target selection final for v0?: No
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
@@ -721,11 +716,6 @@ Target selection final for v0?: No
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3,
                         *mwm_rv_short_condition,
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
                         peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
