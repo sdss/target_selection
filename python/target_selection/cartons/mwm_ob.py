@@ -10,8 +10,8 @@ import peewee
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             GAIA_ASSAS_SN_Cepheids,
-                                             Gaia_DR2, Gaia_DR2_RUWE,
+                                             GAIA_ASSAS_SN_Cepheids, Gaia_DR2,
+                                             Gaia_DR2_RUWE,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8, TwoMassPSC)
 
