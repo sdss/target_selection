@@ -30,13 +30,13 @@
         - mwm_wd
     schema: sandbox
     magnitudes:
-        g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
-        r: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_r]
-        i: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_i]
-        z: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_z]
+        g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
+        r: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_r]
+        i: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_i]
+        z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
         h: [catalog_to_tic_v8, tic_v8.hmag]
-        bp: [catalog_to_tic_v8, tic_v8.gaiarp]
-        rp: [catalog_to_tic_v8, tic_v8.gaiabp]
+        bp: [catalog_to_tic_v8, tic_v8.gaiabp]
+        rp: [catalog_to_tic_v8, tic_v8.gaiarp]
     parameters:
         mwm_wd:
             gmag: 20
