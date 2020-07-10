@@ -8,7 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (AllWise, BestBrightest, Catalog,
+from sdssdb.peewee.sdss5db.catalogdb import (BestBrightest, Catalog,
                                              CatalogToAllWise, CatalogToTIC_v8,
                                              SkyMapperGaia, TIC_v8)
 
@@ -54,9 +54,8 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
                  .select(CatalogToAllWise.catalogid,
                          BestBrightest.designation,
                          BestBrightest.version)
-                 .join(AllWise)
                  .join(BestBrightest,
-                       on=(BestBrightest.designation == AllWise.designation))
+                       on=(BestBrightest.cntr == CatalogToAllWise.target_id))
                  .where(CatalogToAllWise.version_id == version_id,
                         CatalogToAllWise.best >> True))
 
@@ -74,8 +73,11 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
     def post_process(self, model):
         """Define priority based on version."""
 
-        model.update({model.priority: 1}).where(model.version == 1).execute()
-        model.update({model.priority: 2}).where(model.version == 2).execute()
+        for version in [1, 2]:
+            priority = self.parameters[f'priority_version_{version}']
+            (model
+             .update({model.priority: priority})
+             .where(model.version == version).execute())
 
 
 class MWM_Halo_SkyMapper_Carton(BaseCarton):

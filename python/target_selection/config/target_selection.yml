@@ -50,6 +50,9 @@
             h_max: 12
         mwm_halo_sm:
             feh: -1.7
+        mwm_halo_bb:
+            priority_version_1: 6050
+            priority_version_2: 6000
     database_options:
         work_mem: '5GB'
         temp_buffers: '10GB'
