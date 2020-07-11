@@ -26,28 +26,29 @@ class MWM_WD_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'WD'
-    cadence = 'mwm_wd_2x1'
+    cadence = None
 
     def build_query(self, version_id, query_region=None):
 
         query = (Gaia_DR2_WD
-                 .select(Catalog.catalogid,
+                 .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2_WD.source_id,
                          Gaia_DR2_WD.pwd,
                          Gaia_DR2_WD.gmag)
                  .join(TIC_v8, on=(TIC_v8.gaia_int == Gaia_DR2_WD.source_id))
                  .join(CatalogToTIC_v8)
-                 .join(Catalog)
                  .where(Gaia_DR2_WD.pwd > self.parameters['pwd'],
                         Gaia_DR2_WD.gmag <= self.parameters['gmag'],
                         CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
