@@ -90,6 +90,8 @@ class MWM_YSO_S1_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
 
+        return query
+
 
 class MWM_YSO_S2_Carton(BaseCarton):
     """YSOs - S2 (optically invisible).
