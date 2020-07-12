@@ -103,7 +103,7 @@ If we try to instantiate the class ``GalacticGenesisCarton`` it will raise an er
 .. code-block:: yaml
 
     '0.1.0':
-        xmatch_plan: 0.1.0-beta.1
+        xmatch_plan: 0.1.0
         cartons:
             - galactic_genesis
         schema: sandbox
@@ -112,9 +112,9 @@ If we try to instantiate the class ``GalacticGenesisCarton`` it will raise an er
                 h_max: 11
                 h_g: 3.5
         magnitudes:
-            g: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_g]
-            r: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_r]
-            i: [catalog_to_sdss_dr13_photoobj, sdss_dr13_photoobj.psfmag_i]
+            g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
+            r: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_r]
+            i: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_i]
             h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
             bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
             rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
@@ -137,16 +137,16 @@ As with :ref:`cross-matching <cross-match-db-params>`, it's possible to locally 
 .. code-block:: yaml
 
     '0.1.0':
-        xmatch_plan: 0.1.0-beta.1
+        xmatch_plan: 0.1.0
         cartons:
             - galactic_genesis
         database_options:
             work_mem: '2GB'
             temp_buffers: '2GB'
 
-The custom parameters are applying within the transactions used to execute `.run`, `.post_process`, and `.load`.
+The custom parameters are applying within the transactions used to execute `~.BaseCarton.run`, `.post_process`, and `.load`.
 
-Another possibility is to override the `~BaseCarton.setup_transaction` method completely for the carton implementation. This method prepares the transactions used to run and load the carton. To set ``random_page_cost=0.1`` for a given carton we can do ::
+Another possibility is to override the `~.BaseCarton.setup_transaction` method completely for the carton implementation. This method prepares the transactions used to run and load the carton. To set ``random_page_cost=0.1`` for a given carton we can do ::
 
     def setup_transaction(self):
 
@@ -229,7 +229,7 @@ If we don't implement the region condition explicitely, `~.BaseCarton.run` will 
 Writing results to a file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For QA purposes it's useful to be able to write the result of running the carton query to a file. The method `.write_table` allows to do that. It must be called after `.run` has been invoked and writes the temporary table to a gzip'd FITS file with all the columns returned by the query and modified in post-processing (including ``selected`` and ``cadence``). ::
+For QA purposes it's useful to be able to write the result of running the carton query to a file. The method `.write_table` allows to do that. It must be called after `~.BaseCarton.run` has been invoked and writes the temporary table to a gzip'd FITS file with all the columns returned by the query and modified in post-processing (including ``selected`` and ``cadence``). ::
 
     >>> carton.write_table()
     <Table masked=True length=5459267>
