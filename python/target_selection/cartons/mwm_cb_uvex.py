@@ -67,10 +67,10 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
 
     Definition:
 
-       Match Gaia - GALEX, use NUV channel of GALEX only, apply color cuts to
-       select objects with UV excess between main sequence and WD sequence.
-       Remove objects with low parallax and proper motion accuracy to not get
-       swamped by AGN and QSO.
+       Match Gaia - GALEX, use both bands of GALEX (FUV and NUV),
+       apply color cuts to select objects with UV excess between main
+       sequence and WD sequence. Remove objects with low parallax and
+       proper motion accuracy to not get swamped by AGN and QSO.
 
     Pseudo-SQL:
 
@@ -189,10 +189,10 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
 
     Definition:
 
-       Match Gaia DR2 with GALEX within 5 arcsec, keep the nearest match only,
-       add distance and lower limit distance (columns r_est, r_lo; estimated
-       and lower limit to estimated distance) from catalog
-       gdr2_contrib/geometric_distance
+        Match Gaia - GALEX, use NUV channel of GALEX only, apply color cuts
+        to select objects with UV excess between main sequence and WD sequence.
+        Remove objects with low parallax and proper motion accuracy to not
+        get swamped by AGN and QSO.
 
     Pseudo-SQL:
 
@@ -255,7 +255,6 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
 
         colour_cuts = (nuv_magerr < 0.2,
                        nuv_mag > -100,
-                       ((fuv_magerr >= 0.2) | (fuv_mag < -100)),
                        colour_absg,
                        (((nuv_mag - gmagab) < 2.25) |
                         (((nuv_mag - gmagab) < 6.725 * B_AB_R_AB - 1.735) &
@@ -276,9 +275,7 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
                          BJ.r_est,
                          BJ.r_lo,
                          GUVCat.nuv_mag,
-                         GUVCat.fuv_mag,
-                         GUVCat.nuv_magerr,
-                         GUVCat.fuv_magerr)
+                         GUVCat.nuv_magerr)
                  .join(CatalogToGUVCat)
                  .join(CatalogToTIC_v8, on=(CatalogToGUVCat.catalogid ==
                                             CatalogToTIC_v8.catalogid))
@@ -310,10 +307,10 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
 
     Definition:
 
-       Match Gaia DR2 with GALEX within 5 arcsec, keep the nearest match only,
-       add distance and lower limit distance (columns r_est, r_lo; estimated
-       and lower limit to estimated distance) from catalog
-       gdr2_contrib/geometric_distance
+       Match Gaia - XMMOMSUOB (or OM SUSS v4.1), apply color cuts to select
+       objects with UV excess between main sequence and WD sequence.
+       Remove objects with low parallax and proper motion accuracy
+       to not get swamped by AGN and QSO.
 
     Pseudo-SQL:
 
@@ -490,10 +487,10 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
 
     Definition:
 
-       Match Gaia - SWUVOTSSC (Swift UVOT catalog), apply color cuts to select
-       objects with UV excess between main sequence and WD sequence. Remove
-       objects with low parallax and proper motion accuracy to not get swamped
-       by AGN and QSO.
+       Match Gaia - SWUVOTSSC (Swift UVOT catalog), apply color cuts to
+       select objects with UV excess between main sequence and WD sequence.
+       Remove objects with low parallax and proper motion accuracy to not
+       get swamped by AGN and QSO.
 
     Pseudo-SQL:
 
@@ -690,7 +687,6 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
 
         - General cut:
             - Gaia: visibility_periods_used > 5
-            - astrometric_excess_noise <= 1
 
         - Colour and magnitude cuts:
             - Hmag < 15
@@ -764,8 +760,7 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True)
                  .where(CatalogToGUVCat.version_id == version_id,
                         CatalogToGUVCat.best >> True)
-                 .where(Gaia_DR2.visibility_periods_used > 5,
-                        Gaia_DR2.astrometric_excess_noise <= 1)
+                 .where(Gaia_DR2.visibility_periods_used > 5)
                  .where(fuv_magerr < 0.2,
                         nuv_magerr < 0.2,
                         fuv_mag > -100,
