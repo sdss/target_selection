@@ -8,6 +8,7 @@
 
 import multiprocessing
 from functools import partial
+from operator import mul
 
 import healpy
 import numpy
@@ -103,7 +104,7 @@ def nested_regrade(pixels, nside_in, nside_out):
         return prograded
 
 
-def _process_tile(pix, database_params=None, query=None,
+def _process_tile(pix, connection=None, query=None,
                   candidate_nside=None, tile_nside=None,
                   min_separation=None, downsample=False,
                   downsample_nside=None):
@@ -113,7 +114,8 @@ def _process_tile(pix, database_params=None, query=None,
 
     # We cannot pass the database itself. We need to create the connection
     # inside the function that gets parallelised.
-    dbname = database_params.pop('dbname')
+    dbname = connection.dbname
+    database_params = connection.connection_params.copy()
     database = PostgresqlDatabase(dbname, **database_params)
 
     targets = pandas.read_sql(query.format(pix=pix), database)
@@ -167,7 +169,8 @@ def _process_tile(pix, database_params=None, query=None,
 
 def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
                          candidate_nside=32768, min_separation=10,
-                         ra_column='ra', dec_column='dec', n_cpus=None,
+                         ra_column='ra', dec_column='dec',
+                         use_multiprocessing=False, n_cpus=None,
                          downsample=False, downsample_nside=256):
     """Identifies skies in a database catalogue.
 
@@ -220,6 +223,8 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     min_separation : int
         The minimum separation, in arcsec, between skies and their closest
         neighbour in the catalogue.
+    use_multiprocessing : bool
+        Whether to use multiprocessing.
     n_cpus : int
         Number of CPUs to use in parallel. If `None`, defaults to the number
         of cores.
@@ -252,7 +257,7 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     pbar = manager.counter(total=n_tiles, desc='Tiles', unit='tiles')
 
     process_tile = partial(_process_tile,
-                           database_params=database.connection_params.copy(),
+                           connection=database,
                            query=query,
                            candidate_nside=candidate_nside,
                            tile_nside=tile_nside,
@@ -260,8 +265,14 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
                            downsample=downsample,
                            downsample_nside=downsample_nside)
 
-    with multiprocessing.Pool(processes=n_cpus) as pool:
-        for valid_skies in pool.imap_unordered(process_tile, range(n_tiles)):
+    if use_multiprocessing:
+        with multiprocessing.Pool(processes=n_cpus) as pool:
+            for valid_skies in pool.imap_unordered(process_tile, range(n_tiles)):
+                hdf.append(key, valid_skies)
+                pbar.update()
+    else:
+        for tile in range(n_tiles):
+            valid_skies = process_tile(tile)
             hdf.append(key, valid_skies)
             pbar.update()
 
