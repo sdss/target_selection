@@ -34,26 +34,27 @@ The ``postgresql.conf`` file with the configuration for the database server is k
 
     search_path = '"$user",public,catalogdb,targetdb'
     max_connections = 20
-    shared_buffers = 64GB
-    effective_cache_size = 3000GB
-    maintenance_work_mem = 2GB
-    checkpoint_completion_target = 0.9
-    wal_buffers = 16MB
-    effective_io_concurrency = 9
-    work_mem = 100MB
+    shared_buffers = 10GB
+    effective_cache_size = 240GB
+    maintenance_work_mem = 5GB
+    checkpoint_completion_target = 0.93
+    wal_buffers = 32MB
+    checkpoint_timeout = 60min
+    effective_io_concurrency = 8
+    work_mem = 2GB
     min_wal_size = 4GB
-    max_wal_size = 16GB
+    max_wal_size = 100GB
     max_worker_processes = 32
     max_parallel_workers_per_gather = 16
     max_parallel_workers = 32
-    max_parallel_maintenance_workers = 16
+    max_parallel_maintenance_workers = 6
 
-    random_page_cost = 0.2
-    seq_page_cost = 0.1
+    random_page_cost = 1.1
+    seq_page_cost = 1.0
     cpu_index_tuple_cost 0.0001
     cpu_operator_cost 0.0025
-    default_statistics_target = 500
-    temp_buffers = 500MB
+    default_statistics_target = 1000
+    temp_buffers = 10GB
 
     autovacuum_max_workers = 3
     autovacuum_vacuum_threshold = 50
@@ -75,15 +76,15 @@ The ``postgresql.conf`` file with the configuration for the database server is k
 
 All the parameters are explained in the Postgresql documentation but we offer comments on a few key ones with suggestions for the values to use:
 
-- *shared_buffers* is the amount of memory used by all the Postgresql server processes. Postgresql loads data from tables and indexes here to operate on them. A reasonable value is between 25% and one third of the total RAM. Postgresql will eventually use all this memory and won't return it. A larger value doesn't seem to improve efficiency. A good explanation of the different types of memory used by Postgresql can be found `here <https://severalnines.com/database-blog/architecture-and-tuning-memory-postgresql-databases>`__
+- *shared_buffers* is the amount of memory used by all the Postgresql server processes. Postgresql loads data from tables and indexes here to operate on them. A generally recommended value is between 25% and one third of the total RAM. However, it seems that allocating more than 8-10GB doesn't provide a significant benefit and prevents that memory from being used for disk caching. Postgresql will eventually use all this memory and won't return it. A good explanation of the different types of memory used by Postgresql can be found `here <https://severalnines.com/database-blog/architecture-and-tuning-memory-postgresql-databases>`__
 
 - *work_mem* is the memory used by individual processes for hash operations such as sorts or joins. Note that this is the maximum memory allowed to *each* of such operations so if a query has three hash joins and a sort it will use four times the amount of work_mem. Because of that it's better to set a conservative value (but larger than the default) and change it locally inside specific transactions using ``SET LOCAL work_mem = 'X'``. This can help efficiency substantially but must be used with care. In some queries involving large tables, setting it to 10GB or even larger helps but one must keep an eye on the memory usage lest the server runs out of RAM and crashes.
 
-- *effective_cache_size* is only used by the query planner to determine the approximate size of the disk cache and optimise queries. For a system without fast disk caching this should be the rest of the memory not used by shared_buffers (between two thirds and 75%). In our case we set it to about 3TB. The value in itself is not important and you won't run out of memory because of it, but too low a value will make the planner lean towards sequential scans and a very large value will use more indexes (which is only good if fast access to to the index is possible).
+- *effective_cache_size* is only used by the query planner to determine the approximate size of the disk cache and optimise queries. For a system without fast disk caching this should be the rest of the memory not used by shared_buffers (between two thirds and 75%). In our case we set it to the size of the RAM minus the shared buffers allocation. The value in itself is not important and you won't run out of memory because of it, but too low a value will make the planner lean towards sequential scans and a very large value will use more indexes (which is only good if fast access to to the index is possible).
 
 - *temp_buffers* is the memory allowed for temporary tables. Any temporary table that requires more than this amount of memory is written to disk. As with work_mem it's best to have a conservative default value and modify it locally within a transaction.
 
-- *maintenance_work_mem* is the memory use by *each* of the maintenance processes such as ``VACUUM`` or ``CREATE INDEX``. 2GB is a reasonable value that can be increased locally within a transaction. In general it's recommended to increase this value by several times during the initial database loading.
+- *maintenance_work_mem* is the memory use by *each* of the maintenance processes such as ``VACUUM`` or ``CREATE INDEX``. 5GB is a reasonable value that can be increased locally within a transaction. In general it's recommended to increase this value by several times during the initial database loading.
 
 - *effective_io_concurrency* indicates how many concurrent disk I/O operations are allowed. This is a complicated value to tune in a system with a RAID and SSD cache but in general it seems that setting it to the number of disks in the RAID produces good performance.
 
@@ -91,7 +92,9 @@ All the parameters are explained in the Postgresql documentation but we offer co
 
 - *cpu_index_tuple_cost* and *cpu_operator_cost* are the costs associate with processing each index entry during an index scan, and each operator or function, respectively. They don't seem to impact the query planner very heavily but we reduce them to about a tenth of their original value to account for faster, modern CPUs.
 
-- *default_statistics_target* is the fraction of the table that is read during ``ANALYZE`` to create statistics about table and index sizes. The default value is 100 and we increase it to 500 which seems to be a good compromise between reasonably fast runs of ``ANALYZE`` and accurate statistics.
+- *default_statistics_target* is the fraction of the table that is read during ``ANALYZE`` to create statistics about table and index sizes. The default value is 100 and we increase it to 1000 which seems to be a good compromise between reasonably fast runs of ``ANALYZE`` and accurate statistics.
+
+- We set ``checkpoint_timeout = 60min``, ``checkpoint_completion_target = 0.93``, ``max_wal_size = 100GB``, and ``wal_buffers=32MB``, which are considered large values. This should help with large insertions but it's unclear how much it actually matters.
 
 - The autovacuum parameters are changed to make sure that up to three autovacuum workers are spun when tables are modified. ``AUTOVACUUM`` does not get triggered until a certain fraction of the table has changed. The default values usually fail to trigger a vacuum in large tables so we increase their sensitivity by decreasing the value of ``autovacuum_vacuum_scale_factor`` and ``autovacuum_analyze_scale_factor``.
 

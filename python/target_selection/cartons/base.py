@@ -467,7 +467,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
                               f'and tag {self.tag!r} already has targets '
-                              'loaded. Dropping them.')
+                              'loaded. Dropping carton-to-target entries.')
                 self.drop_carton()
             else:
                 raise TargetSelectionError(f'Found existing targets for '
@@ -596,8 +596,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        .select(tdb.Target.pk)
                        .join(tdb.Target,
                              on=(RModel.catalogid == tdb.Target.catalogid))
-                       .join(cdb.Catalog,
-                             on=(RModel.catalogid == cdb.Catalog.catalogid))
                        .where(RModel.selected >> True)
                        .where(~peewee.fn.EXISTS(
                               Magnitude
@@ -611,7 +609,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 select_from = select_from.select_extend(getattr(RModel, mag))
                 continue
 
-            select_from = select_from.switch(cdb.Catalog)
+            select_from = select_from.switch(tdb.Target)
 
             # For each node in the join list we check if the node model has
             # already been join and if so, switch the pointer to that model.
@@ -631,12 +629,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 if node_model in joins:
                     select_from = select_from.switch(node_model)
                 else:
-                    select_from = select_from.join(node_model,
-                                                   peewee.JOIN.LEFT_OUTER)
                     if node.startswith('catalog_to_'):
+                        select_from = select_from.join(
+                            node_model,
+                            peewee.JOIN.LEFT_OUTER,
+                            on=(tdb.Target.catalogid == node_model.catalogid))
                         select_from = (select_from
                                        .where((node_model.best >> True) |
                                               (node_model.catalogid >> None)))
+                    else:
+                        select_from = select_from.join(node_model,
+                                                       peewee.JOIN.LEFT_OUTER)
                 if column:
                     select_from = (select_from
                                    .select_extend(getattr(node_model, column)))

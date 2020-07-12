@@ -14,7 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, TIC_v8
 from . import BaseCarton
 
 
-class MWM_TESS_RGB(BaseCarton):
+class MWM_TESS_RGB_Carton(BaseCarton):
     """MWM TESS RGB Carton.
 
     Definition:
@@ -31,7 +31,7 @@ class MWM_TESS_RGB(BaseCarton):
     name = 'mwm_tess_rgb'
     mapper = 'MWM'
     category = 'science'
-    program = 'TESS'
+    program = 'TESS RGB'
 
     def build_query(self, version_id, query_region=None):
 

@@ -1143,7 +1143,8 @@ class XMatchPlanner(object):
                 database = meta.database
                 schema = meta.schema
                 primary_key = CompositeKey('version_id', 'catalogid', 'target_id')
-                indexes = ((('version_id', 'target_id', 'best'), False),)
+                indexes = ((('version_id', 'target_id', 'best'), False),
+                           (('version_id', 'best'), False))
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))

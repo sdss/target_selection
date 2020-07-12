@@ -10,6 +10,7 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (CataclysmicVariables, Catalog,
                                              CatalogToGUVCat, CatalogToTIC_v8,
+                                             Gaia_DR2,
                                              GeometricDistances_Gaia_DR2,
                                              GUVCat, TIC_v8)
 
@@ -48,15 +49,17 @@ class MWM_CB_300_Carton(BaseCarton):
 
         FUV_abs = FUV - 5 * peewee.fn.log(GD.r_est / 10)
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid,
                          GD.source_id,
                          GD.r_est,
-                         FUV, NUV, TIC_v8.hmag.alias('h'))
-                 .join(CatalogToTIC_v8)
+                         FUV, NUV,
+                         TIC_v8.hmag.alias('h'))
                  .join(TIC_v8)
-                 .join(GD, on=(TIC_v8.gaia_int == GD.source_id))
-                 .join_from(Catalog, CatalogToGUVCat)
+                 .join(Gaia_DR2)
+                 .join(GD)
+                 .join_from(CatalogToTIC_v8, CatalogToGUVCat,
+                            on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(GUVCat)
                  .where(GD.r_est < 300,
                         FUV_abs < 14 * (FUV - NUV) - 46)
@@ -66,11 +69,13 @@ class MWM_CB_300_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
 
@@ -99,21 +104,22 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         FUV = GUVCat.fuv_mag
-        gaiag = TIC_v8.gaiamag
+        gaiag = Gaia_DR2.phot_g_mean_mag
 
-        FUV_abs = FUV + 5 * peewee.fn.log(TIC_v8.plx / 1000.) + 5
+        FUV_abs = FUV + 5 * peewee.fn.log(Gaia_DR2.parallax / 1000.) + 5
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
-                         TIC_v8.gaia_int.alias('gaia_source_id'),
-                         TIC_v8.plx, TIC_v8.e_plx,
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.source_id.alias('gaia_source_id'),
+                         Gaia_DR2.parallax, Gaia_DR2.parallax_error,
                          FUV, gaiag.alias('phot_g_mean_mag'),
                          TIC_v8.hmag.alias('h'))
-                 .join(CatalogToTIC_v8)
                  .join(TIC_v8)
-                 .join_from(Catalog, CatalogToGUVCat)
+                 .join(Gaia_DR2)
+                 .join_from(CatalogToTIC_v8, CatalogToGUVCat,
+                            on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(GUVCat)
-                 .where(TIC_v8.plx / TIC_v8.e_plx > 3,
+                 .where(Gaia_DR2.parallax / Gaia_DR2.parallax_error > 3,
                         gaiag < 20,
                         FUV_abs > (1.5 + 1.28 * (FUV - gaiag)))
                  .where(CatalogToGUVCat.version_id == version_id,
@@ -122,11 +128,13 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
 
@@ -155,12 +163,11 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid,
                          CataclysmicVariables.source_id,
                          CataclysmicVariables.phot_g_mean_mag,
                          TIC_v8.hmag.alias('h'))
-                 .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(CataclysmicVariables,
                        on=(CataclysmicVariables.source_id == TIC_v8.gaia_int))
@@ -168,10 +175,12 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True))
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                           Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
