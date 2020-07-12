@@ -64,7 +64,7 @@ Writing the query
 
 Cartons are implemented as subclasses of `.BaseCarton`. `.BaseCarton` is an abstract class, which means that is not intended to be used directly and must be subclassed with some of its methods overridden.
 
-The main method that needs overloading is `.build_query`, which receives the version of cross-matching to use and must return a Peewee :class:`peewee:Select` or :class:`peewee:ModelSelect` object. We must also define the ``name`` and ``category`` for the carton. A full implementation for the Galactic Genesis carton would look like ::
+The main method that needs overloading is `.build_query`, which receives the version of cross-matching to use and must return a Peewee :class:`peewee:Select` or :class:`peewee:ModelSelect` object. We must also define the ``name``, ``program``, and ``category`` for the carton. A full implementation for the Galactic Genesis carton would look like ::
 
     from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                                  TIC_v8, TwoMassPSC)
@@ -75,6 +75,8 @@ The main method that needs overloading is `.build_query`, which receives the ver
 
         name = 'galactic_genesis'
         category = 'science'
+        program = 'Galactic Genesis'
+        mapper = 'MWM'
 
         def build_query(self, version_id):
 
@@ -200,6 +202,8 @@ Let's rewrite our Galactic Genesis example with a radial query option ::
 
         name = 'galactic_genesis'
         category = 'science'
+        program = 'Galactic Genesis'
+        mapper = 'MWM'
 
         def build_query(self, version_id, query_region=None):
 
