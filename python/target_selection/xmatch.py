@@ -738,7 +738,7 @@ class XMatchPlanner(object):
         if order == 'hierarchical':
             subgraphs = networkx.connected_components(graph)
         else:
-            subgraphs = [node for node in subgraphs.nodes]
+            subgraphs = [node for node in graph.nodes]
 
         subgraphs_ext = []
         for sg in subgraphs:
