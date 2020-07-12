@@ -122,47 +122,47 @@ mwm_rv_long_condition = (SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
 class MWM_RV_Long_RM_Carton(BaseCarton):
     """2.2.1.1. Long Baseline Targets for RM Plates
 
-Shorthand name: mwm_rv_long_rm
+    Shorthand name: mwm_rv_long_rm
 
-Simplified Description of selection criteria:
-Select from long-baseline targets (above) within
-the 3 BHM-RM fields observable from APO
-(sexagesimal coordinates given in Pseudo SQL below)
+    Simplified Description of selection criteria:
+    Select from long-baseline targets (above) within
+    the 3 BHM-RM fields observable from APO
+    (sexagesimal coordinates given in Pseudo SQL below)
 
-Wiki page: Binaries and Substellar Companions
+    Wiki page: Binaries and Substellar Companions
 
-Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
+    Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec, h,
-baseline, fields (Same as 2.2.1 above)
+    Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec, h,
+    baseline, fields (Same as 2.2.1 above)
 
-cadence options for these targets (list all options,
-even though no single target will receive more than one):
-mwm_rv_<nn>x8 (where <nn> = number of visits to RM fields)
+    cadence options for these targets (list all options,
+    even though no single target will receive more than one):
+    mwm_rv_<nn>x8 (where <nn> = number of visits to RM fields)
 
-Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
-pmra, pmdec, h, baseline, fields FROM mwm_rv_long
-WHERE [(ra,dec) < 3 degrees on sky from
-(14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
+    Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
+    pmra, pmdec, h, baseline, fields FROM mwm_rv_long
+    WHERE [(ra,dec) < 3 degrees on sky from
+    (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
+    Target selection final for v0?: No
     """
     name = 'mwm_rv_long_rm'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_long_rm'
+    program = 'RV'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
+    # peewee Model name ---> postgres table name
+    # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
         # WHERE [(ra,dec) < 3 degrees on sky from
@@ -177,13 +177,15 @@ Target selection final for v0?: No
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-# In the query for cartons in mwmw_yso.py, we do not need a join with Catalog
-# because the query does not use ra and dec in the WHERE clause.
-# Here, for RV cartons, we are using ra and dec in the WHERE clause in
-# q3c_radial_query() . Hence we need a join with Catalog because
-# when using coordinates in the cartons we want to always
-# use Catalog.ra and Catalog.dec.
-#  This is because those coordinates have all been put in a common epoch 2015.5.
+        # In the query for cartons in mwmw_yso.py,
+        # we do not need a join with Catalog
+        # because the query does not use ra and dec in the WHERE clause.
+        # Here, for RV cartons, we are using ra and dec in the WHERE clause in
+        # q3c_radial_query() . Hence we need a join with Catalog because
+        # when using coordinates in the cartons we want to always
+        # use Catalog.ra and Catalog.dec.
+        # This is because those coordinates have
+        # all been put in a common epoch 2015.5.
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -219,64 +221,120 @@ Target selection final for v0?: No
         return query
 
 
-# TODO
 class MWM_RV_Long_Bplates_Carton(BaseCarton):
-    """ 2.2.1.2. Long Baseline Targets for Bright Time Plates
+    """ 3.2.1.2. Long Baseline Targets for Bright Time Plates
 
-Shorthand name: mwm_rv_long_bplates
+    Shorthand name: mwm_rv_long_bplates
 
-Simplified Description of selection criteria:
- Select from long-baseline targets (above) observable from APO
- with H brighter than 12.2
- with at least 100 other targets within 3 degrees that meet the other criteria.
+    Simplified Description of selection criteria:
+    Select from long-baseline targets (above) observable
+     from APO with H brighter than 12.2 with at least 6 APOGEE
+      visits within selected APOGEE fields observable during 6-month program
+       (field centers in decimal degrees given below).
 
-Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Wiki page: Binaries and Substellar Companions (Page Under Construction)
 
-Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
+    Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec,
- h, baseline, fields (Same as 2.2.1 above)
+    Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec,
+     h, baseline, fields (Same as 2.2.1 above)
 
-cadence options for these targets (list all options,
- even though no single target will receive more than one):
-  mwm_rv_<nn>x4, where <nn> = 3*ceiling((18-nvisits)/3)
+    cadence options for these targets (list all options,
+     even though no single target will receive more than one):
+      RV-6, RV-12 (plate cadences)
 
-Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec, pmra, pmdec,
- h, baseline, fields FROM mwm_rv_long
- WHERE h<12.2 AND dec>-20 AND
- [>100 objects in mwm_rv_long <3 degrees from (ra,dec)] AS mwm_rv_long_bplates
+    Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
+     pmra, pmdec, h, baseline, fields FROM mwm_rv_long
+      WHERE h<12.2 AND nvisits>=6 AND
+       [(ra,dec)< 3 degrees on sky
+       from (11.83254, 85.251) OR (47.39417, 39.50294) OR ...
+        <rest of the field centers listed below>]
+    RA (Degrees) DEC(Degrees)
+    11.83254    85.251
+    47.39417    39.50294
+    72.4084    63.603
+    75.35158    22.23817
+    94.8905    41.2531
+    111.7472    23.6726
+    114.5958    37.38599
+    114.5958    21
+    114.7236    17.1076
+    170.3706    9.9099
+    195.5556    57.06683
+    200.6    -13.7
+    206.4    -5.5
+    207.6239    2.7267
+    217.9883    8.799444
+    226.0916    32.3294
+    232.0711    6.8184
+    234.0497    86.1432
+    240.575    28.09
+    248.3458    -0.5336
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
+    Target selection final for v0?: No
     """
     name = 'mwm_rv_long_bplates'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_long_bplates'
+    program = 'RV'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
+    # peewee Model name ---> postgres table name
+    # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
-        # WHERE [(ra,dec) < 3 degrees on sky from
-        # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
+        ra = [0] * 20
+        dec = [0] * 20
+        ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
+        ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
+        ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
+        ra[4] = 75.35158;  dec[4] = 22.23817   # noqa: E702, E241
+        ra[5] = 94.8905;   dec[5] = 41.2531    # noqa: E702, E241
+        ra[6] = 111.7472;  dec[6] = 23.6726    # noqa: E702, E241
+        ra[7] = 114.5958;  dec[7] = 37.38599   # noqa: E702, E241
+        ra[8] = 114.5958;  dec[8] = 21         # noqa: E702, E241
+        ra[9] = 114.7236;  dec[9] = 17.1076    # noqa: E702, E241
+        ra[10] = 170.3706; dec[10] = 9.9099    # noqa: E702, E241
+        ra[11] = 195.5556; dec[11] = 57.06683  # noqa: E702, E241
+        ra[12] = 200.6;    dec[12] = -13.7     # noqa: E702, E241
+        ra[13] = 206.4;    dec[13] = -5.5      # noqa: E702, E241
+        ra[14] = 207.6239; dec[14] = 2.7267    # noqa: E702, E241
+        ra[15] = 217.9883; dec[15] = 8.799444  # noqa: E702, E241
+        ra[16] = 226.0916; dec[16] = 32.3294   # noqa: E702, E241
+        ra[17] = 232.0711; dec[17] = 6.8184    # noqa: E702, E241
+        ra[18] = 234.0497; dec[18] = 86.1432   # noqa: E702, E241
+        ra[19] = 240.575;  dec[19] = 28.09     # noqa: E702, E241
+        ra[20] = 248.3458; dec[20] = -0.5336   # noqa: E702, E241
 
-        a_ra = Angle('14h14m49s').degree
-        a_dec = Angle('53d05m00s').degree
-
-        b_ra = Angle('10h00m00s').degree
-        b_dec = Angle('02d12m00s').degree
-
-        c_ra = Angle('02h23m30s').degree
-        c_dec = Angle('-04d15m00s').degree
+        ra_dec_condition = (
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[1], dec[1], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[2], dec[2], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[3], dec[3], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[4], dec[4], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[5], dec[5], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[6], dec[6], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[7], dec[7], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[8], dec[8], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[9], dec[9], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[10], dec[10], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[11], dec[11], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[12], dec[12], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[13], dec[13], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[14], dec[14], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[15], dec[15], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[16], dec[16], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[17], dec[17], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[18], dec[18], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -293,9 +351,9 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
+                        *ra_dec_condition,
+                        SDSS_APOGEE_AllStarMerge_r13.h < 12.2,
+                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -311,59 +369,48 @@ Target selection final for v0?: No
 
 
 class MWM_RV_Long_FPS_Carton(BaseCarton):
-    """2.2.1.3. Long Baseline Targets for FPS
+    """3.2.1.3. Long Baseline Targets for FPS
 
-Shorthand name: mwm_rv_long_fps
+    Shorthand name: mwm_rv_long_fps
 
-Simplified Description of selection criteria:
- Select from long-baseline targets (above) with H brighter than 11.5
+    Simplified Description of selection criteria:
+     Select from long-baseline targets (above) with H brighter than 11.5
 
-Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Wiki page: Binaries and Substellar Companions (Page Under Construction)
 
-Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
+    Additional source catalogs needed: Select from mwm_rv_long (2.2.1)
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-Return columns: apogee_id, nvisits, ra, dec, pmra, pmdec,
- h, baseline, fields (Same as 2.2.1 above)
+    Return columns: apogee_id, nvisits, ra, dec,
+     pmra, pmdec, h, baseline, fields (Same as 2.2.1 above)
 
-cadence options for these targets (list all options,
- even though no single target will receive more than one):
-  If H>10.8 then use mwm_rv_<nn>x2,
-   otherwise use mwm_rv_<nn>x1, where <nn> = 3*ceiling((18-nvisits)/3)
+    cadence options for these targets
+     (list all options, even though no single target will receive more than one):
+      If H>10.8 then use mwm_rv_<nn>x2, otherwise use mwm_rv_<nn>x1,
+       where <nn> = 3*ceiling((18-nvisits)/3)
 
-Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec, pmra, pmdec,
- h, baseline, fields FROM mwm_rv_long WHERE h<11.5
+    Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
+     pmra, pmdec, h, baseline, fields FROM mwm_rv_long WHERE h<11.5
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
+    Target selection final for v0?: No
     """
-    name = 'mwm_rv_long_rm'
+    name = 'mwm_rv_long_fps'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_long_rm'
+    program = 'RV'
     mapper = 'MWM'
 
-# peewee Model name ---> postgres table name
-# SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
+    # peewee Model name ---> postgres table name
+    # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
-        # WHERE [(ra,dec) < 3 degrees on sky from
-        # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
-
-        a_ra = Angle('14h14m49s').degree
-        a_dec = Angle('53d05m00s').degree
-
-        b_ra = Angle('10h00m00s').degree
-        b_dec = Angle('02d12m00s').degree
-
-        c_ra = Angle('02h23m30s').degree
-        c_dec = Angle('-04d15m00s').degree
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -380,9 +427,7 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
+                        SDSS_APOGEE_AllStarMerge_r13.h < 11.5))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -491,43 +536,41 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
 class MWM_RV_Short_RM_Carton(BaseCarton):
     """ 2.2.2.1. Short Baseline Targets for RM Plates
 
-Shorthand name: mwm_rv_short_rm
+    Shorthand name: mwm_rv_short_rm
 
-Simplified Description of selection criteria: Select from short-baseline targets
- (above) within the 3 BHM-RM fields observable from APO
- (sexagesimal coordinates given in Pseudo SQL below)
+    Simplified Description of selection criteria: Select from short-baseline targets
+     (above) within the 3 BHM-RM fields observable from APO
+     (sexagesimal coordinates given in Pseudo SQL below)
 
-Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Wiki page: Binaries and Substellar Companions (Page Under Construction)
 
-Additional source catalogs needed: Select from mwm_rv_short (2.2.2)
+    Additional source catalogs needed: Select from mwm_rv_short (2.2.2)
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-Return columns: ra, dec, pmra, pmdec, h_m
+    Return columns: ra, dec, pmra, pmdec, h_m
 
-cadence options for these targets (list all options,
- even though no single target will receive more than one):
-   mwm_rv_<nn>x8 (where <nn> = number of visits to RM fields)
+    cadence options for these targets (list all options,
+     even though no single target will receive more than one):
+       mwm_rv_<nn>x8 (where <nn> = number of visits to RM fields)
 
-Pseudo SQL (optional): SELECT catalogid, ra, dec, pmra, pmdec,
- epoch, h_m FROM mwm_rv_short
-  WHERE [(ra,dec) < 3 degrees on sky from
-   (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
+    Pseudo SQL (optional): SELECT catalogid, ra, dec, pmra, pmdec,
+     epoch, h_m FROM mwm_rv_short
+      WHERE [(ra,dec) < 3 degrees on sky from
+       (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
-
-
+    Target selection final for v0?: No
     """
     name = 'mwm_rv_short_rm'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_short_rm'
+    program = 'RV'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
@@ -574,58 +617,115 @@ Target selection final for v0?: No
 
 
 class MWM_RV_Short_Bplates_Carton(BaseCarton):
-    """ 2.2.2.2. Short Baseline Targets for Bright Time Plates
+    """ 3.2.2.2. Short Baseline Targets for Bright Time Plates
 
-Shorthand name: mwm_rv_short_bplates
+    Shorthand name: mwm_rv_short_bplates
 
-Simplified Description of selection criteria:
- Select from short-baseline targets (above) observable from APO
-  with H brighter than 12.2
-   with at least 100 other targets within 3 degrees that meet the other criteria.
+    Simplified Description of selection criteria:
+     Select from short-baseline targets
+     (above) observable from APO with H brighter than 12.2 with
+      at least 100 other targets within 3 degrees that meet the other criteria.
 
-Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Wiki page: Binaries and Substellar Companions (Page Under Construction)
 
-Additional source catalogs needed: Select from mwm_rv_short (2.2.2),
- but need to reference mwm_rv_long_bplates
+    Additional source catalogs needed:
+     Select from mwm_rv_short (2.2.2), but need to reference mwm_rv_long_bplates
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-Return columns: ra, dec, pmra, pmdec, h_m;
+    Return columns: ra, dec, pmra, pmdec, h_m;
 
-cadence options for these targets (list all options,
- even though no single target will receive more than one): mwm_rv_18x4
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+     RV-12 (plate cadence)
 
-Pseudo SQL (optional): SELECT catalogid, ra, dec, pmra, pmdec,
- epoch, h_m FROM mwm_rv_short
-  WHERE h_m<12.2 AND dec>-20 AND
-   [>100 objects in mwm_rv_long_bplates <3 degrees from (ra,dec)]
+    Pseudo SQL (optional): SELECT catalogid, ra, dec, pmra,
+     pmdec, epoch, h_m FROM mwm_rv_short
+      WHERE h_m<12.2 AND [(ra,dec)< 3 degrees on sky from
+       (11.83254, 85.251) OR (47.39417, 39.50294) OR ...
+       <rest of the field centers listed below>]
+    RA (Degrees)    DEC(Degrees)
+    11.83254    85.251
+    47.39417    39.50294
+    72.4084    63.603
+    75.35158    22.23817
+    94.8905 41.2531
+    111.7472    23.6726
+    114.5958    37.38599
+    114.5958    21
+    114.7236    17.1076
+    170.3706    9.9099
+    195.5556    57.06683
+    200.6    -13.7
+    206.4    -5.5
+    207.6239    2.7267
+    217.9883    8.799444
+    226.0916    32.3294
+    232.0711    6.8184
+    234.0497    86.1432
+    240.575    28.09
+    248.3458    -0.5336
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
+    Target selection final for v0?: No
 """
     name = 'mwm_rv_short_bplates'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_short_bplates'
+    program = 'RV'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
-        # WHERE [(ra,dec) < 3 degrees on sky from
-        # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
 
-        a_ra = Angle('14h14m49s').degree
-        a_dec = Angle('53d05m00s').degree
+        ra = [0] * 20
+        dec = [0] * 20
+        ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
+        ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
+        ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
+        ra[4] = 75.35158;  dec[4] = 22.23817   # noqa: E702, E241
+        ra[5] = 94.8905;   dec[5] = 41.2531    # noqa: E702, E241
+        ra[6] = 111.7472;  dec[6] = 23.6726    # noqa: E702, E241
+        ra[7] = 114.5958;  dec[7] = 37.38599   # noqa: E702, E241
+        ra[8] = 114.5958;  dec[8] = 21         # noqa: E702, E241
+        ra[9] = 114.7236;  dec[9] = 17.1076    # noqa: E702, E241
+        ra[10] = 170.3706; dec[10] = 9.9099    # noqa: E702, E241
+        ra[11] = 195.5556; dec[11] = 57.06683  # noqa: E702, E241
+        ra[12] = 200.6;    dec[12] = -13.7     # noqa: E702, E241
+        ra[13] = 206.4;    dec[13] = -5.5      # noqa: E702, E241
+        ra[14] = 207.6239; dec[14] = 2.7267    # noqa: E702, E241
+        ra[15] = 217.9883; dec[15] = 8.799444  # noqa: E702, E241
+        ra[16] = 226.0916; dec[16] = 32.3294   # noqa: E702, E241
+        ra[17] = 232.0711; dec[17] = 6.8184    # noqa: E702, E241
+        ra[18] = 234.0497; dec[18] = 86.1432   # noqa: E702, E241
+        ra[19] = 240.575;  dec[19] = 28.09     # noqa: E702, E241
+        ra[20] = 248.3458; dec[20] = -0.5336   # noqa: E702, E241
 
-        b_ra = Angle('10h00m00s').degree
-        b_dec = Angle('02d12m00s').degree
-
-        c_ra = Angle('02h23m30s').degree
-        c_dec = Angle('-04d15m00s').degree
+        ra_dec_condition = (
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[1], dec[1], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[2], dec[2], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[3], dec[3], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[4], dec[4], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[5], dec[5], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[6], dec[6], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[7], dec[7], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[8], dec[8], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[9], dec[9], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[10], dec[10], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[11], dec[11], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[12], dec[12], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[13], dec[13], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[14], dec[14], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[15], dec[15], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[16], dec[16], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[17], dec[17], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[18], dec[18], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -640,9 +740,8 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
+                        *ra_dec_condition,
+                        TwoMassPSC.h_m < 12.2))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -658,51 +757,40 @@ Target selection final for v0?: No
 
 
 class MWM_RV_Short_FPS_Carton(BaseCarton):
-    """ 2.2.2.3. Short Baseline Targets for FPS
+    """3.2.2.3. Short Baseline Targets for FPS
 
-Shorthand name: mwm_rv_short_fps
+    Shorthand name: mwm_rv_short_fps
 
-Simplified Description of selection criteria:
-Select from short-baseline targets (above) with H brighter than 10.8
+    Simplified Description of selection criteria:
+     Select from short-baseline targets (above) with H brighter than 10.8
 
-Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Wiki page: Binaries and Substellar Companions (Page Under Construction)
 
-Additional source catalogs needed: Select from mwm_rv_short (2.2.2)
+    Additional source catalogs needed: Select from mwm_rv_short (2.2.2)
 
-Additional cross-matching needed: (None)
+    Additional cross-matching needed: (None)
 
-cadence options for these targets (list all options,
- even though no single target will receive more than one): mwm_rv_18x1
+    cadence options for these targets (list all options,
+     even though no single target will receive more than one): mwm_rv_18x1
 
-Pseudo SQL (optional): SELECT catalogid, ra, dec, pmra, pmdec,
- epoch, h_m FROM mwm_rv_short WHERE h_m<10.8
+    Pseudo SQL (optional): SELECT catalogid, ra, dec,
+     pmra, pmdec, epoch, h_m FROM mwm_rv_short WHERE h_m<10.8
 
-Implementation:
+    Implementation:
 
-Non-SQL implementation:
+    Non-SQL implementation:
 
-lead contact: Nicholas Troup
+    lead contact: Nicholas Troup
 
-Target selection final for v0?: No
-"""
+    Target selection final for v0?: No
+    """
     name = 'mwm_rv_short_fps'
     category = 'science'
     cadence = None
-    program = 'program_mwm_rv_short_fps'
+    program = 'RV'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
-        # WHERE [(ra,dec) < 3 degrees on sky from
-        # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
-
-        a_ra = Angle('14h14m49s').degree
-        a_dec = Angle('53d05m00s').degree
-
-        b_ra = Angle('10h00m00s').degree
-        b_dec = Angle('02d12m00s').degree
-
-        c_ra = Angle('02h23m30s').degree
-        c_dec = Angle('-04d15m00s').degree
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -717,9 +805,7 @@ Target selection final for v0?: No
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
+                        TwoMassPSC.h_m < 10.8))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
