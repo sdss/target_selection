@@ -2,6 +2,8 @@
 
 import os
 
+import enlighten
+
 from sdsstools import get_config, get_logger, get_package_version
 
 
@@ -17,6 +19,9 @@ log = get_logger(NAME)
 __version__ = get_package_version(path=__file__,
                                   package_name=NAME,
                                   pep_440=True)
+
+
+manager = enlighten.get_manager()
 
 
 from .xmatch import XMatchPlanner, XMatchModel  # isort:skip
