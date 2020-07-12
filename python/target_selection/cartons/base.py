@@ -467,7 +467,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
                               f'and tag {self.tag!r} already has targets '
-                              'loaded. Dropping them.')
+                              'loaded. Dropping carton-to-target entries.')
                 self.drop_carton()
             else:
                 raise TargetSelectionError(f'Found existing targets for '

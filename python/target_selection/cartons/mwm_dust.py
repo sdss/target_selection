@@ -139,6 +139,11 @@ class MWM_Dust_Carton(BaseCarton):
     category = 'science'
     program = 'Dust'
 
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL max_parallel_workers_per_gather=0;')
+        super().setup_transaction()
+
     def build_query(self, version_id, query_region=None):
 
         fn = peewee.fn
@@ -175,8 +180,8 @@ class MWM_Dust_Carton(BaseCarton):
         dm = 5 * fn.log(1000. / Gaia_DR2.parallax / 10)
         absmag = twomass_cte.c.k_m - aks - dm
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2.l, Gaia_DR2.b,
                          Gaia_DR2.parallax,
                          Gaia_DR2.phot_g_mean_mag,
@@ -185,14 +190,15 @@ class MWM_Dust_Carton(BaseCarton):
                          j_ks_0.alias('j_ks_0'),
                          peewee.Value(False).alias('dustghsubsel'),
                          peewee.Value(False).alias('dustjksubsel'))
-                 .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(twomass_cte,
                        on=(TIC_v8.twomass_psc == twomass_cte.c.designation))
                  .join_from(TIC_v8, Gaia_DR2)
-                 .join_from(Catalog, CatalogToAllWise)
+                 .join_from(CatalogToTIC_v8, CatalogToAllWise,
+                            on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
                  .join(AllWise)
-                 .join_from(Catalog, CatalogToGLIMPSE)
+                 .join_from(CatalogToAllWise, CatalogToGLIMPSE,
+                            on=(CatalogToGLIMPSE.catalogid == CatalogToAllWise.catalogid))
                  .join(GLIMPSE)
                  .where(CatalogToAllWise.version_id == version_id,
                         CatalogToAllWise.best >> True)

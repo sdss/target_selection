@@ -31,7 +31,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
     name = 'mwm_tess_rgb'
     mapper = 'MWM'
     category = 'science'
-    program = 'TESS'
+    program = 'TESS RGB'
 
     def build_query(self, version_id, query_region=None):
 
