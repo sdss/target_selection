@@ -291,8 +291,8 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
-        ra = [0] * 20
-        dec = [0] * 20
+        ra = [0] * 21
+        dec = [0] * 21
         ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
         ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
         ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
@@ -495,17 +495,17 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                           TwoMassPSC.h_msigcom <= 0.1,
                           TwoMassPSC.k_msigcom <= 0.1,
                           AllWise.w2sigmpro <= 0.1,
-                          ((AllWise.ph_qual == 'AAA') |
-                           (AllWise.ph_qual == 'AAB') |
-                           (AllWise.ph_qual == 'ABA') |
-                           (AllWise.ph_qual == 'BAA') |
-                           (AllWise.ph_qual == 'ABB') |
-                           (AllWise.ph_qual == 'BAB') |
-                           (AllWise.ph_qual == 'BBA') |
-                           (AllWise.ph_qual == 'BBB')),
+                          ((TwoMassPSC.ph_qual == 'AAA') |
+                           (TwoMassPSC.ph_qual == 'AAB') |
+                           (TwoMassPSC.ph_qual == 'ABA') |
+                           (TwoMassPSC.ph_qual == 'BAA') |
+                           (TwoMassPSC.ph_qual == 'ABB') |
+                           (TwoMassPSC.ph_qual == 'BAB') |
+                           (TwoMassPSC.ph_qual == 'BBA') |
+                           (TwoMassPSC.ph_qual == 'BBB')),
                           TwoMassPSC.prox >= 6,
-                          AllWise.cc_flags == '000',
-                          TwoMassPSC.gal_contam == '000',
+                          TwoMassPSC.cc_flg == '000',
+                          TwoMassPSC.gal_contam == 0,
                           ((TwoMassPSC.rd_flg == '111') |
                            (TwoMassPSC.rd_flg == '112') |
                            (TwoMassPSC.rd_flg == '121') |
@@ -517,20 +517,39 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                           TwoMassPSC.ext_key >> None,
                           Gaia_DR2.parallax.is_null(False))
 
-# Gaia_DR2.parallax.is_null(False) is not in the pseudo SQL
+# Notes for above mwm_rv_short_condition:
+#
+# (a)Above Gaia_DR2.parallax.is_null(False) is not in the pseudo SQL
 # but is in the text description as in the below line from the text:
 # "with the additional requirement of having a Gaia parallax.
 #
-
-# WHERE h_m < 12.8 AND ((j_m-k_m) - (1.5*0.918*(h_m-w2mpro-0.05))) >= 0.5
-# AND (j_msigcom <= 0.1 AND h_msigcom<=0.1 AND k_msigcom <= 0.1) AND w2_sigmpro <=0.1
-# AND (ph_qual= 'AAA' OR ph_qual= 'AAB' OR ph_qual= 'ABA'
-# OR ph_qual= 'BAA' OR ph_qual= 'ABB' OR ph_qual= 'BAB'
-# OR ph_qual= 'BBA' OR ph_qual = 'BBB')
-# AND prox >= 6 AND cc_flag='000' AND gal_contam='000'
-# AND (rd_flg='111' OR rd_flg='112'  OR rd_flg='121'  OR rd_flg='211'
-#   OR rd_flg='122'  OR rd_flg='212'  OR rd_flg='221'  OR rd_flg='222')
-# AND ext_key=Null AS mwm_rv_short
+# (b) TwoMassPSC.gal_contam has a type smallint.
+# Hence I compare it above with 0 instead of '000'.
+# (The pseudo SQL compares gal_contam with '000')
+#
+# (c) There are two tables with a column called ph_qual:
+#
+# allwise: ph_qual       | character(4)   |
+# twomass_psc: ph_qual       | character(3)     |
+#
+# The column twomass_psc.ph_qual has type character(3) which
+# is the same as the 3 character strings in the pseudo SQL
+# Hence, I have used TwoMassPSC.ph_qual above.
+#
+# (d) The Pseudo SQL has the below condition:
+# cc_flag='000'
+#
+# However there is no column called cc_flag.
+# There are below columns with similar names:
+#
+# allwise: cc_flags      | character(4)   |
+# twomass_psc: cc_flg        | character(3)     |
+#
+# The column twomass_psc.cc_flg has type character(3) which
+# is the same as the 3 character strings in the pseudo SQL
+# Hence, I have used TwoMassPSC.cc_flg above.
+#
+#
 
 
 class MWM_RV_Short_RM_Carton(BaseCarton):
@@ -682,8 +701,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        ra = [0] * 20
-        dec = [0] * 20
+        ra = [0] * 21
+        dec = [0] * 21
         ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
         ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
         ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
