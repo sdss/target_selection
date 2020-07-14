@@ -701,7 +701,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                .join(tdb.Cadence, 'LEFT OUTER JOIN',
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
-        if self.cadence is None:
+        #TD# The following was causing priority not to be propogated into the catalog_to_target table
+        #TD# if self.cadence is None:
+        if self.priority is None:
             select_from = select_from.select_extend(RModel.priority)
         else:
             select_from = select_from.select_extend(self.priority)
