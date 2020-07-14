@@ -79,24 +79,26 @@ class BhmGuaBaseCarton(BaseCarton):
         s = SDSS_DR16_SpecObj.alias()
 
         # set the Carton priority+values here - read from yaml
-        target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        target_value = peewee.Value(float(self.parameters.get('value', 1.0))).alias('value')
-        pmra = peewee.Value(0.0).alias('pmra')
-        pmdec = peewee.Value(0.0).alias('pmdec')
+        priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
+        pmra = peewee.Value(0.0).cast('float').alias('pmra')
+        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
+        parallax = peewee.Value(0.0).cast('float').alias('parallax')
         match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
         query = (
             c.select(c.catalogid,
 #                     t.ra, t.dec, t.gaia_sourceid, ## debug
-                     target_priority,
+                     priority,
+                     value,
                      pmra,
                      pmdec,
-                     target_value,
-                     t.g.alias('magnitude_g'),
-                     t.bp.alias('magnitude_bp'), ## debug
-                     t.rp.alias('magnitude_rp'), ## debug
-                     t.w1.alias('magnitude_w1'), ## debug
-                     t.w2.alias('magnitude_w2'), ## debug
+                     parallax,
+                     t.g.alias('g'),
+                     t.bp.alias('bp'), ## debug
+                     t.rp.alias('rp'), ## debug
+#                     t.w1.alias('magnitude_w1'), ## debug
+#                     t.w2.alias('magnitude_w2'), ## debug
             )
             .join(c2tic)
             .join(tic)

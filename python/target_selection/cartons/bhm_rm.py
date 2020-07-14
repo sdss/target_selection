@@ -81,21 +81,92 @@ class BhmRmBaseCarton(BaseCarton):
         self.alias_t = t
 
         # set the Carton priority+values here - read from yaml
-        target_priority = peewee.Value(self.parameters.get('priority', 10000)).alias('priority')
-        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
-        pmra = peewee.Value(0.0).alias('pmra')
-        pmdec = peewee.Value(0.0).alias('pmdec')
+        #priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
+
+        # fold in tiers of magnitude-based priority
+        priority_mag_step = 0.5
+        priority_mag_bright = 17.0
+        priority_mag_faint = 22.0
+        priority_floor = self.parameters.get('priority', 10000)
+        priority = peewee.Case(None,
+                                  (
+                                    ((t.mi <= priority_mag_bright), priority_floor+0),
+                                    ((t.mi <= priority_mag_faint),
+                                     priority_floor + 5*(1+peewee.fn.floor((t.mi-priority_mag_bright)/priority_mag_step).cast('int'))),
+                                    ((t.mi >= priority_mag_faint), priority_floor+95),
+                                  ),
+                               None).cast('int')
+
+
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
+        pmra = peewee.Value(0.0).cast('float').alias('pmra')
+        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
+        parallax = peewee.Value(0.0).cast('float').alias('parallax')
+
+
+        magnitude_g = peewee.Case(None,
+                                  (
+                                    ((t.sdss == 1), t.psfmag_sdss[1]),
+                                    ((t.ps1 == 1), t.psfmag_ps1[0]),
+                                    ((t.des == 1), t.psfmag_des[0]),
+                                    ((t.nsc == 1), t.mag_nsc[0]),
+                                  ),
+                                  None) ## should never get here
+        magnitude_r = peewee.Case(None,
+                                  (
+                                    ((t.sdss == 1), t.psfmag_sdss[2]),
+                                    ((t.ps1 == 1), t.psfmag_ps1[1]),
+                                    ((t.des == 1), t.psfmag_des[1]),
+                                    ((t.nsc == 1), t.mag_nsc[1]),
+                                  ),
+                                  None) ## should never get here
+        magnitude_i = peewee.Case(None,
+                                  (
+                                    ((t.sdss == 1), t.psfmag_sdss[3]),
+                                    ((t.ps1 == 1), t.psfmag_ps1[2]),
+                                    ((t.des == 1), t.psfmag_des[2]),
+                                    ((t.nsc == 1), t.mag_nsc[2]),
+                                  ),
+                                  t.mi) ## should never get here
+        magnitude_z = peewee.Case(None,
+                                  (
+                                    ((t.sdss == 1), t.psfmag_sdss[4]),
+                                    ((t.ps1 == 1), t.psfmag_ps1[3]),
+                                    ((t.des == 1), t.psfmag_des[3]),
+                                    ((t.nsc == 1), t.mag_nsc[3]),
+                                  ),
+                                  None) ## should never get here
+
+
+        # now gaia mags
+        magnitude_bp = peewee.Case(None,
+                                   (
+                                    ((t.gaia == 1), t.mag_gaia[1]),
+                                   ),
+                                   None)
+        magnitude_rp = peewee.Case(None,
+                                   (
+                                    ((t.gaia == 1), t.mag_gaia[2]),
+                                   ),
+                                   None)
+
+
 
         query = (
             c
             .select(c.catalogid,
 #                    t.pk.alias("rm_pk"), t.ra.alias("rm_ra"), t.dec.alias("rm_dec"), t.field_name.alias("rm_field"), ## debug
-                    target_priority,
-                    target_value,
+                    priority.alias('priority'),
+                    value,
                     pmra,
                     pmdec,
-                    t.mg.alias('magnitude_g'),
-                    t.mi.alias('magnitude_i')
+                    parallax,
+                    magnitude_g.alias('g'),
+                    magnitude_r.alias('r'),
+                    magnitude_i.alias('i'),
+                    magnitude_z.alias('z'),
+                    magnitude_bp.alias('bp'),
+                    magnitude_rp.alias('rp'),
 #                    t.psfmag_sdss[1].alias('magnitude_g'),   ## will not be available for targets outside SDSS
 #                    t.psfmag_sdss[2].alias('magnitude_r'),   ## will not be available for targets outside SDSS
 #                    t.psfmag_sdss[3].alias('magnitude_i'),   ## ditto

@@ -100,26 +100,40 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
 
         flux30 = AB2nMgy(30.0)
 
-        target_value = peewee.Value(base_parameters.get('value', 1.0)).alias('value')
+        value = peewee.Value(base_parameters.get('value', 1.0)).cast('float').alias('value')
         match_radius_spectro = base_parameters['spec_join_radius']/3600.0
 
         p_f = base_parameters['priority_floor']
-        priority_val = peewee.Case(None,
-                                   (
-                                       ((x.target_priority == 0), p_f+0), # BCGs
-                                   ),
-                                   p_f + x.target_priority + 10)     # Member galaxies
+        priority = peewee.Case(None,
+                               (
+                                   ((x.target_priority == 0), p_f+0), # BCGs
+                               ),
+                               p_f + x.target_priority + 10)     # Member galaxies
+
+        # legacysurvey mags - derived from fiberfluxes - with limits to avoid divide by zero errors
+        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).cast('float')
+        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).cast('float')
+        magnitude_i = peewee.Value(None).cast('float')
+        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).cast('float')
+
+        pmra = peewee.Value(0.0).cast('float').alias('pmra')
+        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
+        parallax = peewee.Value(0.0).cast('float').alias('parallax')
 
         query = (
             c
             .select(c.catalogid,
 #                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
 #                    x.xmatch_flags, #debug
-                    priority_val.alias('priority'),
-                    target_value,
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('magnitude_r'),
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).alias('magnitude_z'),
+                    priority.alias('priority'),
+                    value,
+                    pmra,
+                    pmdec,
+                    parallax,
+                    magnitude_g.alias("g"),
+                    magnitude_r.alias("r"),
+                    magnitude_i.alias("i"),
+                    magnitude_z.alias("z"),
             )
             .join(c2ls)
             .join(ls)
