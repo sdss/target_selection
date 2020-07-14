@@ -6,23 +6,18 @@
 # @Filename: mwm_rv.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 import peewee
+from astropy.coordinates import Angle
+
+from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog, CatalogToTIC_v8,
+                                             Gaia_DR2,
+                                             SDSS_APOGEE_AllStarMerge_r13,
+                                             TIC_v8, TwoMassPSC)
+
+from target_selection.cartons import BaseCarton
 
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
-
-
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToTIC_v8,
-                                             TIC_v8,
-                                             SDSS_APOGEE_AllStarMerge_r13,
-                                             TwoMassPSC,
-                                             Gaia_DR2,
-                                             AllWise)
-# from . import BaseCarton
-from target_selection.cartons import BaseCarton
-from astropy.coordinates import Angle
-
 
 # 2.2.1. Long Baseline (Legacy Targets)
 
