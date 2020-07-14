@@ -336,6 +336,8 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
+# We use *mwm_rv_long_condition to unpack the tuple mwm_rv_long_condition.
+# However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
                  .join(CatalogToTIC_v8,
@@ -351,7 +353,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        *ra_dec_condition,
+                        ra_dec_condition,
                         SDSS_APOGEE_AllStarMerge_r13.h < 12.2,
                         SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6))
         # Below ra, dec and radius are in degrees
@@ -746,6 +748,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
+# We use *mwm_rv_short_condition to unpack the tuple mwm_rv_short_condition.
+# However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
                  .join(CatalogToTIC_v8,
@@ -759,7 +763,7 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
-                        *ra_dec_condition,
+                        ra_dec_condition,
                         TwoMassPSC.h_m < 12.2))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
