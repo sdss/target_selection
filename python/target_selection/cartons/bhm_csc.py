@@ -53,20 +53,20 @@ class BhmCscBaseCarton(BaseCarton):
         self.alias_t = t
 
         # set the Carton priority+values here - read from yaml
-        target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        target_value = peewee.Value(float(self.parameters.get('value', 1.0))).alias('value')
+        priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
 
         query = (
             c
             .select(c.catalogid,
 #                    c.ra, c.dec, t.cxo_name, t.oir_ra.alias("csc_oir_ra"), t.oir_dec.alias("csc_oir_dec"), ## debug
-                    target_priority,
-                    target_value,
-                    t.mag_g.alias('magnitude_g'),
-                    t.mag_r.alias('magnitude_r'),
-                    t.mag_i.alias('magnitude_i'),
-                    t.mag_z.alias('magnitude_z'),
-                    t.mag_h.alias('magnitude_h'),
+                    priority,
+                    value,
+                    t.mag_g.alias('g'),
+                    t.mag_r.alias('r'),
+                    t.mag_i.alias('i'),
+                    t.mag_z.alias('z'),
+                    t.mag_h.alias('h'),
             )
             .join(c2t)
             .join(t)
@@ -76,7 +76,7 @@ class BhmCscBaseCarton(BaseCarton):
             .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample,
             .where
             (
-                c2t.best == True  # this polishes off some stray duplicates
+                t.spectrograph == self.instrument
             )
         )
 
@@ -99,8 +99,7 @@ class BhmCscBossDarkCarton(BhmCscBaseCarton):
         t = self.alias_t
         query = query.where(
             (t.mag_i >= self.parameters['mag_i_min']) &
-            (t.mag_i <  self.parameters['mag_i_max']) &
-            (t.spectrograph == self.instrument)
+            (t.mag_i <  self.parameters['mag_i_max'])
         )
         return query
 
@@ -119,8 +118,7 @@ class BhmCscBossBrightCarton(BhmCscBaseCarton):
         t = self.alias_t
         query = query.where(
             (t.mag_i >= self.parameters['mag_i_min']) &
-            (t.mag_i <  self.parameters['mag_i_max']) &
-            (t.spectrograph == self.instrument)
+            (t.mag_i <  self.parameters['mag_i_max'])
         )
         return query
 
@@ -139,8 +137,7 @@ class BhmCscApogeeCarton(BhmCscBaseCarton):
         t = self.alias_t
         query = query.where(
             (t.mag_h >= self.parameters['mag_h_min']) &
-            (t.mag_h <  self.parameters['mag_h_max']) &
-            (t.spectrograph == self.instrument)
+            (t.mag_h <  self.parameters['mag_h_max'])
         )
         return query
 

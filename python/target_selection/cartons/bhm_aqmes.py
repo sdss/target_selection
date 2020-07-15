@@ -19,10 +19,11 @@ import pkg_resources
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             SDSS_DR13_PhotoObj,
+#                                             SDSS_DR13_PhotoObj,
                                              SDSS_DR16_SpecObj,
                                              SDSS_DR14_QSO,
-                                             CatalogToSDSS_DR13_PhotoObj)
+                                             CatalogToSDSS_DR16_SpecObj)
+#                                             CatalogToSDSS_DR13_PhotoObj)
 
 # when DR16Q is available
 #from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
@@ -113,8 +114,9 @@ class BhmAqmesBaseCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2p = CatalogToSDSS_DR13_PhotoObj.alias()
-        p = SDSS_DR13_PhotoObj.alias()
+        c2s = CatalogToSDSS_DR16_SpecObj.alias()
+#        c2p = CatalogToSDSS_DR13_PhotoObj.alias()
+#        p = SDSS_DR13_PhotoObj.alias()
         s = SDSS_DR16_SpecObj.alias()
         t = SDSS_DR14_QSO.alias()
         self.alias_c = c
@@ -122,9 +124,10 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         # set the Carton priority+values here - read from yaml
         target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        target_value = peewee.Value(float(self.parameters.get('value', 1.0))).alias('value')
-        pmra =  peewee.Value(float(0.0)).alias('pmra')
-        pmdec = peewee.Value(float(0.0)).alias('pmdec')
+        target_value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
+        pmra =  peewee.Value(0.0).cast('float').alias('pmra')
+        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
+        parallax = peewee.Value(0.0).cast('float').alias('parallax')
 
         query = (
             c
@@ -134,18 +137,23 @@ class BhmAqmesBaseCarton(BaseCarton):
                     target_value,
                     pmra,
                     pmdec,
-                    t.psfmag[1].alias('magnitude_g'),
-                    t.psfmag[2].alias('magnitude_r'),
-                    t.psfmag[3].alias('magnitude_i'),
-                    t.psfmag[4].alias('magnitude_z'),
+                    parallax,
+                    t.psfmag[1].alias('g'),
+                    t.psfmag[2].alias('r'),
+                    t.psfmag[3].alias('i'),
+                    t.psfmag[4].alias('z'),
             )
-            .join(c2p)
-            .join(p)
-            .join(s, on=(p.objid == s.bestobjid))
+#            .join(c2p)
+#            .join(p)
+#            .join(s, on=(p.objid == s.bestobjid))
+            .join(c2s)
+            .join(s)
             .join(t, on=((s.plate == t.plate) & (s.mjd == t.mjd) & (s.fiberid == t.fiberid)))
             .where(c.version_id == version_id,
-                   c2p.version_id == version_id,
-                   c2p.best == True)
+                   c2s.version_id == version_id,
+                   c2s.best == True)
+#                   c2p.version_id == version_id,
+#                   c2p.best == True)
             .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
             .where
             (

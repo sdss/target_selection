@@ -129,33 +129,59 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         fiberflux_r_min = AB2nMgy(self.parameters['fibermag_r_max'])
         fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
 
-        flux30 = AB2nMgy(30.0)
+        flux30 = AB2nMgy(30.00)
 
-        target_value = peewee.Value(self.parameters.get('value', 1.0)).alias('value')
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
         match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
         p_f = self.parameters['priority_floor']
-        priority_val = peewee.Case(None,
+        priority = peewee.Case(None,
+                               (
+                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
+                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(True)), p_f+1),
+                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+2),
+                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
+                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+6),
+                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+7),
+                               ),
+                               p_f+9) ## should never get here
+
+        # legacysurvey mags - derived from fiberfluxes - with limits to avoid divide by zero errors
+        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).cast('float')
+        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).cast('float')
+        magnitude_i = peewee.Value(None).cast('float')
+        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).cast('float')
+
+
+        # now gaia mags
+        magnitude_bp = peewee.Case(None,
                                    (
-                                       ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
-                                       ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(True)), p_f+1),
-                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+2),
-                                       ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
-                                       ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+6),
-                                       ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+7),
+                                    ((ls.ref_cat == 'G2'), ls.gaia_phot_bp_mean_mag),
                                    ),
-                                   p_f+9) ## should never get here
+                                   None)
+        magnitude_rp = peewee.Case(None,
+                                   (
+                                    ((ls.ref_cat == 'G2'), ls.gaia_phot_rp_mean_mag),
+                                   ),
+                                   None)
+
 
         query = (
             c
             .select(c.catalogid,
 #                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
 #                    x.xmatch_method, x.xmatch_metric, x.xmatch_flags, ## debug
-                    priority_val.alias('priority'),
-                    target_value,
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('magnitude_g'),
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('magnitude_r'),
-                    (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).alias('magnitude_z'),
+                    priority.alias('priority'),
+                    value,
+                    #(22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).alias('g'),
+                    #(22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).alias('r'),
+                    #(22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).alias('z'),
+                    magnitude_g.alias("g"),
+                    magnitude_r.alias("r"),
+                    magnitude_i.alias("i"),
+                    magnitude_z.alias("z"),
+                    magnitude_bp.alias("bp"),
+                    magnitude_rp.alias("rp"),
             )
             .join(c2ls)
             .join(ls)
