@@ -5,7 +5,9 @@
 # @Date: 2020-06-10
 # @Filename: mwm_rv.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
 import peewee
+
 from astropy.coordinates import Angle
 
 from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog, CatalogToTIC_v8,
