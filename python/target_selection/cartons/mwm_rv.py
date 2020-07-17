@@ -14,6 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog, CatalogToTIC_v8,
                                              SDSS_APOGEE_AllStarMerge_r13,
                                              TIC_v8, TwoMassPSC)
 
+from target_selection import log
 from target_selection.cartons import BaseCarton
 
 
@@ -591,7 +592,11 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
     program = 'RV'
     mapper = 'MWM'
 
+    def setup_transaction(self):
+        pass
+
     def build_query(self, version_id, query_region=None):
+
         # WHERE [(ra,dec) < 3 degrees on sky from
         # (14:14:49 +53:05:00) OR (10:00:00 +02:12:00) OR (02:23:30 -04:15:00)]
 
@@ -604,30 +609,49 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
         c_ra = Angle('02h23m30s').degree
         c_dec = Angle('-04d15m00s').degree
 
-        query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+        log.debug('Creating temporary table for radial query...')
+
+        radial_query = (Catalog
+                        .select(Catalog.catalogid)
+                        .where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                          a_ra, a_dec, 3) |
+                               peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                          b_ra, b_dec, 3) |
+                               peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
+                                                          c_ra, c_dec, 3))
+                        .cte('radial_query', materialized=True))
+
+        RadialQuery = peewee.Table('mwm_rv_short_rm_temp')
+
+        (CatalogToTIC_v8
+         .select(radial_query.c.catalogid)
+         .join(radial_query,
+               on=(radial_query.c.catalogid == CatalogToTIC_v8.catalogid))
+         .where(CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True)
+         .with_cte(radial_query)
+         .create_table(RadialQuery.__name__, temporary=True))
+
+        query = (CatalogToTIC_v8
+                 .select(RadialQuery.c.catalogid)
+                 .join(RadialQuery,
+                       on=(RadialQuery.c.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        *mwm_rv_short_condition,
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, a_ra, a_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, b_ra, b_dec, 3) |
-                        peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, c_ra, c_dec, 3)))
+                 .join_from(TIC_v8, TwoMassPSC,
+                            on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join_from(TIC_v8, AllWise,
+                            on=(TIC_v8.allwise == AllWise.designation))
+                 .where(*mwm_rv_short_condition))
+
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
+                     .where(peewee.fn.q3c_radial_query(radial_query.c.ra,
+                                                       radial_query.c.dec,
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
