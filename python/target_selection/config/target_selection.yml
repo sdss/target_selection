@@ -2,7 +2,6 @@
     xmatch_plan: 0.1.0
     cartons:
         - mwm_ob
-        - mwm_ob_mc
         - mwm_ob_cepheids
         - mwm_galactic
         - mwm_planet
@@ -245,4 +244,3 @@
             priority_version_2: 6000
     database_options:
         work_mem: '5GB'
-        temp_buffers: '10GB'
