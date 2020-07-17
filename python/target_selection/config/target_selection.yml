@@ -5,8 +5,8 @@
         - mwm_ob_cepheids
         - mwm_galactic
         - mwm_planet
-        - mwm_100pc
-        - mwm_250pc
+        - mwm_snc_100pc
+        - mwm_snc_250pc
         - mwm_cb_300pc
         - mwm_cb_gaiagalex
         - mwm_cb_cvcandidates
