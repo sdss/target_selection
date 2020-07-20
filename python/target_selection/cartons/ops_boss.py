@@ -74,10 +74,10 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
 #
 #
     name = 'ops_boss_stds'
-    category = 'OPS'
+    category = 'standards'
     cadence = None
-    program = 'OPS'
-    mapper = 'OPS'
+    program = 'std'
+    mapper = None
 
     def build_query(self, version_id, query_region=None):
 
@@ -138,13 +138,13 @@ class OPS_BOSS_Red_Stds_Carton(BaseCarton):
 #
 
     name = 'mwm_boss_red_stds'
-    category = 'OPS'
+    category = 'standards'
     cadence = None
-    program = 'OPS'
-    mapper = 'OPS'
+    program = 'std'
+    mapper = None
 
     def build_query(self, version_id, query_region=None):
-
+# TODO define ag and ak
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
                  .join(CatalogToTIC_v8,
