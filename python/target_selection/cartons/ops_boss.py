@@ -99,6 +99,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
                        on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.parallax > 0,
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) >= 0.65,
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) <= 0.8,
                         (Gaia_DR2.phot_g_mean_mag -
@@ -157,6 +158,7 @@ class OPS_BOSS_Red_Stds_Carton(BaseCarton):
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.parallax > 0,
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) >= 1.1,
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
                         ((Gaia_DR2.phot_g_mean_mag -
