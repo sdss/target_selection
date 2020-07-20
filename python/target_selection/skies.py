@@ -8,7 +8,6 @@
 
 import multiprocessing
 from functools import partial
-from operator import mul
 
 import healpy
 import numpy
@@ -119,6 +118,9 @@ def _process_tile(pix, connection=None, query=None,
     database = PostgresqlDatabase(dbname, **database_params)
 
     targets = pandas.read_sql(query.format(pix=pix), database)
+    if len(targets) == 0:
+        return False
+
     targets['pix'] = healpy.ang2pix(candidate_nside, targets.ra, targets.dec,
                                     nest=True, lonlat=True)
 
@@ -268,13 +270,15 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     if use_multiprocessing:
         with multiprocessing.Pool(processes=n_cpus) as pool:
             for valid_skies in pool.imap_unordered(process_tile, range(n_tiles)):
-                hdf.append(key, valid_skies)
-                pbar.update()
+                if valid_skies is not False:
+                    hdf.append(key, valid_skies)
+                    pbar.update()
     else:
         for tile in range(n_tiles):
             valid_skies = process_tile(tile)
-            hdf.append(key, valid_skies)
-            pbar.update()
+            if valid_skies is not False:
+                hdf.append(key, valid_skies)
+                pbar.update()
 
     hdf.close()
 

@@ -72,8 +72,7 @@ class MWM_OB_Carton(BaseCarton):
                  .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2.parallax,
                          Gaia_DR2.source_id.alias('gaia_source_id'),
-                         km.alias('ks_m'),
-                         Gaia_DR2_RUWE.ruwe)
+                         km.alias('ks_m'))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .join(Gaia_DR2_RUWE,
@@ -84,7 +83,7 @@ class MWM_OB_Carton(BaseCarton):
                        on=(TMBN.tmass_pts_key == TwoMassPSC.pts_key))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
-                 .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km) / 5.)),
+                 .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km - 0.61) / 5.)),
                         Gm < 16.,
                         Gm > 12,
                         jm - km - 0.25 * (Gm - km) < 0.10,
@@ -93,9 +92,7 @@ class MWM_OB_Carton(BaseCarton):
                         jm - hm > 0.15 * (Gm - km) - 0.15,
                         jm - km < 0.23 * (Gm - km) + 0.03,
                         Gm > 2 * (Gm - km) + 3.0,
-                        Gm < 2 * (Gm - km) + 11.,
-                        TMBN.angular_distance < 1.,
-                        Gaia_DR2_RUWE.ruwe < 1.4))
+                        TMBN.angular_distance < 1.))
 
         if query_region:
             query = (query
@@ -176,75 +173,75 @@ class MWM_OB_Carton(BaseCarton):
         #      .execute())
 
 
-class MWM_OB_MC_Carton(BaseCarton):
-    """Magellanic Clouds OB stars.
+# class MWM_OB_MC_Carton(BaseCarton):
+#     """Magellanic Clouds OB stars.
 
-    Definition: Select all the hot, young stars in Gaia and 2MASS with M_K < 0
-    mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Magellanic Clouds.
+#     Definition: Select all the hot, young stars in Gaia and 2MASS with M_K < 0
+#     mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Magellanic Clouds.
 
-    Pseudo-query:
+#     Pseudo-query:
 
-        phot_g_mean_ mag < 16.0
-        AND parallax < power(10., (10. -  ks_m) / 5.)
-        AND jm - ks_m - 0.25 * (phot_g_mean_mag - ks_m) < 0.10
-        AND j_m - h_m < 0.15 * (phot_g_mean_mag -ks_m) + 0.05
-        AND j_m - ks_m < 0.23 * (phot_g_mean_mag -ks_m) + 0.03
-        AND phot_g_mean_mag > 2 * (phot_g_mean_mag -ks_m) + 3.0
-        AND  265.0 < l < 310.0
-        AND -50 < b < -25.0
-        AND xmatch.angular distance < 1.0
+#         phot_g_mean_ mag < 16.0
+#         AND parallax < power(10., (10. -  ks_m) / 5.)
+#         AND jm - ks_m - 0.25 * (phot_g_mean_mag - ks_m) < 0.10
+#         AND j_m - h_m < 0.15 * (phot_g_mean_mag -ks_m) + 0.05
+#         AND j_m - ks_m < 0.23 * (phot_g_mean_mag -ks_m) + 0.03
+#         AND phot_g_mean_mag > 2 * (phot_g_mean_mag -ks_m) + 3.0
+#         AND  265.0 < l < 310.0
+#         AND -50 < b < -25.0
+#         AND xmatch.angular distance < 1.0
 
-    Notes:
-        - ks_m is the same as twomass_psc.h_m.
+#     Notes:
+#         - ks_m is the same as twomass_psc.h_m.
 
-    """
+#     """
 
-    name = 'mwm_ob_mc'
-    mapper = 'MWM'
-    category = 'science'
-    cadence = 'mwm_ob_3x1'
-    program = 'OB'
+#     name = 'mwm_ob_mc'
+#     mapper = 'MWM'
+#     category = 'science'
+#     cadence = 'mwm_ob_3x1'
+#     program = 'OB'
 
-    def build_query(self, version_id, query_region=None):
+#     def build_query(self, version_id, query_region=None):
 
-        b = Gaia_DR2.b
-        l = Gaia_DR2.l  # noqa
+#         b = Gaia_DR2.b
+#         l = Gaia_DR2.l  # noqa
 
-        km = TwoMassPSC.k_m
-        hm = TwoMassPSC.h_m
-        jm = TwoMassPSC.j_m
-        Gm = Gaia_DR2.phot_g_mean_mag
+#         km = TwoMassPSC.k_m
+#         hm = TwoMassPSC.h_m
+#         jm = TwoMassPSC.j_m
+#         Gm = Gaia_DR2.phot_g_mean_mag
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.source_id.alias('gaia_source_id'))
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
-                 .join(TMBN, on=(TMBN.source_id == Gaia_DR2.source_id))
-                 .join(TwoMassPSC,
-                       on=(TMBN.tmass_pts_key == TwoMassPSC.pts_key))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True)
-                 .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km) / 5.)),
-                        Gm < 16.,
-                        Gm > 12,
-                        jm - km - 0.25 * (Gm - km) < 0.10,
-                        jm - hm < 0.15 * (Gm - km) + 0.05,
-                        jm - km < 0.23 * (Gm - km) + 0.03,
-                        Gm > 2 * (Gm - km) + 3.0,
-                        TMBN.angular_distance < 1.,
-                        b > -50., b < -25., l > 265., l < 310.))
+#         query = (CatalogToTIC_v8
+#                  .select(CatalogToTIC_v8.catalogid,
+#                          Gaia_DR2.source_id.alias('gaia_source_id'))
+#                  .join(TIC_v8)
+#                  .join(Gaia_DR2)
+#                  .join(TMBN, on=(TMBN.source_id == Gaia_DR2.source_id))
+#                  .join(TwoMassPSC,
+#                        on=(TMBN.tmass_pts_key == TwoMassPSC.pts_key))
+#                  .where(CatalogToTIC_v8.version_id == version_id,
+#                         CatalogToTIC_v8.best >> True)
+#                  .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km) / 5.)),
+#                         Gm < 16.,
+#                         Gm > 12,
+#                         jm - km - 0.25 * (Gm - km) < 0.10,
+#                         jm - hm < 0.15 * (Gm - km) + 0.05,
+#                         jm - km < 0.23 * (Gm - km) + 0.03,
+#                         Gm > 2 * (Gm - km) + 3.0,
+#                         TMBN.angular_distance < 1.,
+#                         b > -50., b < -25., l > 265., l < 310.))
 
-        if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+#         if query_region:
+#             query = (query
+#                      .join_from(CatalogToTIC_v8, Catalog)
+#                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
+#                                                        Catalog.dec,
+#                                                        query_region[0],
+#                                                        query_region[1],
+#                                                        query_region[2])))
 
-        return query
+#         return query
 
 
 class MWM_OB_Cepheids_Carton(BaseCarton):

@@ -2,12 +2,11 @@
     xmatch_plan: 0.1.0
     cartons:
         - mwm_ob
-        - mwm_ob_mc
         - mwm_ob_cepheids
         - mwm_galactic
         - mwm_planet
-        - mwm_100pc
-        - mwm_250pc
+        - mwm_snc_100pc
+        - mwm_snc_250pc
         - mwm_cb_300pc
         - mwm_cb_gaiagalex
         - mwm_cb_cvcandidates
@@ -50,6 +49,12 @@
         - mwm_yso_cluster
         - mwm_dust
         - mwm_wd
+        - mwm_rv_long_rm
+        - mwm_rv_long_bplates
+        - mwm_rv_long_fps
+        - mwm_rv_short_rm
+        - mwm_rv_short_bplates
+        - mwm_rv_short_fps
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
@@ -243,4 +248,3 @@
             priority_version_2: 6000
     database_options:
         work_mem: '5GB'
-        temp_buffers: '10GB'
