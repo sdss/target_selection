@@ -9,7 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC)
+                                             Gaia_DR2, TIC_v8, TwoMassPSC,
+                                             eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 
@@ -21,7 +22,7 @@ from target_selection.cartons import BaseCarton
 # peewee Model name ---> postgres table name
 # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
 # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
-
+# eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
 
 class OPS_BOSS_Stds_Carton(BaseCarton):
     """
@@ -197,7 +198,6 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_red_stds_deredden
     lead contact: Kevin Covey
-
     """
 
 # This carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0.
@@ -271,6 +271,61 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
                         (abs_gmag - ag) >= 3,
                         (abs_gmag - ag) <= 5.5))
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+        return query
+
+
+class OPS_eBOSS_Stds_Carton(BaseCarton):
+    """
+    Shorthand name: ops_eboss_stds
+    lead contact: Kevin Covey
+    """
+# SQL example:
+# CREATE TABLE sandbox.eboss_std
+#     AS SELECT c2t.catalogid
+#        FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
+#             JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
+#        WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
+#             (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
+#             (e.eboss_target1 & pow(2, 52)::bigint) > 0;
+#
+# # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
+
+    name = 'ops_eboss_stds'
+    category = 'standard'
+    cadence = None
+    program = 'std'
+    mapper = None
+
+    def build_query(self, version_id, query_region=None):
+
+        selection_condition = (
+            (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 50)) > 0) |
+            (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 51)) > 0) |
+            (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 52)) > 0))
+
+        query = (Catalog
+                 .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(eBOSS_Target_v5,
+                       on=(TIC_v8.sdss == eBOSS_Target_v5.objid_targeting))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        selection_condition))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
