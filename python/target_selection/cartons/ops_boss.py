@@ -20,6 +20,7 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
+#################################
 # --- variables invoked in the criteria below ---
 #
 #  #step not shown:
@@ -34,7 +35,7 @@ from target_selection.cartons import BaseCarton
 #
 #  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
 #  bp_rp_excess = bp - rp - 0.725
-# 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
+#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
 #
 #  #only deredden if bp_rp_excess is positive
 #  worth_dereddening = np.where( bp_rp_excess >= 0)
@@ -47,7 +48,7 @@ from target_selection.cartons import BaseCarton
 #  arp[worth_dereddening] = 1.429*bp_rp_excess[worth_dereddening]
 #
 #
-#
+################################
 
 
 class OPS_BOSS_Stds_Carton(BaseCarton):
@@ -61,20 +62,27 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 
     # --- criteria for ops_BOSS_stds ---
-#
-# meet_std_criteria =
-# np.where( ( ( (gaia_DR2.phot_bp_mean_mag -
-#                gaia_DR2.phot_rp_mean_mag) >= 0.65) &
-#               ( (gaia_DR2.phot_bp_mean_mag -
-#                  gaia_DR2.phot_rp_mean_mag) <= 0.8) &
-#               ( (abs_gmag) >= 3.5) & ( (abs_gmag) <= 5.5) )
-#          )
-#
-#
-#
-#
+    #  #calculate distance modulus (could convert to use BailerJones distance)
+    #  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+    #
+    #  #calculate absolute g and k magnitudes
+    #  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
+    #  abs_kmag = twomass_psc.k_m - distMod
+    #
+    #
+    # meet_std_criteria =
+    # np.where( ( ( (gaia_DR2.phot_bp_mean_mag -
+    #                gaia_DR2.phot_rp_mean_mag) >= 0.65) &
+    #               ( (gaia_DR2.phot_bp_mean_mag -
+    #                  gaia_DR2.phot_rp_mean_mag) <= 0.8) &
+    #               ( (abs_gmag) >= 3.5) & ( (abs_gmag) <= 5.5) )
+    #          )
+    #
+    #
+    #
+    #
     name = 'ops_boss_stds'
-    category = 'standards'
+    category = 'standard'
     cadence = None
     program = 'std'
     mapper = None
@@ -122,13 +130,42 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
         return query
 
 
-class OPS_BOSS_Red_Stds_Carton(BaseCarton):
+class OPS_BOSS_Red_Stds_No_Deredden_Carton(BaseCarton):
     """
-    Shorthand name: ops_boss_red_stds
+    Shorthand name: ops_boss_red_stds_no_deredden
     lead contact: Kevin Covey
     """
 
+# This carton OPS_BOSS_Red_Stds_No_Deredden_Carton is for the case bp_rp_excess < 0.
+# bp_rp_excess is defined below.
+#
+# (Another carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0)
+#
+#  #calculate distance modulus (could convert to use BailerJones distance)
+#  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+#
+#  #calculate absolute g and k magnitudes
+#  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
 
+#  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
+#  bp_rp_excess = bp - rp - 0.725
+#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
+#
+#  #only deredden if bp_rp_excess is positive
+#  worth_dereddening = np.where( bp_rp_excess >= 0)
+#
+#
+#  #calculate a_g and a_k using coefficients from Wang & Chen 2019
+#  (use 0 otherwise; np.zero commands truncated for brevity)
+#  ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
+#  ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
+#
+# This carton has worth_dereddening = False since the where clause has
+# Gaia_DR2.bp_rp-0.725 < 0
+# Hence,
+# ag = 0
+# ak = 0
+#
 # --- criteria for ops_BOSS_redstds ---
 #
 # meet_reddened_criteria =
@@ -137,14 +174,22 @@ class OPS_BOSS_Red_Stds_Carton(BaseCarton):
 #             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
 #
 
-    name = 'mwm_boss_red_stds'
-    category = 'standards'
+    name = 'mwm_boss_red_stds_no_deredden'
+    category = 'standard'
     cadence = None
     program = 'std'
     mapper = None
 
     def build_query(self, version_id, query_region=None):
-# TODO define ag and ak
+
+        distMod = 5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0
+        abs_gmag = Gaia_DR2.phot_g_mean_mag - distMod
+        bp_rp_excess = Gaia_DR2.bp_rp - 0.725
+        ag = 0
+        ak = 0
+
+        # Even though ag=0 and ak=0, we keep ag and ak in the below expressions
+        # so that it is easy to compare with the np.where() formula above.
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
                  .join(CatalogToTIC_v8,
@@ -159,12 +204,104 @@ class OPS_BOSS_Red_Stds_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         Gaia_DR2.parallax > 0,
+                        bp_rp_excess < 0,
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) >= 1.1,
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
-                        ((Gaia_DR2.phot_g_mean_mag -
-                          (5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0)) - ag) >= 3,
-                        ((Gaia_DR2.phot_g_mean_mag -
-                          (5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0)) - ag) <= 5.5))
+                        (abs_gmag - ag) >= 3,
+                        (abs_gmag - ag) <= 5.5))
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+        return query
+
+
+class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
+    """
+    Shorthand name: ops_boss_red_stds_deredden
+    lead contact: Kevin Covey
+
+    """
+
+# This carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0.
+# bp_rp_excess is defined below.
+#
+# (Another carton OPS_BOSS_Red_Stds_No_Deredden_Carton is for the case bp_rp_excess < 0)
+#
+#  #calculate distance modulus (could convert to use BailerJones distance)
+#  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+#
+#  #calculate absolute g and k magnitudes
+#  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
+
+#  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
+#  bp_rp_excess = bp - rp - 0.725
+#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
+#
+#  #only deredden if bp_rp_excess is positive
+#  worth_dereddening = np.where( bp_rp_excess >= 0)
+#
+#
+#  #calculate a_g and a_k using coefficients from Wang & Chen 2019
+#  (use 0 otherwise; np.zero commands truncated for brevity)
+#  ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
+#  ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
+#
+# This carton has worth_dereddening==True since the where clause has
+# Gaia_DR2.bp_rp-0.725 >= 0
+# Hence,
+# ag = 1.890*bp_rp_excess = 1.890*(Gaia_DR2.bp_rp - 0.725)
+# ak = 0.186*bp_rp_excess = 0.186*(Gaia_DR2.bp_rp - 0.725)
+#
+# --- criteria for ops_BOSS_redstds ---
+#
+# meet_reddened_criteria =
+# np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
+#           ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
+#             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
+#
+
+    name = 'mwm_boss_red_stds_deredden'
+    category = 'standard'
+    cadence = None
+    program = 'std'
+    mapper = None
+
+    def build_query(self, version_id, query_region=None):
+
+        distMod = 5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0
+        abs_gmag = Gaia_DR2.phot_g_mean_mag - distMod
+        bp_rp_excess = Gaia_DR2.bp_rp - 0.725
+        ag = 1.890 * (Gaia_DR2.bp_rp - 0.725)
+        ak = 0.186 * (Gaia_DR2.bp_rp - 0.725)
+
+        query = (Catalog
+                 .select(CatalogToTIC_v8.catalogid)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.parallax > 0,
+                        bp_rp_excess >= 0,
+                        ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) >= 1.1,
+                        ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
+                        (abs_gmag - ag) >= 3,
+                        (abs_gmag - ag) <= 5.5))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
