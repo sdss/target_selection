@@ -7,18 +7,16 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2,
-                                             TIC_v8, TwoMassPSC)
 
-# from target_selection import log
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+                                             Gaia_DR2, TIC_v8, TwoMassPSC)
+
 from target_selection.cartons import BaseCarton
 
 
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
-
 
 # peewee Model name ---> postgres table name
 # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
