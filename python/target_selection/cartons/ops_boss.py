@@ -143,7 +143,7 @@ class OPS_BOSS_Red_Stds_No_Deredden_Carton(BaseCarton):
 #             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
 #
 
-    name = 'mwm_boss_red_stds_no_deredden'
+    name = 'ops_boss_red_stds_no_deredden'
     category = 'standard'
     cadence = None
     program = 'std'
@@ -238,7 +238,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
 #             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
 #
 
-    name = 'mwm_boss_red_stds_deredden'
+    name = 'ops_boss_red_stds_deredden'
     category = 'standard'
     cadence = None
     program = 'std'
