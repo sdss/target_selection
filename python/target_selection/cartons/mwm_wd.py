@@ -38,7 +38,7 @@ class MWM_WD_Carton(BaseCarton):
                  .join(TIC_v8, on=(TIC_v8.gaia_int == Gaia_DR2_WD.source_id))
                  .join(CatalogToTIC_v8)
                  .where(Gaia_DR2_WD.pwd > self.parameters['pwd'],
-                        Gaia_DR2_WD.gmag <= self.parameters['gmag'],
+                        Gaia_DR2_WD.g_gaia_mag <= self.parameters['gaia_mag'],
                         CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True))
 
