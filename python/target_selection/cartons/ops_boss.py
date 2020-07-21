@@ -20,35 +20,9 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-#################################
-# --- variables invoked in the criteria below ---
-#
-#  #step not shown:
-# using gaia+2mass crossmatch primary key to link gaia+2mass counterparts.
-#
-#  #calculate distance modulus (could convert to use BailerJones distance)
-#  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
-#
-#  #calculate absolute g and k magnitudes
-#  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
-#  abs_kmag = twomass_psc.k_m - distMod
-#
-#  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
-#  bp_rp_excess = bp - rp - 0.725
-#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
-#
-#  #only deredden if bp_rp_excess is positive
-#  worth_dereddening = np.where( bp_rp_excess >= 0)
-#
-#  #calculate a_g and a_k using coefficients from Wang & Chen 2019
-#  (use 0 otherwise; np.zero commands truncated for brevity)
-#  ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
-#  ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
-#  abp[worth_dereddening] = 2.429*bp_rp_excess[worth_dereddening]
-#  arp[worth_dereddening] = 1.429*bp_rp_excess[worth_dereddening]
-#
-#
-################################
+# peewee Model name ---> postgres table name
+# Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+# TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 
 
 class OPS_BOSS_Stds_Carton(BaseCarton):
@@ -56,10 +30,6 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     Shorthand name: ops_boss_stds
     lead contact: Kevin Covey
     """
-
-    # peewee Model name ---> postgres table name
-    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
-    # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 
     # --- criteria for ops_BOSS_stds ---
     #  #calculate distance modulus (could convert to use BailerJones distance)
@@ -89,6 +59,9 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        distMod = 5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0
+        abs_gmag = Gaia_DR2.phot_g_mean_mag - distMod
+
         # We need a join with Catalog because
         # when using coordinates in the cartons we want to always
         # use Catalog.ra and Catalog.dec.
@@ -110,10 +83,8 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
                         Gaia_DR2.parallax > 0,
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) >= 0.65,
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) <= 0.8,
-                        (Gaia_DR2.phot_g_mean_mag -
-                         (5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0)) >= 3.5,
-                        (Gaia_DR2.phot_g_mean_mag -
-                         (5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0)) <= 5.5))
+                        abs_gmag >= 3.5,
+                        abs_gmag <= 5.5))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
