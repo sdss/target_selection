@@ -312,11 +312,11 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
 
         selection_condition = (
             (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 50).
-             cast(peewee.BigIntegerField)) > 0) |
+             cast("bigint")) > 0) |
             (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 51).
-             cast(peewee.BigIntegerField)) > 0) |
+             cast("bigint")) > 0) |
             (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 52).
-             cast(peewee.BigIntegerField)) > 0))
+             cast("bigint")) > 0))
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
