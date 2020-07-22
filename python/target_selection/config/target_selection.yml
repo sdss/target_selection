@@ -162,14 +162,14 @@
         bhm_spiders_agn_efeds:
             value: 1.0
             ero_version: 'efeds_c940_V2T'
-            fibermag_r_min: 17.0
-            fibermag_r_max: 22.5
-            fibermag_z_max: 21.5
+            fibermag_r_min: 16.5
+            fibermag_r_max: 22.0
+            fibermag_z_max: 21.0
             det_like_min: 8.0
             p_any_min: 0.1
             lr_min: 0.2
             spec_join_radius: 1.0
-            spec_sn_thresh: 1.50
+            spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1510
         bhm_spiders_agn_wide_ls:
@@ -189,13 +189,13 @@
         bhm_spiders_clusters_efeds_base:
             value: 1.0
             ero_version: 'efeds_c940_clus'
-            fibermag_r_min: 17.0
-            fibermag_r_max: 21.5
-            fibermag_z_max: 20.5
+            fibermag_r_min: 16.5
+            fibermag_r_max: 21.0
+            fibermag_z_max: 20.0
             det_like_min: 8.0
             spec_join_radius: 1.0
-            spec_sn_thresh: 1.50
-            spec_z_err_thresh: 0.002
+            spec_sn_thresh: 2.00
+            spec_z_err_thresh: 0.01
             priority_floor: 1500
         bhm_csc_boss_dark:
             mag_i_min: 16.0

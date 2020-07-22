@@ -142,7 +142,7 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
                   on=(fn.q3c_join(c.ra,c.dec,
                                  v.plug_ra,v.plug_dec,
                                  match_radius_spectro) &
-                      (v.sn_median_all >= base_parameters['spec_sn_thresh']) &
+                      (v.sn_median[3] >= base_parameters['spec_sn_thresh']) &
                       (v.zwarning == 0) &
                       (v.z_err <= base_parameters['spec_z_err_thresh']) &
                       (v.z_err > 0.0)
@@ -152,7 +152,7 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
                   on=(fn.q3c_join(c.ra,c.dec,
                                   s.ra,s.dec,
                                   match_radius_spectro) &
-                      (s.snmedian >= base_parameters['spec_sn_thresh']) &
+                      (s.snmedian_i >= base_parameters['spec_sn_thresh']) &
                       (s.zwarning == 0) &
                       (s.zerr <= base_parameters['spec_z_err_thresh']) &
                       (s.zerr > 0.0) &
