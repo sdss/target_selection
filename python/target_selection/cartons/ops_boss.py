@@ -318,7 +318,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
             (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 52).
              cast("bigint")) > 0))
 
-# We have distinct() at the end since the table ebosstarget_v5
+# We have distinct(True) at the end since the table ebosstarget_v5
 # may have repeated values.
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
@@ -331,7 +331,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         selection_condition)
-                 .distinct())
+                 .distinct(True))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
