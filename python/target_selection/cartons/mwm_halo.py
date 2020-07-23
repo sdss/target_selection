@@ -95,7 +95,7 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
     category = 'science'
     program = 'Halo'
     cadence = None
-    priority = None
+    priority = 6050
 
     def build_query(self, version_id, query_region=None):
 
