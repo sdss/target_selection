@@ -121,6 +121,8 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    cadence = 'mwm_cb_2x1'
+    priority = 1400
 
     def setup_transaction(self):
 
@@ -245,6 +247,8 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    cadence = 'mwm_cb_2x1'
+    priority = 1400
 
     def setup_transaction(self):
 
@@ -386,6 +390,8 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    cadence = 'mwm_cb_2x1'
+    priority = 1400
 
     def build_query(self, version_id, query_region=None):
 
@@ -557,6 +563,8 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    cadence = 'mwm_cb_2x1'
+    priority = 1400
 
     def build_query(self, version_id, query_region=None):
 
@@ -712,6 +720,8 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    cadence = 'mwm_cb_2x1'
+    priority = 1400
 
     def setup_transaction(self):
 

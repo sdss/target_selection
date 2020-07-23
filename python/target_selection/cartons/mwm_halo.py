@@ -47,6 +47,8 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Halo'
+    cadence = None
+    priority = 6050
 
     def build_query(self, version_id, query_region=None):
 
@@ -92,6 +94,8 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Halo'
+    cadence = None
+    priority = 6050
 
     def build_query(self, version_id, query_region=None):
 

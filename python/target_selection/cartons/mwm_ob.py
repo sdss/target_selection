@@ -60,6 +60,7 @@ class MWM_OB_Carton(BaseCarton):
     category = 'science'
     cadence = 'mwm_ob_3x1'
     program = 'OB'
+    priority = 2910
 
     def build_query(self, version_id, query_region=None):
 
@@ -265,6 +266,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     category = 'science'
     cadence = 'mwm_ob_3x1'
     program = 'OB'
+    priority = 2910
 
     def build_query(self, version_id, query_region=None):
 
