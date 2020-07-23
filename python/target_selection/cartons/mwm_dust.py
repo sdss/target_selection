@@ -138,6 +138,8 @@ class MWM_Dust_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Dust'
+    cadence = 'mwm_dust_1x1'
+    priority = 2720
 
     def setup_transaction(self):
 
