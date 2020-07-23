@@ -41,6 +41,7 @@ class MWM_Galactic_Genesis_Carton(BaseCarton):
     name = 'mwm_galactic'
     category = 'science'
     cadence = None
+    priority = 2710
     program = 'Galactic Genesis'
     mapper = 'MWM'
 
