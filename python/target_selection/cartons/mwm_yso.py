@@ -54,6 +54,7 @@ class MWM_YSO_S1_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     def build_query(self, version_id, query_region=None):
 
@@ -135,6 +136,7 @@ class MWM_YSO_S2_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     def build_query(self, version_id, query_region=None):
 
@@ -208,6 +210,7 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     # Above implementation has below clause
     # and (b>-5 or l>180) and b<-5
@@ -311,6 +314,7 @@ class MWM_YSO_S3_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     def build_query(self, version_id, query_region=None):
 
@@ -403,6 +407,7 @@ class MWM_YSO_OB_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     def build_query(self, version_id, query_region=None):
 
@@ -485,6 +490,7 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     # l is glon (galactic longitude)
     # b is glat (galactic latitude)
@@ -567,6 +573,7 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
     cadence = None
     program = 'YSO'
     mapper = 'MWM'
+    priority = 2700
 
     # yso_clustering is a subset of gaia and
     # can be joined to gaia_dr2_source via source_id.

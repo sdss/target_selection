@@ -34,6 +34,8 @@ class MWM_TESS_RGB_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'TESS RGB'
+    cadence = None
+    priority = 2800
 
     def build_query(self, version_id, query_region=None):
 
