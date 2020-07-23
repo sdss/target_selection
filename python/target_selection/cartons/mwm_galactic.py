@@ -9,12 +9,12 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC)
+                                             TIC_v8, TwoMassPSC)
 
 from . import BaseCarton
 
 
-class GalacticGenesisCarton(BaseCarton):
+class MWM_Galactic_Genesis_Carton(BaseCarton):
     """Galactic Genesis carton.
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
@@ -46,8 +46,8 @@ class GalacticGenesisCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        Hmag = TwoMassPSC.h_m
-        Gmag = Gaia_DR2.phot_g_mean_mag
+        Hmag = TIC_v8.hmag
+        Gmag = TIC_v8.gaiamag
 
         ph_qual = TwoMassPSC.ph_qual
         cc_flg = TwoMassPSC.cc_flg
@@ -64,13 +64,12 @@ class GalacticGenesisCarton(BaseCarton):
                       Hmag, Gmag,
                       ph_qual, cc_flg, rd_flg, gal_contam)
               .join(TwoMassPSC)
-              .join_from(TIC_v8, Gaia_DR2)
               .join_from(TIC_v8, CatalogToTIC_v8)
-              .where(ph_qual.regexp('.(A|B).'),
+              .where(Hmag < h_max,
+                     ph_qual.regexp('.(A|B).'),
                      gal_contam == 0,
                      peewee.fn.substr(cc_flg, 2, 1) == '0',
-                     rd_flag_1 > 0, rd_flag_1 <= 3)
-              .where(Hmag < h_max,
+                     rd_flag_1 > 0, rd_flag_1 <= 3,
                      ((Gmag - Hmag) > g_h) | (TIC_v8.gaia >> None))
               .where(CatalogToTIC_v8.version_id == version_id,
                      CatalogToTIC_v8.best >> True))
