@@ -17,8 +17,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              TIC_v8,
                                              Gaia_DR2,
-####                                             CatalogToGaia_unWISE_AGN,
-#TODO                                             CatalogToSDSS_DR16_SpecObj,
+#this is old and does not work               CatalogToGaia_unWISE_AGN,
+                                             CatalogToSDSS_DR16_SpecObj,
                                              SDSS_DR16_SpecObj,
                                              Gaia_unWISE_AGN)
 
@@ -40,15 +40,15 @@ from target_selection.cartons.base import BaseCarton
 
     both Cartons:
         SELECT * FROM gaia_unwise_agn AS gua
-        LEFT JOIN sdss_specobj_dr16 AS so ON  q3c_join(gua.ra, gua.dec, so.plug_ra, so.plug_dec, 1.0)
+        LEFT JOIN sdss_dr16_specobj AS so ON  q3c_join(gua.ra, gua.dec, so.plug_ra, so.plug_dec, 1.0)
         AND WHERE gua.prob_rf > 0.8
         AND WHERE (so.specobjid = NULL OR so.zwarning != 0 OR so.sn_median_all < x.x OR so.z_err > 0.0xx )
 
     bhm_gaia_unwise_agn_dark
-        AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5 AND (gua.g < 21.2 OR gua.rp < 21.5 ) )
+        AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5 AND (gua.g < 21.2 OR gua.rp < 21.0 ) )
 
     bhm_gaia_unwise_agn_bright
-        AND WHERE ( gua.g > 13.5 AND gua.rp > 13.5 AND (gua.g < 18.0 OR gua.rp < 18.0) )
+        AND WHERE ( gua.g > 13.0 AND gua.rp > 13.5 AND (gua.g < 18.5 OR gua.rp < 18.5) )
 '''
 
 
@@ -71,9 +71,10 @@ class BhmGuaBaseCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
+        ##############c2t = CatalogToGaia_unWISE_AGN.alias()
         c2tic = CatalogToTIC_v8.alias()
         tic = TIC_v8.alias()
-#TODO        c2s = CatalogToSDSS_DR16_SpecObj.alias()
+        c2s = CatalogToSDSS_DR16_SpecObj.alias()
         g = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
         s = SDSS_DR16_SpecObj.alias()
@@ -84,37 +85,35 @@ class BhmGuaBaseCarton(BaseCarton):
         pmra = peewee.Value(0.0).cast('float').alias('pmra')
         pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
         parallax = peewee.Value(0.0).cast('float').alias('parallax')
-        match_radius_spectro = self.parameters['spec_join_radius']/3600.0
+        #match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
         query = (
             c.select(c.catalogid,
-#                     t.ra, t.dec, t.gaia_sourceid, ## debug
                      priority,
                      value,
                      pmra,
                      pmdec,
                      parallax,
                      t.g.alias('g'),
-                     t.bp.alias('bp'), ## debug
-                     t.rp.alias('rp'), ## debug
-#                     t.w1.alias('magnitude_w1'), ## debug
-#                     t.w2.alias('magnitude_w2'), ## debug
+                     t.bp.alias('bp'),
+                     t.rp.alias('rp'),
             )
             .join(c2tic)
             .join(tic)
             .join(g)
             .join(t, on=(g.source_id == t.gaia_sourceid))
-            .join(s, JOIN.LEFT_OUTER,
-                  on=(peewee.fn.q3c_join(c.ra,c.dec,
-                                         s.ra,s.dec,
-                                         match_radius_spectro) &
-                      (s.snmedian >= self.parameters['spec_sn_thresh']) &
-                      (s.zwarning == 0) &
-                      (s.zerr <= self.parameters['spec_z_err_thresh']) &
-                      (s.zerr > 0.0) &
-                      (s.scienceprimary > 0)
-                      )
-            )
+#            .join(s, JOIN.LEFT_OUTER,
+#                  on=(peewee.fn.q3c_join(c.ra,c.dec,
+#                                         s.ra,s.dec,
+#                                         match_radius_spectro) &
+#                      (s.snmedian >= self.parameters['spec_sn_thresh']) &
+#                      (s.zwarning == 0) &
+#                      (s.zerr <= self.parameters['spec_z_err_thresh']) &
+#                      (s.zerr > 0.0) &
+#                      (s.scienceprimary > 0)
+#                      )
+#            )
+#           .where((s.specobjid.is_null())
             .where(c.version_id == version_id,
                    c2tic.version_id == version_id,
                    c2tic.best == True)
@@ -126,17 +125,16 @@ class BhmGuaBaseCarton(BaseCarton):
                     (t.g < self.parameters['mag_g_max']) |
                     (t.rp < self.parameters['mag_rp_max'])
                 ),
-                (s.specobjid.is_null()),
             )
-#TODO            .switch(c)
-#TODO            .join(c2s)
-#TODO            .join(s)
-#TODO            .where(
-#TODO                (s.specobjid.is_null()) |
-#TODO                (s.zwarning != 0 ) |
-#TODO                (s.sn_median_all < self.parameters['spec_sn_thresh']) |
-#TODO                (s.z_err >  self.parameters['spec_z_err_thresh'])
-#TODO            )
+            .switch(c)
+            .join(c2s, JOIN.LEFT_OUTER)
+            .join(s, JOIN.LEFT_OUTER)
+            .where(
+                (s.specobjid.is_null()) |
+                (s.zwarning != 0 ) |
+                (s.snmedian < self.parameters['spec_sn_thresh']) |
+                (s.zerr >  self.parameters['spec_z_err_thresh'])
+            )
             .distinct([t.gaia_sourceid])   # avoid duplicates - trust the GUA parent sample
         )
 

@@ -218,7 +218,6 @@
             mag_rp_min: 16.5
             mag_rp_max: 21.0
             prob_rf_min: 0.80
-            spec_join_radius: 1.0
             spec_sn_thresh: 2.0
             spec_z_err_thresh: 0.01
             priority: 3400
@@ -229,7 +228,6 @@
             mag_rp_min: 13.5
             mag_rp_max: 18.5
             prob_rf_min: 0.80
-            spec_join_radius: 1.0
             spec_sn_thresh: 2.0
             spec_z_err_thresh: 0.01
             priority: 4040
