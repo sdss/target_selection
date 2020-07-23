@@ -103,78 +103,148 @@ def nested_regrade(pixels, nside_in, nside_out):
         return prograded
 
 
-def _process_tile(pix, connection=None, query=None,
+def _process_tile(tile, conn_params=None, query=None,
+                  ra_column=None, dec_column=None,
                   candidate_nside=None, tile_nside=None,
-                  min_separation=None, downsample=False,
-                  downsample_nside=None):
+                  min_separation=None, mag_column=None,
+                  is_flux=False, mag_threshold=None,
+                  downsample=False, downsample_nside=None):
     """Processes a tile from a catalogue in parallel."""
-
-    k = int(numpy.log2(candidate_nside))
 
     # We cannot pass the database itself. We need to create the connection
     # inside the function that gets parallelised.
-    dbname = connection.dbname
-    database_params = connection.connection_params.copy()
-    database = PostgresqlDatabase(dbname, **database_params)
 
-    targets = pandas.read_sql(query.format(pix=pix), database)
+    database = PostgresqlDatabase(conn_params['dbname'],
+                                  user=conn_params.get('user', None),
+                                  host=conn_params.get('host', None),
+                                  port=conn_params.get('port', None))
+
+    targets = pandas.read_sql(query.format(tile=tile), database)
     if len(targets) == 0:
         return False
 
-    targets['pix'] = healpy.ang2pix(candidate_nside, targets.ra, targets.dec,
+    targets.rename(columns={ra_column: 'ra', dec_column: 'dec'}, inplace=True)
+
+    # For each target we calculate the corresponding pixel in candidate_nside
+    # resolution.
+    cpcol = f'pix_{candidate_nside}'
+    targets[cpcol] = healpy.ang2pix(candidate_nside,
+                                    targets.ra, targets.dec,
                                     nest=True, lonlat=True)
 
-    all_pix = nested_regrade(pix, tile_nside, candidate_nside)[0]
-    mask_not_target = ~numpy.in1d(all_pix, targets.pix)
+    # Get all the pixels in candidate_nside resolution that correspond to this
+    # tile. Create a mask with all of them that are not occupied by a target.
+    all_pix = nested_regrade(tile, tile_nside, candidate_nside)[0]
+    mask_not_target = ~numpy.in1d(all_pix, targets[cpcol])
 
-    pix = f'pix_{k}'
-    candidates = pandas.DataFrame(all_pix[mask_not_target], columns=[pix])
+    # Create a DF with the candidate pixels and calculate their RAs and Decs.
+    candidates = pandas.DataFrame(all_pix[mask_not_target], columns=[cpcol])
     candidates['ra'], candidates['dec'] = healpy.pix2ang(candidate_nside,
-                                                         candidates[pix],
+                                                         candidates[cpcol],
                                                          nest=True,
                                                          lonlat=True)
 
-    c1 = SkyCoord(ra=candidates.ra.to_numpy(),
-                  dec=candidates.dec.to_numpy(),
-                  unit='deg')
-    c2 = SkyCoord(ra=targets.ra.to_numpy(),
-                  dec=targets.dec.to_numpy(),
-                  unit='deg')
-    sep_arcsec = match_coordinates_sky(c1, c2, nthneighbor=1)[1].value * 3600.
+    # If we are using the magnitudes to correct the minimum separation, we
+    # first convert the column to magnitudes if it's flux. Then select all the
+    # targets with magnitude < mag_threshold and for each one mask out all
+    # the candidate pixels that lie within the corrected separation.
+    # TODO: We use a rectangular search here because doing a
+    # SkyCoord.separation for each target would be very costly but there may
+    # be a better way.
+    if mag_column:
 
+        if is_flux:
+            mask_flux = targets[mag_column] > 0
+            targets.loc[mask_flux, mag_column] = (
+                22.5 - 2.5 * numpy.log10(targets[mask_flux][mag_column]))
+            targets.loc[targets[mag_column] <= 0, mag_column] = numpy.nan
+
+        btargets = targets[targets[mag_column] < mag_threshold]
+        mask = numpy.ones(len(candidates), dtype=numpy.bool)
+
+        for _, btarget in btargets.iterrows():
+            sep_corr = min_separation + numpy.sqrt((mag_threshold -
+                                                    btarget[mag_column]) / 0.2)
+            sep_corr /= 3600.
+            sep_corr_ra = sep_corr / numpy.cos(numpy.radians(btarget.dec))
+            masked_out = ((candidates.ra > (btarget.ra - sep_corr_ra)) &
+                          (candidates.ra < (btarget.ra + sep_corr_ra)) &
+                          (candidates.dec > (btarget.dec - sep_corr)) &
+                          (candidates.dec < (btarget.dec + sep_corr)))
+            mask[masked_out] = False
+
+        candidates = candidates.loc[mask, :].copy()
+
+    # Determine the closest neighbout for each candidate pixel.
+    c1 = SkyCoord(ra=candidates.ra.to_numpy(),
+                  dec=candidates.dec.to_numpy(), unit='deg')
+    c2 = SkyCoord(ra=targets.ra.to_numpy(),
+                  dec=targets.dec.to_numpy(), unit='deg')
+
+    target_idx, sep, _ = match_coordinates_sky(c1, c2, nthneighbor=1)
+
+    matched_target = targets.iloc[target_idx, :]
+    sep_arcsec = sep.value * 3600.
+
+    # Add column with the separation.
     candidates['sep_neighbour'] = sep_arcsec
 
-    valid_skies = candidates[candidates['sep_neighbour'] > min_separation].loc[:]
+    if mag_column:
+        candidates['mag_neighbour'] = matched_target.loc[:, mag_column].to_numpy()
 
-    if not downsample:
+    valid_skies = candidates.loc[candidates.sep_neighbour > min_separation, :].copy()
+    valid_skies[f'tile_{tile_nside}'] = tile
+
+    # If we are not downsampling, set the index and return.
+    if downsample is False or downsample is None:
+        valid_skies.set_index(cpcol, inplace=True)
         return valid_skies
 
-    valid_skies['down_pix'] = nested_regrade(valid_skies.loc[:, pix],
+    # If downsampling, regrade each candidate pixel value to the nside we'll
+    # use for downsampling.
+    valid_skies['down_pix'] = nested_regrade(valid_skies[cpcol],
                                              candidate_nside,
                                              downsample_nside)
 
-    # Each next order of a pixel has four nested pixels.
-    k_tile = int(numpy.log2(tile_nside))
-    k_downsample = int(numpy.log2(downsample_nside))
-    n_downsample_pix = 4**(k_downsample - k_tile)
+    if isinstance(downsample, int):
 
-    n_skies_per_pix = (downsample // n_downsample_pix) + 1
+        assert downsample > 1, 'downsample must be > 1'
 
-    valid_skies_downsampled = (valid_skies.groupby('down_pix', axis=0)
-                               .apply(lambda x: x.sample(n=(n_skies_per_pix
-                                                            if len(x) > n_skies_per_pix
-                                                            else len(x))))
-                               .reset_index(drop=True))
+        # Calculate how many skies per downsample pixel we should get.
+        # Each next order of a pixel has four nested pixels.
+        k_tile = int(numpy.log2(tile_nside))
+        k_downsample = int(numpy.log2(downsample_nside))
+        n_downsample_pix = 4**(k_downsample - k_tile)
+
+        n_skies_per_pix = (downsample // n_downsample_pix) + 1
+
+        # Get the sky positions per downsampled tile.
+        valid_skies_downsampled = (valid_skies.groupby('down_pix', axis=0)
+                                   .apply(lambda x: x.sample(n=(n_skies_per_pix
+                                                                if len(x) > n_skies_per_pix
+                                                                else len(x))))
+                                   .reset_index(drop=True))
+
+    elif isinstance(downsample, (list, tuple, numpy.ndarray)):
+
+        valid_skies_downsampled = valid_skies.loc[valid_skies[cpcol].isin(downsample), :]
+
+    else:
+
+        raise ValueError('invalid format for downsample.')
+
+    valid_skies_downsampled.set_index(cpcol, inplace=True)
 
     return valid_skies_downsampled
 
 
-def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
-                         candidate_nside=32768, min_separation=10,
-                         ra_column='ra', dec_column='dec',
-                         use_multiprocessing=False, n_cpus=None,
-                         downsample=False, downsample_nside=256):
-    """Identifies skies in a database catalogue.
+def get_sky_table(database, table, output, tiles=None, append=False,
+                  tile_nside=32, candidate_nside=32768, min_separation=10,
+                  ra_column='ra', dec_column='dec',
+                  mag_column=None, is_flux=False, mag_threshold=None,
+                  use_multiprocessing=False, n_cpus=None,
+                  downsample=False, downsample_nside=256):
+    r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
 
@@ -190,7 +260,12 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
       candidates. For the remaining pixels a nearest-neighbour search is done
       using a KDTree algorithm. Those pixels with neighbours closer than
       ``min_separation`` are rejected. The remaining pixels are considered
-      valid skies.
+      valid skies. Alternatively, if ``mag_column`` and ``mag_threshold`` are
+      defined, the separations to neighbours brighter than the threshold
+      magnitude is corrected using the expression
+      :math:`s^* = s - \sqrt{\dfrac{m_{thr}-m}{a}}` where
+      :math:`m_{thr}` is the magnitude threshold and :math:`a=0.2` is
+      a factor that takes into account the average seeing for APO and LCO.
 
     - If ``downsample`` is an integer, only that number of skies are returned
       for each tile. If so, the tile is divided in pixels of nside
@@ -200,19 +275,23 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
       skies, if fewer are available), where ``downsample_npix`` is the number
       of pixels corresponding to the ``downsample_nside`` nside.
 
-    - The process is parallelised for each tile and the results are compiled
-      in a single Pandas data frame that is saved to an HDF5 file.
+    - The process can be parallelised for each tile and the results are
+      compiled in a single Pandas data frame that is saved to an HDF5 file.
 
     All pixel values use the nested ordering.
 
     Parameters
     ----------
-    database : .PeeweeDatabaseConnection
+    database : ~sdssdb.connection.PeeweeDatabaseConnection
         A valid database connection.
     table : str
         Name of the table to query, optionally schema-qualified.
     output : str
         Path to the HDF5 file to write.
+    tiles : list
+        A list of HEALPix pixels of nside ``tile_nside`` for which the sky
+        selection will be done. If `None`, runs for all the pixels of nside
+        ``tile_nside``.
     append : bool
         If `True`, appends to the output file if it exists. Otherwise
         overwrites it.
@@ -225,14 +304,30 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     min_separation : int
         The minimum separation, in arcsec, between skies and their closest
         neighbour in the catalogue.
+    ra_column : str
+        The name of the column in ``table`` that contains the Right Ascension
+        coordinates, in degrees.
+    dec_column : str
+        The name of the column in ``table`` that contains the Declination
+        coordinates, in degrees.
+    mag_column : str
+        The name of the column in ``table`` with the magnitude to be used to
+        scale ``min_separation``.
+    is_flux : bool
+        If `True`, assumes the ``mag_column`` values are given in nanomaggies.
+    mag_threshold : float
+        The value below which the separation to neighbouring sources will be
+        scaled.
     use_multiprocessing : bool
         Whether to use multiprocessing.
     n_cpus : int
         Number of CPUs to use in parallel. If `None`, defaults to the number
         of cores.
-    downsample : bool or int
+    downsample : bool, int, or list
         The total number of skies to retrieve for each tile. If `False`,
-        returns all candidate skies.
+        returns all candidate skies. ``downsample`` can also be a list of
+        pixels with nside ``candidate_nside`` in which case only pixels in
+        that list will be returned.
     downsample_nside : int
         The HEALPix nside used for downsampling. If ``downsample=True``, the
         resulting valid skies will be grouped by HEALPix pixels of this
@@ -244,41 +339,54 @@ def create_sky_catalogue(database, table, output, append=False, tile_nside=32,
     n_cpus = n_cpus or multiprocessing.cpu_count()
 
     key = 'data'
-    hdf = pandas.HDFStore(output, complevel=9)
+    hdf = pandas.HDFStore(output, mode='w')
 
     if append is False and key in hdf:
         hdf.remove(key)
 
     assert database.connected, 'database is not connected.'
 
-    query = (f'SELECT {ra_column}, {dec_column} FROM {table} '
+    columns = f'{ra_column}, {dec_column}'
+    if mag_column and mag_threshold:
+        columns += f', {mag_column}'
+
+    query = (f'SELECT {columns} FROM {table} '
              f'WHERE healpix_ang2ipix_nest('
-             f'{tile_nside}, {ra_column}, {dec_column}) = {{pix}};')
+             f'{tile_nside}, {ra_column}, {dec_column}) = {{tile}};')
 
-    n_tiles = healpy.nside2npix(tile_nside)
-    pbar = manager.counter(total=n_tiles, desc='Tiles', unit='tiles')
+    if tiles is None:
+        tiles = numpy.arange(healpy.nside2npix(tile_nside))
 
+    pbar = manager.counter(total=len(tiles), desc='Tiles', unit='tiles')
+
+    conn_params = database.connection().get_dsn_parameters()
     process_tile = partial(_process_tile,
-                           connection=database,
+                           conn_params=conn_params,
                            query=query,
                            candidate_nside=candidate_nside,
                            tile_nside=tile_nside,
+                           ra_column=ra_column,
+                           dec_column=dec_column,
                            min_separation=min_separation,
+                           mag_column=mag_column,
+                           is_flux=is_flux,
+                           mag_threshold=mag_threshold,
                            downsample=downsample,
                            downsample_nside=downsample_nside)
 
+    # TODO: multiprocessing doesn't seem to be working.
     if use_multiprocessing:
         with multiprocessing.Pool(processes=n_cpus) as pool:
-            for valid_skies in pool.imap_unordered(process_tile, range(n_tiles)):
+            for valid_skies in pool.imap_unordered(process_tile, tiles):
                 if valid_skies is not False:
                     hdf.append(key, valid_skies)
-                    pbar.update()
+                pbar.update()
     else:
-        for tile in range(n_tiles):
+        for tile in tiles:
             valid_skies = process_tile(tile)
             if valid_skies is not False:
                 hdf.append(key, valid_skies)
-                pbar.update()
+            pbar.update()
 
     hdf.close()
 
@@ -418,3 +526,61 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
     fig.tight_layout()
 
     return fig
+
+
+def create_sky_catalogue(database, tiles=None):
+    """A script to generate a combined sky catalogue from multiple sources."""
+
+    get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
+                  mag_column='phot_g_mean_mag', mag_threshold=12,
+                  downsample=2000, tiles=tiles)
+
+    # We use Gaia as the source for the downsampled candidates.
+    gaia = pandas.read_hdf('gaia_skies.h5')
+    downsample_list = gaia.index.drop_duplicates().values
+
+    get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
+                  mag_column='flux_g', is_flux=True, mag_threshold=12,
+                  downsample=downsample_list, tiles=tiles)
+
+    get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
+                  dec_column='decl', mag_column='h_m', mag_threshold=12,
+                  downsample=downsample_list, tiles=tiles)
+
+    get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
+                  ra_column='ramdeg', dec_column='demdeg',
+                  mag_column='vtmag', mag_threshold=12,
+                  downsample=downsample_list, tiles=tiles)
+
+    get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
+                  dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
+                  downsample=downsample_list, tiles=tiles)
+
+    skies = None
+    col_order = []
+
+    for file_ in ['gaia_skies.h5', 'ls8_skies.h5', 'tmass_skies.h5',
+                  'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
+
+        table_name = file_[0:-9]
+
+        table = pandas.read_hdf(file_).drop_duplicates()
+        table.rename(columns={'sep_neighbour': f'sep_neighbour_{table_name}',
+                              'mag_neighbour': f'mag_neighbour_{table_name}'},
+                     inplace=True)
+
+        table.loc[:, f'{table_name}_sky'] = True
+
+        if skies is None:
+            skies = table
+        else:
+            skies = skies.combine_first(table)
+
+        skies.fillna({f'{table_name}_sky': False}, inplace=True)
+
+        col_order += [f'{table_name}_sky',
+                      f'sep_neighbour_{table_name}',
+                      f'mag_neighbour_{table_name}']
+
+    skies = skies.loc[:, ['ra', 'dec', 'down_pix', 'tile_32'] + col_order]
+    skies.to_hdf('skies.h5', 'data')

@@ -74,7 +74,7 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
     base_name = 'bhm_spiders_clusters_efeds_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-SPIDERS-CLUSTERS'
+    program = 'BHM-SPIDERS'
     tile = False
     priority = None
     cadence = 'bhm_spiders_1x8'
