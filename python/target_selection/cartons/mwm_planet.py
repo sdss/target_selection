@@ -40,7 +40,8 @@ class MWM_TESS_Planets_Carton(BaseCarton):
                  .select(CatalogToTIC_v8.catalogid,
                          TESS_TOI.ticid,
                          TESS_TOI.tess_disposition,
-                         TwoMassPSC.h_m)
+                         TwoMassPSC.h_m,
+                         TESS_TOI.target_type)
                  .join(TIC_v8)
                  .join(TwoMassPSC)
                  .join_from(TIC_v8, CatalogToTIC_v8)
@@ -60,3 +61,21 @@ class MWM_TESS_Planets_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model, **kwargs):
+        """Set priorities based on ``target_type``.
+
+        exo_TOI: 2600
+        exo_CTOI: 2605
+        2min: 2010
+
+        """
+
+        priorities = {'exo_TOI': 2600,
+                      'exo_CTOI': 2605,
+                      '2min': 2010}
+
+        for target_type, priority in priorities.items():
+            (model
+             .update({model.priority: priority})
+             .where(model.target_type == target_type).execute())

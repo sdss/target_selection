@@ -19,20 +19,14 @@ import pkg_resources
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-#                                             SDSS_DR13_PhotoObj,
                                              SDSS_DR16_SpecObj,
-                                             SDSS_DR14_QSO,
+                                             SDSS_DR16_QSO,
                                              CatalogToSDSS_DR16_SpecObj)
-#                                             CatalogToSDSS_DR13_PhotoObj)
-
-# when DR16Q is available
-#from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-#                                             SDSS_DR16_QSO )
-#                                             CatalogToSDSS_DR16_QSO,)
 
 
 from target_selection.cartons.base import BaseCarton
 
+# this should be in a better place
 radius_apo = 1.49 # degrees
 
 
@@ -43,8 +37,8 @@ radius_apo = 1.49 # degrees
 # bhm_aqmes_med
 # bhm_aqmes_med_faint
 # bhm_aqmes_wide2
-# bhm_aqmes_wide3
 # bhm_aqmes_wide2_faint
+# bhm_aqmes_wide3
 # bhm_aqmes_wide3_faint
 # bhm_aqmes_bonus_dark
 # bhm_aqmes_bonus_bright
@@ -62,6 +56,7 @@ class BhmAqmesBaseCarton(BaseCarton):
     priority = None
     alias_c = None
     alias_t = None
+    alias_c2s = None
 
     # read the AQMES field centres from a fits file and convert to a list of dicts
     def get_fieldlist(self):
@@ -115,12 +110,11 @@ class BhmAqmesBaseCarton(BaseCarton):
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2s = CatalogToSDSS_DR16_SpecObj.alias()
-#        c2p = CatalogToSDSS_DR13_PhotoObj.alias()
-#        p = SDSS_DR13_PhotoObj.alias()
         s = SDSS_DR16_SpecObj.alias()
-        t = SDSS_DR14_QSO.alias()
+        t = SDSS_DR16_QSO.alias()
         self.alias_c = c
         self.alias_t = t
+        self.alias_c2s = c2s
 
         # set the Carton priority+values here - read from yaml
         target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
@@ -132,7 +126,6 @@ class BhmAqmesBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-#                    t.plate, t.mjd, t.fiberid, t.ra.alias("dr14q_ra"), t.dec.alias("dr14q_dec"), ## debug
                     target_priority,
                     target_value,
                     pmra,
@@ -143,23 +136,20 @@ class BhmAqmesBaseCarton(BaseCarton):
                     t.psfmag[3].alias('i'),
                     t.psfmag[4].alias('z'),
             )
-#            .join(c2p)
-#            .join(p)
-#            .join(s, on=(p.objid == s.bestobjid))
             .join(c2s)
             .join(s)
-            .join(t, on=((s.plate == t.plate) & (s.mjd == t.mjd) & (s.fiberid == t.fiberid)))
+            .join(t, on=((s.plate == t.plate) &
+                         (s.mjd == t.mjd) &
+                         (s.fiberid == t.fiberid)))
             .where(c.version_id == version_id,
-                   c2s.version_id == version_id,
-                   c2s.best == True)
-#                   c2p.version_id == version_id,
-#                   c2p.best == True)
+                   c2s.version_id == version_id)
+#                   c2s.best == True)  # this was removing many aqmes-med targets
             .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
             .where
             (
                 (t.psfmag[3] >= self.parameters['mag_i_min']),
                 (t.psfmag[3] <  self.parameters['mag_i_max']),
-                #            (t.z >= self.parameters['redshift_min']),
+                #            (t.z >= self.parameters['redshift_min']), # not needed
                 #            (t.z <= self.parameters['redshift_max']),
             )
         )
@@ -243,6 +233,13 @@ class BhmAqmesBonusDarkCarton(BhmAqmesBaseCarton):
     name = 'bhm_aqmes_bonus_dark'
     cadence = 'bhm_spiders_1x4'
 
+    # add carton-specific selections - this prevents a problem with duplicated cross-matches
+    # applying this down-selection to other AQMES cartons reduces the numbers of targets significantly.
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        query = query.where(self.alias_c2s.best == True)
+        return query
+
 
 class BhmAqmesBonusBrightCarton(BhmAqmesBaseCarton):
     '''
@@ -291,7 +288,9 @@ for r in q.limit(5).namedtuples():
 
 
 '''
-Exporting from the temp table
+target_selection --profile tunnel_operations_sdss --verbose run --include bhm_aqmes_med,bhm_aqmes_med_faint,bhm_aqmes_wide2,bhm_aqmes_wide3,bhm_aqmes_wide2_faint,bhm_aqmes_wide3_faint,bhm_aqmes_bonus_dark,bhm_aqmes_bonus_bright --keep --overwrite '0.1.0' --write-table
+
+# Exporting from the temp table
 
 \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med.csv' with csv header
 \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med_faint.csv' with csv header
