@@ -27,29 +27,26 @@ from target_selection.cartons import BaseCarton
 class OPS_BOSS_Stds_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_stds
-    lead contact: Kevin Covey
+    Selection criteria:
+    --- criteria for ops_BOSS_stds ---
+    #calculate distance modulus (could convert to use BailerJones distance)
+    distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+
+    #calculate absolute g and k magnitudes
+    abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
+    abs_kmag = twomass_psc.k_m - distMod
+
+    meet_std_criteria =
+    np.where( ( ( (gaia_DR2.phot_bp_mean_mag -
+                   gaia_DR2.phot_rp_mean_mag) >= 0.65) &
+                  ( (gaia_DR2.phot_bp_mean_mag -
+                     gaia_DR2.phot_rp_mean_mag) <= 0.8) &
+                  ( (abs_gmag) >= 3.5) & ( (abs_gmag) <= 5.5) )
+             )
+
+    Lead contact: Kevin Covey
     """
 
-    # --- criteria for ops_BOSS_stds ---
-    #  #calculate distance modulus (could convert to use BailerJones distance)
-    #  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
-    #
-    #  #calculate absolute g and k magnitudes
-    #  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
-    #  abs_kmag = twomass_psc.k_m - distMod
-    #
-    #
-    # meet_std_criteria =
-    # np.where( ( ( (gaia_DR2.phot_bp_mean_mag -
-    #                gaia_DR2.phot_rp_mean_mag) >= 0.65) &
-    #               ( (gaia_DR2.phot_bp_mean_mag -
-    #                  gaia_DR2.phot_rp_mean_mag) <= 0.8) &
-    #               ( (abs_gmag) >= 3.5) & ( (abs_gmag) <= 5.5) )
-    #          )
-    #
-    #
-    #
-    #
     name = 'ops_boss_stds'
     category = 'standard'
     cadence = None
@@ -103,46 +100,46 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
 class OPS_BOSS_Red_Stds_No_Deredden_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_red_stds_no_deredden
-    lead contact: Kevin Covey
+
+    Selection Criteria:
+    This carton OPS_BOSS_Red_Stds_No_Deredden_Carton is for the case bp_rp_excess < 0.
+    bp_rp_excess is defined below.
+
+    (Another carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0)
+
+    #calculate distance modulus (could convert to use BailerJones distance)
+    distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+
+    #calculate absolute g and k magnitudes
+    abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
+
+    #calculate E(BP-RP) with (BP-RP)_0 = 0.725
+    bp_rp_excess = bp - rp - 0.725
+    #Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
+
+    #only deredden if bp_rp_excess is positive
+    worth_dereddening = np.where( bp_rp_excess >= 0)
+
+    #calculate a_g and a_k using coefficients from Wang & Chen 2019
+    #(use 0 otherwise; np.zero commands truncated for brevity)
+    ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
+    ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
+
+    #This carton has worth_dereddening = False since the where clause has
+    #Gaia_DR2.bp_rp-0.725 < 0
+    #Hence,
+    ag = 0
+    ak = 0
+
+    --- criteria for ops_BOSS_redstds ---
+
+    meet_reddened_criteria =
+    np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
+              ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
+                ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
+
+    Lead contact: Kevin Covey
     """
-
-# This carton OPS_BOSS_Red_Stds_No_Deredden_Carton is for the case bp_rp_excess < 0.
-# bp_rp_excess is defined below.
-#
-# (Another carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0)
-#
-#  #calculate distance modulus (could convert to use BailerJones distance)
-#  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
-#
-#  #calculate absolute g and k magnitudes
-#  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
-
-#  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
-#  bp_rp_excess = bp - rp - 0.725
-#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
-#
-#  #only deredden if bp_rp_excess is positive
-#  worth_dereddening = np.where( bp_rp_excess >= 0)
-#
-#
-#  #calculate a_g and a_k using coefficients from Wang & Chen 2019
-#  (use 0 otherwise; np.zero commands truncated for brevity)
-#  ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
-#  ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
-#
-# This carton has worth_dereddening = False since the where clause has
-# Gaia_DR2.bp_rp-0.725 < 0
-# Hence,
-# ag = 0
-# ak = 0
-#
-# --- criteria for ops_BOSS_redstds ---
-#
-# meet_reddened_criteria =
-# np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
-#           ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
-#             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
-#
 
     name = 'ops_boss_red_stds_no_deredden'
     category = 'standard'
@@ -197,46 +194,49 @@ class OPS_BOSS_Red_Stds_No_Deredden_Carton(BaseCarton):
 class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_red_stds_deredden
-    lead contact: Kevin Covey
+    
+    Selection Criteria:
+    This carton OPS_BOSS_Red_Stds_Deredden_Carton
+    is for the case bp_rp_excess >= 0.
+    bp_rp_excess is defined below.
+
+    (Another carton OPS_BOSS_Red_Stds_No_Deredden_Carton
+    is for the case bp_rp_excess < 0)
+
+    #calculate distance modulus
+    #(could convert to use BailerJones distance)
+    distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
+
+    #calculate absolute g and k magnitudes
+    abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
+
+    #calculate E(BP-RP) with (BP-RP)_0 = 0.725
+    bp_rp_excess = bp - rp - 0.725
+    #Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
+
+    #only deredden if bp_rp_excess is positive
+    worth_dereddening = np.where( bp_rp_excess >= 0)
+
+    #calculate a_g and a_k using coefficients from Wang & Chen 2019
+    #(use 0 otherwise; np.zero commands truncated for brevity)
+    ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
+    ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
+
+    #This carton has worth_dereddening==True since the where clause has
+    #Gaia_DR2.bp_rp-0.725 >= 0
+    #Hence,
+    ag = 1.890*bp_rp_excess = 1.890*(Gaia_DR2.bp_rp - 0.725)
+    ak = 0.186*bp_rp_excess = 0.186*(Gaia_DR2.bp_rp - 0.725)
+
+    --- criteria for ops_BOSS_redstds ---
+
+    meet_reddened_criteria =
+    np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
+              ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
+                ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
+
+    Lead contact: Kevin Covey
     """
-
-# This carton OPS_BOSS_Red_Stds_Deredden_Carton is for the case bp_rp_excess >= 0.
-# bp_rp_excess is defined below.
-#
-# (Another carton OPS_BOSS_Red_Stds_No_Deredden_Carton is for the case bp_rp_excess < 0)
-#
-#  #calculate distance modulus (could convert to use BailerJones distance)
-#  distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
-#
-#  #calculate absolute g and k magnitudes
-#  abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
-
-#  #calculate E(BP-RP) with (BP-RP)_0 = 0.725
-#  bp_rp_excess = bp - rp - 0.725
-#  Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
-#
-#  #only deredden if bp_rp_excess is positive
-#  worth_dereddening = np.where( bp_rp_excess >= 0)
-#
-#
-#  #calculate a_g and a_k using coefficients from Wang & Chen 2019
-#  (use 0 otherwise; np.zero commands truncated for brevity)
-#  ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
-#  ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
-#
-# This carton has worth_dereddening==True since the where clause has
-# Gaia_DR2.bp_rp-0.725 >= 0
-# Hence,
-# ag = 1.890*bp_rp_excess = 1.890*(Gaia_DR2.bp_rp - 0.725)
-# ak = 0.186*bp_rp_excess = 0.186*(Gaia_DR2.bp_rp - 0.725)
-#
-# --- criteria for ops_BOSS_redstds ---
-#
-# meet_reddened_criteria =
-# np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
-#           ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
-#             ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
-#
 
     name = 'ops_boss_red_stds_deredden'
     category = 'standard'
@@ -289,18 +289,40 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
 class OPS_eBOSS_Stds_Carton(BaseCarton):
     """
     Shorthand name: ops_eboss_stds
+    Selection Criteria:
+    The code of this carton is based on the below SQL.
+    This returns 298885 rows.
+    SELECT DISTINCT ON (e.objid_targeting) e.objid_targeting, c2t.catalogid
+           FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
+           JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
+           WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
+                (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
+                (e.eboss_target1 & pow(2, 52)::bigint) > 0;
+
+    As shown below, more than one c2t.catalogid may correspond
+    to the same e.objid_targeting.
+    SELECT count(c2t.catalogid ), e.objid_targeting
+    FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
+    JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
+    WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
+          (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
+          (e.eboss_target1 & pow(2, 52)::bigint) > 0  GROUP BY e.objid_targeting;
+
+    count |   objid_targeting
+    -------+---------------------
+        2 | 1237662530065399951
+        2 | 1237671956455489893
+    etc.
+
+    Hence,
+    SELECT COUNT(DISTINCT e.objid_targeting) etc.
+    returns 298885
+
+    and
+    SELECT count(DISTINCT c2t.catalogid ) etc.
+    returns 642787
     lead contact: Kevin Covey
     """
-# SQL example:
-# CREATE TABLE sandbox.eboss_std
-#     AS SELECT c2t.catalogid
-#        FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
-#             JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
-#        WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
-#             (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
-#             (e.eboss_target1 & pow(2, 52)::bigint) > 0;
-#
-# # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
 
     name = 'ops_eboss_stds'
     category = 'standard'
@@ -318,8 +340,8 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
             (eBOSS_Target_v5.eboss_target1.bin_and(peewee.fn.pow(2, 52).
              cast("bigint")) > 0))
 
-# We have distinct(True) at the end since the table ebosstarget_v5
-# may have repeated values.
+        # We have distinct(eBOSS_Target_v5.objid_targeting) at the end
+        # since the table ebosstarget_v5 has duplicate values.
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid)
                  .join(CatalogToTIC_v8,
@@ -331,7 +353,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         selection_condition)
-                 .distinct(True))
+                 .distinct(eBOSS_Target_v5.objid_targeting))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
