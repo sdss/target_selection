@@ -100,6 +100,7 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'CB'
+    priority = 1400
 
     def build_query(self, version_id, query_region=None):
 
@@ -121,6 +122,7 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
                  .join(GUVCat)
                  .where(Gaia_DR2.parallax / Gaia_DR2.parallax_error > 3,
                         gaiag < 20,
+                        FUV > -999.,
                         FUV_abs > (1.5 + 1.28 * (FUV - gaiag)))
                  .where(CatalogToGUVCat.version_id == version_id,
                         CatalogToGUVCat.best >> True,
