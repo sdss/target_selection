@@ -193,7 +193,7 @@ def _process_tile(tile, conn_params=None, query=None,
         candidates['mag_neighbour'] = matched_target.loc[:, mag_column].to_numpy()
 
     valid_skies = candidates.loc[candidates.sep_neighbour > min_separation, :].copy()
-    valid_skies[f'tile_{tile_nside}'] = tile_nside
+    valid_skies[f'tile_{tile_nside}'] = tile
 
     # If we are not downsampling, set the index and return.
     if downsample is False or downsample is None:
@@ -227,7 +227,7 @@ def _process_tile(tile, conn_params=None, query=None,
 
     elif isinstance(downsample, (list, tuple, numpy.ndarray)):
 
-        valid_skies_downsampled = valid_skies.loc[valid_skies.index.isin(downsample), :]
+        valid_skies_downsampled = valid_skies.loc[valid_skies[cpcol].isin(downsample), :]
 
     else:
 
@@ -528,12 +528,12 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
     return fig
 
 
-def create_sky_catalogue(database):
+def create_sky_catalogue(database, tiles=None):
     """A script to generate a combined sky catalogue from multiple sources."""
 
     get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
                   mag_column='phot_g_mean_mag', mag_threshold=12,
-                  downsample=2000)
+                  downsample=2000, tiles=tiles)
 
     # We use Gaia as the source for the downsampled candidates.
     gaia = pandas.read_hdf('gaia_skies.h5')
@@ -541,20 +541,20 @@ def create_sky_catalogue(database):
 
     get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
                   mag_column='flux_g', is_flux=True, mag_threshold=12,
-                  downsample=downsample_list)
+                  downsample=downsample_list, tiles=tiles)
 
     get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
                   dec_column='decl', mag_column='h_m', mag_threshold=12,
-                  downsample=downsample_list)
+                  downsample=downsample_list, tiles=tiles)
 
     get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                   ra_column='ramdeg', dec_column='demdeg',
                   mag_column='vtmag', mag_threshold=12,
-                  downsample=downsample_list)
+                  downsample=downsample_list, tiles=tiles)
 
     get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
                   dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
-                  downsample=downsample_list)
+                  downsample=downsample_list, tiles=tiles)
 
     skies = None
     col_order = []
