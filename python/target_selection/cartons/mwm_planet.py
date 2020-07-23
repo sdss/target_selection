@@ -33,6 +33,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
     category = 'science'
     mapper = 'MWM'
     cadence = None
+    priority = 2600
 
     def build_query(self, version_id, query_region=None):
 

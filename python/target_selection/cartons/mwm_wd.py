@@ -26,7 +26,8 @@ class MWM_WD_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'WD'
-    cadence = None
+    cadence = 'mwm_wd_2x1'
+    priority = 1400
 
     def build_query(self, version_id, query_region=None):
 

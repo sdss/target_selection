@@ -158,6 +158,7 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2571
 
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
@@ -284,6 +285,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2526
 
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
@@ -406,6 +408,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2500
 
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
@@ -591,6 +594,7 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2571
 
     def setup_transaction(self):
         pass
@@ -721,6 +725,7 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2576
 
     def build_query(self, version_id, query_region=None):
 
@@ -833,6 +838,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     cadence = None
     program = 'RV'
     mapper = 'MWM'
+    priority = 2510
 
     def build_query(self, version_id, query_region=None):
 

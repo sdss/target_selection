@@ -51,6 +51,8 @@ class MWM_SNC_100pc(BaseCarton):
     category = 'science'
     program = '100pc'
     mapper = 'MWM'
+    cadence = 'mwm_100pc_faint_1x1'
+    priority = 1800
 
     def build_query(self, version_id, query_region=None):
 
@@ -123,6 +125,8 @@ class MWM_SNC_250pc(BaseCarton):
     category = 'science'
     program = '250pc'
     mapper = 'MWM'
+    cadence = None
+    priority = 1810
 
     def build_query(self, version_id, query_region=None):
 
