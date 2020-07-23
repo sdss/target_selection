@@ -194,7 +194,7 @@ class OPS_BOSS_Red_Stds_No_Deredden_Carton(BaseCarton):
 class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_red_stds_deredden
-    
+
     Selection Criteria:
     This carton OPS_BOSS_Red_Stds_Deredden_Carton
     is for the case bp_rp_excess >= 0.
@@ -321,7 +321,8 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     and
     SELECT count(DISTINCT c2t.catalogid ) etc.
     returns 642787
-    lead contact: Kevin Covey
+
+    Lead contact: Kevin Covey
     """
 
     name = 'ops_eboss_stds'
