@@ -26,6 +26,8 @@ class MWM_TESS_RGB_Carton(BaseCarton):
             where: MH = Hmag - 10 + 5.0 * log10(parallax)
             where the parallax is in mas.
 
+    For v0 we'll also add |b|>20
+
     """
 
     name = 'mwm_tess_rgb'
@@ -34,6 +36,8 @@ class MWM_TESS_RGB_Carton(BaseCarton):
     program = 'TESS RGB'
 
     def build_query(self, version_id, query_region=None):
+
+        MH = TIC_v8.hmag - 10 + 5 * fn.log(TIC_v8.plx)
 
         query = (TIC_v8
                  .select(CatalogToTIC_v8.catalogid,
@@ -46,8 +50,8 @@ class MWM_TESS_RGB_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
                  .where((TIC_v8.jmag - TIC_v8.kmag) > 0.5)
-                 .where(TIC_v8.plx > 0,
-                        (TIC_v8.hmag - 10 + 5 * fn.log(TIC_v8.plx)) < 1)
+                 .where(((TIC_v8.plx > 0) & (MH < 1)) | (TIC_v8.plx < 0),
+                        fn.abs(TIC_v8.gallat) > 20)
                  .where(TIC_v8.hmag < 12)
                  .where(TIC_v8.tmag < 13))
 
