@@ -233,7 +233,7 @@
             priority: 4040
             value: 0.5
         mwm_wd:
-            gmag: 20
+            gaia_mag: 20
             pwd: 0.5
         mwm_galactic:
             h_max: 11
