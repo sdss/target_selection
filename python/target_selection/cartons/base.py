@@ -420,10 +420,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
             write_query = (tdb.Target
                            .select(tdb.Target,
                                    *mag_fields,
+                                   tdb.CartonToTarget.priority,
                                    tdb.Cadence.label.alias('cadence'))
+                           .join(tdb.CartonToTarget)
                            .join(tdb.Magnitude)
-                           .join_from(tdb.Target, tdb.CartonToTarget)
-                           .join(tdb.Cadence, peewee.JOIN.LEFT_OUTER)
+                           .join_from(tdb.CartonToTarget, tdb.Cadence,
+                                      peewee.JOIN.LEFT_OUTER)
                            .join_from(tdb.CartonToTarget, tdb.Carton)
                            .join(tdb.Version)
                            .where(tdb.Carton.carton == self.name,
@@ -492,8 +494,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.setup_transaction()
             self._create_carton_metadata()
             self._load_targets(RModel)
-            self._load_magnitudes(RModel)
             self._load_carton_to_target(RModel)
+            self._load_magnitudes(RModel)
 
             self.log.debug('Committing records and checking constraints.')
 
@@ -590,17 +592,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
         Magnitude = tdb.Magnitude
 
         magnitude_paths = self.config['magnitudes']
-        fields = [Magnitude.target_pk]
+        fields = [Magnitude.carton_to_target_pk]
 
         select_from = (RModel
-                       .select(tdb.Target.pk)
+                       .select(tdb.CartonToTarget.pk)
                        .join(tdb.Target,
                              on=(RModel.catalogid == tdb.Target.catalogid))
+                       .join(tdb.CartonToTarget)
+                       .join(tdb.Carton)
+                       .join(tdb.Version)
                        .where(RModel.selected >> True)
-                       .where(~peewee.fn.EXISTS(
-                              Magnitude
-                              .select(peewee.SQL('1'))
-                              .where(Magnitude.target_pk == tdb.Target.pk))))
+                       .where(tdb.Carton.carton == self.name,
+                              tdb.Version.plan == self.plan,
+                              tdb.Version.tag == self.tag,
+                              tdb.Version.target_selection >> True))
 
         for mag, mpath in magnitude_paths.items():
 
@@ -701,8 +706,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                .join(tdb.Cadence, 'LEFT OUTER JOIN',
                                      on=(tdb.Cadence.label == RModel.cadence)))
 
-        #TD# The following was causing priority not to be propogated into the catalog_to_target table
-        #TD# if self.cadence is None:
         if self.priority is None:
             select_from = select_from.select_extend(RModel.priority)
         else:
