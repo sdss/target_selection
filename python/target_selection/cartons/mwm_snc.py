@@ -125,6 +125,8 @@ class MWM_SNC_250pc(BaseCarton):
     category = 'science'
     program = '250pc'
     mapper = 'MWM'
+    cadence = None
+    priority = 1810
 
     def build_query(self, version_id, query_region=None):
 

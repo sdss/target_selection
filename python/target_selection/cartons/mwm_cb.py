@@ -165,7 +165,7 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
     category = 'science'
     program = 'CB'
     cadence = 'mwm_cb_2x1'
-    priority = 1400    
+    priority = 1400
 
     def build_query(self, version_id, query_region=None):
 
