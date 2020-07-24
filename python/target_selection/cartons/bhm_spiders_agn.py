@@ -137,12 +137,14 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         p_f = self.parameters['priority_floor']
         priority = peewee.Case(None,
                                (
+                                   ((x.ero_det_like < self.parameters['det_like_for_priority']) & (s.specobjid.is_null(True)), p_f+6),
+                                   ((x.ero_det_like < self.parameters['det_like_for_priority']) & (s.specobjid.is_null(False)), p_f+7),
                                    ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
                                    ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(True)), p_f+1),
                                    ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+2),
-                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
-                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+6),
-                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+7),
+                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+3),
+                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+4),
+                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+5),
                                ),
                                p_f+9) ## should never get here
 

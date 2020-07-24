@@ -230,7 +230,7 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
             (t.plxsig <  self.parameters['plxsig_max']) &
             (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
             (t.plxsig > plxsig_min) &
-            (t.field_name != 'SDSS-RM') # ignore this carton in the SDSS-RM field
+            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
         )
 
         return query
@@ -322,7 +322,7 @@ class BhmRmVarCarton(BhmRmBaseCarton):
             (t.plxsig < self.parameters['plxsig_max']) &
             (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
             (t.plxsig > plxsig_min) &
-            (t.field_name != 'SDSS-RM') # ignore this carton in the SDSS-RM field
+            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
         )
             #& (t.mg <  self.parameters['g_mag_max'])  # TBD
 
@@ -354,7 +354,7 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
             (t.plxsig <  self.parameters['plxsig_max']) &
             (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
             (t.plxsig > plxsig_min) &
-            (t.field_name != 'SDSS-RM') # ignore this carton in the SDSS-RM field
+            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
         )
 
         return query
