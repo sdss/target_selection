@@ -24,6 +24,11 @@ from target_selection.cartons import BaseCarton
 # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
 
+# In the carton code, peewee.fn.log() is calling
+# the PostgreSQL log() which is a base 10 logarithm.
+# The below link has more details:
+# https://www.postgresql.org/docs/12/functions-math.html
+
 class OPS_BOSS_Stds_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_stds
