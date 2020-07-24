@@ -48,6 +48,9 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
                      gaia_DR2.phot_rp_mean_mag) <= 0.8) &
                   ( (abs_gmag) >= 3.5) & ( (abs_gmag) <= 5.5) )
              )
+    Also add the below condition:
+             Gaia_DR2.phot_g_mean_mag > 13 AND
+             Gaia_DR2.phot_g_mean_mag < 18.5
 
     Lead contact: Kevin Covey
     """
@@ -166,7 +169,11 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
         ak = 0.186 * (Gaia_DR2.bp_rp - 0.725)
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
+                         Gaia_DR2.source_id, Gaia_DR2.phot_g_mean_mag,
+                         Gaia_DR2.phot_bp_mean_mag, Gaia_DR2.phot_rp_mean_mag,
+                         TwoMassPSC.j_m, TwoMassPSC.k_m,
+                         ag.alias('ag'), ak.alias('ak'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
