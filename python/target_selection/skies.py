@@ -108,7 +108,8 @@ def _process_tile(tile, conn_params=None, query=None,
                   candidate_nside=None, tile_nside=None,
                   min_separation=None, mag_column=None,
                   is_flux=False, mag_threshold=None,
-                  downsample=False, downsample_nside=None):
+                  downsample=False, downsample_nside=None,
+                  seed=None):
     """Processes a tile from a catalogue in parallel."""
 
     # We cannot pass the database itself. We need to create the connection
@@ -222,7 +223,8 @@ def _process_tile(tile, conn_params=None, query=None,
         valid_skies_downsampled = (valid_skies.groupby('down_pix', axis=0)
                                    .apply(lambda x: x.sample(n=(n_skies_per_pix
                                                                 if len(x) > n_skies_per_pix
-                                                                else len(x))))
+                                                                else len(x)),
+                                                             random_state=seed))
                                    .reset_index(drop=True))
 
     elif isinstance(downsample, (list, tuple, numpy.ndarray)):
@@ -243,7 +245,7 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                   ra_column='ra', dec_column='dec',
                   mag_column=None, is_flux=False, mag_threshold=None,
                   use_multiprocessing=False, n_cpus=None,
-                  downsample=False, downsample_nside=256):
+                  downsample=False, downsample_nside=256, seed=None):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -333,6 +335,8 @@ def get_sky_table(database, table, output, tiles=None, append=False,
         resulting valid skies will be grouped by HEALPix pixels of this
         resolution. For each pixel a random sample will be drawn so that the
         total number of skies selected matches ``downsample``.
+    seed : int
+        The random state seed.
 
     """
 
@@ -372,7 +376,8 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                            is_flux=is_flux,
                            mag_threshold=mag_threshold,
                            downsample=downsample,
-                           downsample_nside=downsample_nside)
+                           downsample_nside=downsample_nside,
+                           seed=seed)
 
     # TODO: multiprocessing doesn't seem to be working.
     if use_multiprocessing:
@@ -528,12 +533,12 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
     return fig
 
 
-def create_sky_catalogue(database, tiles=None):
+def create_sky_catalogue(database, tiles=None, seed=None):
     """A script to generate a combined sky catalogue from multiple sources."""
 
     get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
                   mag_column='phot_g_mean_mag', mag_threshold=12,
-                  downsample=2000, tiles=tiles)
+                  downsample=2000, tiles=tiles, seed=seed)
 
     # We use Gaia as the source for the downsampled candidates.
     gaia = pandas.read_hdf('gaia_skies.h5')
@@ -541,20 +546,20 @@ def create_sky_catalogue(database, tiles=None):
 
     get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
                   mag_column='flux_g', is_flux=True, mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles)
+                  downsample=downsample_list, tiles=tiles, seed=seed)
 
     get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
                   dec_column='decl', mag_column='h_m', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles)
+                  downsample=downsample_list, tiles=tiles, seed=seed)
 
     get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                   ra_column='ramdeg', dec_column='demdeg',
                   mag_column='vtmag', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles)
+                  downsample=downsample_list, tiles=tiles, seed=seed)
 
     get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
                   dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
-                  downsample=downsample_list, tiles=tiles)
+                  downsample=downsample_list, tiles=tiles, seed=seed)
 
     skies = None
     col_order = []
