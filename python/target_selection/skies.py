@@ -15,7 +15,6 @@ import pandas
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
-from peewee import PostgresqlDatabase
 
 from target_selection import manager
 
@@ -103,28 +102,16 @@ def nested_regrade(pixels, nside_in, nside_out):
         return prograded
 
 
-def _process_tile(tile, conn_params=None, query=None,
-                  ra_column=None, dec_column=None,
-                  candidate_nside=None, tile_nside=None,
-                  min_separation=None, mag_column=None,
-                  is_flux=False, mag_threshold=None,
-                  downsample=False, downsample_nside=None,
-                  seed=None):
-    """Processes a tile from a catalogue in parallel."""
+def _process_tile(inputs, candidate_nside=None, tile_nside=None,
+                  min_separation=None, mag_column=None, is_flux=False,
+                  mag_threshold=None, downsample=False,
+                  downsample_nside=None, seed=None):
+    """Processes a tile from catalogue data."""
 
-    # We cannot pass the database itself. We need to create the connection
-    # inside the function that gets parallelised.
+    targets, tile = inputs
 
-    database = PostgresqlDatabase(conn_params['dbname'],
-                                  user=conn_params.get('user', None),
-                                  host=conn_params.get('host', None),
-                                  port=conn_params.get('port', None))
-
-    targets = pandas.read_sql(query.format(tile=tile), database)
     if len(targets) == 0:
         return False
-
-    targets.rename(columns={ra_column: 'ra', dec_column: 'dec'}, inplace=True)
 
     # For each target we calculate the corresponding pixel in candidate_nside
     # resolution.
@@ -242,10 +229,9 @@ def _process_tile(tile, conn_params=None, query=None,
 
 def get_sky_table(database, table, output, tiles=None, append=False,
                   tile_nside=32, candidate_nside=32768, min_separation=10,
-                  ra_column='ra', dec_column='dec',
+                  chunk_tiles=5, ra_column='ra', dec_column='dec',
                   mag_column=None, is_flux=False, mag_threshold=None,
-                  use_multiprocessing=False, n_cpus=None,
-                  downsample=False, downsample_nside=256, seed=None):
+                  downsample=False, downsample_nside=256, n_cpus=1, seed=None):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -306,6 +292,11 @@ def get_sky_table(database, table, output, tiles=None, append=False,
     min_separation : int
         The minimum separation, in arcsec, between skies and their closest
         neighbour in the catalogue.
+    chunk_tiles : int
+        Request the targets from this number of tiles at once, and then process
+        them one by one. Reduces the number of queries at the expense of making
+        each one return more rows and use more memory. This option is ignored
+        if ``tiles`` is set.
     ra_column : str
         The name of the column in ``table`` that contains the Right Ascension
         coordinates, in degrees.
@@ -320,11 +311,6 @@ def get_sky_table(database, table, output, tiles=None, append=False,
     mag_threshold : float
         The value below which the separation to neighbouring sources will be
         scaled.
-    use_multiprocessing : bool
-        Whether to use multiprocessing.
-    n_cpus : int
-        Number of CPUs to use in parallel. If `None`, defaults to the number
-        of cores.
     downsample : bool, int, or list
         The total number of skies to retrieve for each tile. If `False`,
         returns all candidate skies. ``downsample`` can also be a list of
@@ -335,12 +321,81 @@ def get_sky_table(database, table, output, tiles=None, append=False,
         resulting valid skies will be grouped by HEALPix pixels of this
         resolution. For each pixel a random sample will be drawn so that the
         total number of skies selected matches ``downsample``.
+    n_cpus : int
+        Number of CPUs to use for multiprocessing.
     seed : int
         The random state seed.
 
     """
 
-    n_cpus = n_cpus or multiprocessing.cpu_count()
+    assert database.connected, 'database is not connected.'
+
+    columns = (f'healpix_ang2ipix_nest('
+               f'{tile_nside}, {ra_column}, {dec_column}) AS tile_{tile_nside}, '
+               f'{ra_column}, {dec_column}')
+    if mag_column and mag_threshold:
+        columns += f', {mag_column}'
+
+    if chunk_tiles is None:
+        chunk_tiles = 1
+
+    if tiles is None:
+        tiles = numpy.arange(healpy.nside2npix(tile_nside))
+
+    query = (f'SELECT {columns} FROM {table} '
+             f'WHERE healpix_ang2ipix_nest('
+             f'{tile_nside}, {ra_column}, {dec_column}) IN ({{values}});')
+
+    pbar = manager.counter(total=len(tiles), desc='Tiles', unit='tiles')
+
+    process_tile = partial(_process_tile,
+                           candidate_nside=candidate_nside,
+                           tile_nside=tile_nside,
+                           min_separation=min_separation,
+                           mag_column=mag_column, is_flux=is_flux,
+                           mag_threshold=mag_threshold,
+                           downsample=downsample,
+                           downsample_nside=downsample_nside,
+                           seed=seed)
+
+    all_skies = None
+
+    for tile_split in numpy.array_split(tiles, len(tiles) / chunk_tiles):
+
+        values = ','.join(map(str, tile_split))
+
+        all_targets = pandas.read_sql(query.format(values=values), database)
+        all_targets.rename(columns={ra_column: 'ra',
+                                    dec_column: 'dec'}, inplace=True)
+
+        # pt_targets = partial(process_tile, all_targets)
+
+        if n_cpus > 1:
+
+            TASKS = [(all_targets.loc[all_targets[f'tile_{tile_nside}'] == tile],
+                      tile) for tile in tile_split]
+
+            with multiprocessing.Pool(n_cpus) as pool:
+                for valid_skies in pool.imap_unordered(process_tile, TASKS):
+                    if valid_skies is not False:
+                        if all_skies is None:
+                            all_skies = valid_skies
+                        else:
+                            all_skies = all_skies.append(valid_skies)
+
+                    pbar.update()
+
+        else:
+
+            for tile in tile_split:
+                valid_skies = process_tile((all_targets, tile))
+                if valid_skies is not False:
+                    if all_skies is None:
+                        all_skies = valid_skies
+                    else:
+                        all_skies = all_skies.append(valid_skies)
+
+                pbar.update()
 
     key = 'data'
     hdf = pandas.HDFStore(output, mode='w')
@@ -348,50 +403,7 @@ def get_sky_table(database, table, output, tiles=None, append=False,
     if append is False and key in hdf:
         hdf.remove(key)
 
-    assert database.connected, 'database is not connected.'
-
-    columns = f'{ra_column}, {dec_column}'
-    if mag_column and mag_threshold:
-        columns += f', {mag_column}'
-
-    query = (f'SELECT {columns} FROM {table} '
-             f'WHERE healpix_ang2ipix_nest('
-             f'{tile_nside}, {ra_column}, {dec_column}) = {{tile}};')
-
-    if tiles is None:
-        tiles = numpy.arange(healpy.nside2npix(tile_nside))
-
-    pbar = manager.counter(total=len(tiles), desc='Tiles', unit='tiles')
-
-    conn_params = database.connection().get_dsn_parameters()
-    process_tile = partial(_process_tile,
-                           conn_params=conn_params,
-                           query=query,
-                           candidate_nside=candidate_nside,
-                           tile_nside=tile_nside,
-                           ra_column=ra_column,
-                           dec_column=dec_column,
-                           min_separation=min_separation,
-                           mag_column=mag_column,
-                           is_flux=is_flux,
-                           mag_threshold=mag_threshold,
-                           downsample=downsample,
-                           downsample_nside=downsample_nside,
-                           seed=seed)
-
-    # TODO: multiprocessing doesn't seem to be working.
-    if use_multiprocessing:
-        with multiprocessing.Pool(processes=n_cpus) as pool:
-            for valid_skies in pool.imap_unordered(process_tile, tiles):
-                if valid_skies is not False:
-                    hdf.append(key, valid_skies)
-                pbar.update()
-    else:
-        for tile in tiles:
-            valid_skies = process_tile(tile)
-            if valid_skies is not False:
-                hdf.append(key, valid_skies)
-            pbar.update()
+    hdf.append(key, all_skies)
 
     hdf.close()
 
@@ -533,12 +545,12 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
     return fig
 
 
-def create_sky_catalogue(database, tiles=None, seed=None):
+def create_sky_catalogue(database, tiles=None, **kwargs):
     """A script to generate a combined sky catalogue from multiple sources."""
 
     get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
                   mag_column='phot_g_mean_mag', mag_threshold=12,
-                  downsample=2000, tiles=tiles, seed=seed)
+                  downsample=2000, tiles=tiles, **kwargs)
 
     # We use Gaia as the source for the downsampled candidates.
     gaia = pandas.read_hdf('gaia_skies.h5')
@@ -546,20 +558,20 @@ def create_sky_catalogue(database, tiles=None, seed=None):
 
     get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
                   mag_column='flux_g', is_flux=True, mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, seed=seed)
+                  downsample=downsample_list, tiles=tiles, **kwargs)
 
     get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
                   dec_column='decl', mag_column='h_m', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, seed=seed)
+                  downsample=downsample_list, tiles=tiles, **kwargs)
 
     get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                   ra_column='ramdeg', dec_column='demdeg',
                   mag_column='vtmag', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, seed=seed)
+                  downsample=downsample_list, tiles=tiles, **kwargs)
 
     get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
                   dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
-                  downsample=downsample_list, tiles=tiles, seed=seed)
+                  downsample=downsample_list, tiles=tiles, **kwargs)
 
     skies = None
     col_order = []
