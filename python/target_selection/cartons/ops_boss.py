@@ -85,7 +85,9 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) >= 0.65,
                         (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag) <= 0.8,
                         abs_gmag >= 3.5,
-                        abs_gmag <= 5.5))
+                        abs_gmag <= 5.5,
+                        Gaia_DR2.phot_g_mean_mag > 13,
+                        Gaia_DR2.phot_g_mean_mag < 18.5))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
