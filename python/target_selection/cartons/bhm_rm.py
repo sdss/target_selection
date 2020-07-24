@@ -97,6 +97,7 @@ class BhmRmBaseCarton(BaseCarton):
                 ((t.mi <= priority_mag_bright),
                  priority_floor+0),
                 (((self.name == 'bhm_rm_known_spec') &
+                  ~(t.field_name.contains('SDSS-RM')) &
                   (t.mi <= priority_mag_bright_known_spec)),
                  priority_floor+0),
                 ((t.mi <= priority_mag_faint),
@@ -228,8 +229,27 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
             ) &
             (t.pmsig <  self.parameters['pmsig_max']) &
             (t.plxsig <  self.parameters['plxsig_max']) &
-            (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
-            (t.plxsig > plxsig_min) &
+            (
+                #catch bad photometry - require at least gri detections in at least one system
+                ((t.sdss == 1) &
+                 ( t.psfmag_sdss[1] > 0.0) &
+                 ( t.psfmag_sdss[2] > 0.0) &
+                 ( t.psfmag_sdss[3] > 0.0)) |
+                ((t.ps1 == 1) &
+                 ( t.psfmag_ps1[0] > 0.0) &
+                 ( t.psfmag_ps1[1] > 0.0) &
+                 ( t.psfmag_ps1[2] > 0.0)) |
+                ((t.des == 1) &
+                 ( t.psfmag_des[0] > 0.0) &
+                 ( t.psfmag_des[1] > 0.0) &
+                 ( t.psfmag_des[2] > 0.0)) |
+                ((t.nsc == 1) &
+                 ( t.mag_nsc[0] > 0.0) &
+                 ( t.mag_nsc[1] > 0.0) &
+                 ( t.mag_nsc[2] > 0.0))
+            ) &
+#            (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
+#            (t.plxsig > plxsig_min) &
             ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
         )
 
