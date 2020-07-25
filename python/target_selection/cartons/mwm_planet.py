@@ -74,7 +74,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
 
         priorities = {'exo_TOI': 2600,
                       'exo_CTOI': 2605,
-                      '2min': 2010}
+                      '2min': 2610}
 
         for target_type, priority in priorities.items():
             (model
