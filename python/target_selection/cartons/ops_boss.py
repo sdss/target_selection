@@ -20,13 +20,18 @@ from target_selection.cartons import BaseCarton
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
-
+#
 # peewee Model name ---> postgres table name
 # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
 # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
-# CatalogToSDSS_DR13_PhotoObj_Primary--->
-
+#
+# The CatalogTo* peewee model names are not explicit in catalogdb.py.
+# The names are constructed by prepending CatalogTo
+# to the corresponding model name which is in catalogdb.py.
+# For example:
+# CatalogToSDSS_DR13_PhotoObj_Primary--->'catalog_to_sdss_dr13_photoobj_primary'
+#
 # In the carton code, peewee.fn.log() is calling
 # the PostgreSQL log() which is a base 10 logarithm.
 # The below link has more details:
