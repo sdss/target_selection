@@ -8,7 +8,9 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             CatalogToSDSS_DR13_PhotoObj_Primary,
+                                             CatalogToTIC_v8,
                                              Gaia_DR2, TIC_v8, TwoMassPSC,
                                              eBOSS_Target_v5)
 
@@ -23,6 +25,7 @@ from target_selection.cartons import BaseCarton
 # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
 # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
+# CatalogToSDSS_DR13_PhotoObj_Primary--->
 
 # In the carton code, peewee.fn.log() is calling
 # the PostgreSQL log() which is a base 10 logarithm.
@@ -109,6 +112,9 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
 
 class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
+    TODO
+    DO NOT USE
+    query is set to None
     Shorthand name: ops_boss_red_stds_deredden
 
     Selection Criteria:
@@ -191,7 +197,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
                         ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
                         (abs_gmag - ag) >= 3,
                         (abs_gmag - ag) <= 5.5))
-
+        query = None
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -211,36 +217,13 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     Shorthand name: ops_eboss_stds
     Selection Criteria:
     The code of this carton is based on the below SQL.
-    This returns 298885 rows.
-    SELECT DISTINCT ON (e.objid_targeting) e.objid_targeting, c2t.catalogid
-           FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
-           JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
-           WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
-                (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
-                (e.eboss_target1 & pow(2, 52)::bigint) > 0;
-
-    As shown below, more than one c2t.catalogid may correspond
-    to the same e.objid_targeting.
-    SELECT count(c2t.catalogid ), e.objid_targeting
-    FROM ebosstarget_v5 e JOIN tic_v8 t ON t.sdss = e.objid_targeting
-    JOIN catalog_to_tic_v8 c2t ON c2t.target_id = t.id
-    WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
-          (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
-          (e.eboss_target1 & pow(2, 52)::bigint) > 0  GROUP BY e.objid_targeting;
-
-    count |   objid_targeting
-    -------+---------------------
-        2 | 1237662530065399951
-        2 | 1237671956455489893
-    etc.
-
-    Hence,
-    SELECT COUNT(DISTINCT e.objid_targeting) etc.
-    returns 298885
-
-    and
-    SELECT count(DISTINCT c2t.catalogid ) etc.
-    returns 642787
+    SELECT DISTINCT s.catalogid
+       FROM ebosstarget_v5 e JOIN catalog_to_sdss_dr13_photoobj_primary s
+       ON s.target_id = e.objid_targeting
+       WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
+             (e.eboss_target1 & pow(2, 51)::bigint) > 0 OR
+             (e.eboss_target1 & pow(2, 52)::bigint) > 0
+             and s.best is true and s.version_id = 21;
 
     Lead contact: Kevin Covey
     """
@@ -264,15 +247,15 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
         # We have distinct(eBOSS_Target_v5.objid_targeting) at the end
         # since the table ebosstarget_v5 has duplicate values.
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .select(Catalog.catalogid)
+                 .join(CatalogToSDSS_DR13_PhotoObj_Primary,
+                       on=(Catalog.catalogid ==
+                           CatalogToSDSS_DR13_PhotoObj_Primary.catalogid))
                  .join(eBOSS_Target_v5,
-                       on=(TIC_v8.sdss == eBOSS_Target_v5.objid_targeting))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                       on=(CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
+                           eBOSS_Target_v5.objid_targeting))
+                 .where(CatalogToSDSS_DR13_PhotoObj_Primary.version_id == version_id,
+                        CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
                         selection_condition)
                  .distinct(eBOSS_Target_v5.objid_targeting))
 
