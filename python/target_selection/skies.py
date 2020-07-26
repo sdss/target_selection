@@ -7,6 +7,8 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import multiprocessing
+import os
+import warnings
 from functools import partial
 
 import healpy
@@ -17,6 +19,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 
 from target_selection import manager
+from target_selection.exceptions import TargetSelectionUserWarning
 
 
 def nested_regrade(pixels, nside_in, nside_out):
@@ -558,30 +561,45 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 def create_sky_catalogue(database, tiles=None, **kwargs):
     """A script to generate a combined sky catalogue from multiple sources."""
 
-    get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
-                  mag_column='phot_g_mean_mag', mag_threshold=12,
-                  downsample=2000, tiles=tiles, **kwargs)
+    if not os.path.exists('gaia_skies.h5'):
+        get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
+                      mag_column='phot_g_mean_mag', mag_threshold=12,
+                      downsample=2000, tiles=tiles, **kwargs)
+    else:
+        warnings.warn('Found file gaia_skies.h5', TargetSelectionUserWarning)
 
     # We use Gaia as the source for the downsampled candidates.
     gaia = pandas.read_hdf('gaia_skies.h5')
     downsample_list = gaia.index.drop_duplicates().values
 
-    get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
-                  mag_column='flux_g', is_flux=True, mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, **kwargs)
+    if not os.path.exists('ls8_skies.h5'):
+        get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
+                      mag_column='flux_g', is_flux=True, mag_threshold=12,
+                      downsample=downsample_list, tiles=tiles, **kwargs)
+    else:
+        warnings.warn('Found file ls8_skies.h5', TargetSelectionUserWarning)
 
-    get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
-                  dec_column='decl', mag_column='h_m', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, **kwargs)
+    if not os.path.exists('tmass_skies.h5'):
+        get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
+                      dec_column='decl', mag_column='h_m', mag_threshold=12,
+                      downsample=downsample_list, tiles=tiles, **kwargs)
+    else:
+        warnings.warn('Found file tmass_skies.h5', TargetSelectionUserWarning)
 
-    get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
-                  ra_column='ramdeg', dec_column='demdeg',
-                  mag_column='vtmag', mag_threshold=12,
-                  downsample=downsample_list, tiles=tiles, **kwargs)
+    if not os.path.exists('tycho2_skies.h5'):
+        get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
+                      ra_column='ramdeg', dec_column='demdeg',
+                      mag_column='vtmag', mag_threshold=12,
+                      downsample=downsample_list, tiles=tiles, **kwargs)
+    else:
+        warnings.warn('Found file tycho2_skies.h5', TargetSelectionUserWarning)
 
-    get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
-                  dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
-                  downsample=downsample_list, tiles=tiles, **kwargs)
+    if not os.path.exists('tmass_xsc_skies.h5'):
+        get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
+                      dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
+                      downsample=downsample_list, tiles=tiles, **kwargs)
+    else:
+        warnings.warn('Found file tmass_xsc_skies.h5', TargetSelectionUserWarning)
 
     skies = None
     col_order = []
