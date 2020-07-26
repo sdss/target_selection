@@ -18,7 +18,7 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 
-from target_selection import manager
+from target_selection import log, manager
 from target_selection.exceptions import TargetSelectionUserWarning
 
 
@@ -562,6 +562,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     """A script to generate a combined sky catalogue from multiple sources."""
 
     if not os.path.exists('gaia_skies.h5'):
+        log.info('Procesing gaia_dr2_source.')
         get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
                       mag_column='phot_g_mean_mag', mag_threshold=12,
                       downsample=2000, tiles=tiles, **kwargs)
@@ -573,6 +574,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     downsample_list = gaia.index.drop_duplicates().values
 
     if not os.path.exists('ls8_skies.h5'):
+        log.info('Procesing legacy_survey_dr8.')
         get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
                       mag_column='flux_g', is_flux=True, mag_threshold=12,
                       downsample=downsample_list, tiles=tiles, **kwargs)
@@ -580,6 +582,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         warnings.warn('Found file ls8_skies.h5', TargetSelectionUserWarning)
 
     if not os.path.exists('tmass_skies.h5'):
+        log.info('Procesing twomass_psc.')
         get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
                       dec_column='decl', mag_column='h_m', mag_threshold=12,
                       downsample=downsample_list, tiles=tiles, **kwargs)
@@ -587,6 +590,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         warnings.warn('Found file tmass_skies.h5', TargetSelectionUserWarning)
 
     if not os.path.exists('tycho2_skies.h5'):
+        log.info('Procesing tycho2.')
         get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                       ra_column='ramdeg', dec_column='demdeg',
                       mag_column='vtmag', mag_threshold=12,
@@ -595,6 +599,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         warnings.warn('Found file tycho2_skies.h5', TargetSelectionUserWarning)
 
     if not os.path.exists('tmass_xsc_skies.h5'):
+        log.info('Procesing twomass_xsc.')
         get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
                       dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
                       downsample=downsample_list, tiles=tiles, **kwargs)
