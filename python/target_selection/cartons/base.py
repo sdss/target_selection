@@ -69,6 +69,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         A tuple defining the region over which the query should be performed,
         with the format ``(ra, dec, radius)`` in degrees. This will append a
         ``q3c_radial_query`` condition to the query.
+    load_magnitudes : bool
+        Whether to load target magnitudes. In general this must be `True`
+        except for cartons for which it's known the magnitudes will not be
+        used, e.g., skies.
 
     """
 
@@ -78,6 +82,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
     program = None
     mapper = None
     priority = None
+
+    load_magnitudes = True
 
     query_region = None
 
@@ -495,7 +501,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self._create_carton_metadata()
             self._load_targets(RModel)
             self._load_carton_to_target(RModel)
-            self._load_magnitudes(RModel)
+            if self.load_magnitudes:
+                self._load_magnitudes(RModel)
 
             self.log.debug('Committing records and checking constraints.')
 
