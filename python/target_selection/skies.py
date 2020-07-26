@@ -108,7 +108,7 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
                   downsample_nside=None, seed=None):
     """Processes a tile from catalogue data."""
 
-    targets, tile = inputs
+    tile, targets = inputs
 
     if len(targets) == 0:
         return False
@@ -350,9 +350,11 @@ def get_sky_table(database, table, output, tiles=None, append=False,
 
     query = (f'SELECT {columns} FROM {table} '
              f'WHERE healpix_ang2ipix_nest('
-             f'{tile_nside}, {ra_column}, {dec_column}) IN ({{values}});')
+             f'{tile_nside}, {ra_column}, {dec_column}) IN ({{values}}) '
+             f'ORDER BY tile_{tile_nside};')
 
     pbar = manager.counter(total=len(tiles), desc='Tiles', unit='tiles')
+    pbar.refresh()
 
     process_tile = partial(_process_tile,
                            candidate_nside=candidate_nside,
@@ -370,20 +372,22 @@ def get_sky_table(database, table, output, tiles=None, append=False,
 
         values = ','.join(map(str, tile_split))
 
-        all_targets = pandas.read_sql(query.format(values=values), database)
-        all_targets.rename(columns={ra_column: 'ra',
-                                    dec_column: 'dec'}, inplace=True)
-
-        # pt_targets = partial(process_tile, all_targets)
+        targets = pandas.read_sql(query.format(values=values), database)
+        targets.rename(columns={ra_column: 'ra', dec_column: 'dec'}, inplace=True)
 
         if n_cpus > 1:
 
-            TASKS = [(all_targets.loc[all_targets[f'tile_{tile_nside}'] == tile],
-                      tile) for tile in tile_split]
+            groups = targets.groupby(f'tile_{tile_nside}')
+
+            # Increment the counter for each tile that didn't get any target.
+            n_groups = len(groups)
+            non_hit = len(tile_split) - n_groups
+            pbar.update(non_hit)
 
             with multiprocessing.Pool(n_cpus) as pool:
-                for valid_skies in pool.imap_unordered(process_tile, TASKS):
-                    if valid_skies is not False:
+
+                for valid_skies in pool.imap_unordered(process_tile, groups):
+                    if valid_skies is not False and len(valid_skies) > 0:
                         if all_skies is None:
                             all_skies = valid_skies
                         else:
@@ -394,9 +398,9 @@ def get_sky_table(database, table, output, tiles=None, append=False,
         else:
 
             for tile in tile_split:
-                valid_skies = process_tile((all_targets, tile))
+                valid_skies = process_tile((tile, targets))
                 if valid_skies is not False:
-                    if all_skies is None:
+                    if all_skies is None and len(valid_skies) > 0:
                         all_skies = valid_skies
                     else:
                         all_skies = all_skies.append(valid_skies)
