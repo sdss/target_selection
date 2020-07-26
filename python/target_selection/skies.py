@@ -185,7 +185,10 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
 
     # If we are not downsampling, set the index and return.
     if downsample is False or downsample is None:
-        valid_skies.set_index(cpcol, inplace=True)
+        if len(valid_skies) > 0:
+            valid_skies.set_index(cpcol, inplace=True)
+        else:
+            return False
         return valid_skies
 
     # If downsampling, regrade each candidate pixel value to the nside we'll
@@ -222,7 +225,10 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
 
         raise ValueError('invalid format for downsample.')
 
-    valid_skies_downsampled.set_index(cpcol, inplace=True)
+    if len(valid_skies_downsampled) > 0:
+        valid_skies_downsampled.set_index(cpcol, inplace=True)
+    else:
+        return False
 
     return valid_skies_downsampled
 
