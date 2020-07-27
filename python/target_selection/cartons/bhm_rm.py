@@ -122,36 +122,71 @@ class BhmRmBaseCarton(BaseCarton):
         pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
         parallax = peewee.Value(0.0).cast('float').alias('parallax')
 
+        ### this leads to some scattered nulls in photometry - prefer to use best estimate photom instead
+        # magnitude_g = peewee.Case(None,
+        #                           (
+        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
+        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
+        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
+        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
+        #                           ),
+        #                           None) ## should never get here
+        # magnitude_r = peewee.Case(None,
+        #                           (
+        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
+        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
+        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
+        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
+        #                           ),
+        #                           None) ## should never get here
+        # magnitude_i = peewee.Case(None,
+        #                           (
+        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
+        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
+        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
+        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
+        #                           ),
+        #                           t.mi) ## should never get here
+        # magnitude_z = peewee.Case(None,
+        #                           (
+        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
+        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
+        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
+        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
+        #                           ),
+        #                           None) ## should never get here
+
+        # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
 
         magnitude_g = peewee.Case(None,
                                   (
-                                    ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
                                     ((t.des == 1) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
+                                    ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
+                                    ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
                                     ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
                                   ),
                                   None) ## should never get here
         magnitude_r = peewee.Case(None,
                                   (
-                                    ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
                                     ((t.des == 1) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
+                                    ((t.ps1 == 1) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
+                                    ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
                                     ((t.nsc == 1) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
                                   ),
                                   None) ## should never get here
         magnitude_i = peewee.Case(None,
                                   (
-                                    ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
                                     ((t.des == 1) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
+                                    ((t.ps1 == 1) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
+                                    ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
                                     ((t.nsc == 1) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
                                   ),
                                   t.mi) ## should never get here
         magnitude_z = peewee.Case(None,
                                   (
-                                    ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
                                     ((t.des == 1) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
+                                    ((t.ps1 == 1) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
+                                    ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
                                     ((t.nsc == 1) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
                                   ),
                                   None) ## should never get here
@@ -208,9 +243,11 @@ class BhmRmBaseCarton(BaseCarton):
             .join(c2s, JOIN.LEFT_OUTER)
             .join(s, JOIN.LEFT_OUTER)
             .where(
-                (s.specobjid.is_null()) |  # no match in sdss_dr16_specobj
-                (s.z > 0.005)              # or specobj says that object is extragalactic
-#                ~(s.class.contains('STAR'))   # .class field conflicts with method - bad
+                (s.specobjid.is_null()) |    # no match in sdss_dr16_specobj
+                ~(
+                    (s.class_.contains('STAR')) & # Reject objects where the best spectrum for
+                    (s.scienceprimary > 0)      # this object is classified as STAR
+                )
             )
             .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
         )

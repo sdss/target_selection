@@ -84,7 +84,7 @@
             priority: 1001
             value: 1000.0
             mag_i_min: 15.0
-            mag_i_max: 21.5
+            mag_i_max: 21.7
             mag_i_max_sdss_rm: 21.7
             mag_i_max_cosmos: 21.5
             mag_i_max_xmm_lss: 21.5
