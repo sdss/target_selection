@@ -159,11 +159,8 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         # Notes on convertion from ls_fibermag to sdss_fiber2mag:
         # https://wiki.mpe.mpg.de/eRosita/EroAGN_eFEDS/SDSSIVSpecialPlates#Estimating_SDSS_fiber2mag_.2A_from_legacysurvey_photometry
 
-        # sdss_fiber2mag_g = ls_fibermag_g + 0.46 mag   flux_ratio = ~0.65
-        # sdss_fiber2mag_r = ls_fibermag_r + 0.55 mag   flux_ratio = ~0.60
-        # sdss_fiber2mag_i = ls_fibermag_i + 0.44 mag   flux_ratio = ~0.67
-        # sdss_fiber2mag_z = ls_fibermag_z + 0.39 mag   flux_ratio = ~0.70
-        flux_ratio = {'g' : 0.65, 'r' : 0.60, 'i' : 0.67, 'z' : 0.70 }
+        # A flux ratio of 0.6 (roughly what is seen in all three bands) is a magnitude difference of mag(SDSS)-mag(LS) = 0.55mags
+        flux_ratio = {'g' : 0.60, 'r' : 0.60, 'i' : 0.60, 'z' : 0.60 }
         magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
         magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
         magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
