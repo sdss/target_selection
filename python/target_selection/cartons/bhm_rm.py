@@ -12,9 +12,14 @@
 
 import peewee
 import sdssdb
+from peewee import JOIN
 
 #from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0, CatalogToBHM_RM_v0)
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0_2, CatalogToBHM_RM_v0)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             BHM_RM_v0_2,
+                                             CatalogToBHM_RM_v0,
+                                             CatalogToSDSS_DR16_SpecObj,
+                                             SDSS_DR16_SpecObj)
 
 from target_selection.cartons.base import BaseCarton
 
@@ -81,6 +86,8 @@ class BhmRmBaseCarton(BaseCarton):
         t = BHM_RM_v0_2.alias()
         self.alias_c = c
         self.alias_t = t
+        c2s = CatalogToSDSS_DR16_SpecObj.alias()
+        s = SDSS_DR16_SpecObj.alias()
 
         # set the Carton priority+values here - read from yaml
         #priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
@@ -178,16 +185,32 @@ class BhmRmBaseCarton(BaseCarton):
                     magnitude_z.alias('z'),
 #                    magnitude_bp.alias('bp'),  # let the targetdb fill this in automatically
 #                    magnitude_rp.alias('rp'),
+#                    s.z.alias('sdss_dr16_specobj_z'),
+#                    s.plate.alias('sdss_dr16_specobj_plate'),
+#                    s.mjd.alias('sdss_dr16_specobj_mjd'),
+#                    s.fiberid.alias('sdss_dr16_specobj_fiberid'),
             )
             .join(c2t)
             .join(t, on=(c2t.target_id == t.pk))  # needed because using c2t for Catalog_to_BHM_RM_v0
             .where(c.version_id == version_id,
                    c2t.version_id == version_id,
+                   (
+                       (c2s.version_id == version_id) |
+                       (c2s.version_id.is_null())
+                   ),
                    c2t.best == True)
             .where
             (
                 (t.mi >= self.parameters['mag_i_min']),
                 (t.mi <  self.parameters['mag_i_max']),
+            )
+            .switch(c)
+            .join(c2s, JOIN.LEFT_OUTER)
+            .join(s, JOIN.LEFT_OUTER)
+            .where(
+                (s.specobjid.is_null()) |  # no match in sdss_dr16_specobj
+                (s.z > 0.005)              # or specobj says that object is extragalactic
+#                ~(s.class.contains('STAR'))   # .class field conflicts with method - bad
             )
             .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
         )
