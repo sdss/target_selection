@@ -111,10 +111,24 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
                                p_f + x.target_priority + 10)     # Member galaxies
 
         # legacysurvey mags - derived from fiberfluxes - with limits to avoid divide by zero errors
-        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).cast('float')
-        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).cast('float')
-        magnitude_i = peewee.Value(None).cast('float')
-        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).cast('float')
+        # notes on convertion from ls_fibermag to sdss_fiber2mag:
+        # https://wiki.mpe.mpg.de/eRosita/EroAGN_eFEDS/SDSSIVSpecialPlates#Estimating_SDSS_fiber2mag_.2A_from_legacysurvey_photometry
+        # for mostly point-like sources, the average offset is sdss_fiber2mag_[griz] = ls_fibermag_[griz] + 0.55 mag
+        # for mostly galaxies, there is a magnitude and band-dependent shift
+        # sdss_fiber2mag_g = ls_fibermag_g + 0.46 mag   flux_ratio = ~0.65
+        # sdss_fiber2mag_r = ls_fibermag_r + 0.55 mag   flux_ratio = ~0.60
+        # sdss_fiber2mag_i = ls_fibermag_i + 0.44 mag   flux_ratio = ~0.67
+        # sdss_fiber2mag_z = ls_fibermag_z + 0.39 mag   flux_ratio = ~0.70
+        flux_ratio = {'g' : 0.65, 'r' : 0.60, 'i' : 0.67, 'z' : 0.70 }
+        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
+        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
+        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
+        # the simplest possible interpolation - TODO do this better
+        magnitude_i = (22.5-2.5*fn.log10(fn.greatest(flux30,
+                                                     0.5*(ls.fiberflux_r+
+                                                          ls.fiberflux_z)*flux_ratio['i']))).cast('float')
+
+
 
         pmra = peewee.Value(0.0).cast('float').alias('pmra')
         pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
@@ -241,6 +255,10 @@ class BhmSpidersClusEfedsErositaCarton(BhmSpidersClusEfedsCarton):
 
 
 '''
+
+ target_selection --profile tunnel_operations_sdss --verbose run --include bhm_spiders_clusters_efeds_sdss_redmapper,bhm_spiders_clusters_efeds_hsc_redmapper,bhm_spiders_clusters_efeds_ls_redmapper,bhm_spiders_clusters_efeds_erosita --keep --overwrite '0.1.0' --write-table
+
+
 Exporting from the temp table
 
 \copy (SELECT * FROM sandbox.temp_bhm_spiders_clusters_efeds_sdss_redmapper)  TO '/home/tdwelly/scratch/targetdb/bhm_spiders_clusters_efeds_sdss_redmapper.csv' with csv header
