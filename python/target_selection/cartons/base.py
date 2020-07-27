@@ -21,7 +21,8 @@ from sdsstools import read_yaml_file
 from sdsstools.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import TargetSelectionError
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 from target_selection.utils import Timer
 
 
@@ -475,7 +476,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
                               f'and tag {self.tag!r} already has targets '
-                              'loaded. Dropping carton-to-target entries.')
+                              'loaded. Dropping carton-to-target entries.',
+                              TargetSelectionUserWarning)
                 self.drop_carton()
             else:
                 raise TargetSelectionError(f'Found existing targets for '
@@ -503,6 +505,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self._load_carton_to_target(RModel)
             if self.load_magnitudes:
                 self._load_magnitudes(RModel)
+            else:
+                warnings.warn('Skipping magnitude load.',
+                              TargetSelectionUserWarning)
 
             self.log.debug('Committing records and checking constraints.')
 
