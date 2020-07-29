@@ -55,6 +55,8 @@
         - mwm_rv_short_rm
         - mwm_rv_short_bplates
         - mwm_rv_short_fps
+        - ops_apogee_sky
+        - ops_boss_sky
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
