@@ -118,9 +118,78 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     Shorthand name: ops_boss_red_stds_deredden
 
     Selection Criteria:
-    This carton OPS_BOSS_Red_Stds_Deredden_Carton
-    has selection criteria as defined in the code.
+    This carton has selection criteria as defined in the below SQL code.
 
+    SELECT c.catalogid, c.ra, c.dec, c.pmra, c.pmdec,
+            twomass.j_m, twomass.h_m, twomass.k_m,
+            gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag,
+             gaia.parallax, gaia.pmra, gaia.pmdec
+
+    FROM catalog c
+
+    INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
+
+    INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
+
+    INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
+
+    INNER JOIN twomass_psc twomass ON twomass.designation = tic.twomass_psc
+
+    WHERE gaia.parallax > 0 AND gaia.phot_g_mean_mag < 18 AND
+
+    /* enforce bp - rp edges of reddening strip in bp-rp vs. M_G space */
+
+    gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag > 0.95 AND
+
+    gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag < 3.625 AND
+
+    /* enforce top and bottom of reddening strip in bp-rp vs. M_G space */
+
+    gaia.phot_g_mean_mag - 5.*log(1000./gaia.parallax) + 5. >
+     1.15+(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag)*1.89 AND
+
+    gaia.phot_g_mean_mag - 5.*log(1000./gaia.parallax) + 5. <
+     3.4+(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag)*1.89 AND
+
+    /* enforce limits in empirical g-k color (make sure the source is at
+     least a little reddened relative to a standard F star) */
+
+    gaia.phot_g_mean_mag - twomass.k_m > 2.5 AND
+
+    /* enforce limits in dereddened g-k color */
+
+    (gaia.phot_g_mean_mag - 1.89*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) )
+     - (twomass.k_m-0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) ) > 1.2 AND
+
+    (gaia.phot_g_mean_mag - 1.89*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) )
+     - (twomass.k_m-0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) ) < 1.8 AND
+
+    /* enforce limits in dereddened j-k color */
+
+    (twomass.j_m-0.582*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) )
+     - (twomass.k_m-0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) ) > 0.15 AND
+
+    (twomass.j_m-0.582*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) )
+     - (twomass.k_m-0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) ) < 0.45 AND
+
+    /* enforce limits in dereddened absolute k magnitude */
+
+    twomass.k_m - 5.*log(1000./gaia.parallax) + 5. -
+    0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) > 2 AND
+
+    twomass.k_m - 5.*log(1000./gaia.parallax) + 5. -
+     0.186*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag - 0.7125) < 3.25 AND
+
+    /* enforce proper motion limit */
+
+    SQRT(gaia.pmra^2 + gaia.pmdec^2) > 3.5 AND
+
+    (gaia.phot_rp_mean_mag + 5.*log(SQRT(gaia.pmra^2 + gaia.pmdec^2))-10.)
+     > 10.11-1.43*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag) AND
+
+    (gaia.phot_rp_mean_mag + 5.*log(SQRT(gaia.pmra^2 + gaia.pmdec^2))-10.)
+     < 13.11-1.43*(gaia.phot_bp_mean_mag - gaia.phot_rp_mean_mag)
+;
     Lead contact: Kevin Covey
     """
 
