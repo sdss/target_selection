@@ -121,40 +121,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
 
     Selection Criteria:
     This carton OPS_BOSS_Red_Stds_Deredden_Carton
-    is for the case bp_rp_excess >= 0.
-    bp_rp_excess is defined below.
-
-    #calculate distance modulus
-    #(could convert to use BailerJones distance)
-    distMod = 5.*np.log10(1000./gaia_DR2.parallax)-5.
-
-    #calculate absolute g and k magnitudes
-    abs_gmag = gaia_DR2.phot_g_mean_mag - distMod
-
-    #calculate E(BP-RP) with (BP-RP)_0 = 0.725
-    bp_rp_excess = bp - rp - 0.725
-    #Here 0.725 = mode bp-rp color of eBOSS flux standards in SDSS footprint
-
-    #only deredden if bp_rp_excess is positive
-    worth_dereddening = np.where( bp_rp_excess >= 0)
-
-    #calculate a_g and a_k using coefficients from Wang & Chen 2019
-    #(use 0 otherwise; np.zero commands truncated for brevity)
-    ag[worth_dereddening] = 1.890*bp_rp_excess[worth_dereddening]
-    ak[worth_dereddening] = 0.186*bp_rp_excess[worth_dereddening]
-
-    #This carton has worth_dereddening==True since the where clause has
-    #Gaia_DR2.bp_rp-0.725 >= 0
-    #Hence,
-    ag = 1.890*bp_rp_excess = 1.890*(Gaia_DR2.bp_rp - 0.725)
-    ak = 0.186*bp_rp_excess = 0.186*(Gaia_DR2.bp_rp - 0.725)
-
-    --- criteria for ops_BOSS_redstds ---
-
-    meet_reddened_criteria =
-    np.where( ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) >= 1.1) &
-              ( ((gaia_DR2.phot_g_mean_mag - ag) - (twomass_psc.k_m - ak)) <= 1.6) &
-                ( (abs_gmag - ag) >= 3) & ( (abs_gmag - ag) <= 5.5) )
+    has selection criteria as defined in the code.
 
     Lead contact: Kevin Covey
     """
@@ -182,7 +149,6 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
 
         # infer reddenings associated with assumed Fstar colors
         fstar_bp_rp = 0.725
-        # bp_rp_excess = Gaia_DR2.bp_rp - fstar_bp_rp
         ag = 1.890 * (Gaia_DR2.bp_rp - fstar_bp_rp)
         aj = 0.582 * (Gaia_DR2.bp_rp - fstar_bp_rp)
         ak = 0.186 * (Gaia_DR2.bp_rp - fstar_bp_rp)
@@ -259,7 +225,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     Shorthand name: ops_eboss_stds
     Selection Criteria:
     The code of this carton is based on the below SQL.
-    SELECT DISTINCT s.catalogid
+    SELECT DISTINCT e.objid_targeting
        FROM ebosstarget_v5 e JOIN catalog_to_sdss_dr13_photoobj_primary s
        ON s.target_id = e.objid_targeting
        WHERE (e.eboss_target1 & pow(2, 50)::bigint) > 0 OR
