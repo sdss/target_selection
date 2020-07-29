@@ -117,18 +117,12 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
 
 class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
-    TODO
-    DO NOT USE
-    query is set to None
     Shorthand name: ops_boss_red_stds_deredden
 
     Selection Criteria:
     This carton OPS_BOSS_Red_Stds_Deredden_Carton
     is for the case bp_rp_excess >= 0.
     bp_rp_excess is defined below.
-
-    (Another carton OPS_BOSS_Red_Stds_No_Deredden_Carton
-    is for the case bp_rp_excess < 0)
 
     #calculate distance modulus
     #(could convert to use BailerJones distance)
@@ -173,11 +167,25 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # calculate proper motion amplitude and
+        # term to construct reduced proper motion diagram
+        pm_amp = peewee.fn.sqrt(Gaia_DR2.pmra * Gaia_DR2.pmra +
+                                Gaia_DR2.pmdec * Gaia_DR2.pmdec)
+        pm_Mod = 5.0 * peewee.fn.log(pm_amp) - 10.
+
+        # calculate a parallax-based distance modulus
         distMod = 5.0 * peewee.fn.log(1000.0 / Gaia_DR2.parallax) - 5.0
+
+        # calculate the absolute g magnitude
         abs_gmag = Gaia_DR2.phot_g_mean_mag - distMod
-        bp_rp_excess = Gaia_DR2.bp_rp - 0.725
-        ag = 1.890 * (Gaia_DR2.bp_rp - 0.725)
-        ak = 0.186 * (Gaia_DR2.bp_rp - 0.725)
+        abs_kmag = TwoMassPSC.k_m - distMod
+
+        # infer reddenings associated with assumed Fstar colors
+        fstar_bp_rp = 0.725
+        # bp_rp_excess = Gaia_DR2.bp_rp - fstar_bp_rp
+        ag = 1.890 * (Gaia_DR2.bp_rp - fstar_bp_rp)
+        aj = 0.582 * (Gaia_DR2.bp_rp - fstar_bp_rp)
+        ak = 0.186 * (Gaia_DR2.bp_rp - fstar_bp_rp)
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
@@ -196,13 +204,42 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
+                        # require a parallax so that absolute magnitudes are meaningful
                         Gaia_DR2.parallax > 0,
-                        bp_rp_excess >= 0,
-                        ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) >= 1.1,
-                        ((Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak)) <= 1.6,
-                        (abs_gmag - ag) >= 3,
-                        (abs_gmag - ag) <= 5.5))
-        query = None
+                        # require a slightly non-zero pm amplitude to
+                        # a) ensure reduced proper motion is meaningful, and
+                        # b) modestly filter quasars as candidates
+                        pm_amp > 3.5,
+                        # require Gaia G < 18 to provide reasonable SNR, and
+                        # G-K > 2 to ensure measured colors are at least
+                        # slightly reddened w.r.t regular f stars
+                        Gaia_DR2.phot_g_mean_mag < 18,
+                        Gaia_DR2.phot_g_mean_mag - TwoMassPSC.k_m > 2.5,
+                        # enforce bp - rp edges of reddening strip in
+                        # bp-rp vs. M_G space
+                        Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag > 0.95,
+                        Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag < 3.625,
+                        # enforce top and bottom of reddening strip
+                        # in bp-rp vs. M_G space
+                        abs_gmag > (1.15 + ag),
+                        abs_gmag < (3.4 + ag),
+                        # enforce limits in dereddened g-k color
+                        (Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak) > 1.2,
+                        (Gaia_DR2.phot_g_mean_mag - ag) - (TwoMassPSC.k_m - ak) < 1.8,
+                        # enforce limits in dereddened j-k color
+                        (TwoMassPSC.j_m - aj) - (TwoMassPSC.k_m - ak) > 0.15,
+                        (TwoMassPSC.j_m - aj) - (TwoMassPSC.k_m - ak) < 0.45,
+                        # enforce limits in dereddened absolute k magnitude
+                        abs_kmag - ak > 2,
+                        abs_kmag - ak < 3.25,
+                        # enforce halo-like motions in the reduced proper motion
+                        # diagram (selected in a strip consistent
+                        # w/ reddening the existing eBOSS standards)
+                        (Gaia_DR2.phot_rp_mean_mag + pm_Mod) >
+                        (10.11 - 1.43 * (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag)),
+                        (Gaia_DR2.phot_rp_mean_mag + pm_Mod) <
+                        (13.11 - 1.43 * (Gaia_DR2.phot_bp_mean_mag - Gaia_DR2.phot_rp_mean_mag))))
+
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
