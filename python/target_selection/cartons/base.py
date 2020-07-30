@@ -21,7 +21,8 @@ from sdsstools import read_yaml_file
 from sdsstools.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import TargetSelectionError
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 from target_selection.utils import Timer
 
 
@@ -69,6 +70,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         A tuple defining the region over which the query should be performed,
         with the format ``(ra, dec, radius)`` in degrees. This will append a
         ``q3c_radial_query`` condition to the query.
+    load_magnitudes : bool
+        Whether to load target magnitudes. In general this must be `True`
+        except for cartons for which it's known the magnitudes will not be
+        used, e.g., skies.
 
     """
 
@@ -78,6 +83,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
     program = None
     mapper = None
     priority = None
+
+    load_magnitudes = True
 
     query_region = None
 
@@ -469,7 +476,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
                               f'and tag {self.tag!r} already has targets '
-                              'loaded. Dropping carton-to-target entries.')
+                              'loaded. Dropping carton-to-target entries.',
+                              TargetSelectionUserWarning)
                 self.drop_carton()
             else:
                 raise TargetSelectionError(f'Found existing targets for '
@@ -495,7 +503,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self._create_carton_metadata()
             self._load_targets(RModel)
             self._load_carton_to_target(RModel)
-            self._load_magnitudes(RModel)
+            if self.load_magnitudes:
+                self._load_magnitudes(RModel)
+            else:
+                warnings.warn('Skipping magnitude load.',
+                              TargetSelectionUserWarning)
 
             self.log.debug('Committing records and checking constraints.')
 

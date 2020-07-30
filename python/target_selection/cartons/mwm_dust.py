@@ -13,7 +13,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
                                              CatalogToAllWise,
                                              CatalogToGLIMPSE, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC)
+                                             TIC_v8)
 
 from . import BaseCarton
 
@@ -35,9 +35,9 @@ def lbp2xyz(ll, bb, pp):
 def subselect(data, othersel, downsampledby=1):
     """Turn x, y, z into pixel; bin up to see where we are missing."""
 
-    ll = data['l']
-    bb = data['b']
-    xyz = lbp2xyz(ll, bb, data['parallax'])
+    ll = data['gallong']
+    bb = data['gallat']
+    xyz = lbp2xyz(ll, bb, data['plx'])
 
     dustsel = numpy.ones(len(data), numpy.bool)
 
@@ -95,14 +95,14 @@ def map_coordinates_wrap(grid, coord, **kw):
 
 def jkselect(data):
     jk0 = data['j_ks_0']
-    return (jk0 > 0.7) & (data['h_m'] < 11)
+    return (jk0 > 0.7) & (data['hmag'] < 11)
 
 
 def ghselect(data):
-    gaiag = data['phot_g_mean_mag']
-    return ((data['h_m'] < 11) & numpy.where(numpy.isfinite(gaiag),
-                                             gaiag - data['h_m'] > 3.5,
-                                             True))
+    gaiag = data['gaiamag']
+    return ((data['hmag'] < 11) & numpy.where(numpy.isfinite(gaiag),
+                                              gaiag - data['hmag'] > 3.5,
+                                              True))
 
 
 class MWM_Dust_Carton(BaseCarton):
@@ -138,28 +138,17 @@ class MWM_Dust_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Dust'
-
-    def setup_transaction(self):
-
-        self.database.execute_sql('SET LOCAL max_parallel_workers_per_gather=0;')
-        super().setup_transaction()
+    cadence = 'mwm_dust_1x1'
+    priority = 2720
 
     def build_query(self, version_id, query_region=None):
 
         fn = peewee.fn
 
-        # Not sure this makes the query more efficient but ...
-        twomass_cte = (TwoMassPSC
-                       .select(TwoMassPSC.designation,
-                               TwoMassPSC.k_m,
-                               TwoMassPSC.h_m)
-                       .where(TwoMassPSC.h_m < 11.2)
-                       .cte('twomass_cte'))
+        gallong = TIC_v8.gallong
+        gallat = TIC_v8.gallat
 
-        gallong = Gaia_DR2.l
-        gallat = Gaia_DR2.b
-
-        ipar = 1. / Gaia_DR2.parallax / 1000  # kpc
+        ipar = 1. / TIC_v8.plx  # kpc
         zz = ipar * fn.sin(fn.radians(gallat))
         xx = ipar * fn.cos(fn.radians(gallat)) * fn.cos(fn.radians(gallong))
         yy = ipar * fn.cos(fn.radians(gallat)) * fn.sin(fn.radians(gallong))
@@ -176,42 +165,45 @@ class MWM_Dust_Carton(BaseCarton):
         j_ks_0_allwise = AllWise.j_m_2mass - AllWise.k_m_2mass - Ej_ks
         j_ks_0 = fn.coalesce(j_ks_0_glimpse, j_ks_0_allwise)
 
-        plxfracunc = Gaia_DR2. parallax_error / Gaia_DR2. parallax
-        dm = 5 * fn.log(1000. / Gaia_DR2.parallax / 10)
-        absmag = twomass_cte.c.k_m - aks - dm
+        plxfracunc = TIC_v8.e_plx / TIC_v8.plx
+        dm = 5 * fn.log(1000. / TIC_v8.plx / 10)
+        absmag = TIC_v8.kmag - aks - dm
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.l, Gaia_DR2.b,
-                         Gaia_DR2.parallax,
-                         Gaia_DR2.phot_g_mean_mag,
-                         twomass_cte.c.h_m,
+                         TIC_v8.gaia_int.alias('gaia_souce_id'),
+                         TIC_v8.gallong, TIC_v8.gallat,
+                         TIC_v8.plx,
+                         TIC_v8.gaiamag,
+                         TIC_v8.hmag,
+                         TIC_v8.kmag,
                          aks.alias('a_ks'),
                          j_ks_0.alias('j_ks_0'),
                          peewee.Value(False).alias('dustghsubsel'),
                          peewee.Value(False).alias('dustjksubsel'))
                  .join(TIC_v8)
-                 .join(twomass_cte,
-                       on=(TIC_v8.twomass_psc == twomass_cte.c.designation))
-                 .join_from(TIC_v8, Gaia_DR2)
                  .join_from(CatalogToTIC_v8, CatalogToAllWise,
+                            peewee.JOIN.LEFT_OUTER,
                             on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(AllWise)
+                 .join(AllWise, peewee.JOIN.LEFT_OUTER)
                  .join_from(CatalogToAllWise, CatalogToGLIMPSE,
+                            peewee.JOIN.LEFT_OUTER,
                             on=(CatalogToGLIMPSE.catalogid == CatalogToAllWise.catalogid))
-                 .join(GLIMPSE)
-                 .where(CatalogToAllWise.version_id == version_id,
-                        CatalogToAllWise.best >> True)
+                 .join(GLIMPSE, peewee.JOIN.LEFT_OUTER)
+                 .where(((CatalogToAllWise.version_id == version_id) &
+                         (CatalogToAllWise.best >> True)) |
+                        (CatalogToAllWise.catalogid >> None))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
-                 .where(CatalogToGLIMPSE.version_id == version_id,
-                        CatalogToGLIMPSE.best >> True)
-                 .where(fn.abs(zz) < 0.2,
-                        j_ks_0 > 0.5,
+                 .where(((CatalogToGLIMPSE.version_id == version_id) &
+                         (CatalogToGLIMPSE.best >> True)) |
+                        (CatalogToGLIMPSE.catalogid >> None))
+                 .where(TIC_v8.hmag < 11.2,
+                        fn.abs(zz) < 0.2,
+                        j_ks_0.is_null(False), j_ks_0 > 0.5,
                         dist < 5,
                         plxfracunc < 0.2, plxfracunc > 0,
-                        absmag < 2.6)
-                 .with_cte(twomass_cte))
+                        absmag < 2.6))
 
         if query_region:
             query = (query
@@ -233,7 +225,6 @@ class MWM_Dust_Carton(BaseCarton):
 
         """
 
-        data = model.select().tuples()
         data = pandas.read_sql(
             f'SELECT * FROM {model._meta.schema}.{model._meta.table_name};',
             self.database)

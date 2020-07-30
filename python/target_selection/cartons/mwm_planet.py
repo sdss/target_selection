@@ -33,6 +33,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
     category = 'science'
     mapper = 'MWM'
     cadence = None
+    priority = 2600
 
     def build_query(self, version_id, query_region=None):
 
@@ -73,7 +74,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
 
         priorities = {'exo_TOI': 2600,
                       'exo_CTOI': 2605,
-                      '2min': 2010}
+                      '2min': 2610}
 
         for target_type, priority in priorities.items():
             (model
