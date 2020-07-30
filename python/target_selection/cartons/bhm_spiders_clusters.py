@@ -15,7 +15,7 @@ from peewee import fn
 import sdssdb
 
 from target_selection.cartons.base import BaseCarton
-from target_selection.mag_flux import *
+from target_selection.mag_flux import psfmag_minus_fiber2mag, AB2nMgy
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
@@ -120,11 +120,20 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
         # sdss_fiber2mag_i = ls_fibermag_i + 0.44 mag   flux_ratio = ~0.67
         # sdss_fiber2mag_z = ls_fibermag_z + 0.39 mag   flux_ratio = ~0.70
         flux_ratio = {'g' : 0.65, 'r' : 0.60, 'i' : 0.67, 'z' : 0.70 }
-        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
-        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
-        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
+        # Then add the correction from sdss_fiber2mag to sdss_psfmag
+
+        # Notes on converting from sdss_fiber2mag to sdss_psfmag
+        # https://wiki.sdss.org/display/OPS/Contents+of+targetdb.magnitude#Contentsoftargetdb.magnitude-WhatmagnitudestoputintotheplPlugMapfilesforBOSSplatetargets?
+
+        magnitude_g = (psfmag_minus_fiber2mag('g') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
+        magnitude_r = (psfmag_minus_fiber2mag('r') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
+        magnitude_z = (psfmag_minus_fiber2mag('z') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
         # the simplest possible interpolation - TODO do this better
-        magnitude_i = (22.5-2.5*fn.log10(fn.greatest(flux30,
+        magnitude_i = (psfmag_minus_fiber2mag('i') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,
                                                      0.5*(ls.fiberflux_r+
                                                           ls.fiberflux_z)*flux_ratio['i']))).cast('float')
 
@@ -137,8 +146,6 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-#                    ls.ls_id.alias("ls_lsid"), ls.ra.alias("ls_ra"), ls.dec.alias("ls_dec"), ## debug
-#                    x.xmatch_flags, #debug
                     priority.alias('priority'),
                     value,
                     pmra,
@@ -186,6 +193,7 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
                     (ls.fiberflux_z >= fiberflux_z_min)
                 ),
                 (x.ero_det_like > base_parameters['det_like_min']),
+                (x.target_has_spec == 0),
             )
             .distinct([ls.ls_id])   # avoid duplicates - trust the ls_id
         )

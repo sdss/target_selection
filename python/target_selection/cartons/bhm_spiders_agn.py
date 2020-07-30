@@ -47,7 +47,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 
 from target_selection.cartons.base import BaseCarton
 #from target_selection.cartons.skymask import SkyMask
-from target_selection.mag_flux import *
+from target_selection.mag_flux import psfmag_minus_fiber2mag, AB2nMgy
 
 #import pkg_resources
 
@@ -159,13 +159,22 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         # Notes on convertion from ls_fibermag to sdss_fiber2mag:
         # https://wiki.mpe.mpg.de/eRosita/EroAGN_eFEDS/SDSSIVSpecialPlates#Estimating_SDSS_fiber2mag_.2A_from_legacysurvey_photometry
 
-        # A flux ratio of 0.6 (roughly what is seen in all three bands) is a magnitude difference of mag(SDSS)-mag(LS) = 0.55mags
+        # Notes on converting from sdss_fiber2mag to sdss_psfmag
+        # https://wiki.sdss.org/display/OPS/Contents+of+targetdb.magnitude#Contentsoftargetdb.magnitude-WhatmagnitudestoputintotheplPlugMapfilesforBOSSplatetargets?
+
+        # A flux ratio of 0.6 (roughly what is seen in all three bands) is a magnitude difference of fiber2mag(SDSS)-fibermag(LS) = 0.55mags
         flux_ratio = {'g' : 0.60, 'r' : 0.60, 'i' : 0.60, 'z' : 0.60 }
-        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
-        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
-        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
+        # Then add the correction from sdss_fiber2mag to sdss_psfmag
+
+        magnitude_g = (psfmag_minus_fiber2mag('g') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
+        magnitude_r = (psfmag_minus_fiber2mag('r') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
+        magnitude_z = (psfmag_minus_fiber2mag('z') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
         # the simplest possible interpolation - TODO do this better
-        magnitude_i = (22.5-2.5*fn.log10(fn.greatest(flux30,
+        magnitude_i = (psfmag_minus_fiber2mag('i') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,
                                                      0.5*(ls.fiberflux_r+
                                                           ls.fiberflux_z)*flux_ratio['i']))).cast('float')
 
