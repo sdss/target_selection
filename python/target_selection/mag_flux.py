@@ -23,6 +23,15 @@ __invalid_mag_thresh = 90.0
 ''' see http://www.sdss3.org/dr8/algorithms/magnitudes.php '''
 
 
+# https://svn.sdss.org/public/repo/eboss/idlspec2d/trunk/pro/spec2d/readplugmap.pro
+__psfflux_to_fiber2flux ={ "u" : (1./2.085),
+                           "g" : (1./2.085),
+                           "r" : (1./2.116),
+                           "i" : (1./2.134),
+                           "z" : (1./2.135),}
+
+
+
 def fluxmag(flux, zp=None):
     assert zp is not None
     if np.ndim(flux) > 0:
@@ -52,6 +61,56 @@ def mag2flux(mag, zp=None):
     return flux
 
 
+def psfflux2fiber2flux(psfflux, filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return psfflux * c
+
+def fiber2flux2psfflux(fiber2flux, filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return fiber2flux / c
+
+def psfmag2fiber2mag(psfmag, filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return   psfmag - (2.5 * log10(c))
+
+
+def fiber2mag2psfmag(fiber2mag, filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return fiber2mag + (2.5 * log10(c))
+
+def psfmag_minus_fiber2mag(filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return   2.5 * log10(c)
+
+
+def fiber2mag_minus_psfmag(filt=None):
+    try:
+       c = __psfflux_to_fiber2flux[filt]
+    except:
+        raise Exception ( f"Unknown filter: {filt}" )
+    return -2.5 * log10(c)
+
+
+
+
+
+
+
 
 def nMgy2AB(flux):
     return flux2mag(mag, 22.50)
@@ -77,45 +136,3 @@ def AB2mJy(mag):
 
 def AB2uJy(mag):
     return mag2flux(mag, 23.90)
-
-#
-#
-#
-#    def nMgy2AB(flux):
-#    ''' see http://www.sdss3.org/dr8/algorithms/magnitudes.php '''
-#    if np.ndim(flux) > 0:
-#        with np.errstate(divide='ignore', invalid='ignore'):
-#            return np.nan_to_num(22.5 - 2.5*np.log10(flux), copy=False,
-#                                 nan=__invalid_mag_val,
-#                                 posinf=__invalid_mag_val,
-#                                 neginf=__invalid_mag_val)
-#    else:
-#        if flux <= 0.0:
-#            return __invalid_mag_val
-#        else:
-#            return 22.5 - 2.5*log10(flux)
-
-
-# def AB2nMgy(mag):
-#     ''' see http://www.sdss3.org/dr8/algorithms/magnitudes.php '''
-#     if np.ndim(mag) > 0:
-#         with np.errstate(divide='ignore', invalid='ignore'):
-#             flux = np.where(mag >= __invalid_mag_thresh, 0.0, 10.0**(-0.4*(mag-22.5)) )
-#     else:
-#         if mag >= __invalid_mag_thresh:
-#             flux = 0.0
-#         else:
-#             flux = 10.0**(-0.4*(mag-22.5))
-#     return flux
-#
-# def AB2Jy(mag):
-#     if np.ndim(mag) > 0:
-#         with np.errstate(divide='ignore', invalid='ignore'):
-#             flux = np.where(mag >= __invalid_mag_thresh, 0.0, 10.0**(-0.4*(mag - 8.9)))
-#     else:
-#         if mag >= __invalid_mag_thresh:
-#             flux = 0.0
-#         else:
-#             flux = 10.0**(-0.4*(mag-8.9))
-#     return flux
-#

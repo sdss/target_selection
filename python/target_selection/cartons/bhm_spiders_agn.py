@@ -47,7 +47,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 
 from target_selection.cartons.base import BaseCarton
 #from target_selection.cartons.skymask import SkyMask
-from target_selection.mag_flux import *
+from target_selection.mag_flux import psfmag_minus_fiber2mag, AB2nMgy
 
 #import pkg_resources
 
@@ -137,33 +137,68 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
         p_f = self.parameters['priority_floor']
         priority = peewee.Case(None,
                                (
+                                   ((x.ero_det_like < self.parameters['det_like_for_priority']) & (s.specobjid.is_null(True)), p_f+6),
+                                   ((x.ero_det_like < self.parameters['det_like_for_priority']) & (s.specobjid.is_null(False)), p_f+7),
                                    ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(True)), p_f+0),
                                    ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(True)), p_f+1),
                                    ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(True)), p_f+2),
-                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+5),
-                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+6),
-                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+7),
+                                   ((x.xmatch_flags == 1 ) & (s.specobjid.is_null(False)), p_f+3),
+                                   ((x.xmatch_flags == 0 ) & (s.specobjid.is_null(False)), p_f+4),
+                                   ((x.xmatch_flags > 1  ) & (s.specobjid.is_null(False)), p_f+5),
                                ),
                                p_f+9) ## should never get here
 
         # legacysurvey mags - derived from fiberfluxes - with limits to avoid divide by zero errors
-        magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).cast('float')
-        magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).cast('float')
-        magnitude_i = peewee.Value(None).cast('float')
-        magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).cast('float')
+        # convert these
+        #magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g))).cast('float')
+        #magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r))).cast('float')
+        ##magnitude_i = peewee.Value(None).cast('float')
+        #magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z))).cast('float')
+        #magnitude_i = (22.5-2.5*fn.log10(fn.greatest(flux30,0.5*(ls.fiberflux_r+ls.fiberflux_z)))).cast('float')
+
+        # Notes on convertion from ls_fibermag to sdss_fiber2mag:
+        # https://wiki.mpe.mpg.de/eRosita/EroAGN_eFEDS/SDSSIVSpecialPlates#Estimating_SDSS_fiber2mag_.2A_from_legacysurvey_photometry
+
+        # Notes on converting from sdss_fiber2mag to sdss_psfmag
+        # https://wiki.sdss.org/display/OPS/Contents+of+targetdb.magnitude#Contentsoftargetdb.magnitude-WhatmagnitudestoputintotheplPlugMapfilesforBOSSplatetargets?
+
+        # A flux ratio of 0.6 (roughly what is seen in all three bands) is a magnitude difference of fiber2mag(SDSS)-fibermag(LS) = 0.55mags
+        flux_ratio = {'g' : 0.60, 'r' : 0.60, 'i' : 0.60, 'z' : 0.60 }
+        # Then add the correction from sdss_fiber2mag to sdss_psfmag
+
+        magnitude_g = (psfmag_minus_fiber2mag('g') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_g*flux_ratio['g']))).cast('float')
+        magnitude_r = (psfmag_minus_fiber2mag('r') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_r*flux_ratio['r']))).cast('float')
+        magnitude_z = (psfmag_minus_fiber2mag('z') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,ls.fiberflux_z*flux_ratio['z']))).cast('float')
+        # the simplest possible interpolation - TODO do this better
+        magnitude_i = (psfmag_minus_fiber2mag('i') +
+                       22.5-2.5*fn.log10(fn.greatest(flux30,
+                                                     0.5*(ls.fiberflux_r+
+                                                          ls.fiberflux_z)*flux_ratio['i']))).cast('float')
 
 
-        # now gaia mags
-        magnitude_bp = peewee.Case(None,
-                                   (
-                                    ((ls.ref_cat == 'G2'), ls.gaia_phot_bp_mean_mag),
-                                   ),
-                                   None)
-        magnitude_rp = peewee.Case(None,
-                                   (
-                                    ((ls.ref_cat == 'G2'), ls.gaia_phot_rp_mean_mag),
-                                   ),
-                                   None)
+        ## could use modelmags if it would help the SOS pipeline
+        #magnitude_g = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.flux_g))).cast('float')
+        #magnitude_r = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.flux_r))).cast('float')
+        #magnitude_z = (22.5-2.5*fn.log10(fn.greatest(flux30,ls.flux_z))).cast('float')
+        ## the simplest possible interpolation - TODO do this better
+        #magnitude_i = (22.5-2.5*fn.log10(fn.greatest(flux30,0.5*(ls.flux_r+ls.flux_z)))).cast('float')
+
+
+        # use the centrally attached Gaia mags
+        ## now gaia mags
+        #magnitude_bp = peewee.Case(None,
+        #                           (
+        #                            ((ls.ref_cat == 'G2'), ls.gaia_phot_bp_mean_mag),
+        #                           ),
+        #                           None)
+        #magnitude_rp = peewee.Case(None,
+        #                           (
+        #                            ((ls.ref_cat == 'G2'), ls.gaia_phot_rp_mean_mag),
+        #                           ),
+        #                           None)
 
 
         query = (
@@ -180,8 +215,8 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
                     magnitude_r.alias("r"),
                     magnitude_i.alias("i"),
                     magnitude_z.alias("z"),
-                    magnitude_bp.alias("bp"),
-                    magnitude_rp.alias("rp"),
+#                    magnitude_bp.alias("bp"),
+#                    magnitude_rp.alias("rp"),
             )
             .join(c2ls)
             .join(ls)
