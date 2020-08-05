@@ -94,9 +94,9 @@ class BhmGuaBaseCarton(BaseCarton):
                      pmra,
                      pmdec,
                      parallax,
-                     t.g.alias('g'),
-                     t.bp.alias('bp'),
-                     t.rp.alias('rp'),
+#                     t.g.alias('g'),   ##rely on the centralised magnitude routines
+#                     t.bp.alias('bp'),
+#                     t.rp.alias('rp'),
             )
             .join(c2tic)
             .join(tic)
