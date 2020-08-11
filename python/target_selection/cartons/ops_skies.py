@@ -33,11 +33,16 @@ class OPS_BOSS_Sky_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region):
 
+        min_separation = 10 + ((12. - Skies_v1.mag_neighbour_gaia) / 0.2)
+
         query = (Skies_v1
                  .select(CatalogToSkies_v1.catalogid,
-                         Skies_v1.ra, Skies_v1.dec,
-                         Skies_v1.pix_32768, Skies_v1.tile_32)
+                         Skies_v1.ra,
+                         Skies_v1.dec,
+                         Skies_v1.pix_32768,
+                         Skies_v1.tile_32)
                  .join(CatalogToSkies_v1)
+                 .where(Skies_v1.sep_neighbour_gaia > min_separation)
                  .where(CatalogToSkies_v1.version_id == version_id,
                         CatalogToSkies_v1.best >> True)
                  .where(Skies_v1.gaia_sky >> True,
