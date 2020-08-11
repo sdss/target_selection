@@ -10,10 +10,11 @@ import numpy
 import pandas
 import peewee
 
+from sdssdb.peewee.sdss5db import targetdb
 from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
                                              CatalogToAllWise,
                                              CatalogToGLIMPSE, CatalogToTIC_v8,
-                                             TIC_v8)
+                                             TIC_v8, TwoMassPSC)
 
 from . import BaseCarton
 
@@ -93,6 +94,9 @@ def map_coordinates_wrap(grid, coord, **kw):
                                          cval=0., mode='constant', **kw)
 
 
+# These were initial selection criteria, not used anymore. We use the
+# real GG carton instead.
+
 def jkselect(data):
     jk0 = data['j_ks_0']
     return (jk0 > 0.7) & (data['hmag'] < 11)
@@ -127,6 +131,11 @@ class MWM_Dust_Carton(BaseCarton):
         - (J-Ks)_0 > 0.5
         - Can be spatially subselected to complement GG sampling in order to
           obtain 100 stars per (100pc)^3 volume.
+        - Galactic Genesis quality flags:
+            (ph_qual[1] = 'A' OR ph_qual[1] = 'B')
+                AND gal_contam=0
+                AND cc_flg[1]=0
+                AND (rd_flg[1] > 0 AND rd_flg[1] <= 3)
 
     Non-SQL implementation:
 
@@ -138,12 +147,29 @@ class MWM_Dust_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Dust'
-    cadence = 'mwm_dust_1x1'
+    # cadence = 'mwm_dust_1x1'
     priority = 2720
 
     def build_query(self, version_id, query_region=None):
 
+        # Do a quick check to be sure the GG carton exists in targetdb.
+        gg_exists = (targetdb.Carton.select()
+                     .join(targetdb.Version)
+                     .where(targetdb.Carton.carton == 'mwm_galactic',
+                            targetdb.Version.plan == self.plan,
+                            targetdb.Version.target_selection >> True)
+                     .exists())
+        if not gg_exists:
+            raise RuntimeError('mwm_galactic has not been loaded yet.')
+
         fn = peewee.fn
+
+        # GG quality flags
+        ph_qual = TwoMassPSC.ph_qual
+        cc_flg = TwoMassPSC.cc_flg
+        rd_flg = TwoMassPSC.rd_flg
+        rd_flag_1 = peewee.fn.substr(rd_flg, 2, 1).cast('integer')
+        gal_contam = TwoMassPSC.gal_contam
 
         gallong = TIC_v8.gallong
         gallat = TIC_v8.gallat
@@ -171,6 +197,7 @@ class MWM_Dust_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
+                         peewee.Value(False).alias('selected'),  # Set selected to False
                          TIC_v8.gaia_int.alias('gaia_souce_id'),
                          TIC_v8.gallong, TIC_v8.gallat,
                          TIC_v8.plx,
@@ -178,14 +205,13 @@ class MWM_Dust_Carton(BaseCarton):
                          TIC_v8.hmag,
                          TIC_v8.kmag,
                          aks.alias('a_ks'),
-                         j_ks_0.alias('j_ks_0'),
-                         peewee.Value(False).alias('dustghsubsel'),
-                         peewee.Value(False).alias('dustjksubsel'))
+                         j_ks_0.alias('j_ks_0'))
                  .join(TIC_v8)
                  .join_from(CatalogToTIC_v8, CatalogToAllWise,
                             peewee.JOIN.LEFT_OUTER,
                             on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
                  .join(AllWise, peewee.JOIN.LEFT_OUTER)
+                 .join_from(TIC_v8, TwoMassPSC, peewee.JOIN.LEFT_OUTER)
                  .join_from(CatalogToAllWise, CatalogToGLIMPSE,
                             peewee.JOIN.LEFT_OUTER,
                             on=(CatalogToGLIMPSE.catalogid == CatalogToAllWise.catalogid))
@@ -203,7 +229,11 @@ class MWM_Dust_Carton(BaseCarton):
                         j_ks_0.is_null(False), j_ks_0 > 0.5,
                         dist < 5,
                         plxfracunc < 0.2, plxfracunc > 0,
-                        absmag < 2.6))
+                        absmag < 2.6)
+                 .where(ph_qual.regexp('.(A|B).'),
+                        gal_contam == 0,
+                        peewee.fn.substr(cc_flg, 2, 1) == '0',
+                        rd_flag_1 > 0, rd_flag_1 <= 3))
 
         if query_region:
             query = (query
@@ -217,11 +247,11 @@ class MWM_Dust_Carton(BaseCarton):
         return query
 
     def post_process(self, model):
-        """Select J-K and G-H samples using Eddie Schlafly code.
+        """Select samples based on GG using Eddie Schlafly code.
 
         Goal subsample and to select only targets that are not already part
-        of the Galactic Genesis sample. Two possible conditions for GG are
-        given based on (G-H) or (J-Ks) colours.
+        of the Galactic Genesis sample. We use the real GG sample from
+        targetdb.
 
         """
 
@@ -229,34 +259,27 @@ class MWM_Dust_Carton(BaseCarton):
             f'SELECT * FROM {model._meta.schema}.{model._meta.table_name};',
             self.database)
 
-        # Change selected to False for now.
-        data.selected = False
+        mwm_galactic = (targetdb.Target
+                        .select(targetdb.Target.catalogid)
+                        .join(targetdb.CartonToTarget)
+                        .join(targetdb.Carton)
+                        .join(targetdb.Version)
+                        .where(targetdb.Carton.carton == 'mwm_galactic',
+                               targetdb.Version.plan == self.plan,
+                               targetdb.Version.target_selection >> True))
 
-        ghs = ghselect(data)
-        jks = jkselect(data)
+        gg_catids = tuple(zip(*mwm_galactic.tuples()))[0]
+        gg_mask = numpy.in1d(data.catalogid, gg_catids)
 
-        # Subsample based on (G-H) and update DB.
-        dust_gh_subsel = subselect(data, ghs)
-        dust_gh_cid = peewee.ValuesList(zip(data.catalogid[dust_gh_subsel]),
+        # Subsample based on GG and update DB.
+        dust_gg_subsel = subselect(data, gg_mask)
+        dust_gg_cid = peewee.ValuesList(zip(data.catalogid[dust_gg_subsel]),
                                         columns=('catalogid',), alias='vl')
 
-        model.update({model.dustghsubsel: False}).execute()
         (model
-         .update({model.dustghsubsel: True})
-         .from_(dust_gh_cid)
-         .where(model.catalogid == dust_gh_cid.c.catalogid)
-         .execute())
-
-        # Subsample based on (J-Ks) and update DB.
-        dust_jks_subsel = subselect(data, jks)
-        dust_jks_cid = peewee.ValuesList(zip(data.catalogid[dust_jks_subsel]),
-                                         columns=('catalogid',), alias='vl')
-
-        model.update({model.dustjksubsel: False}).execute()
-        (model
-         .update({model.dustjksubsel: True})
-         .from_(dust_jks_cid)
-         .where(model.catalogid == dust_jks_cid.c.catalogid)
+         .update({model.selected: True})
+         .from_(dust_gg_cid)
+         .where(model.catalogid == dust_gg_cid.c.catalogid)
          .execute())
 
         return
