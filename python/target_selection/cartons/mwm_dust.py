@@ -147,7 +147,7 @@ class MWM_Dust_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'Dust'
-    # cadence = 'mwm_dust_1x1'
+    cadence = 'mwm_dust_1x1'
     priority = 2720
 
     def build_query(self, version_id, query_region=None):
