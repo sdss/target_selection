@@ -39,9 +39,6 @@ B_AB = Gaia_DR2.phot_bp_mean_mag - 25.351 + 25.386
 R_AB = Gaia_DR2.phot_rp_mean_mag - 24.762 + 25.116
 B_AB_R_AB = B_AB - R_AB
 
-colour_absg = ((absg < 4.5457 * bp_rp + 9.9) &
-               ((absg > 4.09) | (absg > 4.5457 * bp_rp + 4.0457)))
-
 pmra = Gaia_DR2.pmra
 pmdec = Gaia_DR2.pmdec
 pmra_error = Gaia_DR2.pmra_error
@@ -101,8 +98,6 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
         - Colour and magnitude cuts:
             - nuv_magerr < 0.2 && nuv_mag>-100 &&
                 (fuv_magerr >=0.2 || fuv_mag< -100)
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((nuv_mag-gmagab) < 2.25 ||
                 ((nuv_mag-gmagab) < 6.725*(B_AB-R_AB)-1.735  &&
                  (nuv_mag-gmagab)< -0.983*(B_AB-R_AB)+8.24))
@@ -135,7 +130,6 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
                        nuv_magerr < 0.2,
                        fuv_mag > -100,
                        nuv_mag > -100,
-                       colour_absg,
                        (absg > -1.11749253e-03 * fn.pow(fuv_nuv, 3) +
                         1.53748615e-02 * fn.pow(fuv_nuv, 2) +
                         3.66419895e-01 * fuv_nuv + 2.20026639),
@@ -225,8 +219,6 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
         - Colour and magnitude cuts:
             - fuv_magerr < 0.2 && nuv_magerr < 0.2 &&
               fuv_mag > -100 && nuv_mag > -100
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - absg > -1.11749253e-03*fuv_nuv^3 +
                 1.53748615e-02*fuv_nuv^2 +
                 3.66419895e-01*fuv_nuv+2.20026639e+00
@@ -259,7 +251,6 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
 
         colour_cuts = (nuv_magerr < 0.2,
                        nuv_mag > -100,
-                       colour_absg,
                        (((nuv_mag - gmagab) < 2.25) |
                         (((nuv_mag - gmagab) < 6.725 * B_AB_R_AB - 1.735) &
                          ((nuv_mag - gmagab) < -0.983 * B_AB_R_AB + 8.24))))
@@ -370,8 +361,6 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
             - Gaia: visibility_periods_used >5
 
         - Colour and magnitude cuts:
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((UVM2_AB_MAG - gmagab) < 2.25 ||
                ((UVM2_AB_MAG - gmagab) < 6 &&
                 (UVM2_AB_MAG - gmagab) < 5.57377*(B_AB-R_AB)+0.2049))
@@ -438,8 +427,7 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
                        .where(*quality_flags)
                        .cte('quality_cte', materialized=True))
 
-        colour_cuts = (colour_absg,
-                       ((quality_cte.c.uvm2_ab_mag - gmagab) < 2.25) |
+        colour_cuts = (((quality_cte.c.uvm2_ab_mag - gmagab) < 2.25) |
                        (((quality_cte.c.uvm2_ab_mag - gmagab) < 6) &
                         ((quality_cte.c.uvm2_ab_mag - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
 
@@ -473,7 +461,7 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
                  .where(Gaia_DR2.visibility_periods_used > 5)
-                 .where(*colour_cuts)
+                 .where(colour_cuts)
                  .where(*astrometric_cuts)
                  .with_cte(quality_cte))
 
@@ -543,8 +531,6 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
             - Gaia: visibility_periods_used >5
 
         - Colour and magnitude cuts:
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((UVM2_AB_MAG - gmagab) < 2.25 ||
                ((UVM2_AB_MAG - gmagab) < 6 &&
                 (UVM2_AB_MAG - gmagab) < 5.57377*(B_AB-R_AB)+0.2049))
@@ -611,8 +597,7 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
                        .where(*quality_flags)
                        .cte('quality_cte', materialized=True))
 
-        colour_cuts = (colour_absg,
-                       ((quality_cte.c.uvm2_ab - gmagab) < 2.25) |
+        colour_cuts = (((quality_cte.c.uvm2_ab - gmagab) < 2.25) |
                        (((quality_cte.c.uvm2_ab - gmagab) < 6) &
                         ((quality_cte.c.uvm2_ab - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
 
@@ -646,7 +631,7 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True)
                  .where(Gaia_DR2.visibility_periods_used > 5)
-                 .where(*colour_cuts)
+                 .where(colour_cuts)
                  .where(*astrometric_cuts)
                  .with_cte(quality_cte))
 
