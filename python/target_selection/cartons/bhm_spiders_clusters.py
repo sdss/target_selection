@@ -74,7 +74,7 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
     base_name = 'bhm_spiders_clusters_efeds_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-SPIDERS'
+    program = 'bhm_spiders'
     tile = False
     priority = None
     cadence = 'bhm_spiders_1x8'
@@ -213,7 +213,7 @@ class BhmSpidersClusEfedsSdssRedmapperCarton(BhmSpidersClusEfedsCarton):
             AND WHERE x.xmatch_flags & (2^2 + 2^6 + 2^10 + 2^12 + 2^17 + 2^19) !=0
     '''
 
-    name = 'bhm_spiders_clusters_efeds_sdss_redmapper'
+    name = 'bhm_spiders_clusters-efeds-sdss-redmapper'
     bitmask = 2**2 + 2**6 + 2**10 + 2**12 + 2**17 + 2**19
 
 
@@ -225,7 +225,7 @@ class BhmSpidersClusEfedsHscRedmapperCarton(BhmSpidersClusEfedsCarton):
             AND WHERE x.xmatch_flags & (2^5 + 2^11) !=0
     '''
 
-    name = 'bhm_spiders_clusters_efeds_hsc_redmapper'
+    name = 'bhm_spiders_clusters-efeds-hsc-redmapper'
     bitmask = 2**5 + 2**11
 
 
@@ -237,7 +237,7 @@ class BhmSpidersClusEfedsLsRedmapperCarton(BhmSpidersClusEfedsCarton):
             AND WHERE x.xmatch_flags & (2^1 + 2^3 + 2^8 + 2^15) !=0
     '''
 
-    name = 'bhm_spiders_clusters_efeds_ls_redmapper'
+    name = 'bhm_spiders_clusters-efeds-ls-redmapper'
     bitmask = 2**1 + 2**3 + 2**8 + 2**15
 
 
@@ -252,7 +252,7 @@ class BhmSpidersClusEfedsErositaCarton(BhmSpidersClusEfedsCarton):
                                 = 0
     '''
 
-    name = 'bhm_spiders_clusters_efeds_erosita'
+    name = 'bhm_spiders_clusters-efeds-erosita'
     bitmask =  (2**2 + 2**6 + 2**10 + 2**12 + 2**17 + 2**19 +
                 2**5 + 2**11 +
                 2**1 + 2**3 + 2**8 + 2**15)

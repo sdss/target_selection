@@ -153,10 +153,10 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
-    name = 'mwm_rv_long_rm'
+    name = 'mwm_rv_long-rm'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
 
@@ -280,10 +280,10 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
-    name = 'mwm_rv_long_bplates'
+    name = 'mwm_rv_long-bplates'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2526
 
@@ -403,10 +403,10 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
-    name = 'mwm_rv_long_fps'
+    name = 'mwm_rv_long-fps'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2500
 
@@ -589,10 +589,10 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
-    name = 'mwm_rv_short_rm'
+    name = 'mwm_rv_short-rm'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
 
@@ -720,10 +720,10 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 
     Target selection final for v0?: No
 """
-    name = 'mwm_rv_short_bplates'
+    name = 'mwm_rv_short-bplates'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2576
 
@@ -833,10 +833,10 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
-    name = 'mwm_rv_short_fps'
+    name = 'mwm_rv_short-fps'
     category = 'science'
     cadence = None
-    program = 'RV'
+    program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2510
 

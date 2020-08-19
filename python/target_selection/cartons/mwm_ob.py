@@ -55,11 +55,11 @@ class MWM_OB_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_ob'
+    name = 'mwm_ob_core'
     mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
-    program = 'OB'
+    program = 'mwm_ob'
     priority = 2910
 
     def build_query(self, version_id, query_region=None):
@@ -265,7 +265,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     cadence = 'mwm_ob_3x1'
-    program = 'OB'
+    program = 'mwm_ob'
     priority = 2910
 
     def build_query(self, version_id, query_region=None):

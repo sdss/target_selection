@@ -46,7 +46,7 @@ class BhmRmBaseCarton(BaseCarton):
     base_name = 'bhm_rm_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-RM'
+    program = 'bhm_rm'
     cadence = 'bhm_rm_174x8'
     tile = False
     priority = None
@@ -327,7 +327,7 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     Do that via a bit in the spec_bitmask field. Also restrict to mi < 21.0
     '''
 
-    name = 'bhm_rm_known_spec'
+    name = 'bhm_rm_known-spec'
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)

@@ -22,9 +22,9 @@ class OPS_BOSS_Sky_Carton(BaseCarton):
 
     """
 
-    name = 'ops_boss_sky'
+    name = 'ops_sky_boss'
     cadence = None
-    category = 'sky'
+    category = 'ops_sky'
     program = 'SKY'
     mapper = None
     priority = 5000
@@ -71,9 +71,9 @@ class OPS_APOGEE_Sky_Carton(BaseCarton):
 
     """
 
-    name = 'ops_apogee_sky'
+    name = 'ops_sky_apogee'
     cadence = None
-    category = 'sky'
+    category = 'ops_sky'
     program = 'SKY'
     mapper = None
     priority = 5200

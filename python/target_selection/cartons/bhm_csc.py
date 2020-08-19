@@ -40,7 +40,7 @@ class BhmCscBaseCarton(BaseCarton):
     base_name = 'bhm_csc_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-CSC'
+    program = 'bhm_csc'
     tile = False
     priority = None
     alias_t = None
@@ -89,7 +89,7 @@ class BhmCscBossDarkCarton(BhmCscBaseCarton):
     '''
         SELECT * from bhm_csc AS c WHERE c.spectrograph = "BOSS" AND WHERE c.mag_i BETWEEN 17.x AND 21.x
     '''
-    name = 'bhm_csc_boss_dark'
+    name = 'bhm_csc_boss-dark'
     cadence = 'bhm_csc_boss_1x4'
     instrument = 'BOSS'
 
@@ -109,7 +109,7 @@ class BhmCscBossBrightCarton(BhmCscBaseCarton):
     '''
         SELECT * from bhm_csc AS c WHERE c.spectrograph = "BOSS" AND WHERE c.mag_i BETWEEN 1x.0 AND 18.x
     '''
-    name = 'bhm_csc_boss_bright'
+    name = 'bhm_csc_boss-bright'
     cadence = 'bhm_csc_boss_1x1'
     instrument = 'BOSS'
 

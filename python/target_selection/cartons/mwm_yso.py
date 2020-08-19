@@ -52,7 +52,7 @@ class MWM_YSO_S1_Carton(BaseCarton):
     name = 'mwm_yso_s1'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -134,7 +134,7 @@ class MWM_YSO_S2_Carton(BaseCarton):
     name = 'mwm_yso_s2'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -205,10 +205,10 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s2_5'
+    name = 'mwm_yso_s2-5'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -312,7 +312,7 @@ class MWM_YSO_S3_Carton(BaseCarton):
     name = 'mwm_yso_s3'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -405,7 +405,7 @@ class MWM_YSO_OB_Carton(BaseCarton):
     name = 'mwm_yso_ob'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -488,7 +488,7 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     name = 'mwm_yso_cmz'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
@@ -571,7 +571,7 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
     name = 'mwm_yso_cluster'
     category = 'science'
     cadence = None
-    program = 'YSO'
+    program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 

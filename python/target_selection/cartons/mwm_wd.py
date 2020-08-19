@@ -22,10 +22,10 @@ class MWM_WD_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_wd'
+    name = 'mwm_wd_core'
     mapper = 'MWM'
     category = 'science'
-    program = 'WD'
+    program = 'mwm_wd'
     cadence = 'mwm_wd_2x1'
     priority = 1400
 

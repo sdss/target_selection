@@ -65,7 +65,7 @@ class BhmGuaBaseCarton(BaseCarton):
     name = 'bhm_gaia_unwise_agn_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-GUA'
+    program = 'bhm_gua'
     tile = False
     priority = None
 
@@ -147,7 +147,8 @@ class BhmGuaDarkCarton(BhmGuaBaseCarton):
     '''
         AND WHERE ( gua.g > 16.x AND gua.rp > 16.x)
     '''
-    name = 'bhm_gaia_unwise_agn_dark'
+    name = 'bhm_gua_dark'
+    program = 'bhm_gua'
     cadence = 'bhm_spiders_1x4'
 
 #-------  bhm_gaia_unwise_agn_bright   ------ #
@@ -156,7 +157,8 @@ class BhmGuaBrightCarton(BhmGuaBaseCarton):
     '''
         AND WHERE ( gua.g < 18.x OR gua.rp < 18.x)
     '''
-    name = 'bhm_gaia_unwise_agn_bright'
+    name = 'bhm_gua_bright'
+    program = 'bhm_filler'
     cadence = 'bhm_boss_bright_3x1'
 
 '''

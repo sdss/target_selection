@@ -106,11 +106,11 @@ class BhmSpidersAgnEfedsCarton(BaseCarton):
 
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-SPIDERS'
+    program = 'bhm_spiders'
     tile = False
 
 
-    name = 'bhm_spiders_agn_efeds'
+    name = 'bhm_spiders_agn-efeds'
     cadence = 'bhm_spiders_1x8'
 
 

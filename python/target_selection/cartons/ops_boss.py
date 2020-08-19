@@ -61,10 +61,10 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_boss_stds'
+    name = 'ops_stds_boss'
     category = 'standard'
     cadence = None
-    program = 'std'
+    program = 'ops_std'
     mapper = None
 
     def build_query(self, version_id, query_region=None):
@@ -193,10 +193,10 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_boss_red_stds_deredden'
+    name = 'ops_std_boss-red'
     category = 'standard'
     cadence = None
-    program = 'std'
+    program = 'ops_std'
     mapper = None
 
     def build_query(self, version_id, query_region=None):
@@ -303,10 +303,10 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_eboss_stds'
+    name = 'ops_std_eboss'
     category = 'standard'
     cadence = None
-    program = 'std'
+    program = 'ops_std'
     mapper = None
 
     def build_query(self, version_id, query_region=None):

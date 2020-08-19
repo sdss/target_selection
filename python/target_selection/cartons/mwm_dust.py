@@ -143,10 +143,10 @@ class MWM_Dust_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_dust'
+    name = 'mwm_dust_core'
     mapper = 'MWM'
     category = 'science'
-    program = 'Dust'
+    program = 'mwm_dust'
     cadence = 'mwm_dust_1x1'
     priority = 2720
 

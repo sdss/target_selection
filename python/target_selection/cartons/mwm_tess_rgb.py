@@ -30,10 +30,10 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_tess_rgb'
+    name = 'mwm_tessrgb_core'
     mapper = 'MWM'
     category = 'science'
-    program = 'TESS RGB'
+    program = 'mwm_tessrgb'
     cadence = None
     priority = 2800
 

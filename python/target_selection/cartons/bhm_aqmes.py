@@ -51,7 +51,7 @@ class BhmAqmesBaseCarton(BaseCarton):
     name = 'bhm_aqmes_base'
     category = 'science'
     mapper = 'BHM'
-    program = 'BHM-AQMES'
+    program = 'bhm_aqmes'
     tile = False
     priority = None
     alias_c = None
@@ -182,8 +182,9 @@ class BhmAqmesMedFaintCarton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE  psfmag_i BETWEEN 19.1 AND 21.0
     '''
-    name = 'bhm_aqmes_med_faint'
+    name = 'bhm_aqmes_med-faint'
     cadence = 'bhm_aqmes_medium_12x4'
+    program = 'bhm_filler'
 
 #-------AQMES medium ------ #
 
@@ -194,16 +195,18 @@ class BhmAqmesWide3Carton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 19.1
     '''
-    name = 'bhm_aqmes_wide3'
+    name = 'bhm_aqmes-wide3'
     cadence = 'bhm_aqmes_wide_3x4'
+    program = 'bhm_filler'
 
 
 class BhmAqmesWide3FaintCarton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
-    name = 'bhm_aqmes_wide3_faint'
+    name = 'bhm_aqmes_wide3-faint'
     cadence = 'bhm_aqmes_wide_3x4'
+    program = 'bhm_filler'
 
 
 class BhmAqmesWide2Carton(BhmAqmesBaseCarton):
@@ -212,14 +215,16 @@ class BhmAqmesWide2Carton(BhmAqmesBaseCarton):
     '''
     name = 'bhm_aqmes_wide2'
     cadence = 'bhm_aqmes_wide_2x4'
+    program = 'bhm_filler'
 
 
 class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
-    name = 'bhm_aqmes_wide2_faint'
+    name = 'bhm_aqmes_wide2-faint'
     cadence = 'bhm_aqmes_wide_2x4'
+    program = 'bhm_filler'
 
 #-------AQMES wide ------ #
 
@@ -230,8 +235,9 @@ class BhmAqmesBonusDarkCarton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 21.5
     '''
-    name = 'bhm_aqmes_bonus_dark'
+    name = 'bhm_aqmes_bonus-dark'
     cadence = 'bhm_spiders_1x4'
+    program = 'bhm_filler'
 
     # add carton-specific selections - this prevents a problem with duplicated cross-matches
     # applying this down-selection to other AQMES cartons reduces the numbers of targets significantly.
@@ -245,8 +251,9 @@ class BhmAqmesBonusBrightCarton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 14.0 AND 18.0
     '''
-    name = 'bhm_aqmes_bonus_bright'
+    name = 'bhm_aqmes_bonus-bright'
     cadence = 'bhm_boss_bright_3x1'   # could add a new cadence name for this
+    program = 'bhm_filler'
 
 #-------AQMES bonus ------ #
 

@@ -49,7 +49,7 @@ class MWM_SNC_100pc(BaseCarton):
 
     name = 'mwm_snc_100pc'
     category = 'science'
-    program = '100pc'
+    program = 'mwm_snc'
     mapper = 'MWM'
     cadence = 'mwm_100pc_faint_1x1'
     priority = 1800
@@ -123,7 +123,7 @@ class MWM_SNC_250pc(BaseCarton):
 
     name = 'mwm_snc_250pc'
     category = 'science'
-    program = '250pc'
+    program = 'mwm_snc'
     mapper = 'MWM'
     cadence = None
     priority = 1810

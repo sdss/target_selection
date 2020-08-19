@@ -38,7 +38,7 @@ class MWM_CB_300_Carton(BaseCarton):
     name = 'mwm_cb_300pc'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -101,7 +101,7 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     name = 'mwm_cb_gaiagalex'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -164,7 +164,7 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
     name = 'mwm_cb_cvcandidates'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 

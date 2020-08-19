@@ -38,11 +38,11 @@ class MWM_Galactic_Genesis_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_galactic'
+    name = 'mwm_gg_core'
     category = 'science'
     cadence = 'mwm_galactic_1x1'
     priority = 2710
-    program = 'Galactic Genesis'
+    program = 'mwm_gg'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):

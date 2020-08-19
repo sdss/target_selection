@@ -115,7 +115,7 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
     name = 'mwm_cb_uvex1'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -238,7 +238,7 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
     name = 'mwm_cb_uvex2'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -378,7 +378,7 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
     name = 'mwm_cb_uvex3'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -548,7 +548,7 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
     name = 'mwm_cb_uvex4'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 
@@ -704,7 +704,7 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
     name = 'mwm_cb_uvex5'
     mapper = 'MWM'
     category = 'science'
-    program = 'CB'
+    program = 'mwm_cb'
     cadence = 'mwm_cb_2x1'
     priority = 1400
 

@@ -28,8 +28,8 @@ class MWM_TESS_Planets_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_planet'
-    program = 'TESS Planet'
+    name = 'mwm_planet_tess'
+    program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
     cadence = None
