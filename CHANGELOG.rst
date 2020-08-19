@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+:release:`0.1.0 <2020-08-18>`
+* Framework for implementing cartons against ``catalogdb`` and load them into ``targetdb``.
+* All the cartons for target selection ``v0``.
 * Xmatch: do not apply Q3C in phase 1.
 * Xmatch: do not disable ``seqscan`` during phase 3.
 * Xmatch: add several indexes to ``Catalog`` and the relational tables.
