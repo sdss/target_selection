@@ -46,7 +46,7 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
     name = 'mwm_halo_bb'
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_halo'
+    program = 'mwm_filler'
     cadence = None
     priority = None
 
@@ -93,7 +93,7 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
     name = 'mwm_halo_sm'
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_halo'
+    program = 'mwm_filler'
     cadence = None
     priority = 6050
 

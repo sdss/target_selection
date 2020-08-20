@@ -347,8 +347,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(SDSS_APOGEE_AllStarMerge_r13,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                       on=(TwoMassPSC.designation ==                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
                                            '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
