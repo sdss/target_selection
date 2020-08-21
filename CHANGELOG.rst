@@ -4,7 +4,7 @@
 Change Log
 ==========
 
-:release:`0.1.0 <2020-08-18>`
+* :release:`0.1.0 <2020-08-18>`
 * Framework for implementing cartons against ``catalogdb`` and load them into ``targetdb``.
 * All the cartons for target selection ``v0``.
 * Xmatch: do not apply Q3C in phase 1.
