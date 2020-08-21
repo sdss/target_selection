@@ -26,9 +26,11 @@ from target_selection.xmatch import XMatchPlanner
 with warnings.catch_warnings():
     from target_selection.cartons import BaseCarton
 
+
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
 
 def connect(profile=None, dbname=None, user=None, host=None, port=None):
     """Connects the database."""
