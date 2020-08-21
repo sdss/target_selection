@@ -61,7 +61,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_stds_boss'
+    name = 'ops_std_boss'
     category = 'standard'
     cadence = None
     program = 'ops_std'
