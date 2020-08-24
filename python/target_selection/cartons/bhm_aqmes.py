@@ -35,13 +35,13 @@ radius_apo = 1.49 # degrees
 
 ## This provides the following BHM cartons:
 # bhm_aqmes_med
-# bhm_aqmes_med_faint
+# bhm_aqmes_med-faint
 # bhm_aqmes_wide2
-# bhm_aqmes_wide2_faint
+# bhm_aqmes_wide2-faint
 # bhm_aqmes_wide3
-# bhm_aqmes_wide3_faint
-# bhm_aqmes_bonus_dark
-# bhm_aqmes_bonus_bright
+# bhm_aqmes_wide3-faint
+# bhm_aqmes_bonus-dark
+# bhm_aqmes_bonus-bright
 
 
 
@@ -167,7 +167,7 @@ class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr1x_qso WHERE  psfmag_i BETWEEN 16.x AND 19.1
     '''
     name = 'bhm_aqmes_med'
-    cadence = 'bhm_aqmes_medium_12x4'   
+    cadence = 'bhm_aqmes_medium_12x4'
     #cadence = 'dummy_cadence'
 
 # add something like the following if want to add carton-specific selections
@@ -195,9 +195,8 @@ class BhmAqmesWide3Carton(BhmAqmesBaseCarton):
     '''
     SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 19.1
     '''
-    name = 'bhm_aqmes-wide3'
+    name = 'bhm_aqmes_wide3'
     cadence = 'bhm_aqmes_wide_3x4'
-    #program = 'bhm_aqmes'
 
 
 class BhmAqmesWide3FaintCarton(BhmAqmesBaseCarton):
@@ -215,7 +214,6 @@ class BhmAqmesWide2Carton(BhmAqmesBaseCarton):
     '''
     name = 'bhm_aqmes_wide2'
     cadence = 'bhm_aqmes_wide_2x4'
-    #program = 'bhm_aqmes'
 
 
 class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):

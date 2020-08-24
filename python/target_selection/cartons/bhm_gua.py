@@ -31,8 +31,8 @@ from target_selection.cartons.base import BaseCarton
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
 
 ## This module provides the following BHM cartons:
-# bhm_gaia_unwise_agn_dark
-# bhm_gaia_unwise_agn_bright
+# bhm_gua_dark
+# bhm_gua_bright
 
 
 '''
@@ -44,10 +44,10 @@ from target_selection.cartons.base import BaseCarton
         AND WHERE gua.prob_rf > 0.8
         AND WHERE (so.specobjid = NULL OR so.zwarning != 0 OR so.sn_median_all < x.x OR so.z_err > 0.0xx )
 
-    bhm_gaia_unwise_agn_dark
+    bhm_gua_dark
         AND WHERE ( gua.g > 16.5 AND gua.rp > 16.5 AND (gua.g < 21.2 OR gua.rp < 21.0 ) )
 
-    bhm_gaia_unwise_agn_bright
+    bhm_gua_bright
         AND WHERE ( gua.g > 13.0 AND gua.rp > 13.5 AND (gua.g < 18.5 OR gua.rp < 18.5) )
 '''
 
@@ -62,7 +62,7 @@ class BhmGuaBaseCarton(BaseCarton):
     Catalog -> CatalogToTIC_v8 -> Gaia_DR2 -> Gaia_unWISE_AGN
     '''
 
-    name = 'bhm_gaia_unwise_agn_base'
+    name = 'bhm_gua_base'
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_filler'
@@ -71,7 +71,7 @@ class BhmGuaBaseCarton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        ##############c2t = CatalogToGaia_unWISE_AGN.alias()
+        ##############c2t = CatalogToGaia_unWISE_AGN.alias() - deprecated
         c2tic = CatalogToTIC_v8.alias()
         tic = TIC_v8.alias()
         c2s = CatalogToSDSS_DR16_SpecObj.alias()
@@ -85,7 +85,6 @@ class BhmGuaBaseCarton(BaseCarton):
         pmra = peewee.Value(0.0).cast('float').alias('pmra')
         pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
         parallax = peewee.Value(0.0).cast('float').alias('parallax')
-        #match_radius_spectro = self.parameters['spec_join_radius']/3600.0
 
         query = (
             c.select(c.catalogid,
@@ -102,18 +101,6 @@ class BhmGuaBaseCarton(BaseCarton):
             .join(tic)
             .join(g)
             .join(t, on=(g.source_id == t.gaia_sourceid))
-#            .join(s, JOIN.LEFT_OUTER,
-#                  on=(peewee.fn.q3c_join(c.ra,c.dec,
-#                                         s.ra,s.dec,
-#                                         match_radius_spectro) &
-#                      (s.snmedian >= self.parameters['spec_sn_thresh']) &
-#                      (s.zwarning == 0) &
-#                      (s.zerr <= self.parameters['spec_z_err_thresh']) &
-#                      (s.zerr > 0.0) &
-#                      (s.scienceprimary > 0)
-#                      )
-#            )
-#           .where((s.specobjid.is_null())
             .where(c.version_id == version_id,
                    c2tic.version_id == version_id,
                    c2tic.best == True)
@@ -141,25 +128,26 @@ class BhmGuaBaseCarton(BaseCarton):
         return query
 
 
-#-------  bhm_gaia_unwise_agn_dark   ------ #
+#-------  bhm_gua_dark   ------ #
 
 class BhmGuaDarkCarton(BhmGuaBaseCarton):
     '''
         AND WHERE ( gua.g > 16.x AND gua.rp > 16.x)
     '''
     name = 'bhm_gua_dark'
-    program = 'bhm_filler'
     cadence = 'bhm_spiders_1x4'
 
-#-------  bhm_gaia_unwise_agn_bright   ------ #
+#-------  bhm_gua_bright   ------ #
 
 class BhmGuaBrightCarton(BhmGuaBaseCarton):
     '''
         AND WHERE ( gua.g < 18.x OR gua.rp < 18.x)
     '''
     name = 'bhm_gua_bright'
-    program = 'bhm_filler'
     cadence = 'bhm_boss_bright_3x1'
+
+
+
 
 '''
 Exporting from the temp table
