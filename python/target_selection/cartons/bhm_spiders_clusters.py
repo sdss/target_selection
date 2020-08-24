@@ -23,19 +23,18 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              Legacy_Survey_DR8,
                                              BHM_Spiders_Clusters_Superset,
                                              BHM_eFEDS_Veto,
-#TODO                                             CatalogToSDSS_DR16_SpecObj,
                                              SDSS_DR16_SpecObj,
                                              )
 
 
 ## This provides the following BHM cartons:
 
-# bhm_spiders_clusters_efeds_sdss_redmapper
-# bhm_spiders_clusters_efeds_hsc_redmapper
-# bhm_spiders_clusters_efeds_ls_redmapper
-# bhm_spiders_clusters_efeds_erosita
-# bhm_spiders_clusters_wide
-# bhm_spiders_clusters_deep
+# bhm_spiders_clusters-efeds-sdss-redmapper
+# bhm_spiders_clusters-efeds-hsc-redmapper
+# bhm_spiders_clusters-efeds-ls-redmapper
+# bhm_spiders_clusters-efeds-erosita
+# bhm_spiders_clusters-wide
+# bhm_spiders_clusters-deep
 
 # Details: Start here
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
@@ -70,8 +69,8 @@ Pseudo SQL (optional):
 class BhmSpidersClusEfedsCarton(BaseCarton):
     ''' Parent class that provides the underlying selections for all SPIDERS Clusters eFEDS cartons'''
 
-    name = 'bhm_spiders_clusters_efeds_base'
-    base_name = 'bhm_spiders_clusters_efeds_base'
+    name = 'bhm_spiders_clusters-efeds-base'
+    base_name = 'bhm_spiders_clusters-efeds-base'
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_spiders'
@@ -87,7 +86,6 @@ class BhmSpidersClusEfedsCarton(BaseCarton):
         ls = Legacy_Survey_DR8.alias()
         c2ls = CatalogToLegacy_Survey_DR8.alias()
         v = BHM_eFEDS_Veto.alias()
-#TODO        c2s = CatalogToSDSS_DR16_SpecObj.alias()
         s = SDSS_DR16_SpecObj.alias()
 
         base_parameters = self.config['parameters'].get(self.base_name, None)

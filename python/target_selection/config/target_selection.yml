@@ -19,27 +19,27 @@
         - mwm_halo_sm
         - mwm_tess_rgb
         - bhm_rm_core
-        - bhm_rm_known_spec
+        - bhm_rm_known-spec
         - bhm_rm_var
         - bhm_rm_ancillary
         - bhm_aqmes_med
-        - bhm_aqmes_med_faint
+        - bhm_aqmes_med-faint
         - bhm_aqmes_wide3
-        - bhm_aqmes_wide3_faint
+        - bhm_aqmes_wide3-faint
         - bhm_aqmes_wide2
-        - bhm_aqmes_wide2_faint
-        - bhm_aqmes_bonus_dark
-        - bhm_aqmes_bonus_bright
-        - bhm_spiders_agn_efeds
-        - bhm_spiders_clusters_efeds_sdss_redmapper
-        - bhm_spiders_clusters_efeds_hsc_redmapper
-        - bhm_spiders_clusters_efeds_ls_redmapper
-        - bhm_spiders_clusters_efeds_erosita
-        - bhm_csc_boss_dark
-        - bhm_csc_boss_bright
+        - bhm_aqmes_wide2-faint
+        - bhm_aqmes_bonus-dark
+        - bhm_aqmes_bonus-bright
+        - bhm_spiders_agn-efeds
+        - bhm_spiders_clusters-efeds-sdss-redmapper
+        - bhm_spiders_clusters-efeds-hsc-redmapper
+        - bhm_spiders_clusters-efeds-ls-redmapper
+        - bhm_spiders_clusters-efeds-erosita
+        - bhm_csc_boss-dark
+        - bhm_csc_boss-bright
         - bhm_csc_apogee
-        - bhm_gaia_unwise_agn_dark
-        - bhm_gaia_unwise_agn_bright
+        - bhm_gua_dark
+        - bhm_gua_bright
         - mwm_yso_s1
         - mwm_yso_s2
         - mwm_yso_s2_5
@@ -82,7 +82,7 @@
             mag_i_max: 21.5
             pmsig_max: 3.0
             plxsig_max: 3.0
-        bhm_rm_known_spec:
+        bhm_rm_known-spec:
             priority: 1001
             value: 1000.0
             mag_i_min: 15.0
@@ -111,17 +111,13 @@
             mag_i_max: 21.5
             pmsig_max: 3.0
             plxsig_max: 3.0
-        bhm_aqmes_base:
-            fieldlist: None
-            mag_i_min: 16.0
-            mag_i_max: 19.1
         bhm_aqmes_med:
             priority: 1100
             value: 100.0
             fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
             mag_i_min: 16.0
             mag_i_max: 19.1
-        bhm_aqmes_med_faint:
+        bhm_aqmes_med-faint:
             priority: 3100
             value: 1.0
             fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
@@ -133,7 +129,7 @@
             fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
             mag_i_min: 16.0
             mag_i_max: 19.1
-        bhm_aqmes_wide3_faint:
+        bhm_aqmes_wide3-faint:
             priority: 3200
             value: 1.0
             fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
@@ -145,25 +141,25 @@
             fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
             mag_i_min: 16.0
             mag_i_max: 19.1
-        bhm_aqmes_wide2_faint:
+        bhm_aqmes_wide2-faint:
             priority: 3210
             value: 1.0
             fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
             mag_i_min: 19.1
             mag_i_max: 21.0
-        bhm_aqmes_bonus_dark:
+        bhm_aqmes_bonus-dark:
             priority: 3300
             value: 0.1
             fieldlist: None
             mag_i_min: 16.5
             mag_i_max: 21.5
-        bhm_aqmes_bonus_bright:
+        bhm_aqmes_bonus-bright:
             priority: 4040
             value: 0.1
             fieldlist: None
             mag_i_min: 14.0
             mag_i_max: 18.0
-        bhm_spiders_agn_efeds:
+        bhm_spiders_agn-efeds:
             value: 1.0
             ero_version: 'efeds_c940_V2T'
             fibermag_r_min: 16.5
@@ -177,7 +173,7 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1510
-        bhm_spiders_agn_wide_ls:
+        bhm_spiders_agn-wide-ls:
             req_ntargets: 300000
             value: 1.0
             fibermag_r_min: 17.0
@@ -185,13 +181,13 @@
             fibermag_z_max: 21.5
             det_like_min: 8.0
             p_any_min: 0.1
-        bhm_spiders_agn_deep:
+        bhm_spiders_agn-deep:
             req_ntargets: 30000
             value: 1.0
             fibermag_r_min: 17.0
             fibermag_r_max: 22.5
             det_like_0_min: 6.0
-        bhm_spiders_clusters_efeds_base:
+        bhm_spiders_clusters-efeds-base:
             value: 1.0
             ero_version: 'efeds_c940_clus'
             fibermag_r_min: 16.5
@@ -202,12 +198,12 @@
             spec_sn_thresh: 2.00
             spec_z_err_thresh: 0.01
             priority_floor: 1500
-        bhm_csc_boss_dark:
+        bhm_csc_boss-dark:
             mag_i_min: 16.0
             mag_i_max: 22.0
             priority: 3000
             value: 1.0
-        bhm_csc_boss_bright:
+        bhm_csc_boss-bright:
             mag_i_min: 13.0
             mag_i_max: 18.0
             priority: 4000
@@ -217,7 +213,7 @@
             mag_h_max: 15.0
             priority: 4000
             value: 1.0
-        bhm_gaia_unwise_agn_dark:
+        bhm_gua_dark:
             mag_g_min: 16.5
             mag_g_max: 21.2
             mag_rp_min: 16.5
@@ -227,7 +223,7 @@
             spec_z_err_thresh: 0.01
             priority: 3400
             value: 0.5
-        bhm_gaia_unwise_agn_bright:
+        bhm_gua_bright:
             mag_g_min: 13.0
             mag_g_max: 18.5
             mag_rp_min: 13.5

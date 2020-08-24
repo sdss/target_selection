@@ -24,8 +24,8 @@ from target_selection.cartons.base import BaseCarton
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms#Definingtargetselectionandcadencealgorithms-ChandraSourceCatalogue(CSC)-inprogress
 
 ## This module provides the following BHM cartons:
-# bhm_csc_boss_dark
-# bhm_csc_boss_bright
+# bhm_csc_boss-dark
+# bhm_csc_boss-bright
 # bhm_csc_apogee
 
 
@@ -36,8 +36,8 @@ class BhmCscBaseCarton(BaseCarton):
     To be sub-classed, not typically to be called directly.
     '''
 
-    name = 'bhm_csc_base'
-    base_name = 'bhm_csc_base'
+    name = 'bhm_csc-base'
+    base_name = 'bhm_csc-base'
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_csc'
@@ -59,7 +59,6 @@ class BhmCscBaseCarton(BaseCarton):
         query = (
             c
             .select(c.catalogid,
-#                    c.ra, c.dec, t.cxo_name, t.oir_ra.alias("csc_oir_ra"), t.oir_dec.alias("csc_oir_dec"), ## debug
                     priority,
                     value,
                     t.mag_g.alias('g'),

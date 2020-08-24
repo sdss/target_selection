@@ -29,7 +29,7 @@ from target_selection.cartons.base import BaseCarton
 
 ## This module provides the following BHM cartons:
 #  bhm_rm_core
-#  bhm_rm_known_spec
+#  bhm_rm_known-spec
 #  bhm_rm_var
 #  bhm_rm_ancillary
 
@@ -218,15 +218,11 @@ class BhmRmBaseCarton(BaseCarton):
                     magnitude_r.alias('r'),
                     magnitude_i.alias('i'),
                     magnitude_z.alias('z'),
-#                    magnitude_bp.alias('bp'),  # let the targetdb fill this in automatically
-#                    magnitude_rp.alias('rp'),
-#                    s.z.alias('sdss_dr16_specobj_z'),
-#                    s.plate.alias('sdss_dr16_specobj_plate'),
-#                    s.mjd.alias('sdss_dr16_specobj_mjd'),
-#                    s.fiberid.alias('sdss_dr16_specobj_fiberid'),
             )
             .join(c2t)
-            .join(t, on=(c2t.target_id == t.pk))  # needed because using c2t for Catalog_to_BHM_RM_v0
+            # The following is needed because we are using c2t for Catalog_to_BHM_RM_v0
+            # rather than a native c2t for Catalog_to_BHM_RM_v0_2
+            .join(t, on=(c2t.target_id == t.pk))
             .where(c.version_id == version_id,
                    c2t.version_id == version_id,
                    (
@@ -252,10 +248,6 @@ class BhmRmBaseCarton(BaseCarton):
             .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
         )
         query = self.append_spatial_query(query, self.get_fieldlist())
-
-#        # also set the Carton priority+value here - read from yaml
-#        self.priority = self.parameters['priority']
-#        self.value = self.parameters['value']
 
         return query
 
@@ -317,7 +309,7 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
 
 class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     '''
-    bhm_rm_known_spec:  select all spectroscopically confirmed QSOs where redshift is extragalactic
+    bhm_rm_known-spec:  select all spectroscopically confirmed QSOs where redshift is extragalactic
 
     SELECT * FROM bhm_rm
         WHERE specz > 0.005
@@ -367,18 +359,22 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
 
 
 class BhmRmVarCarton(BhmRmBaseCarton):
-    '''
-    bhm_rm_var: selected based on g-band variability > 0.05 mag and bright enough to be detected by Gaia (G<~21)
+    '''bhm_rm_var: selected based on g-band variability > 0.05 mag and bright enough to be detected by Gaia (G<~21)
 
     SELECT * FROM bhm_rm
-        WHERE ( (des_var_sn[0] > 5.0 AND des_var_rms[0] > 0.05) OR (ps1_var_sn[0]>5.0 AND ps1_var_rms[0]>0.05))
+        WHERE ( (des_var_sn[0] > 5.0 AND des_var_rms[0] > 0.05)  OR
+                (ps1_var_sn[0]>5.0 AND ps1_var_rms[0]>0.05))
         AND WHERE mi BETWEEN 15.0 AND 21.5    # <- exact limits TBD
-        AND WHERE pmsig < 5.0
-        AND WHERE plxsig < 5.0
+        AND WHERE pmsig < x.x
+        AND WHERE plxsig < x.x
         AND WHERE gaia = 1
 
-    #debug
-    select t.pk, t.ra, t.dec, t.mi, t.psfmag_sdss[4] as psfmag_i,t.pmsig,t.ps1_var_sn[1],t.ps1_var_rms[1],t.des_var_sn[1],t.des_var_rms[1] from bhm_rm_v0 as t where (t.gaia = 1 AND t.mi < 21.5 AND t.pmsig < 5.0 AND t.plxsig < 5.0 AND t.ps1_var_sn[1] > 5.0 AND t.ps1_var_rms[1] > 0.05 ) limit 10;
+    #debug select t.pk, t.ra, t.dec, t.mi, t.psfmag_sdss[4] as
+    psfmag_i,t.pmsig,t.ps1_var_sn[1],t.ps1_var_rms[1],t.des_var_sn[1],t.des_var_rms[1]
+    from bhm_rm_v0 as t where (t.gaia = 1 AND t.mi < 21.5 AND t.pmsig
+    < 5.0 AND t.plxsig < 5.0 AND t.ps1_var_sn[1] > 5.0 AND
+    t.ps1_var_rms[1] > 0.05 ) limit 10;
+
     '''
 
     name = 'bhm_rm_var'
