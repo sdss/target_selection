@@ -39,8 +39,7 @@ B_AB = Gaia_DR2.phot_bp_mean_mag - 25.351 + 25.386
 R_AB = Gaia_DR2.phot_rp_mean_mag - 24.762 + 25.116
 B_AB_R_AB = B_AB - R_AB
 
-colour_absg = ((absg < 4.5457 * bp_rp + 9.9) &
-               ((absg > 4.09) | (absg > 4.5457 * bp_rp + 4.0457)))
+colour_absg = ((absg > 4.09) | (absg > 4.5457 * bp_rp + 4.0457))
 
 pmra = Gaia_DR2.pmra
 pmdec = Gaia_DR2.pmdec
@@ -101,8 +100,7 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
         - Colour and magnitude cuts:
             - nuv_magerr < 0.2 && nuv_mag>-100 &&
                 (fuv_magerr >=0.2 || fuv_mag< -100)
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
+            - absg < (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((nuv_mag-gmagab) < 2.25 ||
                 ((nuv_mag-gmagab) < 6.725*(B_AB-R_AB)-1.735  &&
                  (nuv_mag-gmagab)< -0.983*(B_AB-R_AB)+8.24))
@@ -230,8 +228,7 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
         - Colour and magnitude cuts:
             - fuv_magerr < 0.2 && nuv_magerr < 0.2 &&
               fuv_mag > -100 && nuv_mag > -100
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
+            - absg < (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - absg > -1.11749253e-03*fuv_nuv^3 +
                 1.53748615e-02*fuv_nuv^2 +
                 3.66419895e-01*fuv_nuv+2.20026639e+00
@@ -380,8 +377,7 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
             - Gaia: visibility_periods_used >5
 
         - Colour and magnitude cuts:
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
+            - absg < (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((UVM2_AB_MAG - gmagab) < 2.25 ||
                ((UVM2_AB_MAG - gmagab) < 6 &&
                 (UVM2_AB_MAG - gmagab) < 5.57377*(B_AB-R_AB)+0.2049))
@@ -555,8 +551,7 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
             - Gaia: visibility_periods_used >5
 
         - Colour and magnitude cuts:
-            - absg < 4.5457*bp_rp+9.9 &&
-                (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
+            - absg < (absg > 4.09 || absg > 4.5457*bp_rp + 4.0457)  [colour_abs]
             - ((UVM2_AB_MAG - gmagab) < 2.25 ||
                ((UVM2_AB_MAG - gmagab) < 6 &&
                 (UVM2_AB_MAG - gmagab) < 5.57377*(B_AB-R_AB)+0.2049))
