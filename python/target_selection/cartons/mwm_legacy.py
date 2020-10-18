@@ -8,7 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (SDSS_APOGEE_AllStarMerge_r13Catalog,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8, Gaia_DR2,
                                              SDSS_APOGEE_AllStarMerge_r13,
                                              TIC_v8
@@ -20,8 +20,15 @@ from target_selection.cartons import BaseCarton
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
-
-
+#
+# peewee model : postgres table name
+# Gaia_DR2 : catalogdb.gaia_dr2_source  
+# SDSS_APOGEE_AllStarMerge_r13 : catalogdb.sdss_apogeeallstarmerge_r13 
+# Catalog : catalogdb.catalog 
+# CatalogToTIC_v8 : catalogdb.catalog_to_tic_v8 
+# TIC_v8 : catalogdb.tic_v8
+#         : catalogdb.catalog_to_sdss_dr16_apogeestar   
+#
 class MWM_Legacy_ir2opt_Carton(BaseCarton):
     """MWM APOGEE targets.
 
