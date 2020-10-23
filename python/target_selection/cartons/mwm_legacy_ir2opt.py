@@ -13,8 +13,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              SDSS_APOGEE_AllStarMerge_r13,
                                              TIC_v8, TwoMassPSC)
 
-
 from target_selection.cartons import BaseCarton
+
 
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
