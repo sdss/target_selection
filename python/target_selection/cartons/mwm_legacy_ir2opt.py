@@ -87,7 +87,7 @@ To be used as a filler for MWM-led plates.
 
 Simplified Description of selection criteria: Select all Gaia targets that
 have an APOGEE counterpart (i.e., have an entry in sdss_apogeeallstarmerge_r13)
-with 14 < G < 18, BP > 13, and RP > 13.
+with 13 < G < 18, BP > 13, and RP > 13.
 
 Wiki page: NA
 
@@ -113,7 +113,12 @@ NA
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.source_id,
+                         Gaia_DR2.phot_g_mean_mag,
+                         Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         TwoMassPSC.pts_key)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -129,7 +134,7 @@ NA
                                            '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag.between(14, 18),
+                        Gaia_DR2.phot_g_mean_mag.between(13, 18),
                         Gaia_DR2.phot_bp_mean_mag > 13,
                         Gaia_DR2.phot_rp_mean_mag > 13))
 
