@@ -1,10 +1,10 @@
 '0.2.0':
     xmatch_plan: 0.1.0
     cartons:
-        - mwm_ob
+        - mwm_ob_core
         - mwm_ob_cepheids
-        - mwm_galactic
-        - mwm_planet
+        - mwm_gg_core
+        - mwm_planet_tess
         - mwm_snc_100pc
         - mwm_snc_250pc
         - mwm_cb_300pc
@@ -17,7 +17,7 @@
         - mwm_cb_uvex5
         - mwm_halo_bb
         - mwm_halo_sm
-        - mwm_tess_rgb
+        - mwm_tessrgb_core
         - bhm_rm_core
         - bhm_rm_known-spec
         - bhm_rm_var
@@ -42,21 +42,21 @@
         - bhm_gua_bright
         - mwm_yso_s1
         - mwm_yso_s2
-        - mwm_yso_s2_5
+        - mwm_yso_s2-5
         - mwm_yso_s3
         - mwm_yso_ob
         - mwm_yso_cmz
         - mwm_yso_cluster
         - mwm_dust
         - mwm_wd
-        - mwm_rv_long_rm
-        - mwm_rv_long_bplates
-        - mwm_rv_long_fps
-        - mwm_rv_short_rm
-        - mwm_rv_short_bplates
-        - mwm_rv_short_fps
-        - ops_apogee_sky
-        - ops_boss_sky
+        - mwm_rv_long-rm
+        - mwm_rv_long-bplates
+        - mwm_rv_long-fps
+        - mwm_rv_short-rm
+        - mwm_rv_short-bplates
+        - mwm_rv_short-fps
+        - ops_sky_apogee
+        - ops_sky_boss
         - mwm_legacy_ir2opt
     schema: sandbox
     magnitudes:
@@ -237,10 +237,10 @@
         mwm_wd:
             gaia_mag: 20
             pwd: 0.5
-        mwm_galactic:
+        mwm_gg_core:
             h_max: 11
             g_h: 3.5
-        mwm_planet:
+        mwm_planet_tess:
             h_min: 7
             h_max: 12
         mwm_halo_sm:
