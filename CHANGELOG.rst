@@ -4,6 +4,13 @@
 Change Log
 ==========
 
+* :release:`0.2.0 <2020-11-09>`
+* Restore HRD cut for CB UVEX. Add SRCNUM column to UVEX.
+* Remove GUVCat column output in cartons not joined with GUVCat.
+* :support:`28` Tidying up and applying carton name changes throughout.
+* :support:`27` Carton-program alignment.
+* :feature:`29` Add MWM Legacy IR2Opt carton.
+
 * :release:`0.1.0 <2020-08-18>`
 * Framework for implementing cartons against ``catalogdb`` and load them into ``targetdb``.
 * All the cartons for target selection ``v0``.
