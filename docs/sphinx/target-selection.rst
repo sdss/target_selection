@@ -26,8 +26,8 @@ For consistency, we define the following concepts:
 
 ``targetdb`` stores the results of target selection and is synced with the observatories on a regular basis (at least once after each run of target selection). The schema has the following tables and relationships
 
-.. image:: https://github.com/sdss/sdssdb/raw/master/schema/sdss5db/targetdb/sdss5db.targetdb.png
-    :target: https://github.com/sdss/sdssdb/raw/master/schema/sdss5db/targetdb/sdss5db.targetdb.png
+.. image:: https://github.com/sdss/sdssdb/raw/main/schema/sdss5db/targetdb/sdss5db.targetdb.png
+    :target: https://github.com/sdss/sdssdb/raw/main/schema/sdss5db/targetdb/sdss5db.targetdb.png
     :align: center
 
 The main table, ``target``, contains all the targets selected from ``catalogdb`` along with their astrometric information and provides the link to ``catalodb.catalog`` via ``catalogid``. Photometric information is stored in the ``magnitude`` table for each target.
