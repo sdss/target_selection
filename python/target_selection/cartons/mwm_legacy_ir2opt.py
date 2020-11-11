@@ -108,7 +108,7 @@ NA
     cadence = None
     program = 'mwm_legacy'
     mapper = 'MWM'
-    priority = None
+    priority = 6100
 
     def build_query(self, version_id, query_region=None):
 
