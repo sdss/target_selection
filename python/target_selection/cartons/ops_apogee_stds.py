@@ -81,7 +81,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                          TwoMassPSC.rd_flg, TwoMassPSC.ph_qual,
                          TwoMassPSC.gal_contam, TwoMassPSC.prox,
                          TwoMassPSC.cc_flg, TwoMassPSC.ext_key,
-                         peewee.fn.healpix_ang2ipix_nest(128, Catalog.ra, Catalog.dec))
+                         peewee.fn.healpix_ang2ipix_nest(
+                             128, Catalog.ra, Catalog.dec).alias('healpix_128'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
