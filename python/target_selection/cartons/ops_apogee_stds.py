@@ -59,6 +59,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     depend on sampling things smoothly in a spatial sense?)
 
     All HEALPix use the nested ordering.
+    number_healpix_pixels = 12 *Nside*Nside
+    Hence number_healpix_pixels = 12*128*128 = 196608
 
     Return columns: All the filter columns plus healpix_128
     Lead contact: Kevin Covey
@@ -82,7 +84,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                          TwoMassPSC.gal_contam, TwoMassPSC.prox,
                          TwoMassPSC.cc_flg, TwoMassPSC.ext_key,
                          peewee.fn.healpix_ang2ipix_nest(
-                             128, Catalog.ra, Catalog.dec).alias('healpix_128'))
+                             128, Catalog.ra, Catalog.dec).alias('healpix_128'),
+                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('blue'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -131,3 +134,36 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
+
+
+def post_process(self, model):
+    """
+    Select the 5 bluest sources (in J-K) in each healpix pixel.
+    """
+
+    self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
+                              "set selected = false")
+
+    cursor = self.database.execute_sql(
+        "select catalogid, healpix_128, blue from " +
+        " sandbox.temp_ops_apogee_stds order by healpix_128 asc, blue desc;")
+
+    output = cursor.fetchall()
+
+    list_of_catalog_id = [0] * len(output)
+    nside = 128
+    total_number_healpix_pixels = 12 * nside * nside
+    count = [0] * total_number_healpix_pixels
+    current_target = 0
+    for i in range(len(output)):
+        current_healpix = output[1][i]
+        if(count[current_healpix] <= 5):
+            count[current_healpix] = count[current_healpix] + 1
+            list_of_catalog_id[current_target] = output[0][i]
+            current_target = current_target + 1
+
+    max_target = current_target
+    for k in range(max_target + 1):
+        self.database.execute_sql(
+            " update sandbox.temp_ops_apogee_stds set selected=true " +
+            " where catalogid = +" + str(list_of_catalog_id[k]) + ";")
