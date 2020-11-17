@@ -165,5 +165,5 @@ def post_process(self, model):
     max_target = current_target
     for k in range(max_target + 1):
         self.database.execute_sql(
-            " update sandbox.temp_ops_apogee_stds set selected=true " +
+            " update sandbox.temp_ops_apogee_stds set selected = true " +
             " where catalogid = +" + str(list_of_catalog_id[k]) + ";")
