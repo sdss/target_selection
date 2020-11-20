@@ -73,7 +73,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     mapper = None
 
     def build_query(self, version_id, query_region=None):
-
+        print("start post_process")
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
                          TwoMassPSC.h_m, TwoMassPSC.j_m, TwoMassPSC.k_m,
@@ -136,34 +136,36 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         return query
 
 
-def post_process(self, model):
-    """
-    Select the 5 bluest sources (in J-K) in each healpix pixel.
-    """
+    def post_process(self, model):
+        """
+        Select the 5 bluest sources (in J-K) in each healpix pixel.
+        """
 
-    self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
-                              "set selected = false")
+        print("start post_process")
+        self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
+                                  "set selected = false")
 
-    cursor = self.database.execute_sql(
-        "select catalogid, healpix_128, blue from " +
-        " sandbox.temp_ops_apogee_stds order by healpix_128 asc, blue desc;")
+        cursor = self.database.execute_sql(
+            "select catalogid, healpix_128, blue from " +
+            " sandbox.temp_ops_apogee_stds order by healpix_128 asc, blue desc;")
 
-    output = cursor.fetchall()
+        output = cursor.fetchall()
 
-    list_of_catalog_id = [0] * len(output)
-    nside = 128
-    total_number_healpix_pixels = 12 * nside * nside
-    count = [0] * total_number_healpix_pixels
-    current_target = 0
-    for i in range(len(output)):
-        current_healpix = output[i][1]
-        if(count[current_healpix] <= 5):
-            count[current_healpix] = count[current_healpix] + 1
-            list_of_catalog_id[current_target] = output[i][0]
-            current_target = current_target + 1
+        list_of_catalog_id = [0] * len(output)
+        nside = 128
+        total_number_healpix_pixels = 12 * nside * nside
+        count = [0] * total_number_healpix_pixels
+        current_target = 0
+        for i in range(len(output)):
+            current_healpix = output[i][1]
+            if(count[current_healpix] <= 5):
+                count[current_healpix] = count[current_healpix] + 1
+                list_of_catalog_id[current_target] = output[i][0]
+                current_target = current_target + 1
 
-    max_target = current_target
-    for k in range(max_target + 1):
-        self.database.execute_sql(
-            " update sandbox.temp_ops_apogee_stds set selected = true " +
-            " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+        max_target = current_target
+        for k in range(max_target + 1):
+            self.database.execute_sql(
+                " update sandbox.temp_ops_apogee_stds set selected = true " +
+                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+        print("end post_process")
