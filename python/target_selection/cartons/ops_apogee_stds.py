@@ -73,7 +73,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     mapper = None
 
     def build_query(self, version_id, query_region=None):
-        print("start post_process")
+
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
                          TwoMassPSC.h_m, TwoMassPSC.j_m, TwoMassPSC.k_m,
@@ -141,7 +141,6 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         Select the 5 bluest sources (in J-K) in each healpix pixel.
         """
 
-        print("start post_process")
         self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
                                   "set selected = false")
 
@@ -168,4 +167,3 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
             self.database.execute_sql(
                 " update sandbox.temp_ops_apogee_stds set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")
-        print("end post_process")
