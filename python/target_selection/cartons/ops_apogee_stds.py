@@ -135,7 +135,6 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                                                        query_region[2])))
         return query
 
-
     def post_process(self, model):
         """
         Select the 5 bluest sources (in J-K) in each healpix pixel.
