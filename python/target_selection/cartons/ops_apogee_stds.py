@@ -156,10 +156,10 @@ def post_process(self, model):
     count = [0] * total_number_healpix_pixels
     current_target = 0
     for i in range(len(output)):
-        current_healpix = output[1][i]
+        current_healpix = output[i][1]
         if(count[current_healpix] <= 5):
             count[current_healpix] = count[current_healpix] + 1
-            list_of_catalog_id[current_target] = output[0][i]
+            list_of_catalog_id[current_target] = output[i][0]
             current_target = current_target + 1
 
     max_target = current_target
