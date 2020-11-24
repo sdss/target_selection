@@ -85,7 +85,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                          TwoMassPSC.cc_flg, TwoMassPSC.ext_key,
                          peewee.fn.healpix_ang2ipix_nest(
                              128, Catalog.ra, Catalog.dec).alias('healpix_128'),
-                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('j_k'))
+                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('j_minus_k'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -144,8 +144,9 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                                   "set selected = false")
 
         cursor = self.database.execute_sql(
-            "select catalogid, healpix_128, j_k from " +
-            " sandbox.temp_ops_apogee_stds order by healpix_128 asc, j_k asc;")
+            "select catalogid, healpix_128, j_minus_k from " +
+            " sandbox.temp_ops_apogee_stds " +
+            " order by healpix_128 asc, j_minus_k asc;")
 
         output = cursor.fetchall()
 
