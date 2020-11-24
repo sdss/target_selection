@@ -47,8 +47,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     ext_key = null (no match in extended source catalog)
     Once 2MASS has been limited to sources meeting the above criteria,
     the sky is then divided into an nside = 128 HEALPIX skymap.
-    The 5 bluest sources (in J-K) in each healpix are then selected
-    and saved for the output carton.
+    The 5 bluest sources (i.e. 5 smallest J-K) in each healpix are then
+    selected and saved for the output carton.
 
     (note – the HEALPIX binning and sub-querying might be useful
     to implement as a function that can be run for future cartons;
@@ -85,7 +85,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                          TwoMassPSC.cc_flg, TwoMassPSC.ext_key,
                          peewee.fn.healpix_ang2ipix_nest(
                              128, Catalog.ra, Catalog.dec).alias('healpix_128'),
-                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('blue'))
+                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('j_k'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -137,15 +137,15 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
 
     def post_process(self, model):
         """
-        Select the 5 bluest sources (in J-K) in each healpix pixel.
+        Select the 5 bluest sources (i.e. 5 smallest J-K) in each healpix pixel.
         """
 
         self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
                                   "set selected = false")
 
         cursor = self.database.execute_sql(
-            "select catalogid, healpix_128, blue from " +
-            " sandbox.temp_ops_apogee_stds order by healpix_128 asc, blue desc;")
+            "select catalogid, healpix_128, j_k from " +
+            " sandbox.temp_ops_apogee_stds order by healpix_128 asc, j_k asc;")
 
         output = cursor.fetchall()
 
