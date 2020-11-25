@@ -97,7 +97,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                         TwoMassPSC.h_m > 7,
                         TwoMassPSC.h_m < 11,
                         (TwoMassPSC.j_m - TwoMassPSC.k_m) > -0.25,
-                        (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.3,
+                        (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.5,
                         TwoMassPSC.j_msigcom < 0.1,
                         TwoMassPSC.h_msigcom < 0.1,
                         TwoMassPSC.k_msigcom < 0.1,
