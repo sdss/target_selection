@@ -8,8 +8,8 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog, CatalogToTIC_v8, TIC_v8, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+                                             TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
