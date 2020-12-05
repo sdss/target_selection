@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* :release:`0.1.2 <2020-12-05>`
+* Add ``ops_apogee_stds`` carton and 0.1.2 target selection plan.
+
 * :release:`0.1.1 <2020-11-10>`
 * Restore HRD cut for CB UVEX. Add SRCNUM column to UVEX.
 * Remove GUVCat column output in cartons not joined with GUVCat.
