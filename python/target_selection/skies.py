@@ -260,9 +260,10 @@ def get_sky_table(database, table, output, tiles=None, append=False,
       valid skies. Alternatively, if ``mag_column`` and ``mag_threshold`` are
       defined, the separations to neighbours brighter than the threshold
       magnitude is corrected using the expression
-      :math:`s^* = s - \sqrt{\dfrac{m_{thr}-m}{a}}` where
-      :math:`m_{thr}` is the magnitude threshold and :math:`a=0.2` is
-      a factor that takes into account the average seeing for APO and LCO.
+      :math:`s^* = s + \sqrt{\dfrac{m_{thr}-m}{a}}` where
+      :math:`s` is the minimum separation, :math:`m_{thr}` is the magnitude
+      threshold, :math:`a=0.2` is a factor that takes into account the average
+      seeing for APO and LCO.
 
     - If ``downsample`` is an integer, only that number of skies are returned
       for each tile. If so, the tile is divided in pixels of nside
