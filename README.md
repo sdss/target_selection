@@ -6,3 +6,14 @@
 [![codecov](https://codecov.io/gh/sdss/target_selection/branch/main/graph/badge.svg)](https://codecov.io/gh/sdss/target_selection) -->
 
 Code to perform target selection for BHM/MWM using catalogdb.
+
+## Installation
+
+To install `target_selection` do
+
+```console
+$ pip install numpy
+$ pip install sdss-target-selection
+```
+
+Due to a misconfiguration in `pymange`, `numpy` needs to be installed before you can install `target_selection`.
