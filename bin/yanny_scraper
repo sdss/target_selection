@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+# encoding: utf-8
+#
+# @Author: Tom Dwelly
+# @Date: Dec-2020
+# @Filename: yanny_scraper
+# @License: BSD 3-Clause
+# @Copyright: Tom Dwelly
+
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
+import argparse
+import glob
+import os
+import sys
+from datetime import datetime
+from re import split
+
+import numpy as np
+from astropy.io import registry
+from astropy.table import Column, Table, vstack
+from pydl.pydlutils.yanny import yanny
+
+
+__version__ = 'v0.0.1'
+
+
+if __name__ == '__main__':
+
+    print('Command line: ' + ' '.join(sys.argv))
+
+    parser = argparse.ArgumentParser(
+        prog=os.path.basename(sys.argv[0]),
+        description=('Scrape content out of a set of input yanny files and '
+                     'write concatenated content to an alternative format. '
+                     'Metadata (key-value pairs) is extracted from input files '
+                     'and collated as a separate output table.'))
+
+    parser.add_argument('-i', '--infiles', required=True, default='.par',
+                        help='A regexp giving the location(s) of the yanny '
+                             'files from which to scrape (will be globbed)', )
+    parser.add_argument('-o', '--outstem', required=True, default='./outfile.fits',
+                        help='The stem of the output (processed) file names', )
+    parser.add_argument('-f', '--format', required=False, default='fits',
+                        help='The format of the output (processed) files', )
+    parser.add_argument('--version', action='version',
+                        version=f'%(prog)s {__version__}')
+
+    args = parser.parse_args()
+
+    # Check that the output dir exists, create if not
+    outstem = os.path.expanduser(args.outstem)
+    outdir = os.path.dirname(outstem)
+
+    try:
+        os.makedirs(outdir, exist_ok=True)
+    except Exception as E:
+        raise Exception(f'Unable to create output directory: {outdir}') from E
+
+    if os.path.isdir(outdir) is False:
+        raise Exception(f'Unable to find output directory: {outdir}')
+
+    # Check that the output format is recognised
+    registry.get_writer(args.format, Table)
+
+    # These are where we accumulate the data
+    master_dict = {}
+    master_meta = None
+
+    # now generate the list of input files
+    infiles = glob.glob(args.infiles)
+    print('Globbing for input files using expression: ' + args.infiles)
+    print(f'Found {len(infiles)} input files')
+
+    for i, f in enumerate(infiles):
+        try:
+            y = yanny(f)
+        except Exception as err:
+            raise Exception('Unable to interpret file with the yanny reader') from err
+
+        slist = y.tables()
+        print(f'Working on infile ({i+1:2d}/{len(infiles)}): {f} -> contains structures: {slist}')
+
+        # Convert the metadata into a set of columns that can be
+        # appended to the master_meta collection.
+        data = [[y[k], ] for k in y.pairs()]
+        t = Table(data=data + [[i + 1, ], [f, ], ],
+                  masked=False,
+                  names=y.pairs() + ['yanny_uid', 'yanny_filename', ])
+        if master_meta is None:
+            master_meta = t
+        else:
+            master_meta = vstack([master_meta, t], join_type='outer')
+
+        # A yanny file can contain more than one structure, so step through them all
+        for s in slist:
+            # convert the struct to an astropy table
+            t = Table(y[s])
+            # add some extra metadata
+            t['yanny_uid'] = Column(np.full(len(t), i + 1), name='yanny_uid', dtype='int32')
+            t['yanny_filename'] = Column(np.full(len(t), f), name='yanny_filename')
+            if s in master_dict:
+                # append it to the existing list of tables
+                master_dict[s].append(t)
+            else:
+                master_dict[s] = [t]
+
+    keys = {}
+    keys['ORIGIN'] = sys.argv[0]
+    keys['VERSION'] = __version__
+    keys['INFILES'] = args.infiles
+    keys['OUTSTEM'] = outstem
+    keys['NINFILE'] = len(infiles)
+    now = datetime.utcnow()  # current date and time in UTC
+    keys['DATE'] = now.strftime("%m-%d-%YT%H:%M:%S UTC")
+
+    for n, v in master_dict.items():
+        t = vstack(v, join_type='outer')
+        print(f'Concatenated table: {n} has {len(t)} rows')
+        outfile = (outstem + n + '.' + args.format)
+
+        # Add some keywords
+        for k, v in keys.items():
+            t.meta[k] = v
+
+        print(f'Writing table for {n} to: ' + outfile)
+        t.write(outfile, format=args.format, overwrite=True)
+
+    print(f'The meta data table: has {len(master_meta)} rows')
+
+    # Attempt to fix the format of columns that can be safely converted
+    # to integer or float formats
+    print('Attempting to convert meta string values into numeric formats where possible')
+    for c in master_meta.colnames:
+        cnew = None
+
+        for d in ['int32', 'int64', 'float32', 'float64', ]:
+            try:
+                cnew = Column(master_meta[c], dtype=np.dtype(d))
+            except:
+                continue
+
+            if cnew is not None:
+                break
+
+        if cnew is None:
+            # Also try to catch arrays of floats/integers
+            # guess the array length from the content of the longest row
+            try:
+                n = max([len(split(" ", x)) for x in master_meta[c]])  # longest row
+                # n = len(split(" ", master_meta[c])) # first row
+            except:
+                n = 0
+            if n > 1:
+                # print ( f"Column {c} has length {n}")
+                for d in ['int32', 'int64', 'float32', 'float64', ]:
+                    try:
+                        newarr = [split(' ', x) for x in master_meta[c]]
+                        cnew = Column(newarr, dtype=np.dtype(d), shape=(n,))
+                    except:
+                        continue
+
+                    if cnew is not None:
+                        # print(f'Converted column format for col: {c} from '
+                        #       f'{master_meta[c].dtype} to {n}*{cnew.dtype}')
+                        break
+
+        if cnew is not None:
+            # print(f'Converted column format for col: {c} from '
+            #       f'{master_meta[c].dtype} to {cnew.dtype}')
+            master_meta[c] = cnew
+
+    outfile = (outstem + 'meta' + '.' + args.format)
+    print('Metadata table will be written to : ' + outfile)
+
+    # Add some keywords
+    for k, v in keys.items():
+        master_meta.meta[k] = v
+
+    master_meta.write(outfile, format=args.format, overwrite=True)

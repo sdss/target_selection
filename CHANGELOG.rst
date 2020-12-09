@@ -4,6 +4,8 @@
 Change Log
 ==========
 
+* Add Yanny scrapper script.
+
 * :release:`0.1.2 <2020-12-05>`
 * Add ``ops_apogee_stds`` carton and 0.1.2 target selection plan.
 
