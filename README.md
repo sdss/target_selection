@@ -13,8 +13,7 @@ To install `target_selection` do
 
 ```console
 $ pip install numpy
-$ pip install pydl
 $ pip install sdss-target-selection
 ```
 
-Due to a misconfiguration in `pymange` and `pydl`, `numpy` and `pydl` need to be installed before you can install `target_selection`.
+Due to a misconfiguration in `pymange`, `numpy` needs to be installed before you can install `target_selection`.
