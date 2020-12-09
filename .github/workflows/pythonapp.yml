@@ -39,4 +39,4 @@ jobs:
     - name: Lint with isort
       run: |
         pip install isort
-        isort -c python/
+        isort -c python/ bin/
