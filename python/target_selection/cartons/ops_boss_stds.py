@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 # @Author: Pramod Gupta (psgupta@uw.edu)
-# @Date: 2020-07-19
-# @Filename: ops_boss.py
+# @Date: 2020-12-14
+# @Filename: ops_boss_stds.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
@@ -346,3 +346,124 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
+
+
+class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
+    """
+3.1.2. BOSS Standards - TIC selection
+Shorthand name: ops_boss_stds_tic  – CRITERIA STILL IN VETTING STAGE
+
+Simplified Description of selection criteria: parent catalog is TIC,
+after restricting to (criteria below have been checked by Marina,
+but sending magnitudes+colors to Hector et al. for further consideration/feedback
+if time permits would be productive):
+
+13 < G < 17   (Gaia mag between 13 and 17)
+6000 < teff < 8000     (temp between 6000-8000 K, so in
+ late A - F - early G spectral range)
+3 < log g < 5.5    (select to physically meaningful log g
+ values to exclude nulls etc.)
+Once TIC has been limited to sources meeting the above criteria,
+ the sky is then divided into an nside = 128 HEALPIX skymap.
+The 10 highest gravity sources in each healpix are then selected and
+ saved for the output carton.
+
+All HEALPix use the nested ordering.
+
+Return columns: All the filter columns (Gaiamag, teff, logg),
+all other optical magnitudes in the
+TIC (bmag, vmag, umag, gmag, rmag, imag, zmag) plus healpix_128  and
+2MASS ID + H magnitude (if it exists, null if not;
+saved in case we need to use as fillers for high latitude BHM plates)
+
+Pseudo SQL (optional):
+
+Cadence options for these targets (list all options,
+even though no single target will receive more than one): N/A
+
+Lead contact:  Kevin Covey (but maybe also Marina Kounkel
+& Hector Javier Ibarra-Medel )
+    """
+
+    name = 'ops_boss_stds_tic'
+    category = 'standard'
+    cadence = None
+    program = 'ops_std'
+    mapper = None
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (Catalog
+                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
+                         TwoMassPSC.h_m, TwoMassPSC.pts_key,
+                         Gaia_DR2.phot_g_mean_mag,
+                         TIC_v8.teff, TIC_v8.logg.alias('logg'),
+                         TIC_v8.bmag, TIC_v8.vmag, TIC_v8.umag,
+                         TIC_v8.gmag, TIC_v8.rmag, TIC_v8.imag,
+                         TIC_v8.zmag,
+                         peewee.fn.healpix_ang2ipix_nest(
+                             128, Catalog.ra, Catalog.dec).alias('healpix_128'))
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(Gaia_DR2,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_g_mean_mag > 13,
+                        Gaia_DR2.phot_g_mean_mag < 17,
+                        TIC_v8.teff > 6000,
+                        TIC_v8.teff < 8000,
+                        TIC_v8.logg > 3,
+                        TIC_v8.logg < 5.5))
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+        return query
+
+    def post_process(self, model):
+        """
+        The 10 highest gravity sources in each healpix are then
+        selected and saved for the output carton.in each healpix pixel.
+        """
+
+        self.database.execute_sql("update sandbox.temp_ops_boss_stds_tic " +
+                                  "set selected = false")
+
+        cursor = self.database.execute_sql(
+            "select catalogid, healpix_128, logg from " +
+            " sandbox.temp_ops_boss_stds_tic " +
+            " order by healpix_128 asc, logg desc;")
+
+        output = cursor.fetchall()
+
+        list_of_catalog_id = [0] * len(output)
+        nside = 128
+        total_number_healpix_pixels = 12 * nside * nside
+        count = [0] * total_number_healpix_pixels
+        current_target = 0
+        for i in range(len(output)):
+            current_healpix = output[i][1]
+            if(count[current_healpix] < 10):
+                count[current_healpix] = count[current_healpix] + 1
+                list_of_catalog_id[current_target] = output[i][0]
+                current_target = current_target + 1
+
+        max_target = current_target
+        for k in range(max_target + 1):
+            self.database.execute_sql(
+                " update sandbox.temp_ops_boss_stds_tic set selected = true " +
+                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
