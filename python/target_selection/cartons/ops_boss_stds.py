@@ -350,39 +350,35 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
 
 class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     """
-3.1.2. BOSS Standards - TIC selection
-Shorthand name: ops_boss_stds_tic  – CRITERIA STILL IN VETTING STAGE
+    Shorthand name: ops_boss_stds_tic
 
-Simplified Description of selection criteria: parent catalog is TIC,
-after restricting to (criteria below have been checked by Marina,
-but sending magnitudes+colors to Hector et al. for further consideration/feedback
-if time permits would be productive):
+    Simplified Description of selection criteria: parent catalog is TIC. 
 
-13 < G < 17   (Gaia mag between 13 and 17)
-6000 < teff < 8000     (temp between 6000-8000 K, so in
- late A - F - early G spectral range)
-3 < log g < 5.5    (select to physically meaningful log g
- values to exclude nulls etc.)
-Once TIC has been limited to sources meeting the above criteria,
- the sky is then divided into an nside = 128 HEALPIX skymap.
-The 10 highest gravity sources in each healpix are then selected and
- saved for the output carton.
+    13 < G < 17   (Gaia mag between 13 and 17)
+    6000 < TIC teff < 8000     (temp between 6000-8000 K, so in
+     late A - F - early G spectral range)
+    3 < TIC log g < 5.5    (select to physically meaningful log g
+     values to exclude nulls etc.)
+    Once TIC has been limited to sources meeting the above criteria,
+     the sky is then divided into an nside = 128 HEALPIX skymap.
+    The 10 highest gravity sources in each healpix are then selected and
+     saved for the output carton.
 
-All HEALPix use the nested ordering.
+    All HEALPix use the nested ordering.
 
-Return columns: All the filter columns (Gaiamag, teff, logg),
-all other optical magnitudes in the
-TIC (bmag, vmag, umag, gmag, rmag, imag, zmag) plus healpix_128  and
-2MASS ID + H magnitude (if it exists, null if not;
-saved in case we need to use as fillers for high latitude BHM plates)
+    Return columns: All the filter columns (Gaiamag, teff, logg),
+    all other optical magnitudes in the
+    TIC (bmag, vmag, umag, gmag, rmag, imag, zmag) plus healpix_128  and
+    2MASS ID + H magnitude (if it exists, null if not;
+    saved in case we need to use as fillers for high latitude BHM plates)
 
-Pseudo SQL (optional):
+    Pseudo SQL (optional):
 
-Cadence options for these targets (list all options,
-even though no single target will receive more than one): N/A
+    Cadence options for these targets (list all options,
+    even though no single target will receive more than one): N/A
 
-Lead contact:  Kevin Covey (but maybe also Marina Kounkel
-& Hector Javier Ibarra-Medel )
+    Lead contact:  Kevin Covey (but maybe also Marina Kounkel
+    & Hector Javier Ibarra-Medel )
     """
 
     name = 'ops_boss_stds_tic'
