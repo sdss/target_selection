@@ -9,8 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog, CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8, Gaia_DR2,
-    TIC_v8, TwoMassPSC, eBOSS_Target_v5)
+    Catalog, CatalogToLegacy_Survey_DR8, CatalogToSDSS_DR13_PhotoObj_Primary,
+    CatalogToTIC_v8, Gaia_DR2, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 
@@ -23,12 +23,14 @@ from target_selection.cartons import BaseCarton
 # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
 # TwoMassPSC(CatalogdbModel) --->'twomass_psc'
 # eBOSS_Target_v5(CatalogdbModel)--->'ebosstarget_v5'
+# Legacy_Survey_DR8(CatalogdbModel)--->'legacy_survey_dr8'
 #
 # The CatalogTo* peewee model names are not explicit in catalogdb.py.
 # The names are constructed by prepending CatalogTo
 # to the corresponding model name which is in catalogdb.py.
 # For example:
 # CatalogToSDSS_DR13_PhotoObj_Primary--->'catalog_to_sdss_dr13_photoobj_primary'
+# CatalogToLegacy_Survey_DR8--->'catalogdb.catalog_to_legacy_survey_dr8'
 #
 # In the carton code, peewee.fn.log() is calling
 # the PostgreSQL log() which is a base 10 logarithm.
@@ -463,3 +465,133 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
             self.database.execute_sql(
                 " update sandbox.temp_ops_boss_stds_tic set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+
+
+class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
+    """
+    Shorthand name: ops_boss_stds_lsdr8
+    – CRITERIA STILL IN VETTING STAGE -
+    probably need to repeat all
+    of the below in de-reddened colour space
+
+    Comments: Spectrophotometric standards suitable for use by BOSS in dark time.
+
+    Simplified Description of selection criteria:  
+    Parent catalog is legacy_survey_dr8 as ls, gaia_dr2_source as g2 with criteria:
+
+    g2.G > 15.5  
+    15.95 < ls.r < 18.05
+    -0.5 < g2.parallax < 1.0
+    0.254 < ls.g - ls.r < 0.448
+     0.024 < ls.r - ls.z < 0.190
+    0.619 < g2.bp - g2.rp < 0.863
+    0.0 < g2.G - ls.r < 0.10
+    ls.type = 'PSF'
+    ls.ref_cat = 'G2'
+    ls.nobs_g > 2 && ls.nobs_r > = 2 && ls.nobs_z >= 2
+    ls.maskbits = 0
+    ls.gaia_duplicated_source = False
+    Wiki page: All-sky BOSS standards#skyBOSSstandards-TransferringeBOSSselectiontolegacy_survey_dr8
+
+    Return columns: TBD
+
+    Pseudo SQL (optional):
+
+    SELECT
+        c.catalogid,l.ls_id,
+        c.ra,c.dec,
+        l.flux_g,l.flux_r,l.flux_z,l.flux_w1,
+        l.flux_ivar_g,l.flux_ivar_r,l.flux_ivar_z,l.flux_ivar_w1,
+        l.gaia_phot_g_mean_mag, l.gaia_phot_bp_mean_mag, l.gaia_phot_rp_mean_mag,
+        l.parallax,l.parallax_ivar
+    FROM catalog AS c
+    JOIN catalog_to_legacy_survey_dr8 AS c2l
+        ON c.catalogid = c2l.catalogid
+    JOIN legacy_survey_dr8 AS l
+        ON c2l.target_id = l.ls_id
+    WHERE l.type = 'PSF'
+        AND ref_cat = 'G2'
+        AND gaia_phot_g_mean_mag > 15.5
+        AND ((22.5 - 2.5*log10(greatest(1e-9,l.flux_r))) BETWEEN 15.95 AND 18.05)
+        AND (l.parallax BETWEEN -0.5 AND 1.0)
+        AND ((-2.5*log10(greatest(1e-9,l.flux_g)/greatest(1e-9,l.flux_r))) BETWEEN 0.254 AND 0.448)
+        AND ((-2.5*log10(greatest(1e-9,l.flux_r)/greatest(1e-9,l.flux_z))) BETWEEN 0.024 AND 0.190)
+        AND ((l.gaia_phot_bp_mean_mag-l.gaia_phot_rp_mean_mag) BETWEEN 0.619 AND 0.863)
+        AND ((l.gaia_phot_g_mean_mag - (22.5-2.5*log10(greatest(1e-9,l.flux_r)))) BETWEEN 0.0 AND 0.10)
+        AND gaia_duplicated_source = false
+        AND l.nobs_g >=2
+        AND l.nobs_r >=2
+        AND l.nobs_z >=2
+        AND maskbits = 0
+        AND c.version_id = ...
+        AND c2l.best = true
+    Cadence options for these targets (list all options, even though no single target will receive more than one): N/A
+
+    Lead contact:  Tom Dwelly
+    """
+
+    name = 'ops_boss_stds_lsdr8'
+    category = 'standard'
+    cadence = None
+    program = 'ops_std'
+    mapper = None
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (Catalog
+                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
+                         TwoMassPSC.h_m, TwoMassPSC.pts_key,
+                         Gaia_DR2.phot_g_mean_mag,
+                         TIC_v8.teff, TIC_v8.logg.alias('logg'),
+                         TIC_v8.bmag, TIC_v8.vmag, TIC_v8.umag,
+                         TIC_v8.gmag, TIC_v8.rmag, TIC_v8.imag,
+                         TIC_v8.zmag,
+                         peewee.fn.healpix_ang2ipix_nest(
+                             128, Catalog.ra, Catalog.dec).alias('healpix_128'))
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(CatalogToLegacy_Survey_DR8)
+                 .join(Legacy_Survey_DR8,
+                       on=(CatalogToLegacy_Survey_DR8.target_id ==
+                           Legacy_Survey_DR8.ls_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        CatalogToLegacy_Survey_DR8.version_id == version_id,
+                        CatalogToLegacy_Survey_DR8.best >> True,
+                        Gaia_DR2.phot_g_mean_mag > 13,
+                        Gaia_DR2.phot_g_mean_mag < 17,
+                        TIC_v8.teff > 6000,
+                        TIC_v8.teff < 8000,
+                        TIC_v8.logg > 3,
+                        TIC_v8.logg < 5.5))
+# temp code for inseritnt above
+        query = (Catalog
+                 .select(Catalog.catalogid)
+                 .join(CatalogToSDSS_DR13_PhotoObj_Primary,
+                       on=(Catalog.catalogid ==
+                           CatalogToSDSS_DR13_PhotoObj_Primary.catalogid))
+                 .join(eBOSS_Target_v5,
+                       on=(CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
+                           eBOSS_Target_v5.objid_targeting))
+                 .where(CatalogToSDSS_DR13_PhotoObj_Primary.version_id == version_id,
+                        CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
+                        selection_condition)
+                 .distinct(eBOSS_Target_v5.objid_targeting))
+                 
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+        return query
+
