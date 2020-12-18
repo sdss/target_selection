@@ -10,7 +10,7 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog, CatalogToLegacy_Survey_DR8, CatalogToSDSS_DR13_PhotoObj_Primary,
-    CatalogToTIC_v8, Gaia_DR2, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
+    CatalogToTIC_v8, Gaia_DR2, Legacy_Survey_DR8, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 
@@ -354,7 +354,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_stds_tic
 
-    Simplified Description of selection criteria: parent catalog is TIC. 
+    Simplified Description of selection criteria: parent catalog is TIC.
 
     13 < G < 17   (Gaia mag between 13 and 17)
     6000 < TIC teff < 8000     (temp between 6000-8000 K, so in
@@ -479,10 +479,10 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     Simplified Description of selection criteria:
     This simplified description is very high level.
     The carton is based on the pseudo SQL below.
-    
+
     Parent catalog is legacy_survey_dr8 as ls, gaia_dr2_source as g2 with criteria:
 
-    g2.G > 15.5  
+    g2.G > 15.5
     15.95 < ls.r < 18.05
     -0.5 < g2.parallax < 1.0
     0.254 < ls.g - ls.r < 0.448
@@ -494,7 +494,8 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     ls.nobs_g > 2 && ls.nobs_r > = 2 && ls.nobs_z >= 2
     ls.maskbits = 0
     ls.gaia_duplicated_source = False
-    Wiki page: All-sky BOSS standards#skyBOSSstandards-TransferringeBOSSselectiontolegacy_survey_dr8
+    Wiki page:
+    All-sky BOSS standards#skyBOSSstandards-TransferringeBOSSselectiontolegacy_survey_dr8
 
     Return columns: TBD
 
@@ -517,10 +518,14 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
         AND gaia_phot_g_mean_mag > 15.5
         AND ((22.5 - 2.5*log10(greatest(1e-9,l.flux_r))) BETWEEN 15.95 AND 18.05)
         AND (l.parallax BETWEEN -0.5 AND 1.0)
-        AND ((-2.5*log10(greatest(1e-9,l.flux_g)/greatest(1e-9,l.flux_r))) BETWEEN 0.254 AND 0.448)
-        AND ((-2.5*log10(greatest(1e-9,l.flux_r)/greatest(1e-9,l.flux_z))) BETWEEN 0.024 AND 0.190)
-        AND ((l.gaia_phot_bp_mean_mag-l.gaia_phot_rp_mean_mag) BETWEEN 0.619 AND 0.863)
-        AND ((l.gaia_phot_g_mean_mag - (22.5-2.5*log10(greatest(1e-9,l.flux_r)))) BETWEEN 0.0 AND 0.10)
+        AND ((-2.5*log10(greatest(1e-9,l.flux_g)/
+        greatest(1e-9,l.flux_r))) BETWEEN 0.254 AND 0.448)
+        AND ((-2.5*log10(greatest(1e-9,l.flux_r)/
+        greatest(1e-9,l.flux_z))) BETWEEN 0.024 AND 0.190)
+        AND ((l.gaia_phot_bp_mean_mag-l.gaia_phot_rp_mean_mag)
+         BETWEEN 0.619 AND 0.863)
+        AND ((l.gaia_phot_g_mean_mag - (22.5-2.5*log10(greatest(1e-9,l.flux_r))))
+         BETWEEN 0.0 AND 0.10)
         AND gaia_duplicated_source = false
         AND l.nobs_g >=2
         AND l.nobs_r >=2
@@ -528,7 +533,8 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
         AND maskbits = 0
         AND c.version_id = ...
         AND c2l.best = true
-    Cadence options for these targets (list all options, even though no single target will receive more than one): N/A
+    Cadence options for these targets (list all options,
+     even though no single target will receive more than one): N/A
 
     Lead contact:  Tom Dwelly
     """
@@ -541,12 +547,11 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-
         # Below line is used to avoid divide by zero or log of zero,
         #     peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g)
         # Below peewee.fn.log is log to the base 10.
         # peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))
-        
+
         query = (Catalog
                  .select(Catalog.catalogid, Catalog.ra, Catalog.dec,
                          Legacy_Survey_DR8.ls_id,
@@ -573,25 +578,15 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         Legacy_Survey_DR8.type == 'PSF',
                         Legacy_Survey_DR8.ref_cat == 'G2',
                         Legacy_Survey_DR8.gaia_phot_g_mean_mag > 15.5,
-                        ((22.5 -
-                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
-                        .between(15.95, 18.05),
                         Legacy_Survey_DR8.parallax.between(-0.5, 1.0),
-                        ((-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g)/
-                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))).between(0.254, 0.448),
-                        ((-2.5 * peewee.fn.log(greatest(1e-9, Legacy_Survey_DR8.flux_r)/
-                          peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_z))).between(0.024, 0.190),
-                        ((Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
-                          Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
-                         .between(0.619, 0.863),
-                        ((Legacy_Survey_DR8.gaia_phot_g_mean_mag -
-                         (22.5 -
-                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))))
-                         .between(0.0, 0.10),
-                        Legacy_Survey_DR8gaia_duplicated_source == False,
-                        Legacy_Survey_DR8.nobs_g >=2,
-                        Legacy_Survey_DR8.nobs_r >=2,
-                        Legacy_Survey_DR8.nobs_z >=2,
+                        (Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
+                         Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
+                        .between(0.619, 0.863),
+                        #
+                        Legacy_Survey_DR8.gaia_duplicated_source >> False,
+                        Legacy_Survey_DR8.nobs_g >= 2,
+                        Legacy_Survey_DR8.nobs_r >= 2,
+                        Legacy_Survey_DR8.nobs_z >= 2,
                         Legacy_Survey_DR8.maskbits == 0))
 
         # Below ra, dec and radius are in degrees
@@ -606,4 +601,3 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
-
