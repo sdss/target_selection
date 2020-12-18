@@ -582,7 +582,6 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         (Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
                          Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
                         .between(0.619, 0.863),
-                        #
                         Legacy_Survey_DR8.gaia_duplicated_source >> False,
                         Legacy_Survey_DR8.nobs_g >= 2,
                         Legacy_Survey_DR8.nobs_r >= 2,
