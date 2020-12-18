@@ -476,7 +476,10 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
     Comments: Spectrophotometric standards suitable for use by BOSS in dark time.
 
-    Simplified Description of selection criteria:  
+    Simplified Description of selection criteria:
+    This simplified description is very high level.
+    The carton is based on the pseudo SQL below.
+    
     Parent catalog is legacy_survey_dr8 as ls, gaia_dr2_source as g2 with criteria:
 
     g2.G > 15.5  
@@ -538,50 +541,59 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+
+        # Below line is used to avoid divide by zero or log of zero,
+        #     peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g)
+        # Below peewee.fn.log is log to the base 10.
+        # peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))
+        
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
-                         TwoMassPSC.h_m, TwoMassPSC.pts_key,
-                         Gaia_DR2.phot_g_mean_mag,
-                         TIC_v8.teff, TIC_v8.logg.alias('logg'),
-                         TIC_v8.bmag, TIC_v8.vmag, TIC_v8.umag,
-                         TIC_v8.gmag, TIC_v8.rmag, TIC_v8.imag,
-                         TIC_v8.zmag,
-                         peewee.fn.healpix_ang2ipix_nest(
-                             128, Catalog.ra, Catalog.dec).alias('healpix_128'))
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(CatalogToLegacy_Survey_DR8)
+                 .select(Catalog.catalogid, Catalog.ra, Catalog.dec,
+                         Legacy_Survey_DR8.ls_id,
+                         Legacy_Survey_DR8.flux_g,
+                         Legacy_Survey_DR8.flux_r,
+                         Legacy_Survey_DR8.flux_z,
+                         Legacy_Survey_DR8.flux_w1,
+                         Legacy_Survey_DR8.flux_ivar_g,
+                         Legacy_Survey_DR8.flux_ivar_r,
+                         Legacy_Survey_DR8.flux_ivar_z,
+                         Legacy_Survey_DR8.flux_ivar_w1,
+                         Legacy_Survey_DR8.gaia_phot_g_mean_mag,
+                         Legacy_Survey_DR8.gaia_phot_bp_mean_mag,
+                         Legacy_Survey_DR8.gaia_phot_rp_mean_mag,
+                         Legacy_Survey_DR8.parallax,
+                         Legacy_Survey_DR8.parallax_ivar)
+                 .join(CatalogToLegacy_Survey_DR8,
+                       on=(Catalog.catalogid == CatalogToLegacy_Survey_DR8.catalogid))
                  .join(Legacy_Survey_DR8,
                        on=(CatalogToLegacy_Survey_DR8.target_id ==
                            Legacy_Survey_DR8.ls_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        CatalogToLegacy_Survey_DR8.version_id == version_id,
+                 .where(CatalogToLegacy_Survey_DR8.version_id == version_id,
                         CatalogToLegacy_Survey_DR8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag > 13,
-                        Gaia_DR2.phot_g_mean_mag < 17,
-                        TIC_v8.teff > 6000,
-                        TIC_v8.teff < 8000,
-                        TIC_v8.logg > 3,
-                        TIC_v8.logg < 5.5))
-# temp code for inseritnt above
-        query = (Catalog
-                 .select(Catalog.catalogid)
-                 .join(CatalogToSDSS_DR13_PhotoObj_Primary,
-                       on=(Catalog.catalogid ==
-                           CatalogToSDSS_DR13_PhotoObj_Primary.catalogid))
-                 .join(eBOSS_Target_v5,
-                       on=(CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
-                           eBOSS_Target_v5.objid_targeting))
-                 .where(CatalogToSDSS_DR13_PhotoObj_Primary.version_id == version_id,
-                        CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
-                        selection_condition)
-                 .distinct(eBOSS_Target_v5.objid_targeting))
-                 
+                        Legacy_Survey_DR8.type == 'PSF',
+                        Legacy_Survey_DR8.ref_cat == 'G2',
+                        Legacy_Survey_DR8.gaia_phot_g_mean_mag > 15.5,
+                        ((22.5 -
+                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
+                        .between(15.95, 18.05),
+                        Legacy_Survey_DR8.parallax.between(-0.5, 1.0),
+                        ((-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g)/
+                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))).between(0.254, 0.448),
+                        ((-2.5 * peewee.fn.log(greatest(1e-9, Legacy_Survey_DR8.flux_r)/
+                          peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_z))).between(0.024, 0.190),
+                        ((Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
+                          Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
+                         .between(0.619, 0.863),
+                        ((Legacy_Survey_DR8.gaia_phot_g_mean_mag -
+                         (22.5 -
+                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))))
+                         .between(0.0, 0.10),
+                        Legacy_Survey_DR8gaia_duplicated_source == False,
+                        Legacy_Survey_DR8.nobs_g >=2,
+                        Legacy_Survey_DR8.nobs_r >=2,
+                        Legacy_Survey_DR8.nobs_z >=2,
+                        Legacy_Survey_DR8.maskbits == 0))
+
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
