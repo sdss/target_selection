@@ -587,7 +587,21 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         Legacy_Survey_DR8.nobs_g >= 2,
                         Legacy_Survey_DR8.nobs_r >= 2,
                         Legacy_Survey_DR8.nobs_z >= 2,
-                        Legacy_Survey_DR8.maskbits == 0))
+                        Legacy_Survey_DR8.maskbits == 0,
+                        (22.5 -
+                         2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
+                        .between(15.95, 18.05),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g) /
+                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
+                        .between(0.254, 0.448),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r) /
+                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_z)))
+                        .between(0.024, 0.190),
+                        (Legacy_Survey_DR8.gaia_phot_g_mean_mag -
+                         (22.5 -
+                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))))
+                        .between(0.0, 0.10)
+                        ))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
