@@ -606,3 +606,119 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
+    """
+    3.2.1.6. YSOs - Pre-main sequence, APOGEE
+    Shorthand name: mwm_yso_apogee_pms
+    Comments: New
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    apogee_bright_3x1 (for 7 < H < 13)
+    Implementation: (in sagitta | in zari18pms) & h<13
+    lead contact:Marina Kounkel 
+    """
+
+    name = 'mwm_yso_apogee_pms'
+    category = 'science'
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    # yso_clustering is a subset of gaia and
+    # can be joined to gaia_dr2_source via source_id.
+    #
+    # table catalogdb.yso_clustering
+    # Foreign-key constraints:
+    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
+    # REFERENCES gaia_dr2_source(source_id)
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(YSO_Clustering,
+                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        YSO_Clustering.h < 13,
+                        YSO_Clustering.age < 7.5))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
+    """
+    3.2.1.7. YSOs - Pre-main sequence, BOSS
+    Shorthand name: mwm_yso_boss_pms
+    Comments: New, Split from PMS
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets: boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 | boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Implementation: (in sagitta | in zari18pms) & rp<15.5
+    lead contact:Marina Kounkel 
+    """
+
+    name = 'mwm_yso_boss_pms'
+    category = 'science'
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    # yso_clustering is a subset of gaia and
+    # can be joined to gaia_dr2_source via source_id.
+    #
+    # table catalogdb.yso_clustering
+    # Foreign-key constraints:
+    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
+    # REFERENCES gaia_dr2_source(source_id)
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(YSO_Clustering,
+                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        YSO_Clustering.h < 13,
+                        YSO_Clustering.age < 7.5))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
