@@ -626,6 +626,13 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     lead contact:Marina Kounkel 
     """
 
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
+
     name = 'mwm_yso_apogee_pms'
     category = 'science'
     cadence = None
@@ -683,6 +690,13 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     Implementation: (in sagitta | in zari18pms) & rp<15.5
     lead contact:Marina Kounkel 
     """
+
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
     name = 'mwm_yso_boss_pms'
     category = 'science'
