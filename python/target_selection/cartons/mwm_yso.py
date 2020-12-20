@@ -11,7 +11,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
                                              CatalogToTIC_v8, Gaia_DR2, TIC_v8,
                                              Sagitta, TwoMassPSC, YSO_Clustering,
-                                             Zari18pms, Zari18ums)
+                                             Zari18pms)
 
 from target_selection.cartons import BaseCarton
 
@@ -624,7 +624,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     (list all options, even though no single target will receive more than one):
     apogee_bright_3x1 (for 7 < H < 13)
     Implementation: (in sagitta | in zari18pms) & h<13
-    lead contact:Marina Kounkel 
+    lead contact:Marina Kounkel
     """
 
     # peewee Model name ---> postgres table name
@@ -641,26 +641,29 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     mapper = 'MWM'
     priority = 2700
 
-    # yso_clustering is a subset of gaia and
-    # can be joined to gaia_dr2_source via source_id.
-    #
-    # table catalogdb.yso_clustering
-    # Foreign-key constraints:
-    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
-    # REFERENCES gaia_dr2_source(source_id)
-
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .join(YSO_Clustering,
-                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR2)
+                 .join(Sagitta,
+                       on=(Gaia_DR2.source_id == Sagitta.source_id))
+                 .switch(Gaia_DR2)
+                 .join(Zari18pms,
+                       on=(Gaia_DR2.source_id == Zari18pms.source))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        YSO_Clustering.h < 13,
-                        YSO_Clustering.age < 7.5))
+                        TwoMassPSC.h_m < 13,
+                        TwoMassPSC.h_m > 7))
 
         if query_region:
             query = (query
@@ -689,7 +692,7 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     boss_bright_4x1 if RP<15.075 | boss_bright_5x1 if RP<15.29 |
     boss_bright_6x1 if RP<15.5
     Implementation: (in sagitta | in zari18pms) & rp<15.5
-    lead contact:Marina Kounkel 
+    lead contact:Marina Kounkel
     """
 
     # peewee Model name ---> postgres table name
@@ -706,26 +709,29 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     mapper = 'MWM'
     priority = 2700
 
-    # yso_clustering is a subset of gaia and
-    # can be joined to gaia_dr2_source via source_id.
-    #
-    # table catalogdb.yso_clustering
-    # Foreign-key constraints:
-    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
-    # REFERENCES gaia_dr2_source(source_id)
-
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .join(YSO_Clustering,
-                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR2)
+                 .join(Sagitta,
+                       on=(Gaia_DR2.source_id == Sagitta.source_id))
+                 .switch(Gaia_DR2)
+                 .join(Zari18pms,
+                       on=(Gaia_DR2.source_id == Zari18pms.source))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        YSO_Clustering.h < 13,
-                        YSO_Clustering.age < 7.5))
+                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                        Gaia_DR2.phot_rp_mean_mag > 7))
 
         if query_region:
             query = (query
