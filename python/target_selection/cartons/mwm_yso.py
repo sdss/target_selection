@@ -9,9 +9,9 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
-                                             CatalogToTIC_v8, Gaia_DR2,
-                                             Sagitta, TIC_v8, TwoMassPSC,
-                                             YSO_Clustering, Zari18pms)
+                                             CatalogToTIC_v8, Gaia_DR2, TIC_v8,
+                                             Sagitta, TwoMassPSC, YSO_Clustering,
+                                             Zari18pms)
 
 from target_selection.cartons import BaseCarton
 
@@ -611,7 +611,7 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
 
 class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     """
-    3.2.1.6. YSOs - Pre-main sequence, APOGEE
+    YSOs - Pre-main sequence, APOGEE
     Shorthand name: mwm_yso_apogee_pms
     Comments: New
     Simplified Description of selection criteria:
@@ -679,7 +679,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
 
 class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     """
-    3.2.1.7. YSOs - Pre-main sequence, BOSS
+    YSOs - Pre-main sequence, BOSS
     Shorthand name: mwm_yso_boss_pms
     Comments: New, Split from PMS
     Simplified Description of selection criteria:
