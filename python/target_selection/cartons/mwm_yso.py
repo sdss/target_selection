@@ -10,7 +10,8 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
                                              CatalogToTIC_v8, Gaia_DR2, TIC_v8,
-                                             TwoMassPSC, YSO_Clustering)
+                                             Sagitta, TwoMassPSC, YSO_Clustering,
+                                             Zari18pms, Zari18ums)
 
 from target_selection.cartons import BaseCarton
 
@@ -629,7 +630,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     # peewee Model name ---> postgres table name
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
-    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
     # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
@@ -694,7 +695,7 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     # peewee Model name ---> postgres table name
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
-    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
     # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
