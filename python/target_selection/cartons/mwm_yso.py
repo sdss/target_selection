@@ -9,9 +9,9 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
-                                             CatalogToTIC_v8, Gaia_DR2, TIC_v8,
-                                             Sagitta, TwoMassPSC, YSO_Clustering,
-                                             Zari18pms)
+                                             CatalogToTIC_v8, Gaia_DR2,
+                                             Sagitta, TIC_v8, TwoMassPSC,
+                                             YSO_Clustering, Zari18pms)
 
 from target_selection.cartons import BaseCarton
 

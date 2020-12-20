@@ -10,7 +10,8 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog, CatalogToLegacy_Survey_DR8, CatalogToSDSS_DR13_PhotoObj_Primary,
-    CatalogToTIC_v8, Gaia_DR2, Legacy_Survey_DR8, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
+    CatalogToTIC_v8, Gaia_DR2, Legacy_Survey_DR8, TIC_v8, TwoMassPSC,
+    eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 
