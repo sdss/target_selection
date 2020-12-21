@@ -548,10 +548,17 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # safety catch to avoid log-of-zero and divide by zero errors.
+        # => use a flux in nano-maggies below which we give up
+        nMgy_min = 1e-3 # equiv to AB=30
+
         # Below line is used to avoid divide by zero or log of zero,
-        #     peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g)
+        #     peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_g)
         # Below peewee.fn.log is log to the base 10.
-        # peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))
+        # peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r))
+
+        # an alias to simplify accessing the query parameters:
+        pars = self.parameters
 
         query = (Catalog
                  .select(Catalog.catalogid, Catalog.ra, Catalog.dec,
@@ -578,29 +585,32 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         CatalogToLegacy_Survey_DR8.best >> True,
                         Legacy_Survey_DR8.type == 'PSF',
                         Legacy_Survey_DR8.ref_cat == 'G2',
-                        Legacy_Survey_DR8.gaia_phot_g_mean_mag > 15.5,
-                        Legacy_Survey_DR8.parallax.between(-0.5, 1.0),
+                        Legacy_Survey_DR8.gaia_phot_g_mean_mag > pars['mag_gaia_g_min'],
+                        Legacy_Survey_DR8.parallax.between(pars['parallax_min'],pars['parallax_max'] ),
                         (Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
                          Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
-                        .between(0.619, 0.863),
+                        .between(pars['gaia_bp_rp_min'], pars['faia_bp_rp_max']),
                         Legacy_Survey_DR8.gaia_duplicated_source >> False,
                         Legacy_Survey_DR8.nobs_g >= 2,
                         Legacy_Survey_DR8.nobs_r >= 2,
                         Legacy_Survey_DR8.nobs_z >= 2,
+                        Legacy_Survey_DR8.flux_g > nMgy_min,
+                        Legacy_Survey_DR8.flux_r > nMgy_min,
+                        Legacy_Survey_DR8.flux_z > nMgy_min,
                         Legacy_Survey_DR8.maskbits == 0,
                         (22.5 -
-                         2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
-                        .between(15.95, 18.05),
-                        (-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_g) /
-                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r)))
-                        .between(0.254, 0.448),
-                        (-2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r) /
-                         peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_z)))
-                        .between(0.024, 0.190),
+                         2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))
+                        .between(pars['mag_ls_r_min'], pars['mag_ls_r_max']),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_g) /
+                         peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))
+                        .between(pars['ls_g_r_min',pars['ls_g_r_max']),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r) /
+                         peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_z)))
+                        .between(pars['ls_r_z_min',pars['ls_r_z_max']),
                         (Legacy_Survey_DR8.gaia_phot_g_mean_mag -
                          (22.5 -
-                          2.5 * peewee.fn.log(peewee.fn.greatest(1e-9, Legacy_Survey_DR8.flux_r))))
-                        .between(0.0, 0.10)
+                          2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r))))
+                        .between(pars['gaia_g_ls_r_min'], pars['gaia_g_ls_r_max'])
                         ))
 
         # Below ra, dec and radius are in degrees
