@@ -643,52 +643,48 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # join with Sagitta
         query1 = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag,
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
-                 .join(Sagitta,
-                       on=(Gaia_DR2.source_id == Sagitta.source_id))
-                 #.switch(Gaia_DR2)
-                 #.join(Zari18pms,
-                 #     on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        TwoMassPSC.h_m > 7))
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Sagitta,
+                        on=(Gaia_DR2.source_id == Sagitta.source_id))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         TwoMassPSC.h_m < 13,
+                         TwoMassPSC.h_m > 7))
 
+        # join with Zari18pms
         query2 = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag,
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 #.switch(Gaia_DR2)
-                 #.join(Sagitta,
-                 #      on=(Gaia_DR2.source_id == Sagitta.source_id))
-                 .switch(Gaia_DR2)
-                 .join(Zari18pms,
-                       on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        TwoMassPSC.h_m > 7))
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Zari18pms,
+                        on=(Gaia_DR2.source_id == Zari18pms.source))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         TwoMassPSC.h_m < 13,
+                         TwoMassPSC.h_m > 7))
 
         # | is for peewee SQL union
-        query = query1 | query2  
+        query = query1 | query2
 
         if query_region:
             query = (query
@@ -736,52 +732,48 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # join with Sagitta
         query1 = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag,
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
-                 .join(Sagitta,
-                       on=(Gaia_DR2.source_id == Sagitta.source_id))
-                 #.switch(Gaia_DR2)
-                 #.join(Zari18pms,
-                 #      on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5,
-                        Gaia_DR2.phot_rp_mean_mag > 7))
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Sagitta,
+                        on=(Gaia_DR2.source_id == Sagitta.source_id))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         Gaia_DR2.phot_rp_mean_mag < 15.5,
+                         Gaia_DR2.phot_rp_mean_mag > 7))
 
+        # join with Zari18pms
         query2 = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag,
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 #.switch(Gaia_DR2)
-                 #.join(Sagitta,
-                 #      on=(Gaia_DR2.source_id == Sagitta.source_id))
-                 .switch(Gaia_DR2)
-                 .join(Zari18pms,
-                       on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5,
-                        Gaia_DR2.phot_rp_mean_mag > 7))
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Zari18pms,
+                        on=(Gaia_DR2.source_id == Zari18pms.source))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         Gaia_DR2.phot_rp_mean_mag < 15.5,
+                         Gaia_DR2.phot_rp_mean_mag > 7))
 
         # | is for peewee SQL union
-        query = query1 | query2  
+        query = query1 | query2
 
         if query_region:
             query = (query
