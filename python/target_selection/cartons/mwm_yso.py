@@ -666,7 +666,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                           Gaia_DR2.phot_rp_mean_mag,
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -756,7 +756,7 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                           Gaia_DR2.phot_rp_mean_mag,
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
