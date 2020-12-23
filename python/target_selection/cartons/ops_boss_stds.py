@@ -550,7 +550,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
         # safety catch to avoid log-of-zero and divide by zero errors.
         # => use a flux in nano-maggies below which we give up
-        nMgy_min = 1e-3 # equiv to AB=30
+        nMgy_min = 1e-3  # equiv to AB=30
 
         # Below line is used to avoid divide by zero or log of zero,
         #     peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_g)
@@ -586,10 +586,11 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         Legacy_Survey_DR8.type == 'PSF',
                         Legacy_Survey_DR8.ref_cat == 'G2',
                         Legacy_Survey_DR8.gaia_phot_g_mean_mag > pars['mag_gaia_g_min'],
-                        Legacy_Survey_DR8.parallax.between(pars['parallax_min'],pars['parallax_max'] ),
+                        Legacy_Survey_DR8.parallax
+                        .between(pars['parallax_min'], pars['parallax_max']),
                         (Legacy_Survey_DR8.gaia_phot_bp_mean_mag -
                          Legacy_Survey_DR8.gaia_phot_rp_mean_mag)
-                        .between(pars['gaia_bp_rp_min'], pars['faia_bp_rp_max']),
+                        .between(pars['gaia_bp_rp_min'], pars['gaia_bp_rp_max']),
                         Legacy_Survey_DR8.gaia_duplicated_source >> False,
                         Legacy_Survey_DR8.nobs_g >= 2,
                         Legacy_Survey_DR8.nobs_r >= 2,
@@ -599,17 +600,17 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                         Legacy_Survey_DR8.flux_z > nMgy_min,
                         Legacy_Survey_DR8.maskbits == 0,
                         (22.5 -
-                         2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))
+                         2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))  # noqa: E501
                         .between(pars['mag_ls_r_min'], pars['mag_ls_r_max']),
-                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_g) /
-                         peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))
-                        .between(pars['ls_g_r_min',pars['ls_g_r_max']),
-                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r) /
-                         peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_z)))
-                        .between(pars['ls_r_z_min',pars['ls_r_z_max']),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_g) /  # noqa: E501
+                                              peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r)))  # noqa: E501
+                        .between(pars['ls_g_r_min'], pars['ls_g_r_max']),
+                        (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r) /  # noqa: E501
+                                              peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_z)))  # noqa: E501
+                        .between(pars['ls_r_z_min'], pars['ls_r_z_max']),
                         (Legacy_Survey_DR8.gaia_phot_g_mean_mag -
                          (22.5 -
-                          2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r))))
+                          2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, Legacy_Survey_DR8.flux_r))))  # noqa: E501
                         .between(pars['gaia_g_ls_r_min'], pars['gaia_g_ls_r_max'])
                         ))
 
