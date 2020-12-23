@@ -636,7 +636,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
 
     name = 'mwm_yso_apogee_pms'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -787,37 +787,37 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, model):
-        """
-        cadence options for these targets:
-        boss_bright_3x1 if RP<14.76 |
-        boss_bright_4x1 if RP<15.075 |
-        boss_bright_5x1 if RP<15.29 |
-        boss_bright_6x1 if RP<15.5
-        """
-
-        cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_boss_pms ;")
-
-        output = cursor.fetchall()
-
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_rp = output[i][1]
-
-            if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
-            elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
-            elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
-            elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
-            else:
-                current_cadence = None
-
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_boss_pms " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+#     def post_process(self, model):
+#         """
+#         cadence options for these targets:
+#         boss_bright_3x1 if RP<14.76 |
+#         boss_bright_4x1 if RP<15.075 |
+#         boss_bright_5x1 if RP<15.29 |
+#         boss_bright_6x1 if RP<15.5
+#         """
+# 
+#         cursor = self.database.execute_sql(
+#             "select catalogid, gaia_dr2_rp from " +
+#             " sandbox.temp_mwm_yso_boss_pms ;")
+# 
+#         output = cursor.fetchall()
+# 
+#         for i in range(len(output)):
+#             current_catalogid = output[i][0]
+#             current_rp = output[i][1]
+# 
+#             if(current_rp < 14.76):
+#                 current_cadence = 'boss_bright_3x1'
+#             elif(current_rp < 15.075):
+#                 current_cadence = 'boss_bright_4x1'
+#             elif(current_rp < 15.29):
+#                 current_cadence = 'boss_bright_5x1'
+#             elif(current_rp < 15.5):
+#                 current_cadence = 'boss_bright_6x1'
+#             else:
+#                 current_cadence = None
+# 
+#             self.database.execute_sql(
+#                 " update sandbox.temp_mwm_yso_boss_pms " +
+#                 " set cadence = '" + current_cadence + "'"
+#                 " where catalogid = " + str(current_catalogid) + ";")
