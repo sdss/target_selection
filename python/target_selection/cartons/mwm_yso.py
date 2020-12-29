@@ -206,7 +206,7 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s2-5'
+    name = 'mwm_yso_s2_5'
     category = 'science'
     cadence = None
     program = 'mwm_yso'

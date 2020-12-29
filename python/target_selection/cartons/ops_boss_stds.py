@@ -196,7 +196,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_std_boss-red'
+    name = 'ops_std_boss_red'
     category = 'standard'
     cadence = None
     program = 'ops_std'
