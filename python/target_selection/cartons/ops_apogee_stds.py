@@ -66,10 +66,11 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_apogee_stds'
+    name = 'ops_std_apogee'
     category = 'standard'
     cadence = None
     program = 'ops_std'
+    priority = 5500
     mapper = None
 
     def build_query(self, version_id, query_region=None):

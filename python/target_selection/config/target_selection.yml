@@ -2,6 +2,7 @@
     xmatch_plan: 0.1.0
     cartons:
         - ops_apogee_stds
+        - ops_boss_stds_lsdr8
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
@@ -11,6 +12,21 @@
         h: [catalog_to_tic_v8, tic_v8.hmag]
         bp: [catalog_to_tic_v8, tic_v8.gaiabp]
         rp: [catalog_to_tic_v8, tic_v8.gaiarp]
+    parameters:
+        ops_boss_stds_lsdr8:
+            mag_ls_r_min: 15.95
+            mag_ls_r_max: 18.05
+            mag_gaia_g_min: 15.5
+            parallax_min: -0.5
+            parallax_max: 1.0
+            gaia_bp_rp_min: 0.619
+            gaia_bp_rp_max: 0.863
+            ls_g_r_min: 0.254
+            ls_g_r_max: 0.448
+            ls_r_z_min: 0.024
+            ls_r_z_max: 0.190
+            gaia_g_ls_r_min: 0.0
+            gaia_g_ls_r_max: 0.1
     database_options:
         work_mem: '5GB'
 

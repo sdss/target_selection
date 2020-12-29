@@ -9,8 +9,9 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
-                                             CatalogToTIC_v8, Gaia_DR2, TIC_v8,
-                                             TwoMassPSC, YSO_Clustering)
+                                             CatalogToTIC_v8, Gaia_DR2,
+                                             Sagitta, TIC_v8, TwoMassPSC,
+                                             YSO_Clustering, Zari18pms)
 
 from target_selection.cartons import BaseCarton
 
@@ -205,7 +206,7 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s2-5'
+    name = 'mwm_yso_s2_5'
     category = 'science'
     cadence = None
     program = 'mwm_yso'
@@ -595,6 +596,185 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True,
                         YSO_Clustering.h < 13,
                         YSO_Clustering.age < 7.5))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
+    """
+    YSOs - Pre-main sequence, APOGEE
+    Shorthand name: mwm_yso_apogee_pms
+    Comments: New
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    apogee_bright_3x1 (for 7 < H < 13)
+    Implementation: (in sagitta | in zari18pms) & h<13
+    lead contact:Marina Kounkel
+    """
+
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
+
+    name = 'mwm_yso_apogee_pms'
+    category = 'science'
+    cadence = None  # 'apogee_bright_3x1'
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    def build_query(self, version_id, query_region=None):
+
+        # join with Sagitta
+        query1 = (CatalogToTIC_v8
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Sagitta,
+                        on=(Gaia_DR2.source_id == Sagitta.source_id))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         TwoMassPSC.h_m < 13,
+                         TwoMassPSC.h_m > 7))
+
+        # join with Zari18pms
+        query2 = (CatalogToTIC_v8
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Zari18pms,
+                        on=(Gaia_DR2.source_id == Zari18pms.source))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         TwoMassPSC.h_m < 13,
+                         TwoMassPSC.h_m > 7))
+
+        # | is for peewee SQL union
+        query = query1 | query2
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
+    """
+    YSOs - Pre-main sequence, BOSS
+    Shorthand name: mwm_yso_boss_pms
+    Comments: New, Split from PMS
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets: boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 | boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Implementation: (in sagitta | in zari18pms) & rp<15.5
+    lead contact:Marina Kounkel
+    """
+
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
+
+    name = 'mwm_yso_boss_pms'
+    category = 'science'
+    # cadence is assigned in post_process()
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    def build_query(self, version_id, query_region=None):
+
+        # join with Sagitta
+        query1 = (CatalogToTIC_v8
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Sagitta,
+                        on=(Gaia_DR2.source_id == Sagitta.source_id))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         Gaia_DR2.phot_rp_mean_mag < 15.5,
+                         Gaia_DR2.phot_rp_mean_mag > 7))
+
+        # join with Zari18pms
+        query2 = (CatalogToTIC_v8
+                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag,
+                          TwoMassPSC.j_m, TwoMassPSC.h_m,
+                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                  .switch(TIC_v8)
+                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                  .switch(Gaia_DR2)
+                  .join(Zari18pms,
+                        on=(Gaia_DR2.source_id == Zari18pms.source))
+                  .where(CatalogToTIC_v8.version_id == version_id,
+                         CatalogToTIC_v8.best >> True,
+                         Gaia_DR2.phot_rp_mean_mag < 15.5,
+                         Gaia_DR2.phot_rp_mean_mag > 7))
+
+        # | is for peewee SQL union
+        query = query1 | query2
 
         if query_region:
             query = (query
