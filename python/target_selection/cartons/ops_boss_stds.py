@@ -391,7 +391,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     category = 'standard'
     cadence = None
     program = 'ops_std'
-    priority = 5400    
+    priority = 5400
     mapper = None
 
     def build_query(self, version_id, query_region=None):
