@@ -384,7 +384,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     & Hector Javier Ibarra-Medel )
     """
 
-    name = 'ops_boss_stds_tic'
+    name = 'ops_std_boss_tic'
     category = 'standard'
     cadence = None
     program = 'ops_std'
@@ -540,7 +540,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     Lead contact:  Tom Dwelly
     """
 
-    name = 'ops_boss_stds_lsdr8'
+    name = 'ops_std_boss_lsdr8'
     category = 'standard'
     cadence = None
     program = 'ops_std'
