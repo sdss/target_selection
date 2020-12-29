@@ -299,7 +299,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if 'cadence' not in columns:
             self.database.execute_sql(f'ALTER TABLE {self.path} '
-                                      'ADD COLUMN cadence BOOL DEFAULT NULL;')
+                                      'ADD COLUMN cadence VARCHAR DEFAULT NULL;')
         if 'priority' not in columns:
             self.database.execute_sql(f'ALTER TABLE {self.path} '
                                       'ADD COLUMN priority INTEGER '
