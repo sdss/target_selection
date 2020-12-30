@@ -141,12 +141,12 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         Select the 5 bluest sources (i.e. 5 smallest J-K) in each healpix pixel.
         """
 
-        self.database.execute_sql("update sandbox.temp_ops_apogee_stds " +
+        self.database.execute_sql("update sandbox.temp_ops_std_apogee " +
                                   "set selected = false")
 
         cursor = self.database.execute_sql(
             "select catalogid, healpix_128, j_minus_k from " +
-            " sandbox.temp_ops_apogee_stds " +
+            " sandbox.temp_ops_std_apogee " +
             " order by healpix_128 asc, j_minus_k asc;")
 
         output = cursor.fetchall()
@@ -166,5 +166,5 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         max_target = current_target
         for k in range(max_target + 1):
             self.database.execute_sql(
-                " update sandbox.temp_ops_apogee_stds set selected = true " +
+                " update sandbox.temp_ops_std_apogee set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")

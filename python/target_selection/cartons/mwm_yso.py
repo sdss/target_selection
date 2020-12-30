@@ -63,7 +63,16 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         AllWise.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
+                         AllWise.w1mpro, AllWise.w2mpro,
+                         AllWise.w3mpro, AllWise.w4mpro,
+                         Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
@@ -96,6 +105,136 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
+    """YSOs - Disk BOSS (IR excess).
+
+    Shorthand name: mwm_yso_disk_boss
+
+    old class name: MWM_YSO_S1_Carton
+    old shorthand name: mwm_yso_s1
+
+    Simplified Description of selection criteria:
+    selection of YSOs based on IR excess,
+    with WISE colors W1-W2>0.25, W2-W3>0.5, W3-W4>1.5,
+    closer than parallax>0.3, and brighter than H<13
+    (should have ~21.5K sources)
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: Gaia, 2mass, allwise
+    Additional cross-matching needed:
+    Note: Using the Gaia xmatch somehow misses half the sources.
+    Selection was done on the allwise catalog that
+    had 2mass photometry,
+    and then the resulting selection was crossmatched against against
+    Gaia with 1" search radius.
+    Return columns: Gaia id, 2mass id, allwise id, G, BP, RP,
+    J, H, K, W1, W2, W3, W4,parallax
+    cadence options for these targets
+    (list all options,
+    even though no single target will receive more than one):
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Pseudo SQL (optional):
+    Implementation: phot_rp_mean_mag<15.5 and w1mpro-w2mpro>0.25 and
+    w2mpro-w3mpro>0.5 and w3mpro-w4mpro>1.5 and parallax>0.3
+
+    Comments: Split from mwm_yso_s1 to request BOSS observations,
+    same color selection but assigning cadence and faint limit for carton based
+    on RP instead of H
+    """
+
+    name = 'mwm_yso_disk_boss'
+    category = 'science'
+    # cadence is set in post_process()
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         AllWise.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
+                         AllWise.w1mpro, AllWise.w2mpro,
+                         AllWise.w3mpro, AllWise.w4mpro,
+                         Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                        Gaia_DR2.parallax > 0.3))
+
+        # Gaia_DR2 pweewee model class corresponds to
+        # table catalogdb.gaia_dr2_source.
+        #
+        # All values of TIC_v8.plx (for non-null entries) are not the same as
+        # values of Gaia_DR2.parallax.
+        # Hence, in the above query, we cannot use TIC_v8.plx instead
+        # of Gaia_DR2.parallax.
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+    def post_process(self, model):
+        """
+        cadence options for these targets:
+        boss_bright_3x1 if RP<14.76 |
+        boss_bright_4x1 if RP<15.075 |
+        boss_bright_5x1 if RP<15.29 |
+        boss_bright_6x1 if RP<15.5
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_disk_boss ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_rp = output[i][1]
+
+            if(current_rp < 14.76):
+                current_cadence = 'boss_bright_3x1'
+            elif(current_rp < 15.075):
+                current_cadence = 'boss_bright_4x1'
+            elif(current_rp < 15.29):
+                current_cadence = 'boss_bright_5x1'
+            elif(current_rp < 15.5):
+                current_cadence = 'boss_bright_6x1'
+            else:
+                current_cadence = None
+
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_yso_disk_boss " +
+                " set cadence = '" + current_cadence + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
@@ -149,7 +288,16 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (AllWise
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         AllWise.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
+                         AllWise.w1mpro, AllWise.w2mpro,
+                         AllWise.w3mpro, AllWise.w4mpro,
+                         Gaia_DR2.parallax)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
@@ -242,7 +390,16 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (AllWise
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         AllWise.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
+                         AllWise.w1mpro, AllWise.w2mpro,
+                         AllWise.w3mpro, AllWise.w4mpro,
+                         Gaia_DR2.parallax)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
@@ -335,7 +492,14 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         AllWise.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
+                         Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
@@ -393,6 +557,172 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
         return query
 
 
+class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
+    """YSOs - Variable BOSS (pre-main sequence optical variables).
+
+    Shorthand name: mwm_yso_variable_boss
+
+    old class name: MWM_YSO_S3_Carton
+    old shorthand name: mwm_yso_s3
+
+    Simplified Description of selection criteria:
+    selection of YSOs brighter than H<13, closer than parallax>0.3.
+    Filter on the position of the HR diagram to
+    select cool pre-main sequence stars,
+    with BP-RP>13, (BP-RP)*2.5+2.5>M_G, (BP-RP)*2.5-1<M_G,
+    requiring variability in g,bp,rp>0.02
+    (with var_x defined as
+    sqrt(phot_x_n_obs)/phot_x_mean_flux_over_error),
+    have relations in variability of
+    var_g<var_bp<var_g^0.75, 0.75*var_g<var_rp<var_g^0.95,
+    and log10(var_bp)*5+11<M_BP, in which M_x is the absolute mag
+    (should have ~52.7K sources)
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: 2mass, gaia
+    Additional cross-matching needed:
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets
+    (list all options,
+    even though no single target will receive more than one):
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Pseudo SQL (optional):
+    Implementation:
+    phot_rp_mean_mag<15.5 and phot_g_mean_mag < 18.5 and h_m <13 and parallax >0.3 and
+    bp_rp*2.5+2.5 > phot_g_mean_mag-5*(log10(1000/parallax)-1) and
+    bp_rp*2.5-1 < phot_g_mean_mag-5*(log10(1000/parallax)-1) and
+    sqrt(phot_bp_n_obs)/phot_bp_mean_flux_over_error>
+    sqrt(phot_g_n_obs)/phot_g_mean_flux_over_error and
+    sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>
+    sqrt(phot_g_n_obs)/phot_g_mean_flux_over_error*0.75 and
+    sqrt(phot_bp_n_obs)/phot_bp_mean_flux_over_error<
+    power(sqrt(phot_g_n_obs)/phot_g_mean_flux_over_error,0.75) and
+    sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error<
+    power(sqrt(phot_g_n_obs)/phot_g_mean_flux_over_error,0.95) and
+    log10(sqrt(phot_bp_n_obs)/phot_bp_mean_flux_over_error)*5+11<
+    phot_bp_mean_mag-5*(log10(1000/parallax)-1) and
+    bp_rp>1.3 and sqrt(phot_g_n_obs)/phot_g_mean_flux_over_error>0.02
+    and
+    sqrt(phot_bp_n_obs)/phot_bp_mean_flux_over_error>0.02 and
+    sqrt(phot_rp_n_obs)/phot_rp_mean_flux_over_error>0.02
+
+    Comments: Split from mwm_yso_s3 to request BOSS observations,
+    RP magnitude check added to the previous selection
+    """
+
+    name = 'mwm_yso_variable_boss'
+    category = 'science'
+    # cadence is set in post_process()
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                        Gaia_DR2.phot_g_mean_mag < 18.5,
+                        TwoMassPSC.h_m < 13,
+                        Gaia_DR2.parallax > 0.3,
+                        Gaia_DR2.bp_rp * 2.5 + 2.5 >
+                        Gaia_DR2.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
+                        Gaia_DR2.bp_rp * 2.5 - 1 <
+                        Gaia_DR2.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        Gaia_DR2.phot_bp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                        Gaia_DR2.phot_g_mean_flux_over_error,
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        Gaia_DR2.phot_rp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                        Gaia_DR2.phot_g_mean_flux_over_error * 0.75,
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        Gaia_DR2.phot_bp_mean_flux_over_error <
+                        peewee.fn.power(
+                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                            Gaia_DR2.phot_g_mean_flux_over_error, 0.75),
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        Gaia_DR2.phot_rp_mean_flux_over_error <
+                        peewee.fn.power(
+                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                            Gaia_DR2.phot_g_mean_flux_over_error, 0.95),
+                        peewee.fn.log(
+                            peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
+                            Gaia_DR2.phot_bp_mean_flux_over_error) * 5 + 11 <
+                        Gaia_DR2.phot_bp_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
+                        Gaia_DR2.bp_rp > 1.3,
+                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
+                        Gaia_DR2.phot_g_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
+                        Gaia_DR2.phot_bp_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
+                        Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+        return query
+
+    def post_process(self, model):
+        """
+        cadence options for these targets:
+        boss_bright_3x1 if RP<14.76 |
+        boss_bright_4x1 if RP<15.075 |
+        boss_bright_5x1 if RP<15.29 |
+        boss_bright_6x1 if RP<15.5
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_variable_boss ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_rp = output[i][1]
+
+            if(current_rp < 14.76):
+                current_cadence = 'boss_bright_3x1'
+            elif(current_rp < 15.075):
+                current_cadence = 'boss_bright_4x1'
+            elif(current_rp < 15.29):
+                current_cadence = 'boss_bright_5x1'
+            elif(current_rp < 15.5):
+                current_cadence = 'boss_bright_6x1'
+            else:
+                current_cadence = None
+
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_yso_variable_boss " +
+                " set cadence = '" + current_cadence + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
+
+
 class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
     """YSOs - OB APOGEE Upper (pre-)Main Sequence.
 
@@ -432,7 +762,12 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(TIC_v8)
@@ -457,6 +792,119 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_OB_BOSS_Carton(BaseCarton):
+    """YSOs - OB BOSS Upper (pre-)Main Sequence.
+
+    Shorthand name: mwm_yso_ob_boss
+
+    old class name: MWM_YSO_OB_Carton
+    old shorthand name: mwm_yso_ob
+
+    Simplified Description of selection criteria:
+    Selecting the OB stars at the tip of the main sequence,
+    brighter than rp<15.5, G<18 mag, closer than parallax>0.3,
+    color -0.2<BP-RP<1.1, and M_G<(BP-RP)*1.6-2.2
+    (should have ~8.7K sources)
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: 2mass, gaia
+    Additional cross-matching needed:
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets
+    (list all options,
+    even though no single target will receive more than one):
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Pseudo SQL (optional):
+    Implementation: rp<15.5 and bp_rp between -0.2 and 1.1 and
+    phot_g_mean_mag<18 and
+    phot_g_mean_mag-5*(log10(1000/parallax)-1) <
+    1.6*bp_rp-2.2 and parallax>0.3
+
+    Comments: Split from mwm_yso_ob to request BOSS observations,
+    assigning cadence and faint limit for carton based on RP instead of H
+    """
+
+    name = 'mwm_yso_ob_boss'
+    category = 'science'
+    # cadence is set in post_process()
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(TIC_v8)
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                        (Gaia_DR2.bp_rp > -0.2) & (Gaia_DR2.bp_rp < 1.1),
+                        Gaia_DR2.phot_g_mean_mag < 18,
+                        Gaia_DR2.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1) <
+                        1.6 * Gaia_DR2.bp_rp - 2.2,
+                        Gaia_DR2.parallax > 0.3))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+    def post_process(self, model):
+        """
+        cadence options for these targets:
+        boss_bright_3x1 if RP<14.76 |
+        boss_bright_4x1 if RP<15.075 |
+        boss_bright_5x1 if RP<15.29 |
+        boss_bright_6x1 if RP<15.5
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_ob_boss ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_rp = output[i][1]
+
+            if(current_rp < 14.76):
+                current_cadence = 'boss_bright_3x1'
+            elif(current_rp < 15.075):
+                current_cadence = 'boss_bright_4x1'
+            elif(current_rp < 15.29):
+                current_cadence = 'boss_bright_5x1'
+            elif(current_rp < 15.5):
+                current_cadence = 'boss_bright_6x1'
+            else:
+                current_cadence = None
+
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_yso_ob_boss " +
+                " set cadence = '" + current_cadence + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
@@ -503,7 +951,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     and all 2MASS have an entry in TIC,
     but not all the TIC entries have a Gaia counterpart).
 
-    Changes from V0 mwm_yso_cmz carton:
+    Comments: Formerly mwm_yso_cmz, removed check on the position on the sky:
 
     Removed below condition.
     l is glon (galactic longitude)
@@ -684,6 +1132,8 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
     Pseudo SQL (optional):
     Implementation: age<7.5 and rp<15.5
 
+    Comments: Split from Cluster to request BOSS observations,
+    assigning cadence and faint limit for carton based on RP instead of H
     """
 
     name = 'mwm_yso_cluster_boss'
@@ -742,7 +1192,7 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
 
         cursor = self.database.execute_sql(
             "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_boss_pms ;")
+            " sandbox.temp_mwm_yso_cluster_boss ;")
 
         output = cursor.fetchall()
 
@@ -762,7 +1212,7 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
                 current_cadence = None
 
             self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_boss_pms " +
+                " update sandbox.temp_mwm_yso_cluster_boss " +
                 " set cadence = '" + current_cadence + "'"
                 " where catalogid = " + str(current_catalogid) + ";")
 
