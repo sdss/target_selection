@@ -482,6 +482,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     cadence options for these targets
     (list all options,
     even though no single target will receive more than one):
+    'apogee_bright_3x1'
     Pseudo SQL (optional):
     Implementation: Hmag<13 and _8_0_-_24_>2.5 and
     (parallax<0.2 or parallax is null)
@@ -554,7 +555,12 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (MIPSGAL.select(CatalogToTIC_v8.catalogid)
+        query = (MIPSGAL.select(CatalogToTIC_v8.catalogid,
+                                TwoMassPSC.pts_key, TwoMassPSC.designation,
+                                TwoMassPSC.j_m, TwoMassPSC.h_m,
+                                TwoMassPSC.k_m, MIPSGAL.mag_3_6, MIPSGAL.mag_4_5,
+                                MIPSGAL.mag_5_8, MIPSGAL.mag_8_0, MIPSGAL.mag_24,
+                                MIPSGAL.hmag, Gaia_DR2.parallax)
                  .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
                  .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
@@ -623,7 +629,12 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .join(YSO_Clustering,
@@ -643,6 +654,117 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
+    """YSOs - Cluster BOSS Catalog
+    Shorthand name: mwm_yso_cluster_boss
+
+    old class name: MWM_YSO_Cluster_Carton
+    old shorthand name: mwm_yso_cluster
+
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from
+    the catalog of clustered structures,
+    with age<7.5 dex and brighter than rp<15.5 mag.
+
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    Additional source catalogs needed: Kounkel+20 clustered catalog
+    Additional cross-matching needed:
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets
+    (list all options,
+    even though no single target will receive more than one):
+    cadence options for these targets:
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Pseudo SQL (optional):
+    Implementation: age<7.5 and rp<15.5
+
+    """
+
+    name = 'mwm_yso_cluster_boss'
+    category = 'science'
+    # cadence is assigned in post_process()
+    cadence = None
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+
+    # yso_clustering is a subset of gaia and
+    # can be joined to gaia_dr2_source via source_id.
+    #
+    # table catalogdb.yso_clustering
+    # Foreign-key constraints:
+    #    "yso_clustering_source_id_fkey" FOREIGN KEY (source_id)
+    # REFERENCES gaia_dr2_source(source_id)
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(YSO_Clustering,
+                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                        YSO_Clustering.age < 7.5))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+    def post_process(self, model):
+        """
+        cadence options for these targets:
+        boss_bright_3x1 if RP<14.76 |
+        boss_bright_4x1 if RP<15.075 |
+        boss_bright_5x1 if RP<15.29 |
+        boss_bright_6x1 if RP<15.5
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_boss_pms ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_rp = output[i][1]
+
+            if(current_rp < 14.76):
+                current_cadence = 'boss_bright_3x1'
+            elif(current_rp < 15.075):
+                current_cadence = 'boss_bright_4x1'
+            elif(current_rp < 15.29):
+                current_cadence = 'boss_bright_5x1'
+            elif(current_rp < 15.5):
+                current_cadence = 'boss_bright_6x1'
+            else:
+                current_cadence = None
+
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_yso_boss_pms " +
+                " set cadence = '" + current_cadence + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
