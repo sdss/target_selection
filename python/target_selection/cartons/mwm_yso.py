@@ -20,11 +20,14 @@ from target_selection.cartons import BaseCarton
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
+class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
+    """YSOs - Disk APOGEE (IR excess).
 
-class MWM_YSO_S1_Carton(BaseCarton):
-    """YSOs - S1 (IR excess).
+    Shorthand name: mwm_yso_disk_apogee
 
-    Shorthand name: mwm_yso_s1
+    old class name: MWM_YSO_S1_Carton
+    old shorthand name: mwm_yso_s1
+
     Simplified Description of selection criteria:
     selection of YSOs based on IR excess,
     with WISE colors W1-W2>0.25, W2-W3>0.5, W3-W4>1.5,
@@ -50,9 +53,9 @@ class MWM_YSO_S1_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s1'
+    name = 'mwm_yso_disk_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -95,10 +98,14 @@ class MWM_YSO_S1_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_S2_Carton(BaseCarton):
-    """YSOs - S2 (optically invisible).
+class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
+    """YSOs - Embedded APOGEE (optically invisible).
 
-    Shorthand name: mwm_yso_s2
+    Shorthand name: mwm_yso_embedded_apogee
+
+    old class name: MWM_YSO_S2_Carton
+    old shorthand name: mwm_yso_s2
+
     Simplified Description of selection criteria:
     selection of YSOs, brighter than H<13, fainter than G>15 or
     without gaia detection,
@@ -132,9 +139,9 @@ class MWM_YSO_S2_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s2'
+    name = 'mwm_yso_embedded_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -176,10 +183,14 @@ class MWM_YSO_S2_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_S2_5_Carton(BaseCarton):
-    """YSOs - S2.5 (optically invisible, WISE saturated).
+class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
+    """YSOs - Nebula APOGEE(optically invisible, WISE saturated).
 
-    Shorthand name: mwm_yso_s2_5
+    Shorthand name: mwm_yso_nebula_apogee
+
+    old class name: MWM_YSO_S2_5_Carton
+    old shorthand name: mwm_yso_s2_5
+
     Simplified Description of selection criteria:
     selection of YSOs, brighter than H<15,
     saturated (blank) W4 with W2-W3>4,
@@ -206,9 +217,9 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s2_5'
+    name = 'mwm_yso_nebula_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -264,10 +275,14 @@ class MWM_YSO_S2_5_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_S3_Carton(BaseCarton):
-    """YSOs - S3 (pre-main sequence optical variables).
+class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
+    """YSOs - Variable APOGEE (pre-main sequence optical variables).
 
-    Shorthand name: mwm_yso_s3
+    Shorthand name: mwm_yso_variable_apogee
+
+    old class name: MWM_YSO_S3_Carton
+    old shorthand name: mwm_yso_s3
+
     Simplified Description of selection criteria:
     selection of YSOs brighter than H<13, closer than parallax>0.3.
     Filter on the position of the HR diagram to
@@ -310,9 +325,9 @@ class MWM_YSO_S3_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_s3'
+    name = 'mwm_yso_variable_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -378,10 +393,14 @@ class MWM_YSO_S3_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_OB_Carton(BaseCarton):
-    """YSOs - Upper (pre-)Main Sequence.
+class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
+    """YSOs - OB APOGEE Upper (pre-)Main Sequence.
 
-    Shorthand name: mwm_yso_ob
+    Shorthand name: mwm_yso_ob_apogee
+
+    old class name: MWM_YSO_OB_Carton
+    old shorthand name: mwm_yso_ob
+
     Simplified Description of selection criteria:
     Selecting the OB stars at the tip of the main sequence,
     brighter than H<13, G<18 mag, closer than parallax>0.3,
@@ -403,9 +422,9 @@ class MWM_YSO_OB_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_ob'
+    name = 'mwm_yso_ob_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -440,15 +459,17 @@ class MWM_YSO_OB_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_CMZ_Carton(BaseCarton):
-    """YSOs - Central Molecular Zone.
+class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
+    """YSOs - Central Molecular Zone APOGEE.
 
-    Shorthand name: mwm_yso_cmz
+    Shorthand name: mwm_yso_cmz_apogee
+
+    old class name: MWM_YSO_CMZ_Carton
+    old shorthand name: mwm_yso_cmz
+
     Simplified Description of selection criteria:
     selection of sources in the central molecular zone
     based on spitzer fluxes from mipsgal.
-    Sources are within 2 degrees in l and
-     1 degree in b from the galactic center,
      brighter than H<13, have color 8.0-24>2.5, and
      have parallax<0.2 or lack a Gaia xmatch.
     (should have ~3.2K sources)
@@ -462,8 +483,7 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     (list all options,
     even though no single target will receive more than one):
     Pseudo SQL (optional):
-    Implementation: Hmag<13 and (l> 358 or l< 2) and
-    b between -1 and 1 and _8_0_-_24_>2.5 and
+    Implementation: Hmag<13 and _8_0_-_24_>2.5 and
     (parallax<0.2 or parallax is null)
 
     For CMZ, the raw sql query would be:
@@ -473,8 +493,6 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     left outer join gaia_dr2_source g on g.source_id = tic.gaia_int
     join catalog_to_tic_v8 ct on ct.target_id = tic.id
     where m.hmag < 13 and
-    (m.glon > 358 or m.glon < 2) and
-    (m.glat > -1 and m.glat < 1) and
     (m.mag_8_0 - m.mag_24) > 2.5 and
     (g.parallax < 0.2 or g.parallax is null)
     and ct.version_id = 13 and ct.best is true;
@@ -484,17 +502,33 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
     and all 2MASS have an entry in TIC,
     but not all the TIC entries have a Gaia counterpart).
 
+    Changes from V0 mwm_yso_cmz carton:
+
+    Removed below condition.
+    l is glon (galactic longitude)
+    b is glat (galactic latitude)
+    All four statements below are equivalent.
+    (l> 358 or l< 2) and
+    b between -1 and 1
+
+    (m.glon > 358 or m.glon < 2) and
+    (m.glat > -1 and m.glat < 1) and
+
+    Sources are within 2 degrees in l and
+     1 degree in b from the galactic center,
+
+    (MIPSGAL.glon > 358) | (MIPSGAL.glon < 2),
+    (MIPSGAL.glat > -1) & (MIPSGAL.glat < 1),
+
     """
 
-    name = 'mwm_yso_cmz'
+    name = 'mwm_yso_cmz_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
 
-    # l is glon (galactic longitude)
-    # b is glat (galactic latitude)
     # mipsgal is a subset of 2MASS
     # mipsgal can be joined to twomass_psc via
     # mipsgal.twomass_name = TwoMassPSC.designation.
@@ -530,8 +564,6 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         MIPSGAL.hmag < 13,
-                        (MIPSGAL.glon > 358) | (MIPSGAL.glon < 2),
-                        (MIPSGAL.glat > -1) & (MIPSGAL.glat < 1),
                         (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
                         (Gaia_DR2.parallax < 0.2) |
                         (Gaia_DR2.parallax >> None)))
@@ -548,9 +580,13 @@ class MWM_YSO_CMZ_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_Cluster_Carton(BaseCarton):
-    """YSOs - Cluster Catalog
-    Shorthand name: mwm_yso_cluster
+class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
+    """YSOs - Cluster APOGEE Catalog
+    Shorthand name: mwm_yso_cluster_apogee
+
+    old class name: MWM_YSO_Cluster_Carton
+    old shorthand name: mwm_yso_cluster
+
     Simplified Description of selection criteria:
     Selecting the clustered sources from
     the catalog of clustered structures,
@@ -569,9 +605,9 @@ class MWM_YSO_Cluster_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_cluster'
+    name = 'mwm_yso_cluster_apogee'
     category = 'science'
-    cadence = None
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -636,7 +672,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
 
     name = 'mwm_yso_apogee_pms'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    cadence = 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
