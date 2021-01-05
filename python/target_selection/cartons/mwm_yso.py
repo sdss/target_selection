@@ -64,8 +64,9 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
-                         AllWise.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -159,8 +160,9 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
-                         AllWise.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -289,8 +291,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
-                         AllWise.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -391,8 +394,9 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
 
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
-                         AllWise.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -493,8 +497,9 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
-                         AllWise.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -625,7 +630,8 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -763,7 +769,8 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -841,7 +848,8 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -1004,7 +1012,8 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (MIPSGAL.select(CatalogToTIC_v8.catalogid,
-                                TwoMassPSC.pts_key, TwoMassPSC.designation,
+                                TwoMassPSC.pts_key,
+                                TwoMassPSC.designation.alias('twomass_psc_designation'),
                                 TwoMassPSC.j_m, TwoMassPSC.h_m,
                                 TwoMassPSC.k_m, MIPSGAL.mag_3_6, MIPSGAL.mag_4_5,
                                 MIPSGAL.mag_5_8, MIPSGAL.mag_8_0, MIPSGAL.mag_24,
@@ -1078,7 +1087,8 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -1156,7 +1166,8 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key, TwoMassPSC.designation,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -1254,9 +1265,10 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         # join with Sagitta
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          TwoMassPSC.pts_key,
+                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
                           TwoMassPSC.k_m, Gaia_DR2.parallax)
                   .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -1274,9 +1286,10 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          TwoMassPSC.pts_key,
+                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
                           TwoMassPSC.k_m, Gaia_DR2.parallax)
                   .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -1346,7 +1359,8 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
         # join with Sagitta
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          TwoMassPSC.pts_key,
+                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                           Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -1366,9 +1380,10 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          TwoMassPSC.pts_key, TwoMassPSC.designation,
+                          TwoMassPSC.pts_key,
+                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag,
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
                           TwoMassPSC.k_m, Gaia_DR2.parallax)
                   .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
