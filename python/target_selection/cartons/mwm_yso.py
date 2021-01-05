@@ -499,7 +499,6 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
