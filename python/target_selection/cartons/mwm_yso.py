@@ -1086,12 +1086,11 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         YSO_Clustering.twomass,
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                         YSO_Clustering.j, YSO_Clustering.h,
+                         YSO_Clustering.k, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .join(YSO_Clustering,
@@ -1165,12 +1164,11 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         YSO_Clustering.twomass,
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                         YSO_Clustering.j, YSO_Clustering.h,
+                         YSO_Clustering.k, Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .join(YSO_Clustering,
