@@ -55,7 +55,7 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_disk_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -280,7 +280,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_embedded_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -367,7 +367,7 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_nebula_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -484,7 +484,7 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_variable_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -754,7 +754,7 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_ob_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -973,7 +973,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_cmz_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1061,7 +1061,7 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_cluster_apogee'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1244,7 +1244,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
 
     name = 'mwm_yso_apogee_pms'
     category = 'science'
-    cadence = 'apogee_bright_3x1'
+    cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
