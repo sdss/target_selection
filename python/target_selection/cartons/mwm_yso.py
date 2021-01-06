@@ -71,8 +71,6 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         AllWise.w1mpro, AllWise.w2mpro,
-                         AllWise.w3mpro, AllWise.w4mpro,
                          Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
@@ -167,8 +165,6 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         AllWise.w1mpro, AllWise.w2mpro,
-                         AllWise.w3mpro, AllWise.w4mpro,
                          Gaia_DR2.parallax)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
@@ -298,8 +294,6 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         AllWise.w1mpro, AllWise.w2mpro,
-                         AllWise.w3mpro, AllWise.w4mpro,
                          Gaia_DR2.parallax)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
                  .join(TwoMassPSC,
@@ -401,8 +395,6 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         AllWise.w1mpro, AllWise.w2mpro,
-                         AllWise.w3mpro, AllWise.w4mpro,
                          Gaia_DR2.parallax)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
                  .join(TwoMassPSC,
