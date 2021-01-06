@@ -443,12 +443,12 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
         selected and saved for the output carton.in each healpix pixel.
         """
 
-        self.database.execute_sql("update sandbox.temp_ops_boss_stds_tic " +
+        self.database.execute_sql("update sandbox.temp_ops_std_boss_tic " +
                                   "set selected = false")
 
         cursor = self.database.execute_sql(
             "select catalogid, healpix_128, logg from " +
-            " sandbox.temp_ops_boss_stds_tic " +
+            " sandbox.temp_ops_std_boss_tic " +
             " order by healpix_128 asc, logg desc;")
 
         output = cursor.fetchall()
@@ -468,7 +468,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
         max_target = current_target
         for k in range(max_target + 1):
             self.database.execute_sql(
-                " update sandbox.temp_ops_boss_stds_tic set selected = true " +
+                " update sandbox.temp_ops_std_boss_tic set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")
 
 
