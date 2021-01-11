@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* :release:`0.1.3 <2021-01-11>`
+* Tag for release of ``ops_std_boss_tic``. Also includes changes and new cartons in preparation for ``v0.5``.
+
 * :release:`0.1.2 <2020-12-09>`
 * Add Yanny scrapper script.
 * Add ``ops_apogee_stds`` carton and 0.1.2 target selection plan.
