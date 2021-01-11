@@ -64,6 +64,8 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
@@ -158,6 +160,8 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
@@ -287,6 +291,8 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
@@ -388,6 +394,8 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
 
         query = (AllWise
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
@@ -489,6 +497,8 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -621,6 +631,8 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -760,6 +772,8 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -839,6 +853,8 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -1002,7 +1018,9 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (MIPSGAL.select(CatalogToTIC_v8.catalogid,
+        query = (MIPSGAL.select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                                Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                                Gaia_DR2.dec.alias('gaia_dr2_dec'),
                                 TwoMassPSC.pts_key,
                                 TwoMassPSC.designation.alias('twomass_psc_designation'),
                                 TwoMassPSC.j_m, TwoMassPSC.h_m,
@@ -1078,6 +1096,8 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          YSO_Clustering.twomass,
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
@@ -1156,6 +1176,8 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          YSO_Clustering.twomass,
                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
@@ -1217,10 +1239,10 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
                 " where catalogid = " + str(current_catalogid) + ";")
 
 
-class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
+class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
-    Shorthand name: mwm_yso_apogee_pms
+    Shorthand name: mwm_yso_pms_apogee
     Comments: New
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
@@ -1242,7 +1264,7 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
     # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_apogee_pms'
+    name = 'mwm_yso_pms_apogee'
     category = 'science'
     cadence = None  # 'apogee_bright_3x1'
     program = 'mwm_yso'
@@ -1254,6 +1276,8 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         # join with Sagitta
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -1275,6 +1299,8 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -1308,10 +1334,10 @@ class MWM_YSO_APOGEE_PMS_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
+class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, BOSS
-    Shorthand name: mwm_yso_boss_pms
+    Shorthand name: mwm_yso_pms_boss
     Comments: New, Split from PMS
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
@@ -1335,7 +1361,7 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
     # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_boss_pms'
+    name = 'mwm_yso_pms_boss'
     category = 'science'
     # cadence is assigned in post_process()
     cadence = None
@@ -1348,6 +1374,8 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
         # join with Sagitta
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
@@ -1369,6 +1397,8 @@ class MWM_YSO_BOSS_PMS_Carton(BaseCarton):
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
