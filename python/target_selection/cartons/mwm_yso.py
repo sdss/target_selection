@@ -1026,10 +1026,11 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
                                 TwoMassPSC.j_m, TwoMassPSC.h_m,
                                 TwoMassPSC.k_m, MIPSGAL.mag_3_6, MIPSGAL.mag_4_5,
                                 MIPSGAL.mag_5_8, MIPSGAL.mag_8_0, MIPSGAL.mag_24,
-                                MIPSGAL.hmag, Gaia_DR2.parallax)
+                                MIPSGAL.hmag, Gaia_DR2.parallax,
+                                MIPSGAL.glon, MIPSGAL.glat)
                  .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
                  .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
+                 .join(Gaia_DR2,  # peewee.JOIN.LEFT_OUTER,
                        on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
                  .switch(TIC_v8)
                  .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
