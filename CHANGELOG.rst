@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* :release:`0.1.4 <2021-01-11>`
+* Unpin ``healpy`` version.
+
 * :release:`0.1.3 <2021-01-11>`
 * Tag for release of ``ops_std_boss_tic``. Also includes changes and new cartons in preparation for ``v0.5``.
 
