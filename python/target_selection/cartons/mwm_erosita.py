@@ -385,8 +385,8 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
             current_g = output[i][1]
 
             if((current_g < bright_bright_limit)):
-                current_cadence = 'bright_apogee_1x1'
-                current_priority = 2400
+                current_cadence = None
+                current_priority = None
             elif((bright_bright_limit < current_g) and
                  (current_g < 17)):
                 current_cadence = 'bright_boss_1x1'
@@ -572,8 +572,8 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
             current_g = output[i][1]
 
             if((current_g < bright_bright_limit)):
-                current_cadence = 'bright_apogee_1x1'
-                current_priority = 2400
+                current_cadence = None
+                current_priority = None
             elif((bright_bright_limit < current_g) and
                  (current_g < 17)):
                 current_cadence = 'bright_boss_1x1'
