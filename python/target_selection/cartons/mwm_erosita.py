@@ -134,7 +134,7 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
                  .switch(TIC_v8)
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)  # TODO EROSITASupersetStars should be left table
+                 .switch(Gaia_DR2)
                  .join(EROSITASupersetStars,
                        on=(Gaia_DR2.source_id == EROSITASupersetStars.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
