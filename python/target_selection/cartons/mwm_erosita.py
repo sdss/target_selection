@@ -8,7 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
                                              EROSITASupersetAGN,
                                              EROSITASupersetClusters,
@@ -42,12 +42,20 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
     """MWM eROSITA Stars
     Owner: Lead by MWM (with assistance from BHM?)?? Jennifer Johnson, Tom Dwelly
 
-    Shorthand name: erosita_stars
+    Shorthand name: mwm_erosita_stars
 
     What is it?: Optical counterparts to eROSITA sources with
-    a high likelihood to be stars. Stellar identification are based on Bayesian scheme using the Gaia dr2 and Tycho catalogs. Those objects shall be observed to increase the legacy value of eROSITA / SDSS; possible science questions relate to Halpha emission although EW are expected to be around 1 Angstrom or less.
+    a high likelihood to be stars. Stellar identification are
+    based on Bayesian scheme using the Gaia dr2 and Tycho catalogs.
+    Those objects shall be observed to increase the legacy value
+    of eROSITA / SDSS; possible science questions relate to
+    Halpha emission although EW are expected to be around 1 Angstrom or less.
 
-    Simplified Description of selection criteria: "Select all objects with xmatch_metric>0.5 from catalogdb.erosita_superset_stars that are in a magnitude range amenable for SDSS-V BOSS or APOGEE spectroscopy (target_priority==1; suitability estimated from lo < Gmag < hi)"
+    Simplified Description of selection criteria:
+    "Select all objects with xmatch_metric>0.5
+    from catalogdb.erosita_superset_stars that are
+    in a magnitude range amenable for SDSS-V BOSS or APOGEE spectroscopy
+    (target_priority==1; suitability estimated from lo < Gmag < hi)"
 
     Wiki page: N/A
 
@@ -55,13 +63,19 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
 
     Additional cross-matching needed: No
 
-    cadence options for these targets (list all options, even though no single target will receive more than one): boss_bright_1xN or boss_dark_1xN or apogee_1xN (spectrograph, moon phase and number of exposures depends on target magnitude). No detailed time spacing required.
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    boss_bright_1xN or boss_dark_1xN or apogee_1xN
+    (spectrograph, moon phase and number of exposures depends on target magnitude).
+    No detailed time spacing required.
 
-    Pseudo SQL (optional):  
+    Pseudo SQL (optional):
 
     SELECT c.catalogid, c.ra, c.dec, twomass.j_m, twomass.h_m, twomass.k_m,
-     gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.parallax, gaia.pmra, gaia.pmdec, 
-     estars.target_priority, estars.xmatch_metric, estars.ero_flux, estars.ero_ra, estars.ero_dec, estars.opt_ra, estars.opt_dec 
+    gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag,
+    gaia.phot_rp_mean_mag, gaia.parallax, gaia.pmra, gaia.pmdec,
+    estars.target_priority, estars.xmatch_metric, estars.ero_flux,
+    estars.ero_ra, estars.ero_dec, estars.opt_ra, estars.opt_dec
      FROM catalog c
      INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
      INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
@@ -73,53 +87,60 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
      estars.target_priority = 1 AND estars.xmatch_metric > 0.5
     ;
 
-    The results of this query can then be sorted to assign cadences using the following logic:
-    bright_bright_limit = 13   # (available for modification later) 
-    ir_faint_limit = 13 # (available for modification later)
-    - if bright_bright_limit > gaia.phot_g_mean_mag  & twomass.h_m < ir_faint_limit:
-                 cadence = bright_apogee_1x1      &&    priority = 2400
-    - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
-                 cadence = bright_boss_1x1          &&    priority = 2400
-    - if 17 < gaia.phot_g_mean_mag < 19:
-                  cadence = dark_boss_1x2           &&    priority = 1920
-    - if 19 < gaia.phot_g_mean_mag:
-                  cadence = dark_boss_1x3          &&    priority = 1920
+    Due to below, above LEFT JOIN should be just INNER JOIN.
+    i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
+    sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
+    count
+    -------
+        0
+    (1 row)
+
+
+    See cadence logic in post_process() below.
     """
 
-    name = 'mwm_yso_disk_apogee'
+    name = 'mwm_erosita_stars'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
-    program = 'mwm_yso'
+    cadence = None  # assigned in post_process()
+    program = 'mwm_erosita'
     mapper = 'MWM'
-    priority = 2700
+    priority = None  # assigned in post_processs()
 
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                 .select(CatalogToTIC_v8.catalogid,
+                         TwoMassPSC.j_m,
+                         TwoMassPSC.h_m.alias('twomass_psc_h_m'),
+                         TwoMassPSC.k_m,
+                         Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
+                         Gaia_DR2.phot_g_mean_mag.alias('gaia_dr2_g'),
+                         Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag,
+                         Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
+                         EROSITASupersetStars.target_priority,
+                         EROSITASupersetStars.xmatch_metric,
+                         EROSITASupersetStars.ero_flux,
+                         EROSITASupersetStars.ero_ra,
+                         EROSITASupersetStars.ero_dec,
+                         EROSITASupersetStars.opt_ra,
+                         EROSITASupersetStars.opt_dec)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR2)  # TODO EROSITASupersetStars should be left table
+                 .join(EROSITASupersetStars,
+                       on=(Gaia_DR2.source_id == EROSITASupersetStars.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3))
+                        EROSITASupersetStars.target_priority == 1,
+                        EROSITASupersetStars.xmatch_metric > 0.5))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -142,37 +163,59 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
 
     def post_process(self, model):
         """
-        cadence options for these targets:
-        boss_bright_3x1 if RP<14.76 |
-        boss_bright_4x1 if RP<15.075 |
-        boss_bright_5x1 if RP<15.29 |
-        boss_bright_6x1 if RP<15.5
+        The results of the above query can then be sorted
+        to assign cadences using the following logic:
+        bright_bright_limit = 13   # (available for modification later)
+        ir_faint_limit = 13 # (available for modification later)
+        - if bright_bright_limit > gaia.phot_g_mean_mag  &
+             twomass.h_m < ir_faint_limit:
+                 cadence = bright_apogee_1x1      &&    priority = 2400
+        - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
+                 cadence = bright_boss_1x1          &&    priority = 2400
+        - if 17 < gaia.phot_g_mean_mag < 19:
+                  cadence = dark_boss_1x2           &&    priority = 1920
+        - if 19 < gaia.phot_g_mean_mag:
+                  cadence = dark_boss_1x3          &&    priority = 1920
         """
 
+        bright_bright_limit = 13
+        ir_faint_limit = 13
+
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_disk_boss ;")
+            "select catalogid, gaia_dr2_g, twomass_psc_h_m from " +
+            " sandbox.temp_mwm_erosita_stars ;")
 
         output = cursor.fetchall()
 
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_rp = output[i][1]
+            current_g = output[i][1]
+            current_h = output[i][2]
 
-            if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
-            elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
-            elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
-            elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+            if((current_g < bright_bright_limit) and
+               (current_h < ir_faint_limit)):
+                current_cadence = 'bright_apogee_1x1'
+                current_priority = 2400
+            elif((bright_bright_limit < current_g) and
+                 (current_g < 17)):
+                current_cadence = 'bright_boss_1x1'
+                current_priority = 2400
+            elif((17 < current_g) and
+                 (current_g < 19)):
+                current_cadence = 'dark_boss_1x2'
+                current_priority = 1920
+            elif(19 < current_g):
+                current_cadence = 'dark_boss_1x3'
+                current_priority = 1920
             else:
                 current_cadence = None
 
             self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_disk_boss " +
+                " update sandbox.temp_mwm_erosita_stars " +
                 " set cadence = '" + current_cadence + "'"
                 " where catalogid = " + str(current_catalogid) + ";")
 
-
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_erosita_stars " +
+                " set priority = '" + current_priority + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
