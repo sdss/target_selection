@@ -195,7 +195,9 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             current_g = output[i][1]
             current_h = output[i][2]
 
-            if((current_g < bright_bright_limit)):
+            if((current_g < bright_bright_limit) and
+               (current_h is not None) and
+               (current_h < ir_faint_limit)):
                 current_cadence = 'bright_apogee_1x1'
                 current_priority = 2400
             elif((bright_bright_limit < current_g) and
@@ -359,15 +361,18 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         - if 19 < gaia.phot_g_mean_mag:
 
         cadence = dark_boss_1x3     &&   priority = 1910
+        
+        Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
+              the cadence is None
+
         """
 
         bright_bright_limit = 13
-        ir_faint_limit = 13
 
         # Set cadence and priority
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_g, twomass_psc_h_m from " +
+            "select catalogid, gaia_dr2_g, from " +
             " sandbox.temp_mwm_erosita_compact_gen ;")
 
         output = cursor.fetchall()
@@ -375,7 +380,6 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_g = output[i][1]
-            current_h = output[i][2]
 
             if((current_g < bright_bright_limit)):
                 current_cadence = 'bright_apogee_1x1'
@@ -541,6 +545,10 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         - if 19 < gaia.phot_g_mean_mag:
 
                cadence = dark_boss_1x3     &&   priority = 1900
+               
+        Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
+              the cadence is None
+
         """
 
         bright_bright_limit = 13
@@ -548,7 +556,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         # Set cadence and priority
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_g, twomass_psc_h_m from " +
+            "select catalogid, gaia_dr2_g from " +
             " sandbox.mwm_erosita_compact_var ;")
 
         output = cursor.fetchall()
@@ -556,7 +564,6 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_g = output[i][1]
-            current_h = output[i][2]
 
             if((current_g < bright_bright_limit)):
                 current_cadence = 'bright_apogee_1x1'
