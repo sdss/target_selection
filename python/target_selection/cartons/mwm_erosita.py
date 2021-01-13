@@ -10,8 +10,6 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8,
-                                             EROSITASupersetAGN,
-                                             EROSITASupersetClusters,
                                              EROSITASupersetStars,
                                              EROSITASupersetCompactobjects,
                                              Gaia_DR2,
@@ -233,9 +231,21 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
 
     Shorthand name: mwm_erosita_compact_gen
 
-    What is it?: eROSITA selected pointlike X-ray sources with likely Gaia counterpart (currently drawn from DR2), with high likelihood of being a galactic object according to proper motion and parallax, and not being an ordinary coronal emitter, also being (optically) reasonably faint, taking together being a candidate of a compact binary, i.e. accreting compact object. The original selection criteria that were applied to all X-ray/Gaia pairs are described on page Compact Binaries. These form the erosita_superset_compactobjects 
+    What is it?: eROSITA selected pointlike X-ray sources with
+    likely Gaia counterpart (currently drawn from DR2),
+    with high likelihood of being a galactic object
+    according to proper motion and parallax,
+    and not being an ordinary coronal emitter,
+    also being (optically) reasonably faint,
+    taking together being a candidate of a compact binary,
+    i.e. accreting compact object.
+    The original selection criteria that were applied
+    to all X-ray/Gaia pairs are described on page Compact Binaries.
+    These form the erosita_superset_compactobjects.
 
-    Simplified Description of selection criteria: "Select all targets from erosita_superset_compactobjects that have minimal distance to eROSITA eRASS1 position BOSS spectroscopy"
+    Simplified Description of selection criteria:
+    "Select all targets from erosita_superset_compactobjects
+    that have minimal distance to eROSITA eRASS1 position BOSS spectroscopy"
 
     Wiki page: link or N/A
 
@@ -243,38 +253,44 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
 
     Additional cross-matching needed: None
 
-    cadence options for these targets (list all options, even though no single target will receive more than one): minimum exposure is 1x1 for bright 16<g < 17 mag), 1x2 for medium (17<g<18), 1xn for the fainter targets (n as large as possible) 
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    minimum exposure is 1x1 for bright 16<g < 17 mag),
+    1x2 for medium (17<g<18), 1xn for the fainter targets (n as large as possible)
 
-    Pseudo SQL (optional): 
+    Pseudo SQL (optional):
 
     select * from erosita_superset_compactobjects
     where xmatch_version = 'ASJK_0212020_select1uniq'
 
-        reveals 78.252 targets 
-        Should one of these targets compete with one chosen from *_var (below), give preference to the *_var object
+    reveals 78.252 targets
+    Should one of these targets compete with one chosen
+    from *_var (below), give preference to the *_var object
 
-    Implementation: 
+    Implementation:
 
-    SELECT c.catalogid, c.ra, c.dec, gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.parallax, gaia.pmra, gaia.pmdec, 
+    SELECT c.catalogid, c.ra, c.dec, gaia.phot_g_mean_mag,
+    gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.parallax,
+    gaia.pmra, gaia.pmdec,
+    estars.target_priority, estars.xmatch_metric,
+    estars.ero_flux, estars.ero_ra, estars.ero_dec,
+    estars.opt_ra, estars.opt_dec
 
-                estars.target_priority, estars.xmatch_metric, estars.ero_flux, estars.ero_ra, estars.ero_dec, estars.opt_ra, estars.opt_dec 
+    FROM catalog c
 
-        FROM catalog c
+    INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
 
-        INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
+    INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
 
-        INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
+    INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
 
-        INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-
-     LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
+    LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
 
     WHERE (ctic.version_id = 21) AND /* control version! */
 
-     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
+    (ctic.best is true) AND /* and enforce unique-ish crossmatch */
 
-     estars.xmatch_version = 'ASJK_0212020_select1uniq' 
-
+    estars.xmatch_version = 'ASJK_0212020_select1uniq'
 
 
     See cadence logic in post_process() below.
@@ -322,7 +338,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         EROSITASupersetCompactobjects.xmatch_version ==
-                            'ASJK_0212020_select1uniq' ))
+                        'ASJK_0212020_select1uniq'))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -349,7 +365,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         to assign cadences using the following logic:
          #------ then use following logic to assign cadences
 
-        bright_bright_limit = 13   # (available for modification later) 
+        bright_bright_limit = 13   # (available for modification later)
 
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
 
@@ -362,7 +378,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         - if 19 < gaia.phot_g_mean_mag:
 
         cadence = dark_boss_1x3     &&   priority = 1910
-        
+
         Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
               the cadence is None
 
@@ -418,9 +434,20 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
 
     Shorthand name: mwm_erosita_compact_var
 
-    What is it?: eROSITA selected pointlike X-ray sources with likely Gaia counterpart (currently drawn from DR2), with high likelihood of being a galactic object according to proper motion, parallax, and variability, and being reasonably faint, taking together being a candidate of a compact binary, i.e. accreting compact object. The original selection criteria that were applied to all X-ray/Gaia pairs are described on page Compact Binaries. These form the erosita_superset_compactobjects
+    What is it?: eROSITA selected pointlike X-ray sources with
+    likely Gaia counterpart (currently drawn from DR2),
+    with high likelihood of being a galactic object
+    according to proper motion, parallax, and variability,
+    and being reasonably faint, taking together
+    being a candidate of a compact binary,
+    i.e. accreting compact object.
+    The original selection criteria that were applied to
+    all X-ray/Gaia pairs are described on page Compact Binaries.
+    These form the erosita_superset_compactobjects
 
-    Simplified Description of selection criteria: "Select all targets from erosita_superset_compactobjects that have maximum varproxy for BOSS spectroscopy"
+    Simplified Description of selection criteria:
+    "Select all targets from erosita_superset_compactobjects
+    that have maximum varproxy for BOSS spectroscopy"
 
     Wiki page: link or N/A
 
@@ -428,38 +455,44 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
 
     Additional cross-matching needed:
 
-    cadence options for these targets (list all options, even though no single target will receive more than one): 1x1 for bright 16<g < 17 mag), 1x2 for medium (17<g<18), 1xn for the fainter targets (n as large as possible) 
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    1x1 for bright 16<g < 17 mag), 1x2 for medium (17<g<18),
+    1xn for the fainter targets (n as large as possible)
 
-    Pseudo SQL (optional): 
+    Pseudo SQL (optional):
 
     select * from erosita_superset_compactobjects
     where xmatch_version = 'ASJK_0212020_select2univ'
 
         reveals 17.058 targets
-        Should one of these targets compete with one chosen from *_gen (above), give preference to the *_var object
+        Should one of these targets compete with
+        one chosen from *_gen (above), give preference to the *_var object
 
-    Implementation: 
+    Implementation:
 
-    SELECT c.catalogid, c.ra, c.dec, gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.parallax, gaia.pmra, gaia.pmdec, 
+    SELECT c.catalogid, c.ra, c.dec, gaia.phot_g_mean_mag,
+    gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag,
+    gaia.parallax, gaia.pmra, gaia.pmdec,
+    estars.target_priority, estars.xmatch_metric,
+    estars.ero_flux, estars.ero_ra, estars.ero_dec,
+    estars.opt_ra, estars.opt_dec
 
-                estars.target_priority, estars.xmatch_metric, estars.ero_flux, estars.ero_ra, estars.ero_dec, estars.opt_ra, estars.opt_dec 
+    FROM catalog c
 
-        FROM catalog c
+    INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
 
-        INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
+    INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
 
-        INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
+    INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
 
-        INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-
-     LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
+    LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
 
     WHERE (ctic.version_id = 21) AND /* control version! */
 
-     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
+    (ctic.best is true) AND /* and enforce unique-ish crossmatch */
 
-     estars.xmatch_version = 'ASJK_0212020_select2univ' 
-
+     estars.xmatch_version = 'ASJK_0212020_select2univ'
 
 
     See cadence logic in post_process() below.
@@ -507,7 +540,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         EROSITASupersetCompactobjects.xmatch_version ==
-                            'ASJK_0212020_select2univ'))
+                        'ASJK_0212020_select2univ'))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -534,7 +567,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         to assign cadences using the following logic:
          #------ then use following logic to assign cadences
 
-        bright_bright_limit = 13   # (available for modification later) 
+        bright_bright_limit = 13   # (available for modification later)
 
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
 
@@ -547,7 +580,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         - if 19 < gaia.phot_g_mean_mag:
 
                cadence = dark_boss_1x3     &&   priority = 1900
-               
+
         Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
               the cadence is None
 
@@ -594,4 +627,3 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                     " update sandbox.temp_mwm_erosita_compact_var " +
                     " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
-
