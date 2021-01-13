@@ -38,7 +38,7 @@ from target_selection.cartons import BaseCarton
 # MWM_ROSITA_Compact_Gen_Carton
 # MWM_ROSITA_Compact_Var_Carton
 
-class MWM_ROSITA_Stars_Carton(BaseCarton):
+class MWM_EROSITA_Stars_Carton(BaseCarton):
     """MWM eROSITA Stars
     Owner: Lead by MWM (with assistance from BHM?)?? Jennifer Johnson, Tom Dwelly
 
@@ -129,6 +129,7 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
                          EROSITASupersetStars.ero_dec,
                          EROSITASupersetStars.opt_ra,
                          EROSITASupersetStars.opt_dec)
+                 .distinct(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
@@ -163,10 +164,7 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
 
     def post_process(self, model):
         """
-        This post_process() method does two steps:
-        (a) The source with the largest xmatch_metric is selected.
-        
-        (b) The results of the above query can then be sorted
+        The results of the above query can then be sorted
         to assign cadences using the following logic:
         bright_bright_limit = 13   # (available for modification later)
         ir_faint_limit = 13 # (available for modification later)
@@ -184,34 +182,6 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
         bright_bright_limit = 13
         ir_faint_limit = 13
 
-        # select source with largest xmatch_metric
-        self.database.execute_sql("update sandbox.temp_mwm_erosita_stars " +
-                                  "set selected = false")
-
-        cursor = self.database.execute_sql(
-            "select catalogid, max(xmatch_metric) from " +
-            " sandbox.temp_mwm_erosita_stars " +
-            " group by catalogid ;")
-       # TODO
-        output = cursor.fetchall()
-
-        list_of_catalog_id = [0] * len(output)
-        current_count = 0
-        current_target = 0
-        for i in range(len(output)):
-            current_xmatch_metric = output[i][1]
-            if(count_count < 1):
-                curent_count = current_count + 1
-                list_of_catalog_id[current_target] = output[i][0]
-                current_target = current_target + 1
-
-        max_target = current_target
-        for k in range(max_target + 1):
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_stars set selected = true " +
-                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
-
-
         # Set cadence and priority
 
         cursor = self.database.execute_sql(
@@ -225,8 +195,7 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
             current_g = output[i][1]
             current_h = output[i][2]
 
-            if((current_g < bright_bright_limit) and
-               (current_h < ir_faint_limit)):
+            if((current_g < bright_bright_limit)):
                 current_cadence = 'bright_apogee_1x1'
                 current_priority = 2400
             elif((bright_bright_limit < current_g) and
@@ -250,5 +219,5 @@ class MWM_ROSITA_Stars_Carton(BaseCarton):
 
             self.database.execute_sql(
                 " update sandbox.temp_mwm_erosita_stars " +
-                " set priority = '" + current_priority + "'"
+                " set priority = '" + str(current_priority) + "'"
                 " where catalogid = " + str(current_catalogid) + ";")
