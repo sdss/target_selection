@@ -305,13 +305,13 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                          Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag,
                          Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
-                         EROSITASupersetStars.target_priority,
-                         EROSITASupersetStars.xmatch_metric,
-                         EROSITASupersetStars.ero_flux,
-                         EROSITASupersetStars.ero_ra,
-                         EROSITASupersetStars.ero_dec,
-                         EROSITASupersetStars.opt_ra,
-                         EROSITASupersetStars.opt_dec)
+                         EROSITASupersetCompactobjects.target_priority,
+                         EROSITASupersetCompactobjects.xmatch_metric,
+                         EROSITASupersetCompactobjects.ero_flux,
+                         EROSITASupersetCompactobjects.ero_ra,
+                         EROSITASupersetCompactobjects.ero_dec,
+                         EROSITASupersetCompactobjects.opt_ra,
+                         EROSITASupersetCompactobjects.opt_dec)
                  .distinct(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
@@ -319,12 +319,12 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(Gaia_DR2)
-                 .join(EROSITASupersetStars,
-                       on=(Gaia_DR2.source_id == EROSITASupersetStars.gaia_dr2_id))
+                 .join(EROSITASupersetCompactobjects,
+                       on=(Gaia_DR2.source_id == EROSITASupersetCompactobjects.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        EROSITASupersetStars.target_priority == 1,
-                        EROSITASupersetStars.xmatch_metric > 0.5))
+                        EROSITASupersetCompactobjects.xmatch_version ==
+                            'ASJK_0212020_select1uniq' ))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -375,7 +375,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         # Set cadence and priority
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_g, from " +
+            "select catalogid, gaia_dr2_g from " +
             " sandbox.temp_mwm_erosita_compact_gen ;")
 
         output = cursor.fetchall()
@@ -492,13 +492,13 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                          Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag,
                          Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
-                         EROSITASupersetStars.target_priority,
-                         EROSITASupersetStars.xmatch_metric,
-                         EROSITASupersetStars.ero_flux,
-                         EROSITASupersetStars.ero_ra,
-                         EROSITASupersetStars.ero_dec,
-                         EROSITASupersetStars.opt_ra,
-                         EROSITASupersetStars.opt_dec)
+                         EROSITASupersetCompactobjects.target_priority,
+                         EROSITASupersetCompactobjects.xmatch_metric,
+                         EROSITASupersetCompactobjects.ero_flux,
+                         EROSITASupersetCompactobjects.ero_ra,
+                         EROSITASupersetCompactobjects.ero_dec,
+                         EROSITASupersetCompactobjects.opt_ra,
+                         EROSITASupersetCompactobjects.opt_dec)
                  .distinct(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
@@ -506,12 +506,12 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(Gaia_DR2)
-                 .join(EROSITASupersetStars,
-                       on=(Gaia_DR2.source_id == EROSITASupersetStars.gaia_dr2_id))
+                 .join(EROSITASupersetCompactobjects,
+                       on=(Gaia_DR2.source_id == EROSITASupersetCompactobjects.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        EROSITASupersetStars.target_priority == 1,
-                        EROSITASupersetStars.xmatch_metric > 0.5))
+                        EROSITASupersetCompactobjects.xmatch_version ==
+                            'ASJK_0212020_select2univ'))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
