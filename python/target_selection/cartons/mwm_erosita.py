@@ -213,16 +213,19 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                 current_priority = 1920
             else:
                 current_cadence = None
+                current_priority = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_stars " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_stars " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_stars " +
-                " set priority = '" + str(current_priority) + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_priority is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_stars " +
+                    " set priority = '" + str(current_priority) + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
@@ -397,16 +400,19 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                 current_priority = 1920
             else:
                 current_cadence = None
+                current_priority = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_compact_gen " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_gen " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_compact_gen " +
-                " set priority = '" + str(current_priority) + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_priority is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_gen " +
+                    " set priority = '" + str(current_priority) + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
@@ -581,14 +587,17 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                 current_priority = 1920
             else:
                 current_cadence = None
+                current_priority = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_compact_var " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_var " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_compact_var " +
-                " set priority = '" + str(current_priority) + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_priority is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_var " +
+                    " set priority = '" + str(current_priority) + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
