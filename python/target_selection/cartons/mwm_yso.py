@@ -1037,10 +1037,6 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         MIPSGAL.hmag < 13,
-#                        (MIPSGAL.glon > 358) | (MIPSGAL.glon < 2),
-#                        (MIPSGAL.glat > -1) & (MIPSGAL.glat < 1),
-                        (MIPSGAL.glon > 0) | (MIPSGAL.glon < 360),
-                        (MIPSGAL.glat > -10) & (MIPSGAL.glat < 10),
                         (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
                         (Gaia_DR2.parallax < 0.2) |
                         (Gaia_DR2.parallax >> None)))
