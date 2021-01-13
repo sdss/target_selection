@@ -8,13 +8,10 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToTIC_v8,
-                                             EROSITASupersetStars,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              EROSITASupersetCompactobjects,
-                                             Gaia_DR2,
-                                             TIC_v8, TwoMassPSC
-                                             )
+                                             EROSITASupersetStars, Gaia_DR2,
+                                             TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
@@ -32,9 +29,7 @@ from target_selection.cartons import BaseCarton
 # EROSITASupersetCompactobjects ---> 'catalogdb.erosita_superset_compactobjects'
 # Gaia_DR2 --->'catalogdb.gaia_dr2_source'
 # TwoMassPSC --->'catalogdb.twomass_psc'
-# MWM_ROSITA_Stars_Carton
-# MWM_ROSITA_Compact_Gen_Carton
-# MWM_ROSITA_Compact_Var_Carton
+
 
 class MWM_EROSITA_Stars_Carton(BaseCarton):
     """MWM eROSITA Stars
