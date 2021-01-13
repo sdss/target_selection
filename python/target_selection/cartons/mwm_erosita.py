@@ -200,12 +200,10 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                (current_h < ir_faint_limit)):
                 current_cadence = 'bright_apogee_1x1'
                 current_priority = 2400
-            elif((bright_bright_limit < current_g) and
-                 (current_g < 17)):
+            elif((bright_bright_limit < current_g) and (current_g < 17)):
                 current_cadence = 'bright_boss_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and
-                 (current_g < 19)):
+            elif((17 < current_g) and (current_g < 19)):
                 current_cadence = 'dark_boss_1x2'
                 current_priority = 1920
             elif(19 < current_g):
@@ -387,17 +385,15 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
             if((current_g < bright_bright_limit)):
                 current_cadence = None
                 current_priority = None
-            elif((bright_bright_limit < current_g) and
-                 (current_g < 17)):
+            elif((bright_bright_limit < current_g) and (current_g < 17)):
                 current_cadence = 'bright_boss_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and
-                 (current_g < 19)):
+            elif((17 < current_g) and (current_g < 19)):
                 current_cadence = 'dark_boss_1x2'
-                current_priority = 1920
+                current_priority = 1910
             elif(19 < current_g):
                 current_cadence = 'dark_boss_1x3'
-                current_priority = 1920
+                current_priority = 1910
             else:
                 current_cadence = None
                 current_priority = None
@@ -574,17 +570,15 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
             if((current_g < bright_bright_limit)):
                 current_cadence = None
                 current_priority = None
-            elif((bright_bright_limit < current_g) and
-                 (current_g < 17)):
+            elif((bright_bright_limit < current_g) and (current_g < 17)):
                 current_cadence = 'bright_boss_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and
-                 (current_g < 19)):
+            elif((17 < current_g) and (current_g < 19)):
                 current_cadence = 'dark_boss_1x2'
-                current_priority = 1920
+                current_priority = 1900
             elif(19 < current_g):
                 current_cadence = 'dark_boss_1x3'
-                current_priority = 1920
+                current_priority = 1900
             else:
                 current_cadence = None
                 current_priority = None
