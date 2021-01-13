@@ -559,7 +559,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
 
         cursor = self.database.execute_sql(
             "select catalogid, gaia_dr2_g from " +
-            " sandbox.mwm_erosita_compact_var ;")
+            " sandbox.temp_mwm_erosita_compact_var ;")
 
         output = cursor.fetchall()
 
