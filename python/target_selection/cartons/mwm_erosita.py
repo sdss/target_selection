@@ -302,14 +302,9 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
-                         TwoMassPSC.j_m,
-                         TwoMassPSC.h_m.alias('twomass_psc_h_m'),
-                         TwoMassPSC.k_m,
                          Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag.alias('gaia_dr2_g'),
                          Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag,
@@ -324,10 +319,6 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                  .distinct(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
                  .join(EROSITASupersetCompactobjects,
                        on=(Gaia_DR2.source_id == EROSITASupersetCompactobjects.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -504,14 +495,9 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
 
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
-                         TwoMassPSC.j_m,
-                         TwoMassPSC.h_m.alias('twomass_psc_h_m'),
-                         TwoMassPSC.k_m,
                          Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
                          Gaia_DR2.phot_g_mean_mag.alias('gaia_dr2_g'),
                          Gaia_DR2.phot_bp_mean_mag,
                          Gaia_DR2.phot_rp_mean_mag,
@@ -526,10 +512,6 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                  .distinct(CatalogToTIC_v8.catalogid)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
                  .join(EROSITASupersetCompactobjects,
                        on=(Gaia_DR2.source_id == EROSITASupersetCompactobjects.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
