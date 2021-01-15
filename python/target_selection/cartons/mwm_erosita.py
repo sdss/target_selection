@@ -79,7 +79,6 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
      (ctic.best is true) AND /* and enforce unique-ish crossmatch */
      estars.target_priority = 1 AND estars.xmatch_metric > 0.5
     ;
-
     Due to below, above LEFT JOIN should be just INNER JOIN.
     i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
     sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
@@ -87,7 +86,6 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     -------
         0
     (1 row)
-
 
     See cadence logic in post_process() below.
     """
@@ -159,15 +157,20 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
         """
         The results of the above query can then be sorted
         to assign cadences using the following logic:
+
         bright_bright_limit = 13   # (available for modification later)
         ir_faint_limit = 13 # (available for modification later)
+
         - if bright_bright_limit > gaia.phot_g_mean_mag  &
              twomass.h_m < ir_faint_limit:
                  cadence = bright_apogee_1x1      &&    priority = 2400
+
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
                  cadence = bright_boss_1x1          &&    priority = 2400
+
         - if 17 < gaia.phot_g_mean_mag < 19:
                   cadence = dark_boss_1x2           &&    priority = 1920
+
         - if 19 < gaia.phot_g_mean_mag:
                   cadence = dark_boss_1x3          &&    priority = 1920
         """
@@ -270,23 +273,14 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
     estars.target_priority, estars.xmatch_metric,
     estars.ero_flux, estars.ero_ra, estars.ero_dec,
     estars.opt_ra, estars.opt_dec
-
     FROM catalog c
-
     INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
-
     INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
-
     INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-
     LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
-
     WHERE (ctic.version_id = 21) AND /* control version! */
-
     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
-
     estars.xmatch_version = 'ASJK_0212020_select1uniq'
-
 
     See cadence logic in post_process() below.
     """
@@ -354,20 +348,16 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
         bright_bright_limit = 13   # (available for modification later)
 
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
-
                cadence = bright_boss_1x1   &&   priority = 2400
 
         - if 17 < gaia.phot_g_mean_mag < 19:
-
                cadence = dark_boss_1x2     &&   priority = 1910
 
         - if 19 < gaia.phot_g_mean_mag:
-
         cadence = dark_boss_1x3     &&   priority = 1910
 
         Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
               the cadence is None
-
         """
 
         bright_bright_limit = 13
@@ -463,23 +453,14 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
     estars.target_priority, estars.xmatch_metric,
     estars.ero_flux, estars.ero_ra, estars.ero_dec,
     estars.opt_ra, estars.opt_dec
-
     FROM catalog c
-
     INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
-
     INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
-
     INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-
     LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
-
     WHERE (ctic.version_id = 21) AND /* control version! */
-
     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
-
      estars.xmatch_version = 'ASJK_0212020_select2univ'
-
 
     See cadence logic in post_process() below.
     """
@@ -547,15 +528,12 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
         bright_bright_limit = 13   # (available for modification later)
 
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
-
                cadence = bright_boss_1x1   &&   priority = 2400
 
         - if 17 < gaia.phot_g_mean_mag < 19:
-
                cadence = dark_boss_1x2     &&   priority = 1900
 
         - if 19 < gaia.phot_g_mean_mag:
-
                cadence = dark_boss_1x3     &&   priority = 1900
 
         Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
