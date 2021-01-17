@@ -92,10 +92,12 @@ class MWM_TESS_OB_Carton(BaseCarton):
                          Gaia_DR2.parallax,
                          MWM_TESS_OB.ra,
                          MWM_TESS_OB.dec,
-                         MWM_TESS_OB.hmag,
+                         MWM_TESS_OB.h_mag,
                          MWM_TESS_OB.cadence)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(MWM_TESS_OB,
+                       on=(Gaia_DR2.source_id == MWM_TESS_OB.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True))         
 
