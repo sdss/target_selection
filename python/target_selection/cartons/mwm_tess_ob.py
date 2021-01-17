@@ -35,7 +35,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
 
     Simplified Description of selection criteria:
     a random subsample of TIC targets in both TESS CVZs,
-    selected according to type of their variability 
+    selected according to type of their variability
     (i.e., if(var_type = eclipsing_binary .and. var_type = pulsator
      .and. coord = TESS_CVZ) select )
 
@@ -99,7 +99,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
                  .join(MWM_TESS_OB,
                        on=(Gaia_DR2.source_id == MWM_TESS_OB.gaia_dr2_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True))         
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = (query
