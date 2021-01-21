@@ -88,6 +88,19 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     (1 row)
 
     See cadence logic in post_process() below.
+
+    There are only 4 distinct values of xmatch_metric.
+    select distinct xmatch_metric from catalogdb.erosita_superset_stars;
+
+    xmatch_metric
+    ---------------
+           0.6
+           0.7
+           0.8
+           0.9
+(4 rows)
+
+    Hence in the query below we use xmatch_metric > 0.89
     """
 
     name = 'mwm_erosita_stars'
@@ -114,6 +127,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag,
                          Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
                          EROSITASupersetStars.target_priority,
+                         EROSITASupersetStars.ero_detuid,
                          EROSITASupersetStars.xmatch_metric,
                          EROSITASupersetStars.ero_flux,
                          EROSITASupersetStars.ero_ra,
@@ -132,7 +146,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         EROSITASupersetStars.target_priority == 1,
-                        EROSITASupersetStars.xmatch_metric > 0.5))
+                        EROSITASupersetStars.xmatch_metric > 0.89))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -304,6 +318,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag,
                          Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
                          EROSITASupersetCompactobjects.target_priority,
+                         EROSITASupersetStars.ero_detuid,
                          EROSITASupersetCompactobjects.xmatch_metric,
                          EROSITASupersetCompactobjects.ero_flux,
                          EROSITASupersetCompactobjects.ero_ra,
@@ -484,6 +499,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                          Gaia_DR2.phot_rp_mean_mag,
                          Gaia_DR2.parallax, Gaia_DR2.pmra, Gaia_DR2.pmdec,
                          EROSITASupersetCompactobjects.target_priority,
+                         EROSITASupersetStars.ero_detuid,
                          EROSITASupersetCompactobjects.xmatch_metric,
                          EROSITASupersetCompactobjects.ero_flux,
                          EROSITASupersetCompactobjects.ero_ra,
