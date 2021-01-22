@@ -146,7 +146,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         EROSITASupersetStars.target_priority == 1,
-                        EROSITASupersetStars.xmatch_metric > 0.89))
+                        EROSITASupersetStars.xmatch_metric > 0.59))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -234,7 +234,40 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                     " update sandbox.temp_mwm_erosita_stars " +
                     " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
+                    
+        # More than one optical source may have the same xmatch_metric
+        # for an X-ray source.
+        # Select any one source with highest xmatch_metric for given ero_detuid
+        self.database.execute_sql("update sandbox.temp_mwm_erosita_stars " +
+                                  "set selected = false")
 
+        cursor = self.database.execute_sql(
+            "select catalogid, ero_detuid, xmatch_metric from " +
+            " sandbox.temp_mwm_erosita_stars " +
+            " order by ero_detuid asc, xmatch_metric desc;")
+
+        output = cursor.fetchall()
+
+        list_of_catalog_id = [0] * len(output)
+        count = {}
+        for i in range(len(output)):
+            ero_detuid = output[i][1]
+            count[ero_detuid] = 0
+        
+        current_target = 0
+        for i in range(len(output)):
+            ero_detuid = output[i][1]
+            if(count[ero_detuid] == 0):
+                count[ero_detuid] = 1
+                list_of_catalog_id[current_target] = output[i][0]
+                current_target = current_target + 1
+
+        max_target = current_target
+        for k in range(max_target + 1):
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_erosita_stars set selected = true " +
+                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+ 
 
 class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
     """MWM eROSITA Compact-Objects (carton *_gen)
