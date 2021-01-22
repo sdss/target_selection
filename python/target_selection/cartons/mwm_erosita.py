@@ -100,7 +100,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
            0.9
 (4 rows)
 
-    Hence in the query below we use xmatch_metric > 0.89
+    Hence in the query below we use xmatch_metric > 0.5
     """
 
     name = 'mwm_erosita_stars'
@@ -146,7 +146,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         EROSITASupersetStars.target_priority == 1,
-                        EROSITASupersetStars.xmatch_metric > 0.59))
+                        EROSITASupersetStars.xmatch_metric > 0.5))
 
         # Gaia_DR2 pweewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -234,7 +234,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                     " update sandbox.temp_mwm_erosita_stars " +
                     " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
-                    
+
         # More than one optical source may have the same xmatch_metric
         # for an X-ray source.
         # Select any one source with highest xmatch_metric for given ero_detuid
@@ -253,7 +253,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
         for i in range(len(output)):
             ero_detuid = output[i][1]
             count[ero_detuid] = 0
-        
+
         current_target = 0
         for i in range(len(output)):
             ero_detuid = output[i][1]
@@ -267,7 +267,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             self.database.execute_sql(
                 " update sandbox.temp_mwm_erosita_stars set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")
- 
+
 
 class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
     """MWM eROSITA Compact-Objects (carton *_gen)
