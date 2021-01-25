@@ -73,13 +73,13 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
      INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
      INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
      INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-     INNER JOIN twomass_psc twomass ON twomass.designation = tic.twomass_psc
+     LEFT JOIN twomass_psc twomass ON twomass.designation = tic.twomass_psc
      LEFT JOIN erosita_superset_stars estars ON estars.gaia_dr2_id = gaia.source_id
     WHERE (ctic.version_id = 21) AND /* control version! */
      (ctic.best is true) AND /* and enforce unique-ish crossmatch */
      estars.target_priority = 1 AND estars.xmatch_metric > 0.5
     ;
-    Due to below, above LEFT JOIN should be just INNER JOIN.
+    Due to below, above second LEFT JOIN should be just INNER JOIN.
     i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
     sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
     count
@@ -138,7 +138,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .switch(TIC_v8)
-                 .join(TwoMassPSC,
+                 .join(TwoMassPSC, peewee.JOIN.LEFT_OUTER,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .switch(Gaia_DR2)
                  .join(EROSITASupersetStars,
