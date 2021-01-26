@@ -73,13 +73,14 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
      INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
      INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
      INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-     LEFT JOIN twomass_psc twomass ON twomass.designation = tic.twomass_psc
-     LEFT JOIN erosita_superset_stars estars ON estars.gaia_dr2_id = gaia.source_id
+     LEFT OUTER JOIN twomass_psc twomass ON twomass.designation = tic.twomass_psc
+     LEFT OUTER JOIN erosita_superset_stars estars ON estars.gaia_dr2_id = gaia.source_id
     WHERE (ctic.version_id = 21) AND /* control version! */
      (ctic.best is true) AND /* and enforce unique-ish crossmatch */
      estars.target_priority = 1 AND estars.xmatch_metric > 0.5
     ;
-    Due to below, above second LEFT JOIN should be just INNER JOIN.
+    Due to the below select statement,
+    above second LEFT OUTER JOIN should be just INNER JOIN.
     i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
     sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
     count
@@ -324,10 +325,19 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
     INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
     INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
     INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-    LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
+    LEFT OUTER JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
     WHERE (ctic.version_id = 21) AND /* control version! */
     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
     estars.xmatch_version = 'ASJK_0212020_select1uniq'
+
+    Due to the below select statement,
+    above LEFT OUTER JOIN should be just INNER JOIN.
+    i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
+    sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
+    count
+    -------
+        0
+    (1 row)
 
     See cadence logic in post_process() below.
     """
@@ -505,10 +515,19 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
     INNER JOIN catalog_to_tic_v8 ctic USING (catalogid)
     INNER JOIN tic_v8 tic ON tic.id = ctic.target_id
     INNER JOIN gaia_dr2_source gaia ON gaia.source_id = tic.gaia_int
-    LEFT JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
+    LEFT OUTER JOIN erosita_superset_compactobjects estars ON estars.gaia_dr2_id = gaia.source_id
     WHERE (ctic.version_id = 21) AND /* control version! */
     (ctic.best is true) AND /* and enforce unique-ish crossmatch */
      estars.xmatch_version = 'ASJK_0212020_select2univ'
+
+    Due to the below select statement,
+    above LEFT OUTER JOIN should be just INNER JOIN.
+    i.e. every row of catalogdb.erosita_superset_stars has a gaia_dr2_id.
+    sdss5db=# select count(1) from catalogdb.erosita_superset_stars where gaia_dr2_id is null;
+    count
+    -------
+        0
+    (1 row)
 
     See cadence logic in post_process() below.
     """
