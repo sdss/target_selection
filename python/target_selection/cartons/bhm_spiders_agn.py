@@ -13,7 +13,7 @@
 import peewee
 from peewee import JOIN
 from peewee import fn
-import sdssdb
+#import sdssdb
 
 
 '''
@@ -35,10 +35,12 @@ for r in q[:5]: print(r))
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToLegacy_Survey_DR8,
                                              Legacy_Survey_DR8,
-                                             BHM_Spiders_AGN_Superset,
+                                             # BHM_Spiders_AGN_Superset,
                                              BHM_eFEDS_Veto,
-#TODO                                             CatalogToSDSS_DR16_SpecObj,
+                                             # CatalogToSDSS_DR16_SpecObj, # <-- rely on a q3c match in v0.5
                                              SDSS_DR16_SpecObj,
+                                             EROSITASupersetAGN,
+                                             SDSSV_BOSS_SPALL,
                                              )
 
 
@@ -47,6 +49,57 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import psfmag_minus_fiber2mag, AB2nMgy
+
+# This provides the following BHM SPIDERS AGN cartons in v0.5:
+#    bhm_spiders_agn_lsdr8
+#    bhm_spiders_agn_ps1dr2
+#    bhm_spiders_agn_gaiadr2
+#    bhm_spiders_agn_skymapperdr2
+#    bhm_spiders_agn_supercosmos
+#    bhm_spiders_agn_sep
+#    bhm_spiders_agn_efeds
+
+
+class BhmSpidersAgnLsdr8Carton(BaseCarton):
+
+    '''
+    SELECT
+           c.*,{priority_expression} as priority,
+           {value_expression} as value,
+           {cadence_expression} as cadence,
+           {{mag_g_expression} as mag_g,...}
+    FROM catalogdb.catalog AS c
+    JOIN catalog_to_erosita_superset_agn AS c2t
+         ON c.catalogid = c2t.catalogid
+    JOIN erosita_superset_agn AS x
+         ON c2t.target_id = x.pk
+    JOIN legacy_survey_dr8 AS ls
+         ON x.ls_id = ls.ls_id
+    LEFT OUTER JOIN catalog_to_sdss_dr16_specobj AS c2s
+         ON c.catalogid = c2s.catalogid
+    LEFT OUTER JOIN sdss_dr16_specobj AS s
+         ON c2s.target_id = s.specobjid
+    WHERE x.ero_version = 'em01_c946'
+    AND x.xmatch_method = 'XPS/NWAY' AND x.xmatch_version = 'XYZ'
+    AND x.opt_cat = 'ls_dr8'
+    AND x.xmatch_metric > 0.x
+    [AND x.ero_det_like > XX]  <-- TBD
+    AND (ls.fiberflux_r > A.A nMgy OR ls.fiberflux_z > B.B nMgy) AND ls.fiberflux_r < CCC.C nMgy
+    AND {Some TBD catalogdb.catalog version cuts}
+    '''
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## This provides the following BHM cartons:
