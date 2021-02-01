@@ -43,42 +43,64 @@ outstem = 'plateholes_'
 outfmt = 'fits'
 out = os.path.join(outdir, outstem)
 
+# Now, the lists of exception plates
+# derived from here:
+# https://wiki.sdss.org/pages/viewpage.action?pageId=69043025
+
 # list of plates that were designed but never drilled:
 phantom_plates = [
     15140,  # eFEDS-not-drilled
-    15142,  # eFEDS-not-drilled
-    15145,  # eFEDS-not-drilled
-    15148,  # eFEDS-not-drilled
-    15151,  # eFEDS-not-drilled
-    15154,  # eFEDS-not-drilled
-    15157,  # eFEDS-not-drilled
-    15160,  # eFEDS-not-drilled
-    15163,  # eFEDS-not-drilled
-    15097,  # MWM-phantom-plates
-    15098,  # MWM-phantom-plates
-    15099,  # MWM-phantom-plates
-    15104,  # MWM-phantom-plates
-    15117,  # MWM-phantom-plates
-    15118,  # MWM-phantom-plates
-    15123,  # MWM-phantom-plates
-    15124,  # MWM-phantom-plates
-    15126,  # MWM-phantom-plates
-    15128,  # MWM-phantom-plates
-    15130,  # MWM-phantom-plates
-    15131,  # MWM-phantom-plates
-    15132,  # MWM-phantom-plates
-    15134,  # MWM-phantom-plates
-    15135,  # MWM-phantom-plates
+    15142,  # Do not Mark! (probably not pluggable)
+    15145,  #
+    15148,  #
+    15151,  #
+    15154,  #
+    15157,  #
+    15160,  #
+    15163,  #
+
+    15097,  # MWM Plates that will never be drilled
+    15098,  #
+    15099,  #
+    15104,  #
+    15117,  #
+    15118,  #
+    15123,  #
+    15124,  #
+    15126,  #
+    15128,  #
+    15130,  #
+    15131,  #
+    15132,  #
+    15134,  #
+    15135,  #
+    15210,  #
+    15211,  #
+    15212,  #
+    15213,  #
+    15214,  #
+    15215,  #
+    15216,  #
 ]
 
 # list of plates that were drilled but never shipped, or shipped then immediately rejected
 rejected_plates = []
 
 # list of plates that have no hope of observation during SDSS-V 2020/21 plate operations
-hopeless_plates = []
+hopeless_plates = [
+    15204,   # Do Not Mark! (they have set already
+    15205,   # and won't be observed during plate program)
+    15206,   #
+    15207,   #
+    15208,   #
+    15209,   #
+
+    15096,   # Should be retired do not mark
+    15136,   #
+]
 
 # run the main yanny scraper code to build the
-#
+# fits versions of the yanny plateHoles files
 
 subprocess.run(['yanny_scraper',
                 '-i',
