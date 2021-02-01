@@ -34,6 +34,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_tessrgb'
+    instrument = None
     cadence = None
     priority = 2800
 

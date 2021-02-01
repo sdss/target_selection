@@ -51,7 +51,12 @@ class MWM_SNC_100pc(BaseCarton):
     category = 'science'
     program = 'mwm_snc'
     mapper = 'MWM'
-    cadence = 'mwm_100pc_faint_1x1'
+    # Old cadence = 'mwm_100pc_faint_1x1'
+    # From cadence wiki page:
+    # mwm_100pc_faint_1x1 -> boss_dark_1x1
+    # Hence we set:
+    instrument ='BOSS'
+    cadence = 'dark_1x1'
     priority = 1800
 
     def build_query(self, version_id, query_region=None):
@@ -125,6 +130,7 @@ class MWM_SNC_250pc(BaseCarton):
     category = 'science'
     program = 'mwm_snc'
     mapper = 'MWM'
+    instrument = None
     cadence = None
     priority = 1810
 

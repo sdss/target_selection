@@ -835,6 +835,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_fps'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'

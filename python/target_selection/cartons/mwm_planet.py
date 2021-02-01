@@ -32,6 +32,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
     program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
+    instrument = None
     cadence = None
     priority = 2600
 

@@ -58,7 +58,12 @@ class MWM_OB_Carton(BaseCarton):
     name = 'mwm_ob_core'
     mapper = 'MWM'
     category = 'science'
-    cadence = 'mwm_ob_3x1'
+    # Old cadence = 'mwm_ob_3x1'
+    # From cadence wiki page:
+    # mwm_ob_3x1 -> boss_bright_3x1
+    # Hence we set:
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
 
@@ -264,7 +269,12 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     name = 'mwm_ob_cepheids'
     mapper = 'MWM'
     category = 'science'
-    cadence = 'mwm_ob_3x1'
+    # Old cadence = 'mwm_ob_3x1'
+    # From cadence wiki page:
+    # mwm_ob_3x1 -> boss_bright_3x1
+    # Hence we set:
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
 

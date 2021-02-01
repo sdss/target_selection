@@ -105,6 +105,7 @@ NA
 
     name = 'mwm_legacy_ir2opt'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_legacy'
     mapper = 'MWM'
