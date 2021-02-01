@@ -13,8 +13,10 @@ from __future__ import (absolute_import, division,
 
 import os
 import subprocess
-from astropy.table import Table
+
 import numpy as np
+from astropy.table import Table
+
 
 # the base directory where we can find the platelist product
 # platelist_dir = os.path.expanduser('~/scratch/platelist')
