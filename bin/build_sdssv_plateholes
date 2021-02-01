@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+# encoding: utf-8
+#
+# @Author: Tom Dwelly
+# @Date: Jan-2020
+# @Filename: build_sdssv_plateholes
+# @License: BSD 3-Clause
+# @Copyright: Tom Dwelly
+
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
+import os
+import subprocess
+from astropy.table import Table
+import numpy as np
+
+#platelist_dir = '/uufs/chpc.utah.edu/common/home/sdss05/software/svn.sdss.org/data/sdss/platelist'
+platelist_pattern = 'trunk/plates/015?XX/015???/plateHoles-015???.par'
+
+platelist_dir = os.path.expanduser('~/scratch/platelist')
+#platelist_pattern = 'trunk/plates/015?XX/015???/plateHoles-01500[12].par'
+
+platelist_expr = os.path.join(platelist_dir,
+                              platelist_pattern)
+
+outdir = '.'
+outdir = os.path.expanduser('~/scratch/test_yanny_scraper2')
+outstem = 'plateholes_'
+outfmt = 'fits'
+out = os.path.join(outdir, outstem)
+
+# list of plates that were designed but never drilled:
+phantom_plates = [
+    15140, # eFEDS-not-drilled
+    15142, # eFEDS-not-drilled
+    15145, # eFEDS-not-drilled
+    15148, # eFEDS-not-drilled
+    15151, # eFEDS-not-drilled
+    15154, # eFEDS-not-drilled
+    15157, # eFEDS-not-drilled
+    15160, # eFEDS-not-drilled
+    15163, # eFEDS-not-drilled
+    15097, # MWM-phantom-plates
+    15098, # MWM-phantom-plates
+    15099, # MWM-phantom-plates
+    15104, # MWM-phantom-plates
+    15117, # MWM-phantom-plates
+    15118, # MWM-phantom-plates
+    15123, # MWM-phantom-plates
+    15124, # MWM-phantom-plates
+    15126, # MWM-phantom-plates
+    15128, # MWM-phantom-plates
+    15130, # MWM-phantom-plates
+    15131, # MWM-phantom-plates
+    15132, # MWM-phantom-plates
+    15134, # MWM-phantom-plates
+    15135, # MWM-phantom-plates
+]
+
+# list of plates that were drilled but never shipped, or immediately rejected
+rejected_plates = [ ]
+
+# list of plates that have no hope of observation during SDSS-V 2020/21 plate operations
+hopeless_plates = [ ]
+
+
+
+
+subprocess.run(['yanny_scraper',
+                '-i',
+                platelist_expr,
+                '-o',
+                out,
+                '-f',
+                outfmt])
+
+
+
+# open up the 'meta' file - i.e. one row per known plate
+
+# we can predict the output filename pretty easily
+output_meta = out + 'meta.' + outfmt
+
+t = Table.read(output_meta)
+
+print(f"Flagging all known non-drilled/rejected/hopeless plates in {output_meta}")
+
+# add a new column to represent if the plate has been drilled/not rejected etc.
+
+# now remove those plates that didn't get drilled
+# set to true for all initially
+phantom = np.isin(t['plateId'], phantom_plates)
+rejected = np.isin(t['plateId'], rejected_plates)
+hopeless = np.isin(t['plateId'], hopeless_plates)
+
+valid = np.where(phantom | rejected | hopeless, False, True)
+
+nvalid = np.count_nonzero(valid)
+print(f"After filtering {nvalid}/{len(t)} plates are marked as 'VALID'=True")
+
+t['ISVALID'] = valid
+
+t.write(output_meta, format=outfmt, overwrite=True)
+
+# done

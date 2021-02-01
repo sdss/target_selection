@@ -63,7 +63,8 @@ if __name__ == '__main__':
         raise Exception(f'Unable to find output directory: {outdir}')
 
     # Check that the output format is recognised
-    registry.get_writer(args.format, Table)
+    out_format = args.format.strip()
+    registry.get_writer(out_format, Table)
 
     # These are where we accumulate the data
     master_dict = {}
@@ -119,14 +120,14 @@ if __name__ == '__main__':
     for n, v in master_dict.items():
         t = vstack(v, join_type='outer')
         print(f'Concatenated table: {n} has {len(t)} rows')
-        outfile = (outstem + n + '.' + args.format)
+        outfile = (outstem + n + '.' + out_format)
 
         # Add some keywords
         for k, v in keys.items():
             t.meta[k] = v
 
         print(f'Writing table for {n} to: ' + outfile)
-        t.write(outfile, format=args.format, overwrite=True)
+        t.write(outfile, format=out_format, overwrite=True)
 
     print(f'The meta data table: has {len(master_meta)} rows')
 
@@ -172,11 +173,11 @@ if __name__ == '__main__':
             #       f'{master_meta[c].dtype} to {cnew.dtype}')
             master_meta[c] = cnew
 
-    outfile = (outstem + 'meta' + '.' + args.format)
+    outfile = (outstem + 'meta' + '.' + out_format)
     print('Metadata table will be written to : ' + outfile)
 
     # Add some keywords
     for k, v in keys.items():
         master_meta.meta[k] = v
 
-    master_meta.write(outfile, format=args.format, overwrite=True)
+    master_meta.write(outfile, format=out_format, overwrite=True)
