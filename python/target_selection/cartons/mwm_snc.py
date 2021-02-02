@@ -55,7 +55,7 @@ class MWM_SNC_100pc(BaseCarton):
     # From cadence wiki page:
     # mwm_100pc_faint_1x1 -> boss_dark_1x1
     # Hence we set:
-    instrument ='BOSS'
+    instrument = 'BOSS'
     cadence = 'dark_1x1'
     priority = 1800
 
