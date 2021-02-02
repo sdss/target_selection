@@ -155,6 +155,7 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_rm'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
@@ -282,6 +283,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_bplates'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
@@ -405,6 +407,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_fps'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
@@ -591,6 +594,7 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_rm'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
@@ -722,6 +726,7 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 """
     name = 'mwm_rv_short_bplates'
     category = 'science'
+    instrument = None
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
