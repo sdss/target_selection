@@ -11,7 +11,7 @@ from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, TIC_v8
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_TESS_RGB_Carton(BaseCarton):

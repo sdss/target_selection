@@ -15,7 +15,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 TMBN = Gaia_DR2_TwoMass_Best_Neighbour

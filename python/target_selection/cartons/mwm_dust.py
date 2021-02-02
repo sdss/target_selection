@@ -16,7 +16,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
                                              CatalogToGLIMPSE, CatalogToTIC_v8,
                                              TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 def lbp2xyz(ll, bb, pp):

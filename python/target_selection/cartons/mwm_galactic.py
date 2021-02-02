@@ -11,7 +11,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_Galactic_Genesis_Carton(BaseCarton):

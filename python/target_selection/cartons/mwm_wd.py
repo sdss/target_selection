@@ -11,7 +11,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_WD, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_WD_Carton(BaseCarton):

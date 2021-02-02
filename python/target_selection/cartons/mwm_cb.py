@@ -14,7 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (CataclysmicVariables, Catalog,
                                              GeometricDistances_Gaia_DR2,
                                              GUVCat, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_CB_300_Carton(BaseCarton):

@@ -12,7 +12,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (TESS_TOI, Catalog,
                                              CatalogToTIC_v8, TIC_v8,
                                              TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_TESS_Planets_Carton(BaseCarton):

@@ -11,7 +11,7 @@ from peewee import fn
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 __all__ = ['MWM_SNC_100pc', 'MWM_SNC_250pc']

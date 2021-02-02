@@ -18,7 +18,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (UVOT_SSC_1, XMM_OM_SUSS_4_1,
                                              GeometricDistances_Gaia_DR2,
                                              GUVCat, TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 fuv_mag = GUVCat.fuv_mag
