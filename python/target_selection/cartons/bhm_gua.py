@@ -45,11 +45,11 @@ from target_selection.cartons.base import BaseCarton
         JOIN tic_v8 AS tic ON ...
         JOIN gaia_dr2_source AS g ON ...
         JOIN gaia_unwise_agn AS t ON g.source_id = t.gaia_sourceid
-        OUTER LEFT JOIN sdss_dr16_specobj AS s
+        LEFT OUTER JOIN sdss_dr16_specobj AS s
           ON ( q3c_join(s.ra,s.dec,c.ra,c.dec,{match_radius_spectro})
                AND s.zwarning = 0
-               AND s.sn_median_all > 2.0
-               AND s.z_err < 0.01
+               AND s.snmedianl > 2.0
+               AND s.zerr < 0.01
                AND s.scienceprimary > 0
              )
         WHERE
@@ -160,7 +160,7 @@ class BhmGuaBaseCarton(BaseCarton):
             # standard selection that chooses correct catalogdb version etc
             .where(c.version_id == version_id,
                    c2tic.version_id == version_id,
-                   c2tic.best is True)
+                   c2tic.best >> True)
             .where(
                 (t.prob_rf >= self.parameters['prob_rf_min']),
                 (t.g >= self.parameters['mag_g_min']),
