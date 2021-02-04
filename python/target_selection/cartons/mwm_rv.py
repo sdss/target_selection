@@ -155,8 +155,8 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_rm'
     category = 'science'
-    instrument = None
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
@@ -283,8 +283,8 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_bplates'
     category = 'science'
-    instrument = None
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2526
@@ -407,7 +407,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_fps'
     category = 'science'
-    instrument = None
+    instrument = 'APOGEE'
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
@@ -594,8 +594,8 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_rm'
     category = 'science'
-    instrument = None
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
@@ -726,8 +726,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 """
     name = 'mwm_rv_short_bplates'
     category = 'science'
-    instrument = None
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2576
@@ -840,7 +840,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_fps'
     category = 'science'
-    instrument = None
+    instrument = 'APOGEE'
     cadence = None
     program = 'mwm_rv'
     mapper = 'MWM'
