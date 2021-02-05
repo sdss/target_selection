@@ -6,6 +6,7 @@
 # @Filename: mwm_rv.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import math
 import peewee
 from astropy.coordinates import Angle
 
@@ -188,7 +189,16 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
         # all been put in a common epoch 2015.5.
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -341,7 +351,16 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
 # We use *mwm_rv_long_condition to unpack the tuple mwm_rv_long_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -419,7 +438,16 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -446,6 +474,35 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
+
+    def post_process(self, model):
+        """
+        If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
+        where <nn> = 3*ceiling((18-nvisits)/3)
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, nvisits, h from " +
+            " sandbox.temp_mwm_rv_long_fps ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_nvisits = output[i][1]
+            current_h = output[i][2]
+
+            nn = 3 * math.ceiling((18 - current_nvisits) / 3)
+            if(current_h > 10.8):
+                current_cadence = 'bright_' + str(nn) + 'x2'
+            else:
+                current_cadence = 'bright_' + str(nn) + 'x1'
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 # 2.2.2. Short Baseline (Fresh Targets)
@@ -641,7 +698,12 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
          .create_table(RadialQuery.__name__, temporary=True))
 
         query = (CatalogToTIC_v8
-                 .select(RadialQuery.c.catalogid)
+                 .select(RadialQuery.c.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
                  .join(RadialQuery,
                        on=(RadialQuery.c.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -782,7 +844,12 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 # We use *mwm_rv_short_condition to unpack the tuple mwm_rv_short_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -849,7 +916,12 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
