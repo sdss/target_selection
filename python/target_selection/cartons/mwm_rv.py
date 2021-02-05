@@ -493,7 +493,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             current_nvisits = output[i][1]
             current_h = output[i][2]
 
-            nn = 3 * math.ceiling((18 - current_nvisits) / 3)
+            nn = 3 * math.ceil((18 - current_nvisits) / 3)
             if(current_h > 10.8):
                 current_cadence = 'bright_' + str(nn) + 'x2'
             else:
