@@ -42,11 +42,14 @@
             xmatch_method: 'XPS/NWAY'
             xmatch_version: 'JWMS_v_40'
             opt_cat: 'lsdr8'
-            fibermag_r_min: 13.5
-            fibermag_r_max: 22.0
-            fibermag_z_max: 21.0
-            fibermag_r_for_cadence1: 16.5
-            fibermag_r_for_cadence2: 18.5
+            fibertotmag_r_min: 13.5
+            fibertotmag_r_max: 22.5
+            fibertotmag_z_min: 13.5
+            fibertotmag_z_max: 21.0
+            fibertotmag_r_for_cadence1: 16.5
+            fibertotmag_r_for_cadence2: 18.5
+            gaia_g_mag_limit: 13.5
+            gaia_rp_mag_limit: 13.5
             cadence1: 'bright_1x2'
             cadence2: 'dark_1x2'
             cadence3: 'dark_1x4'
@@ -57,6 +60,60 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1510
+        bhm_aqmes_med:
+            priority: 1100
+            value: 100.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+        bhm_aqmes_med_faint:
+            priority: 3100
+            value: 1.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
+            mag_i_min: 19.1
+            mag_i_max: 21.0
+        bhm_aqmes_wide3:
+            priority: 1200
+            value: 100.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+        bhm_aqmes_wide3_faint:
+            priority: 3200
+            value: 1.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 19.1
+            mag_i_max: 21.0
+        bhm_aqmes_wide2:
+            priority: 1210
+            value: 100.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+        bhm_aqmes_wide2_faint:
+            priority: 3210
+            value: 1.0
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            mag_i_min: 19.1
+            mag_i_max: 21.0
+        bhm_aqmes_bonus_core:
+            priority: 3300
+            value: 0.2
+            fieldlist: None
+            mag_i_min: 16.0
+            mag_i_max: 19.1
+        bhm_aqmes_bonus_faint:
+            priority: 3301
+            value: 0.1
+            fieldlist: None
+            mag_i_min: 19.1
+            mag_i_max: 21.0
+        bhm_aqmes_bonus_bright:
+            priority: 4040
+            value: 0.1
+            fieldlist: None
+            mag_i_min: 14.0
+            mag_i_max: 18.0
 
 '0.1.3':
     xmatch_plan: 0.1.0

@@ -112,9 +112,9 @@ class BhmGuaBaseCarton(BaseCarton):
         priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
         inertial = peewee.Value(True).alias('inertial')
-        pmra = peewee.Value(0.0).cast('float').alias('pmra')
-        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
-        parallax = peewee.Value(0.0).cast('float').alias('parallax')
+        # pmra = peewee.Value(0.0).cast('float').alias('pmra')
+        # pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
+        # parallax = peewee.Value(0.0).cast('float').alias('parallax')
         cadence = peewee.Value(self.cadence).cast('string').alias('cadence')
         instrument = peewee.Value(self.instrument).alias('instrument')
 
@@ -126,9 +126,9 @@ class BhmGuaBaseCarton(BaseCarton):
                 priority,
                 value,
                 inertial,
-                pmra,
-                pmdec,
-                parallax,
+                # pmra,
+                # pmdec,
+                # parallax,
                 cadence,
                 instrument,
                 # rely on the centralised magnitude routines

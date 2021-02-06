@@ -6,16 +6,16 @@
 # @Filename: bhm_aqmes.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-# flake8: noqa
+# ## flake8: noqa
 # isort: skip_file
 
 import peewee
-import sdssdb
+# import sdssdb
 from astropy.io import fits
 import pkg_resources
 
-#debug
-#import os
+# debug
+# import os
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
@@ -27,31 +27,43 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from target_selection.cartons.base import BaseCarton
 
 # this should be in a better place
-radius_apo = 1.49 # degrees
-
+radius_apo = 1.49  # degrees
 
 # Details: Start here
-# https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms#Definingtargetselectionandcadencealgorithms-AQMES-medium-inprogress
+# https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms#Definingtargetselectionandcadencealgorithms-AQMES-medium-inprogress   # noqa: E501
 
-## This provides the following BHM cartons:
-# bhm_aqmes_med
-# bhm_aqmes_med-faint
-# bhm_aqmes_wide2
-# bhm_aqmes_wide2-faint
-# bhm_aqmes_wide3
-# bhm_aqmes_wide3-faint
-# bhm_aqmes_bonus-dark
-# bhm_aqmes_bonus-bright
+# This provides the following BHM cartons:
+#  bhm_aqmes_med
+#  bhm_aqmes_med-faint
+#  bhm_aqmes_wide2
+#  bhm_aqmes_wide2-faint
+#  bhm_aqmes_wide3
+#  bhm_aqmes_wide3-faint
+#  bhm_aqmes_bonus-dark
+#  bhm_aqmes_bonus-bright
 
+# how do we relate the cadence names in v0.5 to cadence names in v0?
+cadence_map_v0p5_to_v0 = {
+    'dark_10x4': 'bhm_aqmes_medium_12x4',
+    'dark_3x4': 'bhm_aqmes_wide_3x4',
+    'dark_2x4': 'bhm_aqmes_wide_2x4',
+    'dark_1x4': 'bhm_spiders_1x4',
+    'bright_3x1': 'bhm_boss_bright_3x1',
+}
 
 
 class BhmAqmesBaseCarton(BaseCarton):
-    ''' Parent class that provides the underlying selections for all AQMES cartons'''
+
+    '''
+    Parent class that provides the underlying selections for all AQMES cartons
+    '''
 
     name = 'bhm_aqmes_base'
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_aqmes'
+    instrument = 'BOSS'
+    inertial = True
     tile = False
     priority = None
     alias_c = None
@@ -64,7 +76,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         if stub is None or stub == '' or stub == 'None':
             return None
 
-        #filename = pkg_resources.resource_filename( __name__, stub)
+        # filename = pkg_resources.resource_filename( __name__, stub)
         filename = pkg_resources.resource_filename('target_selection', stub)
         assert len(filename) > 0
 
@@ -76,12 +88,17 @@ class BhmAqmesBaseCarton(BaseCarton):
         assert len(hdul[1].data) > 0
 
         # choose the correct subset of fields based on the cadence name and form a list of dicts
+        # we have to use the v0 cadence names though
+        assert self.cadence in cadence_map_v0p5_to_v0
+        v0_cadence = cadence_map_v0p5_to_v0[self.cadence]
+
         try:
-            fieldlist = [ {'racen': r['RACEN'],
-                           'deccen': r['DECCEN'],
-                           'radius': radius_apo, }
-                          for r in hdul[1].data
-                          if r['CADENCE'] == self.cadence
+            fieldlist = [
+                {'racen': r['RACEN'],
+                 'deccen': r['DECCEN'],
+                 'radius': radius_apo, }
+                for r in hdul[1].data
+                if r['CADENCE'] == v0_cadence
             ]
         except:
             raise Exception(f"Error interpreting contents of fieldlist file: {filename}")
@@ -91,22 +108,22 @@ class BhmAqmesBaseCarton(BaseCarton):
         return fieldlist
 
     def append_spatial_query(self, query, fieldlist):
-        '''extend the peewee query using a list of field centres'''
-        if fieldlist is None :
+        '''Extend the peewee query using a list of field centres'''
+        if fieldlist is None:
             return query
-        elif len(fieldlist) == 0 :
+        elif len(fieldlist) == 0:
             return query
 
         q = False
         for f in fieldlist:
-            q = ( q | peewee.fn.q3c_radial_query(self.alias_c.ra,
-                                                 self.alias_c.dec,
-                                                 f['racen'],
-                                                 f['deccen'],
-                                                 f['radius']))
+            q = (q | peewee.fn.q3c_radial_query(self.alias_c.ra,
+                                                self.alias_c.dec,
+                                                f['racen'],
+                                                f['deccen'],
+                                                f['radius']))
         return query.where(q)
 
-
+    # main query
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2s = CatalogToSDSS_DR16_SpecObj.alias()
@@ -117,24 +134,40 @@ class BhmAqmesBaseCarton(BaseCarton):
         self.alias_c2s = c2s
 
         # set the Carton priority+values here - read from yaml
-        target_priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        target_value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
-        pmra =  peewee.Value(0.0).cast('float').alias('pmra')
-        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
-        parallax = peewee.Value(0.0).cast('float').alias('parallax')
+        priority = peewee.Value(int(self.parameters.get('priority', 999999))).alias('priority')
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
+        instrument = peewee.Value(self.instrument).alias('instrument')
+        inertial = peewee.Value(self.inertial).cast('bool').alias('inertial')
+        opt_prov = peewee.Value('sdss_psfmag').alias('opt_prov')
+        cadence = peewee.Value(self.cadence).alias('cadence')
+
+        # this is DEBUG until the new v0.5 cadences exist in the DB
+        # - doesn't work because self.cadence is checked before this point
+        # - so give up until targetdb.cadence is populated
+        # assert self.cadence in cadence_map_v0p5_to_v0
+        # v0_cadence = cadence_map_v0p5_to_v0[self.cadence]
+        # cadence = peewee.Value(v0_cadence).alias('cadence')
 
         query = (
-            c
-            .select(c.catalogid,
-                    target_priority,
-                    target_value,
-                    pmra,
-                    pmdec,
-                    parallax,
-                    t.psfmag[1].alias('g'),
-                    t.psfmag[2].alias('r'),
-                    t.psfmag[3].alias('i'),
-                    t.psfmag[4].alias('z'),
+            c.select(
+                c.catalogid,
+                c.ra,   # extra
+                c.dec,   # extra
+                priority,
+                value,
+                inertial,
+                instrument,
+                cadence,
+                t.psfmag[1].alias('g'),
+                t.psfmag[2].alias('r'),
+                t.psfmag[3].alias('i'),
+                t.psfmag[4].alias('z'),
+                opt_prov,
+                t.plate,   # extra
+                t.mjd,   # extra
+                t.fiberid,   # extra
+                t.ra.alias("spec_ra"),   # extra
+                t.dec.alias("spec_dec"),   # extra
             )
             .join(c2s)
             .join(s)
@@ -142,173 +175,197 @@ class BhmAqmesBaseCarton(BaseCarton):
                          (s.mjd == t.mjd) &
                          (s.fiberid == t.fiberid)))
             .where(c.version_id == version_id,
-                   c2s.version_id == version_id)
-#                   c2s.best == True)  # this was removing many aqmes-med targets
+                   c2s.version_id == version_id,
+                   c2s.best >> True)
             .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
             .where
             (
                 (t.psfmag[3] >= self.parameters['mag_i_min']),
-                (t.psfmag[3] <  self.parameters['mag_i_max']),
-                #            (t.z >= self.parameters['redshift_min']), # not needed
-                #            (t.z <= self.parameters['redshift_max']),
+                (t.psfmag[3] < self.parameters['mag_i_max']),
+                # (t.z >= self.parameters['redshift_min']), # not needed
+                # (t.z <= self.parameters['redshift_max']),
             )
         )
-        query = self.append_spatial_query(query, self.get_fieldlist())
 
+        # append the spatial part of the query if necessary
+        query = self.append_spatial_query(query, self.get_fieldlist())
 
         return query
 
 
+# -------AQMES medium section ------ #
 
-#-------AQMES medium ------ #
 
 class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE  psfmag_i BETWEEN 16.x AND 19.1
+    SELECT * FROM sdss_dr16_qso
+    WHERE  psfmag_i BETWEEN 16.x AND 19.1
+    AND   {target lies in spatial selection}
     '''
     name = 'bhm_aqmes_med'
-    cadence = 'bhm_aqmes_medium_12x4'
-    #cadence = 'dummy_cadence'
+    cadence = 'dark_10x4'
 
-# add something like the following if want to add carton-specific selections
-#    def build_query(self, version_id, query_region=None):
-#        query = super().build_query(version_id, query_region)
-#        query = query.where( # .... add extra terms here
-#        )
-#        return query
+    # TD's note to self:
+    # add something like the following if want to add carton-specific selections
+    #    def build_query(self, version_id, query_region=None):
+    #        query = super().build_query(version_id, query_region)
+    #        query = query.where( # .... add extra terms here
+    #        )
+    #        return query
 
 
 class BhmAqmesMedFaintCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE  psfmag_i BETWEEN 19.1 AND 21.0
+    SELECT * FROM sdss_dr16_qso
+    WHERE  psfmag_i BETWEEN 19.1 AND 21.0
+    AND   {target lies in spatial selection}
     '''
-    name = 'bhm_aqmes_med-faint'
-    cadence = 'bhm_aqmes_medium_12x4'
+    name = 'bhm_aqmes_med_faint'
+    cadence = 'dark_10x4'
     program = 'bhm_filler'
 
-#-------AQMES medium ------ #
+# -------AQMES medium section ----- #
+#
+#
 
 
-#-------AQMES wide ------ #
+#
+#
+# -------AQMES wide section ------ #
+
 
 class BhmAqmesWide3Carton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 19.1
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
     '''
     name = 'bhm_aqmes_wide3'
-    cadence = 'bhm_aqmes_wide_3x4'
+    cadence = 'dark_3x4'
 
 
 class BhmAqmesWide3FaintCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
-    name = 'bhm_aqmes_wide3-faint'
-    cadence = 'bhm_aqmes_wide_3x4'
+    name = 'bhm_aqmes_wide3_faint'
+    cadence = 'dark_3x4'
     program = 'bhm_filler'
 
 
 class BhmAqmesWide2Carton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 19.1
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
     '''
     name = 'bhm_aqmes_wide2'
-    cadence = 'bhm_aqmes_wide_2x4'
+    cadence = 'dark_2x4'
 
 
 class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
-    name = 'bhm_aqmes_wide2-faint'
-    cadence = 'bhm_aqmes_wide_2x4'
+    name = 'bhm_aqmes_wide2_faint'
+    cadence = 'dark_2x4'
     program = 'bhm_filler'
 
-#-------AQMES wide ------ #
+# -------AQMES wide section ------ #
 
 
-#-------AQMES bonus ------ #
+# -------AQMES bonus section ------ #
 
-class BhmAqmesBonusDarkCarton(BhmAqmesBaseCarton):
+class BhmAqmesBonusCoreCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 16.x AND 21.5
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
+    {NO spatial constraint}
     '''
-    name = 'bhm_aqmes_bonus-dark'
-    cadence = 'bhm_spiders_1x4'
+    name = 'bhm_aqmes_bonus_core'
+    cadence = 'dark_1x4'
     program = 'bhm_filler'
 
-    # add carton-specific selections - this prevents a problem with duplicated cross-matches
-    # applying this down-selection to other AQMES cartons reduces the numbers of targets significantly.
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        query = query.where(self.alias_c2s.best == True)
-        return query
+
+class BhmAqmesBonusFaintCarton(BhmAqmesBaseCarton):
+    '''
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
+    '''
+    name = 'bhm_aqmes_bonus_faint'
+    cadence = 'dark_1x4'
+    program = 'bhm_filler'
 
 
 class BhmAqmesBonusBrightCarton(BhmAqmesBaseCarton):
     '''
-    SELECT * FROM sdss_dr1x_qso WHERE psfmag_i BETWEEN 14.0 AND 18.0
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 14.0 AND 18.0
     '''
-    name = 'bhm_aqmes_bonus-bright'
-    cadence = 'bhm_boss_bright_3x1'   # could add a new cadence name for this
+    name = 'bhm_aqmes_bonus_bright'
+    cadence = 'bright_3x1'
     program = 'bhm_filler'
 
-#-------AQMES bonus ------ #
+# class BhmAqmesBonusDarkCarton(BhmAqmesBaseCarton):
+#     '''
+#     SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.x AND 21.5
+#     '''
+#     name = 'bhm_aqmes_bonus-dark'
+#     cadence = 'bhm_spiders_1x4'
+#     program = 'bhm_filler'
+#
+#     # add carton-specific selections - this prevents a problem with duplicated cross-matches
+#     # applying this down-selection to other AQMES cartons
+#     #reduces the numbers of targets significantly.
+#     def build_query(self, version_id, query_region=None):
+#         query = super().build_query(version_id, query_region)
+#         query = query.where(self.alias_c2s.best >> True)
+#         return query
 
+# ------- AQMES bonus section ------ #
 
+#
+#
+# #################################################################################
+# ## Debug stuff
 
-
-
-
-
-
-##################################################################################
-### Debug stuff
-
-'''
-SQL:
-select c.*,s.specobjid,t.class,t.psfmag[2] as psfmag_g,t.psfmag[4] AS psfmag_i,t.z,t.zwarning,t.plate,t.mjd,t.fiberid,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep from catalog AS C INNER JOIN catalog_to_sdss_dr13_photoobj as c2p ON c.catalogid = c2p.catalogid INNER JOIN sdss_dr13_photoobj AS p ON c2p.target_id = p.objid INNER JOIN sdss_dr16_specobj as s on p.objid = s.bestobjid INNER JOIN sdss_dr14_qso AS t ON (s.plate = t.plate AND s.mjd = t.mjd AND s.fiberid = t.fiberid ) WHERE (q3c_radial_query(c.ra, c.dec, 10.0, 25.0, 0.1) AND c.version_id = 13 AND (p.resolvestatus & 256) != 0 AND t.psfmag[4] < 19.1);
-
-#python:
-t = SDSS_DR14_QSO.alias()
-for f in t._meta.fields:
-     print (f)
-
-'''
-
-'''
-# for testing do domething like this
-
-import peewee
-import sdssdb
-from sdssdb.peewee.sdss5db.catalogdb import database
-database.set_profile('tunnel_operations')
-from target_selection.cartons.bhm_aqmes import *
-c = BhmAqmesMedCarton(targeting_plan='0.1.0-beta.1')
-q = c.build_query(version_id=13)
-for r in q.limit(5).namedtuples():
-    print(r)
-
-'''
-
-
-'''
-target_selection --profile tunnel_operations_sdss --verbose run --include bhm_aqmes_med,bhm_aqmes_med_faint,bhm_aqmes_wide2,bhm_aqmes_wide3,bhm_aqmes_wide2_faint,bhm_aqmes_wide3_faint,bhm_aqmes_bonus_dark,bhm_aqmes_bonus_bright --keep --overwrite '0.1.0' --write-table
-
-# Exporting from the temp table
-
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_med)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_med_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_med_faint.csv' with csv header
-
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide2.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide3.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide2_faint.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3_faint)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_wide3_faint.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_bright)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_bonus_bright.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_dark)  TO '/home/tdwelly/scratch/targetdb/bhm_aqmes_bonus_dark.csv' with csv header
-
-for F in bhm_aqmes_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
-
-'''
-
-###################################################################################
+# '''
+# SQL:
+# select c.*,s.specobjid,t.class,t.psfmag[2] as psfmag_g,t.psfmag[4] AS psfmag_i,t.z,t.zwarning,t.plate,t.mjd,t.fiberid,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep from catalog AS C INNER JOIN catalog_to_sdss_dr13_photoobj as c2p ON c.catalogid = c2p.catalogid INNER JOIN sdss_dr13_photoobj AS p ON c2p.target_id = p.objid INNER JOIN sdss_dr16_specobj as s on p.objid = s.bestobjid INNER JOIN sdss_dr14_qso AS t ON (s.plate = t.plate AND s.mjd = t.mjd AND s.fiberid = t.fiberid ) WHERE (q3c_radial_query(c.ra, c.dec, 10.0, 25.0, 0.1) AND c.version_id = 13 AND (p.resolvestatus & 256) != 0 AND t.psfmag[4] < 19.1);
+#
+# #python:
+# t = SDSS_DR14_QSO.alias()
+# for f in t._meta.fields:
+#      print (f)
+#
+# '''
+#
+# '''
+# # for testing do domething like this
+#
+# import peewee
+# import sdssdb
+# from sdssdb.peewee.sdss5db.catalogdb import database
+# database.set_profile('tunnel_operations')
+# from target_selection.cartons.bhm_aqmes import *
+# c = BhmAqmesMedCarton(targeting_plan='0.1.0-beta.1')
+# q = c.build_query(version_id=13)
+# for r in q.limit(5).namedtuples():
+#     print(r)
+#
+# '''
+#
+#
+# '''
+# target_selection --profile tunnel_operations_sdss --verbose run --include bhm_aqmes_med,bhm_aqmes_med_faint,bhm_aqmes_wide2,bhm_aqmes_wide3,bhm_aqmes_wide2_faint,bhm_aqmes_wide3_faint,bhm_aqmes_bonus_dark,bhm_aqmes_bonus_bright --keep --overwrite '0.1.0' --write-table
+#
+# # Exporting from the temp table
+#
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med)  TO 'bhm_aqmes_med.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_med_faint)  TO 'bhm_aqmes_med_faint.csv' with csv header
+#
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2)  TO 'bhm_aqmes_wide2.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3)  TO 'bhm_aqmes_wide3.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide2_faint)  TO 'bhm_aqmes_wide2_faint.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_wide3_faint)  TO 'bhm_aqmes_wide3_faint.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_bright)  TO 'bhm_aqmes_bonus_bright.csv' with csv header
+# \copy (SELECT * FROM sandbox.temp_bhm_aqmes_bonus_dark)  TO 'bhm_aqmes_bonus_dark.csv' with csv header
+#
+# for F in bhm_aqmes_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
+#
+# '''
+#
+# ###################################################################################
