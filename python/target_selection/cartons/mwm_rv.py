@@ -909,7 +909,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     name = 'mwm_rv_short_fps'
     category = 'science'
     instrument = 'APOGEE'
-    cadence = bright_18x1
+    cadence = 'bright_18x1'
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2510
