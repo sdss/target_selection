@@ -428,7 +428,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
-    cadence = None
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2500
@@ -909,7 +909,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     name = 'mwm_rv_short_fps'
     category = 'science'
     instrument = 'APOGEE'
-    cadence = None
+    cadence = bright_18x1
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2510
