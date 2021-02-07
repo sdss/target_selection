@@ -14,7 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (CataclysmicVariables, Catalog,
                                              GeometricDistances_Gaia_DR2,
                                              GUVCat, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_CB_300_Carton(BaseCarton):
@@ -39,7 +39,9 @@ class MWM_CB_300_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -102,7 +104,9 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -165,7 +169,9 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):

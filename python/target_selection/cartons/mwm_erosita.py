@@ -106,6 +106,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
     name = 'mwm_erosita_stars'
     category = 'science'
+    instrument = None  # assigned in post_process()
     cadence = None  # assigned in post_process()
     program = 'mwm_erosita'
     mapper = 'MWM'
@@ -149,7 +150,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                         EROSITASupersetStars.target_priority == 1,
                         EROSITASupersetStars.xmatch_metric > 0.5))
 
-        # Gaia_DR2 pweewee model class corresponds to
+        # Gaia_DR2 peewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
         #
         # All values of TIC_v8.plx (for non-null entries) are not the same as
@@ -209,20 +210,31 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             if((current_g < bright_bright_limit) and
                (current_h is not None) and
                (current_h < ir_faint_limit)):
-                current_cadence = 'bright_apogee_1x1'
+                current_instrument = 'APOGEE'  # This is APOGEE. Others below are BOSS.
+                current_cadence = 'bright_1x1'
                 current_priority = 2400
             elif((bright_bright_limit < current_g) and (current_g < 17)):
-                current_cadence = 'bright_boss_1x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_1x1'
                 current_priority = 2400
             elif((17 < current_g) and (current_g < 19)):
-                current_cadence = 'dark_boss_1x2'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x2'
                 current_priority = 1920
             elif(19 < current_g):
-                current_cadence = 'dark_boss_1x3'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x3'
                 current_priority = 1920
             else:
+                current_instrument = None
                 current_cadence = None
                 current_priority = None
+
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_stars " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(
@@ -344,6 +356,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
 
     name = 'mwm_erosita_compact_gen'
     category = 'science'
+    instrument = None  # assigned in post_process()
     cadence = None  # assigned in post_process()
     program = 'mwm_erosita'
     mapper = 'MWM'
@@ -378,7 +391,7 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                         EROSITASupersetCompactobjects.xmatch_version ==
                         'ASJK_0212020_select1uniq'))
 
-        # Gaia_DR2 pweewee model class corresponds to
+        # Gaia_DR2 peewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
         #
         # All values of TIC_v8.plx (for non-null entries) are not the same as
@@ -433,20 +446,31 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
             current_g = output[i][1]
 
             if((current_g < bright_bright_limit)):
+                current_instrument = None
                 current_cadence = None
                 current_priority = None
             elif((bright_bright_limit < current_g) and (current_g < 17)):
-                current_cadence = 'bright_boss_1x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_1x1'
                 current_priority = 2400
             elif((17 < current_g) and (current_g < 19)):
-                current_cadence = 'dark_boss_1x2'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x2'
                 current_priority = 1910
             elif(19 < current_g):
-                current_cadence = 'dark_boss_1x3'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x3'
                 current_priority = 1910
             else:
+                current_instrument = None
                 current_cadence = None
                 current_priority = None
+
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_gen " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(
@@ -534,6 +558,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
 
     name = 'mwm_erosita_compact_var'
     category = 'science'
+    instrument = None  # assigned in post_process()
     cadence = None  # assigned in post_process()
     program = 'mwm_erosita'
     mapper = 'MWM'
@@ -568,7 +593,7 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                         EROSITASupersetCompactobjects.xmatch_version ==
                         'ASJK_0212020_select2univ'))
 
-        # Gaia_DR2 pweewee model class corresponds to
+        # Gaia_DR2 peewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
         #
         # All values of TIC_v8.plx (for non-null entries) are not the same as
@@ -624,20 +649,31 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
             current_g = output[i][1]
 
             if((current_g < bright_bright_limit)):
+                current_instrument = None
                 current_cadence = None
                 current_priority = None
             elif((bright_bright_limit < current_g) and (current_g < 17)):
-                current_cadence = 'bright_boss_1x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_1x1'
                 current_priority = 2400
             elif((17 < current_g) and (current_g < 19)):
-                current_cadence = 'dark_boss_1x2'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x2'
                 current_priority = 1900
             elif(19 < current_g):
-                current_cadence = 'dark_boss_1x3'
+                current_instrument = 'BOSS'
+                current_cadence = 'dark_1x3'
                 current_priority = 1900
             else:
+                current_instrument = None
                 current_cadence = None
                 current_priority = None
+
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_erosita_compact_var " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(

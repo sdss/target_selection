@@ -11,7 +11,7 @@ import peewee
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_WD, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_WD_Carton(BaseCarton):
@@ -26,7 +26,12 @@ class MWM_WD_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
-    cadence = 'mwm_wd_2x1'
+    # Old cadence = 'mwm_wd_2x1'
+    # From cadence wiki page:
+    # mwm_wd_2x1 -> boss_dark_2x1
+    # Hence we set
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):

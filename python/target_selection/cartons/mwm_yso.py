@@ -55,7 +55,8 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_disk_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -150,8 +151,8 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
 
     name = 'mwm_yso_disk_boss'
     category = 'science'
-    # cadence is set in post_process()
-    cadence = None
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -223,20 +224,32 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
             current_rp = output[i][1]
 
             if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
             elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
             elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
             elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
             else:
+                current_instrument = None
                 current_cadence = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_disk_boss " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_disk_boss " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_disk_boss " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
@@ -282,7 +295,8 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_embedded_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -370,7 +384,8 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_nebula_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -488,7 +503,8 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_variable_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -621,8 +637,8 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
 
     name = 'mwm_yso_variable_boss'
     category = 'science'
-    # cadence is set in post_process()
-    cadence = None
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -716,20 +732,32 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
             current_rp = output[i][1]
 
             if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
             elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
             elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
             elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
             else:
+                current_instrument = None
                 current_cadence = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_variable_boss " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_variable_boss " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_variable_boss " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
@@ -763,7 +791,8 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_ob_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -843,8 +872,8 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
 
     name = 'mwm_yso_ob_boss'
     category = 'science'
-    # cadence is set in post_process()
-    cadence = None
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -906,20 +935,32 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
             current_rp = output[i][1]
 
             if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
             elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
             elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
             elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
             else:
+                current_instrument = None
                 current_cadence = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_ob_boss " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_ob_boss " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_ob_boss " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
@@ -988,7 +1029,8 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_cmz_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1080,7 +1122,8 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_cluster_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1159,8 +1202,8 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
 
     name = 'mwm_yso_cluster_boss'
     category = 'science'
-    # cadence is assigned in post_process()
-    cadence = None
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1224,20 +1267,32 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
             current_rp = output[i][1]
 
             if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
             elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
             elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
             elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
             else:
+                current_instrument = None
                 current_cadence = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_cluster_boss " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_cluster_boss " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_cluster_boss " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
@@ -1267,7 +1322,8 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
     name = 'mwm_yso_pms_apogee'
     category = 'science'
-    cadence = None  # 'apogee_bright_3x1'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1364,8 +1420,8 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
     name = 'mwm_yso_pms_boss'
     category = 'science'
-    # cadence is assigned in post_process()
-    cadence = None
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
@@ -1452,17 +1508,29 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
             current_rp = output[i][1]
 
             if(current_rp < 14.76):
-                current_cadence = 'boss_bright_3x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
             elif(current_rp < 15.075):
-                current_cadence = 'boss_bright_4x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
             elif(current_rp < 15.29):
-                current_cadence = 'boss_bright_5x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
             elif(current_rp < 15.5):
-                current_cadence = 'boss_bright_6x1'
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
             else:
+                current_instrument = None
                 current_cadence = None
 
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_yso_boss_pms " +
-                " set cadence = '" + current_cadence + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_boss_pms " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_boss_pms " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")

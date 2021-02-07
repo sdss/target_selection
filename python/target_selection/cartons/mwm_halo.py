@@ -12,7 +12,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (BestBrightest, Catalog,
                                              CatalogToAllWise, CatalogToTIC_v8,
                                              SkyMapperGaia, TIC_v8)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 class MWM_Halo_Best_Brightest_Carton(BaseCarton):
@@ -47,6 +47,7 @@ class MWM_Halo_Best_Brightest_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_filler'
+    instrument = None
     cadence = None
     priority = None
 
@@ -94,6 +95,7 @@ class MWM_Halo_SkyMapper_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_filler'
+    instrument = None
     cadence = None
     priority = 6050
 

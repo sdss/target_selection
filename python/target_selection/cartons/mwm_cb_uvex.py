@@ -18,7 +18,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (UVOT_SSC_1, XMM_OM_SUSS_4_1,
                                              GeometricDistances_Gaia_DR2,
                                              GUVCat, TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 fuv_mag = GUVCat.fuv_mag
@@ -119,7 +119,9 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def setup_transaction(self):
@@ -249,7 +251,9 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def setup_transaction(self):
@@ -396,7 +400,9 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -571,7 +577,9 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -731,7 +739,9 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    cadence = 'mwm_cb_2x1'
+    # mwm_cb_2x1 -> boss_dark_2x1
+    instrument = 'BOSS'
+    cadence = 'dark_2x1'
     priority = 1400
 
     def setup_transaction(self):

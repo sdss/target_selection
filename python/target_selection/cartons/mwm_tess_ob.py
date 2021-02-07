@@ -57,11 +57,18 @@ class MWM_TESS_OB_Carton(BaseCarton):
     (list all options, even though no single target will receive more than one):
     There are three cadences that will be used by these targets.
 
-    For all targets in mwm_tess_ob_8x1_GaiaID.csv use apogee_bright_8x1.
+    For all targets in mwm_tess_ob_8x1_GaiaID.csv use
+        instrument =  "APOGEE"
+        cadence = "bright_8x1"
 
     For targets in mwm_tess_ob_8x3_GaiaID.csv
-    if H < 11 then use apogee_bright_8x2
-    if H > =11 then use  apogee_bright_8x4
+    if H < 11 then use
+        instrument = "APOGEE"
+        cadence = "bright_8x2"
+
+    if H > =11 then use
+        instrument = "APOGEE"
+        cadence = "bright_8x4"
 
     Pseudo SQL (optional):
 
@@ -74,6 +81,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
 
     name = 'mwm_tess_ob'
     category = 'science'
+    instrument = None  # assigned in query
     cadence = None  # assigned in query
     program = 'mwm_tess_ob'
     mapper = 'MWM'
@@ -93,6 +101,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
                          MWM_TESS_OB.ra,
                          MWM_TESS_OB.dec,
                          MWM_TESS_OB.h_mag,
+                         MWM_TESS_OB.instrument,
                          MWM_TESS_OB.cadence)
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
