@@ -1325,7 +1325,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
          MIN(tic.gaiarp) as rp,
          MAX(CASE WHEN (ps.flags & (8388608 + 16777216)) = 0 THEN 'ps_psfmag'
                   ELSE 'ps_apermag' END) AS opt_prov,
-         (1520 +
+         (1530 +
           (CASE WHEN MAX(s16.specobjid) IS NOT NULL THEN 4
                 WHEN MAX(s2020.pk)      IS NOT NULL THEN 4
                 WHEN MAX(sV.specobjid)  IS NOT NULL THEN 4
@@ -1400,14 +1400,14 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         AND c.version_id = 21
         AND c2ps.version_id = 21
         AND c2ps.best IS TRUE
-        AND q3c_radial_query(c.ra,c.dec,135.0,+1.0,1.0)
     GROUP BY ps.catid_objid
     HAVING
-            MIN(tic.gaiamag) > 13.5
-        AND MIN(tic.gaiarp) > 13.5)
-
+          COUNT(tic.gaiamag < 13.5
+                OR tic.gaiarp < 13.5
+                OR tic.tmag < 13.0) = 0
     ;
 
+    #    AND q3c_radial_query(c.ra,c.dec,135.0,+1.0,1.0)
 
     select cadence,count(*) from sandbox.temp_td_bhm_spiders_agn_ps1dr2 group by cadence;
     select priority,count(*) from sandbox.temp_td_bhm_spiders_agn_ps1dr2 group by priority order by priority;
@@ -1502,7 +1502,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         # ps.flags EXT+EXT_ALT (i.e. extended sources)
         # For non-extended targets, we use psfmags, but for extended sources use apermag
         flux30 = AB2Jy(30.00)
-        ext_flag = 8388608 + 16777216
+        ext_flags = 8388608 + 16777216
         good_stack_flag = 134217728
         opt_prov = peewee.Case(
             ps.flags.bin_and(ext_flags),
@@ -1629,7 +1629,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
                 # any match to the tic must satisfy the bright star rejection criteria
                 fn.count(
                     (tic.gaiamag < self.parameters['gaia_g_mag_limit']) |
-                    (tic.gaiarp < self.parameters['gaia_rp_mag_limit'])
+                    (tic.gaiarp < self.parameters['gaia_rp_mag_limit']) |
                     (tic.tmag < self.parameters['tic_t_mag_limit'])
                 ) == 0
             )
