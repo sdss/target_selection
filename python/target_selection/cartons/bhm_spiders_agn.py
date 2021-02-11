@@ -14,27 +14,13 @@ import peewee
 from peewee import JOIN
 from peewee import fn
 
+from target_selection.cartons.base import BaseCarton
 
-# '''
-# # for testing do this
-#
-# import peewee
-# import sdssdb
-# from sdssdb.peewee.sdss5db.catalogdb import database
-# database.set_profile('tunnel_operations')
-# from target_selection.cartons.bhm_spiders_agn import BhmSpidersAgnEfedsCarton
-# b = BhmSpidersAgnEfedsCarton(targeting_plan='0.1.0-beta.1')
-# q = b.build_query(version_id=13)
-# for r in q[:5]: print(r))
-#
-# '''
-
-# general imports
+# general catalogdb imports
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     EROSITASupersetAGN,
 )
-
 
 # imports of existing spectro catalogues
 from sdssdb.peewee.sdss5db.catalogdb import (
@@ -42,35 +28,29 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     SDSS_DR16_SpecObj,
     BHM_eFEDS_Veto,
     SDSSV_BOSS_SPALL,
+    SDSSV_Plateholes,
+    SDSSV_Plateholes_Meta,
 )
 
-# imports required by bhm_spiders_agn_lsdr8
+# additional imports required by bhm_spiders_agn_lsdr8
 from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToLegacy_Survey_DR8,
     Legacy_Survey_DR8,
 )
 
-# additional imports required by bhm_spiders_agn_efeds
-from sdssdb.peewee.sdss5db.catalogdb import (
-    SDSSV_Plateholes,
-    SDSSV_Plateholes_Meta,
-)
-
-# imports required by bhm_spiders_agn_gaiadr2
+# additional imports required by bhm_spiders_agn_gaiadr2
 from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToTIC_v8,
     TIC_v8,
 )
 
-
-# imports required by bhm_spiders_agn_gaiadr2
+# additional imports required by bhm_spiders_agn_ps1dr2
 from sdssdb.peewee.sdss5db.catalogdb import (
     Panstarrs1,
     # CatalogToPanstarrs1,    # only exists after v0.5 cross-match
 )
 
 
-from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy, AB2Jy
 # from target_selection.mag_flux import psfmag_minus_fiber2mag
 
@@ -98,6 +78,7 @@ from target_selection.mag_flux import AB2nMgy, AB2Jy
 # 22.0 AB = 1.58489 nMgy
 # 21.5 AB = 2.51189 nMgy
 # 21.0 AB = 3.98107 nMgy
+# 20.0 AB = 10.0 nMgy
 # 18.5 AB = 39.8107 nMgy
 # 16.5 AB = 251.189 nMgy
 # 14.0 AB = 2511.89 nMgy
@@ -1402,9 +1383,12 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         AND c2ps.best IS TRUE
     GROUP BY ps.catid_objid
     HAVING
-          COUNT(tic.gaiamag < 13.5
-                OR tic.gaiarp < 13.5
-                OR tic.tmag < 13.0) = 0
+      SUM(CASE WHERE
+           ( tic.gaiamag < 13.5
+          OR tic.gaiarp < 13.5
+          OR tic.tmag < 13.0
+           ) THEN 1 ELSE 0 END
+         ) = 0
     ;
 
     #    AND q3c_radial_query(c.ra,c.dec,135.0,+1.0,1.0)
@@ -1626,11 +1610,16 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
             )
             .group_by(ps.catid_objid)   # avoid duplicates - we trust the ps1 ids
             .having(
-                # any match to the tic must satisfy the bright star rejection criteria
-                fn.count(
-                    (tic.gaiamag < self.parameters['gaia_g_mag_limit']) |
-                    (tic.gaiarp < self.parameters['gaia_rp_mag_limit']) |
-                    (tic.tmag < self.parameters['tic_t_mag_limit'])
+                # each and every match to the tic must satisfy the bright star rejection criteria
+                fn.sum(
+                    peewee.Case
+                    (None,
+                     (
+                         (tic.gaiamag < self.parameters['gaia_g_mag_limit'], 1),
+                         (tic.gaiarp < self.parameters['gaia_rp_mag_limit'], 1),
+                         (tic.tmag < self.parameters['tic_t_mag_limit'], 1),
+                     ),
+                    0)
                 ) == 0
             )
         )

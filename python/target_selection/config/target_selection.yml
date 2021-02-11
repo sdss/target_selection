@@ -161,6 +161,34 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1530
+        bhm_spiders_clusters_lsdr8:
+            value_bcg: 5.0
+            value_member: 5.0
+            ero_version: 'em01_c946_201008_poscorr'
+            xmatch_method: 'EROMAPPER_LS_DR8'
+            xmatch_version: 'grzw1_v0.3_2020-12-04'
+            opt_cat: 'lsdr8'
+            det_like_min: 8.0
+            xmatch_metric_min: 0.0
+            fibertotmag_r_min: 13.5
+            fibertotmag_r_max: 21.0
+            fibertotmag_z_min: 13.5
+            fibertotmag_z_max: 20.0
+            fibertotmag_r_for_cadence1: 16.5
+            fibertotmag_z_for_cadence1: 16.5
+            fibertotmag_r_for_cadence2: 18.5
+            gaia_g_max_for_cadence1: 16.0
+            gaia_rp_max_for_cadence1: 16.0
+            gaia_g_mag_limit: 13.5
+            gaia_rp_mag_limit: 13.5
+            cadence1: 'bright_2x1'
+            cadence2: 'dark_1x2'
+            cadence3: 'dark_1x4'
+            spec_join_radius: 1.0
+            spec_sn_thresh: 2.00
+            spec_z_err_thresh: 0.01
+            priority_floor_bcg: 1500
+            priority_floor_member: 1550
         bhm_aqmes_med:
             priority: 1100
             value: 100.0
