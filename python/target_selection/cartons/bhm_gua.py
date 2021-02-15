@@ -105,36 +105,43 @@ class BhmGuaBaseCarton(BaseCarton):
 
         # Keep things simple by trusting the specprimary labels in the
         # SDSS specObj file - consider only the 'best' spectrum per sky position
-        s = SDSS_DR16_SpecObj.select().where(SDSS_DR16_SpecObj.scienceprimary > 0,).alias()
+        ss = SDSS_DR16_SpecObj.alias()
+        s = ss.select(
+            ss.specobjid.alias('specobjid'),
+            ss.ra.alias('ra'),
+            ss.dec.alias('dec'),
+        ).where
+        (
+            (ss.snmedian >= self.parameters['spec_sn_thresh']),
+            (ss.zwarning == 0),
+            (ss.zerr <= self.parameters['spec_z_err_thresh']),
+            (ss.zerr > 0.0),
+            (ss.scienceprimary > 0),
+        ).alias('s')
+
         # s = SDSS_DR16_SpecObj.alias()
 
         # set the Carton priority+values here - read from yaml
-        priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
-        inertial = peewee.Value(True).alias('inertial')
-        # pmra = peewee.Value(0.0).cast('float').alias('pmra')
-        # pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
-        # parallax = peewee.Value(0.0).cast('float').alias('parallax')
-        cadence = peewee.Value(self.cadence).cast('string').alias('cadence')
-        instrument = peewee.Value(self.instrument).alias('instrument')
+        priority = peewee.Value(int(self.parameters.get('priority', 10000)))
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        inertial = peewee.Value(True)
+        cadence = peewee.Value(self.parameters['cadence'])
+        instrument = peewee.Value(self.instrument)
 
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
 
         query = (
             c.select(
                 c.catalogid,
-                priority,
-                value,
-                inertial,
-                # pmra,
-                # pmdec,
-                # parallax,
-                cadence,
-                instrument,
+                c.ra,
+                c.dec,
+                t.gaia_sourceid,
+                priority.alias('priority'),
+                value.alias('value'),
+                inertial.alias('inertial'),
+                cadence.alias('cadence'),
+                instrument.alias('instrument'),
                 # rely on the centralised magnitude routines
-                # t.g.alias('g'),
-                # t.bp.alias('bp'),
-                # t.rp.alias('rp'),
             )
             .join(c2tic)
             .join(tic)
@@ -145,18 +152,14 @@ class BhmGuaBaseCarton(BaseCarton):
                 s,
                 JOIN.LEFT_OUTER,
                 on=(
-                    fn.q3c_join(s.ra, s.dec,
+                    fn.q3c_join(s.c.ra, s.c.dec,
                                 c.ra, c.dec,
                                 match_radius_spectro) &
-                    (s.snmedian >= self.parameters['spec_sn_thresh']) &
-                    (s.zwarning == 0) &
-                    (s.zerr <= self.parameters['spec_z_err_thresh']) &
-                    (s.zerr > 0.0) &
-                    (s.scienceprimary > 0)
+
                 )
             )
             # then reject any GUA targets with existing good DR16 spectroscopy
-            .where(s.specobjid.is_null(True))
+            .where(s.c.specobjid.is_null(True))
             # standard selection that chooses correct catalogdb version etc
             .where(c.version_id == version_id,
                    c2tic.version_id == version_id,
@@ -194,7 +197,6 @@ class BhmGuaDarkCarton(BhmGuaBaseCarton):
         AND ( gua.g > 16.x AND gua.rp > 16.x)
     '''
     name = 'bhm_gua_dark'
-    cadence = 'bhm_spiders_1x4'
 
 
 class BhmGuaBrightCarton(BhmGuaBaseCarton):
@@ -206,7 +208,6 @@ class BhmGuaBrightCarton(BhmGuaBaseCarton):
 
     '''
     name = 'bhm_gua_bright'
-    cadence = 'bhm_boss_bright_3x1'
 
 
 #

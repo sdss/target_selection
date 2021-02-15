@@ -25,6 +25,7 @@
             spec_z_err_thresh: 0.01
             priority: 3400
             value: 0.5
+            cadence: 'dark_1x4'
         bhm_gua_bright:
             mag_g_min: 13.0
             mag_g_max: 18.5
@@ -36,6 +37,7 @@
             spec_z_err_thresh: 0.01
             priority: 4040
             value: 0.5
+            cadence: 'bright_2x1'
         bhm_spiders_agn_lsdr8:
             value: 1.0
             ero_version: 'em01_c946_201008_poscorr'
@@ -307,6 +309,58 @@
             fieldlist: None
             mag_i_min: 14.0
             mag_i_max: 18.0
+        bhm_rm_base:
+            fieldlist:
+            - {name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49}
+            - {name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49}
+            - {name: XMM-LSS,  racen: 35.70833, deccen: -5.05000,  radius: 1.49}
+            - {name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00}
+            - {name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00}
+            - {name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00}
+        bhm_rm_core:
+            priority: 1002
+            value: 1000.0
+            mag_i_min: 17.0
+            mag_i_max: 21.5
+            mag_g_min_cvz_s: 16.0
+            mag_g_max_cvz_s: 21.7
+            pmsig_max: 3.0
+            plxsig_max: 3.0
+        bhm_rm_known_spec:
+            priority: 1001
+            value: 1000.0
+            mag_i_min: 15.0
+            mag_i_max: 21.7
+            mag_i_max_sdss_rm: 21.7
+            mag_i_max_cosmos: 21.5
+            mag_i_max_xmm_lss: 21.5
+            mag_g_min_cvz_s: 16.0
+            mag_g_max_cvz_s: 21.7
+            specz_min: 0.005
+            specz_max: 7.0
+        bhm_rm_var:
+            priority: 1003
+            value: 1000.0
+            mag_i_min: 17.0
+            mag_i_max: 20.5
+            mag_g_min_cvz_s: 16.0
+            mag_g_max_cvz_s: 21.7
+            des_var_sn_min: 3.0
+            des_var_rms_min: 0.05
+            ps1_var_sn_min: 3.0
+            ps1_var_rms_min: 0.05
+            pmsig_max: 3.0
+            plxsig_max: 3.0
+        bhm_rm_ancillary:
+            priority: 1004
+            value: 1000.0
+            photo_bitmask: 3
+            mag_i_min: 15.0
+            mag_i_max: 21.5
+            mag_g_min_cvz_s: 16.0
+            mag_g_max_cvz_s: 21.7
+            pmsig_max: 3.0
+            plxsig_max: 3.0
 
 '0.1.3':
     xmatch_plan: 0.1.0

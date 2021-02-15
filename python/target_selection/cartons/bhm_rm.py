@@ -14,7 +14,6 @@ from peewee import JOIN
 from peewee import fn
 
 from target_selection.cartons.base import BaseCarton
-
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     BHM_RM_v0_2,
@@ -26,9 +25,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 )
 
 
-#  This module provides the following BHM cartons:
+#  This module provides the following BHM cartons in v05:
 #  bhm_rm_core
-#  bhm_rm_known-spec
+#  bhm_rm_known_spec
 #  bhm_rm_var
 #  bhm_rm_ancillary
 
@@ -46,12 +45,14 @@ class BhmRmBaseCarton(BaseCarton):
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_rm'
-    cadence = 'bhm_rm_174x8'
+    # cadence = 'bhm_rm_174x8'
     instrument = 'BOSS'
     tile = False
     priority = None
+    inertial = True
     alias_c = None
     alias_t = None
+    alias_tw = None
 
     def get_fieldlist(self):
         '''Read the RM field centres from the yaml'''
@@ -81,15 +82,15 @@ class BhmRmBaseCarton(BaseCarton):
         c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
         t = BHM_RM_v0_2.alias()
-        self.alias_c = c
-        self.alias_t = t
         c2s = CatalogToSDSS_DR16_SpecObj.alias()
         s = SDSS_DR16_SpecObj.alias()
         tw = BHM_RM_Tweaks.alias()
         sV = SDSSV_BOSS_SPALL.alias()
+        self.alias_c = c
+        self.alias_t = t
+        self.alias_tw = tw
 
-        # set the Carton priority+values here - read from yaml
-        # priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
+        fieldlist = self.get_fieldlist()
 
         # fold in tiers of magnitude-based priority
         priority_mag_step = 0.5
@@ -97,127 +98,132 @@ class BhmRmBaseCarton(BaseCarton):
         priority_mag_faint = 22.0
         priority_mag_bright_known_spec = 20.5
         priority_floor = self.parameters.get('priority', 10000)
-        priority = peewee.Case(
+        priority1 = peewee.Case(
             None,
             (
-                ((t.mi <= priority_mag_bright),
-                 priority_floor + 0),
-                (((self.name == 'bhm_rm_known_spec') &
-                  ~(t.field_name.contains('SDSS-RM')) &
-                  (t.mi <= priority_mag_bright_known_spec)),
-                 priority_floor+0),
-                ((t.mi <= priority_mag_faint),
-                 (priority_floor +
-                  5 * (1 + peewee.fn.floor((t.mi - priority_mag_bright) /
-                                           priority_mag_step).cast('int')))),
-                ((t.mi > priority_mag_faint),
-                 priority_floor + 95),
+                (
+                    (t.mi <= priority_mag_bright),
+                    priority_floor + 0),
+                (
+                    (
+                        (self.name == 'bhm_rm_known_spec') &
+                        ~(t.field_name.contains('SDSS-RM')) &
+                        (t.mi <= priority_mag_bright_known_spec)
+                    ),
+                    priority_floor + 0),
+                (
+                    (t.mi <= priority_mag_faint),
+                    priority_floor +
+                    5 * (1 + peewee.fn.floor((t.mi - priority_mag_bright) /
+                                             priority_mag_step).cast('int'))),
+                (
+                    (t.mi > priority_mag_faint),
+                    priority_floor + 95),
             ),
             None
-        ).cast('int')
+        )
+        # this secondary priority rule is based on whether this target was
+        # observed successfully during the plate phase of SDSS-V
+        priority2 = peewee.Case(
+            None,
+            (
+                (sV.specobjid.is_null(False), -100),
+                (sV.specobjid.is_null(True), 0),
+            ),
+            None
+        )
+        priority = priority1 + priority2
 
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        instrument = peewee.Value(self.instrument)
+        inertial = peewee.Value(self.inertial).cast('bool')
+        match_radius_spectro = 1.0 / 3600.0
 
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
-        pmra = peewee.Value(0.0).cast('float').alias('pmra')
-        pmdec = peewee.Value(0.0).cast('float').alias('pmdec')
-        parallax = peewee.Value(0.0).cast('float').alias('parallax')
+        # This is the scheme used in v0
+        cadence = peewee.Case(None,
+                              (
+                                  (t.field_name.contains('S-CVZ'), 'bhm_rm_lite5_100x8'),
+                              ),
+                              'bhm_rm_174x8')
 
-        ### this leads to some scattered nulls in photometry - prefer to use best estimate photom instead
-        # magnitude_g = peewee.Case(None,
-        #                           (
-        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
-        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
-        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
-        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
-        #                           ),
-        #                           None) ## should never get here
-        # magnitude_r = peewee.Case(None,
-        #                           (
-        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
-        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
-        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
-        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
-        #                           ),
-        #                           None) ## should never get here
-        # magnitude_i = peewee.Case(None,
-        #                           (
-        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
-        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
-        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
-        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
-        #                           ),
-        #                           t.mi) ## should never get here
-        # magnitude_z = peewee.Case(None,
-        #                           (
-        #                             ((t.optical_survey.contains('SDSS')) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
-        #                             ((t.optical_survey.contains('PS1')) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
-        #                             ((t.optical_survey.contains('DES')) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
-        #                             ((t.optical_survey.contains('NSC')) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
-        #                           ),
-        #                           None) ## should never get here
+        # the following will replace old generic cadences when relevant table has been populated
+        ## TODO
+        cadence2 = peewee.Case(None,
+                               (
+                                   (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
+                                   (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
+                                   (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
+                                   (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
+                                   (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
+                                   (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
+                               ),
+                               'bhm_rm_174x8')
 
         # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
+        opt_prov = peewee.Case(None,
+                               (
+                                   (t.des == 1, 'psfmag'),
+                                   (t.ps1 == 1, 'ps_psfmag'),
+                                   (t.sdss == 1, 'sdss_psfmag'),
+                                   (t.optical_survey == 'Gaia', 'other'),
+                                   (t.nsc == 1, 'psfmag'),
+                               ),
+                               'other')
 
         magnitude_g = peewee.Case(None,
                                   (
-                                    ((t.des == 1) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
-                                    ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
-                                    ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
+                                      ((t.des == 1) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
+                                      ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
+                                      ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
+                                      ((t.optical_survey == 'Gaia') & (t.mg > 0.0), t.mg),
+                                      ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
                                   ),
-                                  None) ## should never get here
+                                  None)  # should never get here
         magnitude_r = peewee.Case(None,
                                   (
-                                    ((t.des == 1) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
-                                    ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
-                                    ((t.nsc == 1) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
+                                      ((t.des == 1) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
+                                      ((t.ps1 == 1) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
+                                      ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
+                                      ((t.nsc == 1) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
                                   ),
-                                  None) ## should never get here
+                                  None)  # should never get here
         magnitude_i = peewee.Case(None,
                                   (
-                                    ((t.des == 1) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
-                                    ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
-                                    ((t.nsc == 1) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
+                                      ((t.des == 1) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
+                                      ((t.ps1 == 1) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
+                                      ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
+                                      ((t.nsc == 1) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
+                                      (t.mi > 0.0, t.mi),
                                   ),
-                                  t.mi) ## should never get here
+                                  None)  # should never get here
         magnitude_z = peewee.Case(None,
                                   (
-                                    ((t.des == 1) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
-                                    ((t.ps1 == 1) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
-                                    ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
-                                    ((t.nsc == 1) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
+                                      ((t.des == 1) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
+                                      ((t.ps1 == 1) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
+                                      ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
+                                      ((t.nsc == 1) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
                                   ),
-                                  None) ## should never get here
-
-
-        ## now gaia mags
-        #magnitude_bp = peewee.Case(None,
-        #                           (
-        #                            ((t.gaia == 1), t.mag_gaia[1]),
-        #                           ),
-        #                           None)
-        #magnitude_rp = peewee.Case(None,
-        #                           (
-        #                            ((t.gaia == 1), t.mag_gaia[2]),
-        #                           ),
-        #                           None)
-
-
+                                  None)  # should never get here
 
         query = (
-            c
-            .select(c.catalogid,
-                    priority.alias('priority'),
-                    value,
-                    pmra,
-                    pmdec,
-                    parallax,
-                    magnitude_g.alias('g'),
-                    magnitude_r.alias('r'),
-                    magnitude_i.alias('i'),
-                    magnitude_z.alias('z'),
+            c.select(
+                c.catalogid,
+                c.ra,
+                c.dec,
+                t.field_name.alias('rm_field_name'),
+                t.pk.alias('rm_pk'),
+                instrument.alias('instrument'),
+                priority.alias('priority'),
+                value.alias('value'),
+                cadence.alias('cadence'),
+                cadence2.alias('cadence2'),
+                magnitude_g.alias('g'),
+                magnitude_r.alias('r'),
+                magnitude_i.alias('i'),
+                magnitude_z.alias('z'),
+                opt_prov.alias('opt_prov'),
+                inertial.alias('inertial'),
+                t.optical_survey.alias('optical_survey'),
             )
             .join(c2t)
             # The following is needed because we are using c2t for Catalog_to_BHM_RM_v0
@@ -229,34 +235,72 @@ class BhmRmBaseCarton(BaseCarton):
                        (c2s.version_id == version_id) |
                        (c2s.version_id.is_null())
                    ),
-                   c2t.best == True)
+                   c2t.best >> True)
             .where
             (
-                (t.mi >= self.parameters['mag_i_min']),
-                (t.mi <  self.parameters['mag_i_max']),
+                (
+                    (t.mi >= self.parameters['mag_i_min']) &
+                    (t.mi < self.parameters['mag_i_max'])
+                ) |
+                (
+                    # S-CVZ targets often have only Gaia photom
+                    (t.field_name.contains('S-CVZ')) &
+                    (t.mg >= self.parameters['mag_g_min_cvz_s']) &
+                    (t.mg < self.parameters['mag_g_max_cvz_s'])
+                )
             )
             .switch(c)
             .join(c2s, JOIN.LEFT_OUTER)
-            .join(s, JOIN.LEFT_OUTER)
-            .where(
-                (s.specobjid.is_null()) |    # no match in sdss_dr16_specobj
-                ~(
-                    (s.class_.contains('STAR')) & # Reject objects where the best spectrum for
-                    (s.scienceprimary > 0)      # this object is classified as STAR
+            .join(
+                s,
+                JOIN.LEFT_OUTER,
+                on=(
+                    (c2s.target_id == s.specobjid) &
+                    (s.scienceprimary > 0)
+                ),
+            )
+            .join(
+                tw,
+                JOIN.LEFT_OUTER,
+                on=(fn.q3c_join(tw.ra, tw.dec,
+                                c.ra, c.dec,
+                                match_radius_spectro))
+            )
+            .join(
+                sV,
+                JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(sV.plug_ra, sV.plug_dec,
+                                c.ra, c.dec,
+                                match_radius_spectro) &
+                    sV.programname.contains('RM') &
+                    sV.firstcarton.contains('bhm_rm_') &
+                    (sV.class_ == 'QSO') &
+                    (sV.zwarning == 0) &
+                    (sV.sn_median_all > 2.0)
                 )
+            )
+            .where(
+                # Reject objects where the best spectrum for
+                # this object in sdss_dr16_specobj is classified as STAR
+                (s.specobjid.is_null()) | ~(s.class_.contains('STAR')),
+
+                # Only keep objects that are not flagged as being bad for RM
+                # bhm_rm_tweaks.rm_suitability==0 means:
+                # 'target is probably unsuitable for RM, do not observe in the future'
+                (tw.pkey.is_null()) | (tw.rm_suitability != 0)
             )
             .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
         )
-        query = self.append_spatial_query(query, self.get_fieldlist())
+        query = self.append_spatial_query(query, fieldlist)
 
         return query
 
 
-
-
 class BhmRmCoreCarton(BhmRmBaseCarton):
     '''
-    bhm_rm_core: select all photometric QSO targets with the likelihood method (Skewt), flux-limited to 21.5 in i-band PSF mag
+    bhm_rm_core: select all photometric QSO targets with the
+                 likelihood method (Skewt), flux-limited to 21.5 in i-band PSF mag
 
     SELECT * FROM bhm_rm
             WHERE skewt_qso = 1
@@ -274,42 +318,56 @@ class BhmRmCoreCarton(BhmRmBaseCarton):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
         query = query.where(
-            (t.skewt_qso == 1) &
+            (t.skewt_qso == 1),
             (
                 ~(t.field_name.contains('S-CVZ')) |
                 ((t.field_name.contains('S-CVZ')) & (t.skewt_qso_prior == 1))
-            ) &
-            (t.pmsig <  self.parameters['pmsig_max']) &
-            (t.plxsig <  self.parameters['plxsig_max']) &
+            ),
+            (t.pmsig < self.parameters['pmsig_max']),
+            (t.plxsig < self.parameters['plxsig_max']),
             (
-                #catch bad photometry - require at least gri detections in at least one system
-                ((t.sdss == 1) &
-                 ( t.psfmag_sdss[1] > 0.0) &
-                 ( t.psfmag_sdss[2] > 0.0) &
-                 ( t.psfmag_sdss[3] > 0.0)) |
-                ((t.ps1 == 1) &
-                 ( t.psfmag_ps1[0] > 0.0) &
-                 ( t.psfmag_ps1[1] > 0.0) &
-                 ( t.psfmag_ps1[2] > 0.0)) |
-                ((t.des == 1) &
-                 ( t.psfmag_des[0] > 0.0) &
-                 ( t.psfmag_des[1] > 0.0) &
-                 ( t.psfmag_des[2] > 0.0)) |
-                ((t.nsc == 1) &
-                 ( t.mag_nsc[0] > 0.0) &
-                 ( t.mag_nsc[1] > 0.0) &
-                 ( t.mag_nsc[2] > 0.0))
-            ) &
-#            (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
-#            (t.plxsig > plxsig_min) &
-            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
+                # catch bad photometry - require at least gri detections in at least one system
+                # in all fields - except in S-CVZ where targets often have only Gaia photom
+                (
+                    (t.sdss == 1) &
+                    (t.psfmag_sdss[1] > 0.0) &
+                    (t.psfmag_sdss[2] > 0.0) &
+                    (t.psfmag_sdss[3] > 0.0)
+                ) |
+                (
+                    (t.ps1 == 1) &
+                    (t.psfmag_ps1[0] > 0.0) &
+                    (t.psfmag_ps1[1] > 0.0) &
+                    (t.psfmag_ps1[2] > 0.0)
+                ) |
+                (
+                    (t.des == 1) &
+                    (t.psfmag_des[0] > 0.0) &
+                    (t.psfmag_des[1] > 0.0) &
+                    (t.psfmag_des[2] > 0.0)
+                ) |
+                (
+                    (t.nsc == 1) &
+                    (t.mag_nsc[0] > 0.0) &
+                    (t.mag_nsc[1] > 0.0) &
+                    (t.mag_nsc[2] > 0.0)
+                ) |
+                (
+                    (t.field_name.contains('S-CVZ')) &
+                    (t.mg > 0.0)
+                )
+            ),
+            #  (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
+            #  (t.plxsig > plxsig_min) &
+            ~(t.field_name.contains('SDSS-RM')),  # ignore this carton in the SDSS-RM field
         )
 
         return query
 
+
 class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     '''
-    bhm_rm_known-spec:  select all spectroscopically confirmed QSOs where redshift is extragalactic
+    bhm_rm_known_spec:  select all spectroscopically confirmed QSOs where redshift is extragalactic
 
     SELECT * FROM bhm_rm
         WHERE specz > 0.005
@@ -319,47 +377,54 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
     Do that via a bit in the spec_bitmask field. Also restrict to mi < 21.0
     '''
 
-    name = 'bhm_rm_known-spec'
+    name = 'bhm_rm_known_spec'
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         t = self.alias_t
+        tw = self.alias_tw
         spec_bitmask_sdss_rm_qso = 2**3
         query = query.where(
-            (t.spec_q == 1 ) &
+            (
+                (t.spec_q == 1) |
+                (
+                    (tw.pkey.is_null(False)) &
+                    (tw.rm_suitability == 1)
+                )
+
+            ),
             (
                 ~(t.field_name.contains('SDSS-RM')) |
                 (
                     # include extra constraints on SDSS-RM targets
                     (t.spec_bitmask.bin_and(spec_bitmask_sdss_rm_qso) != 0) &
-                    (t.mi < self.parameters['mag_i_max_sdss_rm'] )
+                    (t.mi < self.parameters['mag_i_max_sdss_rm'])
                 )
-            ) &
+            ),
             (
                 ~(t.field_name.contains('COSMOS')) |
                 (
                     # include extra constraints on COSMOS targets
-                    (t.mi < self.parameters['mag_i_max_cosmos'] )
+                    (t.mi < self.parameters['mag_i_max_cosmos'])
                 )
-            ) &
+            ),
             (
                 ~(t.field_name.contains('XMM-LSS')) |
                 (
                     # include extra constraints on XMM-LSS targets
-                    (t.mi < self.parameters['mag_i_max_xmm_lss'] )
+                    (t.mi < self.parameters['mag_i_max_xmm_lss'])
                 )
-            ) &
-            (t.specz >= self.parameters['specz_min']) &
-            (t.specz <= self.parameters['specz_max'])
+            ),
+            (t.specz >= self.parameters['specz_min']),
+            (t.specz <= self.parameters['specz_max']),
         )
 
         return query
 
 
-
-
 class BhmRmVarCarton(BhmRmBaseCarton):
-    '''bhm_rm_var: selected based on g-band variability > 0.05 mag and bright enough to be detected by Gaia (G<~21)
+    '''bhm_rm_var: selected based on g-band variability > 0.05 mag
+                   and bright enough to be detected by Gaia (G<~21)
 
     SELECT * FROM bhm_rm
         WHERE ( (des_var_sn[0] > 5.0 AND des_var_rms[0] > 0.05)  OR
@@ -393,17 +458,15 @@ class BhmRmVarCarton(BhmRmBaseCarton):
                     (t.ps1_var_rms[0] > self.parameters['ps1_var_rms_min'])
                 )
             ) &
-            (t.source_id_gaia > 0 ) &
+            (t.source_id_gaia > 0) &
             (t.pmsig < self.parameters['pmsig_max']) &
             (t.plxsig < self.parameters['plxsig_max']) &
             (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
             (t.plxsig > plxsig_min) &
-            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
+            ~(t.field_name.contains('SDSS-RM'))  # ignore this carton in the SDSS-RM field
         )
-            #& (t.mg <  self.parameters['g_mag_max'])  # TBD
 
         return query
-
 
 
 class BhmRmAncillaryCarton(BhmRmBaseCarton):
@@ -425,96 +488,12 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
         t = self.alias_t
 
         query = query.where(
-            (t.photo_bitmask.bin_and(self.parameters['photo_bitmask']) != 0 ) &
-            (t.pmsig <  self.parameters['pmsig_max']) &
-            (t.plxsig <  self.parameters['plxsig_max']) &
+            (t.photo_bitmask.bin_and(self.parameters['photo_bitmask']) != 0) &
+            (t.pmsig < self.parameters['pmsig_max']) &
+            (t.plxsig < self.parameters['plxsig_max']) &
             (t.pmsig > pmsig_min) &  # this catches cases with NULL=-9
             (t.plxsig > plxsig_min) &
-            ~(t.field_name.contains('SDSS-RM')) # ignore this carton in the SDSS-RM field
+            ~(t.field_name.contains('SDSS-RM'))  # ignore this carton in the SDSS-RM field
         )
 
         return query
-
-
-
-
-
-
-
-
-
-
-#######################################################################
-#######################################################################
-#######################################################################
-#######################################################################
-# Notes and debug
-#
-# '''
-# t = BHM_RM_v0.alias()
-# for f in t._meta.fields:
-#     print (f)
-# '''
-#
-# sql, param = qq.sql()
-# print (sql.replace("%s","{}").format(*param))
-#    # some functional SQL for one field:
-#    ##SELECT c.*,t.specz,t.mi FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
-#    SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 36.45, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 21.1 AND mi > 16.0);
-#    \copy (SELECT DISTINCT ON (t.pk) c.*,t.mg,t.mi,t.specz,t.spec_q,t.spec_strmask,specz_ref,q3c_dist(c.ra,c.dec,t.ra,t.dec)*3600.::FLOAT as sep FROM catalog AS C INNER JOIN catalog_to_bhm_rm_v0 AS c2t ON c.catalogid = c2t.catalogid INNER JOIN bhm_rm_v0 AS t ON c2t.target_id = t.pk WHERE (q3c_radial_query(c.ra, c.dec, 35.5, -4.6, 1.49) AND c.version_id = 13 AND t.specz > 0.005 AND mi < 22.0 AND mi > 16.0)) to ./test_faint.csv csv header;
-#
-
-
-
-'''
-# for testing do domething like this
-
-import peewee
-import sdssdb
-from sdssdb.peewee.sdss5db.catalogdb import database
-database.set_profile('tunnel_operations')
-from target_selection.cartons.bhm_rm import *
-c = BhmRmCoreCarton(targeting_plan='0.1.0-beta.1')
-c = BhmRmKnownSpecCarton(targeting_plan='0.1.0-beta.1')
-c = BhmRmVarCarton(targeting_plan='0.1.0-beta.1')
-c = BhmRmAncillaryCarton(targeting_plan='0.1.0-beta.1')
-q = c.build_query(version_id=13)
-q.count()
-for r in q.limit(5).namedtuples():
-    print(r)
-
-'''
-
-
-'''
-#target_selection  --profile tunnel_operations --verbose run --include bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
-
-target_selection  --profile tunnel_operations --verbose run --include bhm_rm_core,bhm_rm_var,bhm_rm_ancillary,bhm_rm_known_spec --keep --overwrite '0.1.0-beta.1' --no-load
-
-# to get a psql prompt:
-#> psql -d sdss5db -U sdss_user -h localhost -p 7502
-
-# Exporting from the temp table
-# in psql terminal:
-
-\copy (SELECT * FROM sandbox.temp_bhm_rm_core)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_core.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_rm_known_spec)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_known_spec.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_rm_var)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_var.csv' with csv header
-\copy (SELECT * FROM sandbox.temp_bhm_rm_ancillary)  TO '/home/tdwelly/scratch/targetdb/bhm_rm_ancillary.csv' with csv header
-
-for F in bhm_rm_*.csv; do   stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic; done
-
-head -n 1 bhm_rm_core.csv  > bhm_rm.csv
-tail -q -n +2 bhm_rm_*.csv  >> bhm_rm.csv
-stilts tpipe in=bhm_rm.csv out=bhm_rm.fits ifmt=csv ofmt=fits-basic
-ftcopy "bhm_rm.fits[1][col *,bhm_rm_core(L)=priority==1002?1:0,bhm_rm_known_spec(L)=priority==1001?1:0,bhm_rm_var(L)=priority==1003?1:0,bhm_rm_ancillary(L)=priority==1004?1:0]" bhm_rm.fits clobber=yes mode=q
-ftsort bhm_rm.fits bhm_rm_unique.fits catalogid method=heap unique=yes clobber=yes mode=q
-
-gnuplot plot_rm_target_stats.plot
-tar -cvzf bhm_core_cartons.tar.gz bhm_rm*.fits bhm_aqmes_*fits bhm_spiders_*fits bhm_csc_*fits
-
-'''
-
-#######################################################################
-#######################################################################
-#######################################################################
