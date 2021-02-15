@@ -7,27 +7,26 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 # derived from guide.py
 
-# flake8: noqa
 # isort: skip_file
 
 import peewee
-import sdssdb
 from peewee import JOIN
-
-#from sdssdb.peewee.sdss5db.catalogdb import (Catalog, BHM_RM_v0, CatalogToBHM_RM_v0)
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             BHM_RM_v0_2,
-                                             CatalogToBHM_RM_v0,
-                                             CatalogToSDSS_DR16_SpecObj,
-                                             SDSS_DR16_SpecObj)
+from peewee import fn
 
 from target_selection.cartons.base import BaseCarton
 
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    BHM_RM_v0_2,
+    CatalogToBHM_RM_v0,
+    CatalogToSDSS_DR16_SpecObj,
+    SDSS_DR16_SpecObj,
+    BHM_RM_Tweaks,
+    SDSSV_BOSS_SPALL,
+)
 
-# Carton descriptions here:
-# https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms#Definingtargetselectionandcadencealgorithms-ReverberationMapping(RM)
 
-## This module provides the following BHM cartons:
+#  This module provides the following BHM cartons:
 #  bhm_rm_core
 #  bhm_rm_known-spec
 #  bhm_rm_var
@@ -48,6 +47,7 @@ class BhmRmBaseCarton(BaseCarton):
     mapper = 'BHM'
     program = 'bhm_rm'
     cadence = 'bhm_rm_174x8'
+    instrument = 'BOSS'
     tile = False
     priority = None
     alias_c = None
@@ -58,39 +58,38 @@ class BhmRmBaseCarton(BaseCarton):
         fieldlist = []
         base_parameters = self.config['parameters'].get(self.base_name, None)
         if base_parameters:
-            fieldlist = base_parameters['fieldlist'];
+            fieldlist = base_parameters['fieldlist']
         return fieldlist
-
 
     def append_spatial_query(self, query, fieldlist):
         '''extend the peewee query using a list of field centres'''
-        if fieldlist is None :
+        if fieldlist is None:
             return query
-        elif len(fieldlist) == 0 :
+        elif len(fieldlist) == 0:
             return query
 
         q = False
         for f in fieldlist:
-            q = ( q | peewee.fn.q3c_radial_query(self.alias_c.ra,
-                                                 self.alias_c.dec,
-                                                 f['racen'],
-                                                 f['deccen'],
-                                                 f['radius']))
+            q = (q | peewee.fn.q3c_radial_query(self.alias_c.ra,
+                                                self.alias_c.dec,
+                                                f['racen'],
+                                                f['deccen'],
+                                                f['radius']))
         return query.where(q)
-
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
-        #t = BHM_RM_v0.alias()
         t = BHM_RM_v0_2.alias()
         self.alias_c = c
         self.alias_t = t
         c2s = CatalogToSDSS_DR16_SpecObj.alias()
         s = SDSS_DR16_SpecObj.alias()
+        tw = BHM_RM_Tweaks.alias()
+        sV = SDSSV_BOSS_SPALL.alias()
 
         # set the Carton priority+values here - read from yaml
-        #priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
+        # priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
 
         # fold in tiers of magnitude-based priority
         priority_mag_step = 0.5
@@ -102,16 +101,17 @@ class BhmRmBaseCarton(BaseCarton):
             None,
             (
                 ((t.mi <= priority_mag_bright),
-                 priority_floor+0),
+                 priority_floor + 0),
                 (((self.name == 'bhm_rm_known_spec') &
                   ~(t.field_name.contains('SDSS-RM')) &
                   (t.mi <= priority_mag_bright_known_spec)),
                  priority_floor+0),
                 ((t.mi <= priority_mag_faint),
                  (priority_floor +
-                  5*(1+peewee.fn.floor((t.mi-priority_mag_bright)/priority_mag_step).cast('int')))),
+                  5 * (1 + peewee.fn.floor((t.mi - priority_mag_bright) /
+                                           priority_mag_step).cast('int')))),
                 ((t.mi > priority_mag_faint),
-                 priority_floor+95),
+                 priority_floor + 95),
             ),
             None
         ).cast('int')

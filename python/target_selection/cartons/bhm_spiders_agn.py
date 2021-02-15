@@ -91,6 +91,7 @@ from target_selection.mag_flux import AB2nMgy, AB2Jy
 # 22.0 AB = 5.754e-6 Jy
 # 21.5 AB = 9.120e-6 Jy
 # 21.0 AB = 1.445e-5 Jy
+# 20.5 AB = 2.291e-5  Jy
 # 18.5 AB = 1.445e-4 Jy
 # 16.5 AB = 9.120e-4 Jy
 # 14.0 AB = 9.120e-3 Jy
@@ -483,6 +484,111 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
 
     DROP TABLE sandbox.temp_td_bhm_spiders_agn_efeds_stragglers;
 
+#    SELECT
+#         c.catalogid,
+#         ls.ls_id,
+#         x.ero_detuid,
+#         c.ra,
+#         c.dec,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fiberflux_g))) as fibermag_g,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fiberflux_r))) as fibermag_r,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fiberflux_z))) as fibermag_z,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fibertotflux_g))) as fibertotmag_g,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fibertotflux_r))) as fibertotmag_r,
+#         (22.5-2.5*log10(greatest(1e-3,ls.fibertotflux_z))) as fibertotmag_z,
+#         (22.5-2.5*log10(greatest(1e-3,ls.flux_g))) as mag_g,
+#         (22.5-2.5*log10(greatest(1e-3,ls.flux_r))) as mag_r,
+#         (22.5-2.5*log10(greatest(1e-3,ls.flux_z))) as mag_z,
+#         (1510 +
+#           (CASE WHEN x.xmatch_flags > 1 THEN 1
+#                 ELSE 0 END) +
+#           (CASE WHEN x.ero_det_like < 8.0 THEN 2
+#                 ELSE 0 END) +
+#           (CASE WHEN x.ero_version = 'eFEDS_c001_V18C_V3_ext' THEN 4
+#                 ELSE 0 END)
+#         ) AS priority,
+#         (CASE WHEN (     ls.fibertotflux_r > 251.189
+#                       OR ls.gaia_phot_g_mean_mag BETWEEN 0.1 AND 16.0
+#                       OR ls.gaia_phot_rp_mean_mag BETWEEN 0.1 AND 16.0
+#                     ) THEN 'bright_2x1'
+#               WHEN ls.fibertotflux_r > 39.8107 THEN 'dark_1x2'
+#               WHEN ls.fibertotflux_r <= 39.8107 THEN 'dark_1x4'
+#               ELSE 'unknown_cadence' END) AS cadence,
+#         ls.gaia_phot_g_mean_mag as gaia_g,
+#         ls.gaia_phot_rp_mean_mag as gaia_rp,
+#         ls.ref_cat,
+#         ls.maskbits AS ls_maskbits,
+#         (CASE WHEN ls.type = 'PSF' THEN 'ls_psfmag' ELSE 'ls_fibertotmag' END) AS opt_prov,
+#         x.xmatch_flags,
+#         x.ero_det_like
+#    INTO sandbox.temp_td_bhm_spiders_agn_efeds_stragglers
+#    FROM catalogdb.catalog AS c
+#    JOIN catalog_to_legacy_survey_dr8 as c2ls
+#         ON c.catalogid = c2ls.catalogid
+#    JOIN legacy_survey_dr8 AS ls
+#         ON c2ls.target_id = ls.ls_id
+#    JOIN erosita_superset_agn AS x
+#         ON x.ls_id = ls.ls_id
+#    LEFT OUTER JOIN catalog_to_sdss_dr16_specobj AS c2s16
+#         ON c.catalogid = c2s16.catalogid
+#    LEFT OUTER JOIN sdss_dr16_specobj AS s16
+#         ON ( c2s16.target_id = s16.specobjid
+#              AND s16.zwarning = 0
+#              AND s16.snmedian > 1.6
+#              AND s16.zerr < 0.002
+#              AND s16.zerr > 0.0
+#              AND s16.scienceprimary > 0 )
+#    LEFT OUTER JOIN bhm_efeds_veto AS s2020
+#          ON ( q3c_join(s2020.plug_ra,s2020.plug_dec,c.ra,c.dec,1.0/3600.)
+#               AND s2020.zwarning = 0
+#               AND s2020.sn_median_all > 1.6
+#               AND s2020.z_err < 0.002
+#               AND s2020.z_err > 0.0
+#             )
+#    LEFT OUTER JOIN sdssv_boss_spall AS sV
+#          ON ( q3c_join(sV.plug_ra,sV.plug_dec,c.ra,c.dec,1.0/3600.)
+#               AND sV.zwarning = 0
+#               AND sV.sn_median_all > 1.6
+#               AND sV.z_err < 0.002
+#               AND sV.z > 0.0
+#             )
+#    LEFT OUTER JOIN sdssv_plateholes AS ph
+#          ON ( q3c_join(ph.target_ra,ph.target_dec,c.ra,c.dec,1.0/3600.)
+#               AND ph.holetype = 'BOSS_SHARED'
+#               AND (ph.sourcetype = 'SCI' OR ph.sourcetype = 'STA' )
+#             )
+#    LEFT OUTER JOIN sdssv_plateholes_meta AS phm
+#          ON (     ph.yanny_uid = phm.yanny_uid
+#             )
+#    WHERE
+#            ((     x.ero_version = 'eFEDS_c001_V18C_V3_main'
+#               AND x.xmatch_method = 'XPS/NWAY'
+#               AND x.xmatch_version = 'Merged_03DEC2020' ) OR
+#             (     x.ero_version = 'eFEDS_c001_V18C_V3_ext'
+#               AND x.xmatch_method = 'XPS/NWAY'
+#               AND x.xmatch_version = 'Merged_03DEC2020' ))
+#        AND x.opt_cat = 'lsdr8'
+#        AND x.xmatch_metric > 0.1
+#        AND x.ero_det_like > 6.0
+#        AND ((ls.fibertotflux_r BETWEEN 1.0 AND 3981.07 ) OR
+#             (ls.fibertotflux_z BETWEEN 3.98107 AND 3981.07))
+#        AND (ls.gaia_phot_g_mean_mag NOT BETWEEN 0.1 AND 13.5 )
+#        AND (ls.gaia_phot_rp_mean_mag NOT BETWEEN 0.1 AND 13.5 )
+#        AND ls.nobs_r > 0
+#        AND ((ls.nobs_g > 0) OR (ls.nobs_z > 0))
+#        AND ( ls.maskbits & 28 )  = 0
+#        AND c.version_id = 21
+#        AND c2ls.version_id = 21
+#        AND c2ls.best IS TRUE
+#        AND s16.specobjid IS NULL
+#        AND s2020.pk  IS NULL
+#        AND sV.specobjid IS NULL
+#        AND ((ph.pkey IS NULL) OR (phm.yanny_uid IS NULL))
+#    ;
+
+
+    DROP TABLE sandbox.temp_td_bhm_spiders_agn_efeds_stragglers;
+
     SELECT
          MAX(c.catalogid) AS catalogid,
          ls.ls_id AS ls_id,
@@ -498,19 +604,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
          (22.5-2.5*log10(greatest(1e-3,AVG(ls.flux_g)))) as mag_g,
          (22.5-2.5*log10(greatest(1e-3,AVG(ls.flux_r)))) as mag_r,
          (22.5-2.5*log10(greatest(1e-3,AVG(ls.flux_z)))) as mag_z,
-         (CASE WHEN MAX(s16.specobjid) IS NOT NULL THEN 1
-               WHEN MAX(s2020.pk)      IS NOT NULL THEN 1
-               WHEN MAX(sV.specobjid)  IS NOT NULL THEN 1
-               WHEN     (MAX(ph.pkey)       IS NOT NULL
-                    AND  MAX(phm.yanny_uid) IS NOT NULL) THEN 1
-               ELSE 0 END) AS has_spec,
          (1510 +
-           (CASE WHEN MAX(s16.specobjid)  IS NOT NULL  THEN 10000
-                 WHEN MAX(s2020.pk)       IS NOT NULL  THEN 10000
-                 WHEN MAX(sV.specobjid)   IS NOT NULL  THEN 10000
-                 WHEN (MAX(ph.pkey)       IS NOT NULL
-                   AND MAX(phm.yanny_uid) IS NOT NULL) THEN 10000
-                 ELSE 0 END) +
            (CASE WHEN MAX(x.xmatch_flags) > 1 THEN 1
                  ELSE 0 END) +
            (CASE WHEN MAX(x.ero_det_like) < 8.0 THEN 2
@@ -592,6 +686,10 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         AND c.version_id = 21
         AND c2ls.version_id = 21
         AND c2ls.best IS TRUE
+        AND s16.specobjid IS NULL
+        AND s2020.pk  IS NULL
+        AND sV.specobjid IS NULL
+        AND ((ph.pkey IS NULL) OR (phm.yanny_uid IS NULL))
     GROUP BY ls.ls_id
     ;
 
@@ -603,12 +701,12 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
 
     select cadence,count(*) from sandbox.temp_td_bhm_spiders_agn_efeds_stragglers group by cadence;
     select priority,count(*) from sandbox.temp_td_bhm_spiders_agn_efeds_stragglers group by priority ORDER BY priority;
-    select count(*) from sandbox.temp_td_bhm_spiders_agn_efeds_stragglers where has_spec > 0;
 
     select cadence,count(*) from sandbox.temp_bhm_spiders_agn_efeds_stragglers group by cadence;
     select priority,count(*) from sandbox.temp_bhm_spiders_agn_efeds_stragglers group by priority ORDER BY priority;
 
     \copy (SELECT * FROM sandbox.temp_td_bhm_spiders_agn_efeds_stragglers) TO '/home/dwelly/scratch/bhm_spiders_agn_efeds_stragglers.csv' with csv header
+    \copy (SELECT * FROM sandbox.temp_bhm_spiders_agn_efeds_stragglers) TO '/home/dwelly/scratch/bhm_spiders_agn_efeds_stragglers.csv' with csv header
 
     stilts tpipe \
     in=/home/dwelly/scratch/bhm_spiders_agn_efeds_stragglers.csv \
@@ -664,20 +762,20 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
             None, ((fn.max(x.xmatch_flags) > 1, 1), ), 0)
         priority_2 = peewee.Case(
             None, ((fn.max(x.ero_det_like) < self.parameters['det_like_for_priority'], 2), ), 0)
-        priority_3 = peewee.Case(
-            None,
-            (
-                (fn.max(s16.specobjid).is_null(False), 10000),  # any of these can be satisfied
-                (fn.max(s2020.pk).is_null(False), 10000),
-                (fn.max(sV.specobjid).is_null(False), 10000),
-                (fn.max(ph.pkey).is_null(False) & fn.max(phm.yanny_uid ).is_null(False), 10000),
-            ),
-            0)
         # add a step down in priority for anything selected by the secondary xmatch_version
-        priority_4 = fn.min(peewee.Case(
+        priority_3 = fn.min(peewee.Case(
             None, ((x.ero_version == self.parameters['ero_version2'], 8), ), 0))
+        # priority_4 = peewee.Case(
+        #     None,
+        #     (
+        #         (fn.max(s16.specobjid).is_null(False), 10000),  # any of these can be satisfied
+        #         (fn.max(s2020.pk).is_null(False), 10000),
+        #         (fn.max(sV.specobjid).is_null(False), 10000),
+        #         (fn.max(ph.pkey).is_null(False) & fn.max(phm.yanny_uid ).is_null(False), 10000),
+        #     ),
+        #     0)
 
-        priority = (p_f + priority_1 + priority_2 + priority_3 + priority_4)
+        priority = (p_f + priority_1 + priority_2 + priority_3 )  # + priority_4)
 
         # choose cadence based on fiber magnitude in r-band
         cadence1 = self.parameters['cadence1']
@@ -733,30 +831,34 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
 
         query = (
             c.select(
-                fn.min(c.catalogid).alias('catalogid'),
-                fn.min(ls.ls_id).alias('ls_id'),
-                fn.min(x.ero_detuid).alias('ero_detuid'),
-                fn.min(c.ra).alias('ra'),
-                fn.min(c.dec).alias('dec'),
+                min(c.catalogid).alias('catalogid'),
+                min(ls.ls_id).alias('ls_id'),
+                min(x.ero_detuid).alias('ero_detuid'),
+                min(c.ra).alias('ra'),
+                min(c.dec).alias('dec'),
                 priority.alias("priority"),
-                fn.min(value).alias('value'),
-                fn.min(cadence).alias('cadence'),
-                fn.min(instrument).alias('instrument'),
-                fn.min(magnitude_g).alias('g'),
-                fn.min(magnitude_r).alias('r'),
-                fn.min(magnitude_i).alias('i'),
-                fn.min(magnitude_z).alias('z'),
-                fn.min(opt_prov).alias('opt_prov'),
+                min(value).alias('value'),
+                min(cadence).alias('cadence'),
+                min(instrument).alias('instrument'),
+                min(magnitude_g).alias('g'),
+                min(magnitude_r).alias('r'),
+                min(magnitude_i).alias('i'),
+                min(magnitude_z).alias('z'),
+                min(opt_prov).alias('opt_prov'),
             )
             .join(c2ls)
             .join(ls)
             .join(x, on=(ls.ls_id == x.ls_id))
             .switch(c)
+            # rely on catalogdb.catalog cross-matches to keep processing time down
             .join(c2s16, JOIN.LEFT_OUTER)
-            .join(  # rely on catalogdb.catalog cross-matches to keep processing time down
+            .join(
                 s16, JOIN.LEFT_OUTER,
                 on=(
-                    (c2s16.target_id == s16.specobjid) &
+                    #fn.q3c_join(s16.ra, s16.dec,
+                    #            c.ra, c.dec,
+                    #            match_radius_spectro) &
+                    (c2s16.target_id == s16.specobjid) &   # keep processing time low
                     (s16.snmedian >= spec_sn_thresh) &
                     (s16.zwarning == 0) &
                     (s16.zerr <= spec_z_err_thresh) &
@@ -806,7 +908,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 on=(
                     (ph.yanny_uid == phm.yanny_uid) # &
                     ## TODO add this back in when isvalid column is added to sdssv_plateholes_meta
-                    ## (phm.isvalid >> True)
+                    ## (phm.isvalid > 0)
                 )
             )
             .where(
@@ -840,6 +942,11 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 # gaia safety checks to avoid bad ls photometry
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
+                (s16.specobjid.is_null(True)),
+                (s2020.pk.is_null(True)),
+                (sV.specobjid.is_null(True)),
+                ((ph.pkey.is_null(True)) | (phm.yanny_uid.is_null(True))),
+
             )
             .group_by(ls)   # avoid duplicates - we trust the legacy survey entries
         )
@@ -1285,6 +1392,211 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
 
     '''
 
+    # simple version to run before catalogdb.catalog.catalog_to_panstarrs1 is available:
+    SELECT DISTINCT ON (ps.catid_objid)
+
+    DROP TABLE sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog;
+
+    SELECT DISTINCT ON (ps.catid_objid)
+         ps.catid_objid AS ps1_dr2_id,
+         x.ero_detuid AS ero_detuid,
+         ps.ra AS ra,
+         ps.dec AS dec,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.g_stk_psf_flux)))  AS psf_g,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.r_stk_psf_flux)))  AS psf_r,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.i_stk_psf_flux)))  AS psf_i,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.z_stk_psf_flux)))  AS psf_z,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.g_stk_aper_flux))) AS aper_g,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.r_stk_aper_flux))) AS aper_r,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.i_stk_aper_flux))) AS aper_i,
+         (8.9-2.5*log10(greatest(3.631e-9,ps.z_stk_aper_flux))) AS aper_z,
+         (CASE WHEN (ps.flags & (8388608 + 16777216)) = 0 THEN 'ps_psfmag'
+                  ELSE 'ps_apermag' END) AS opt_prov,
+         (1530 +
+          (CASE WHEN x.xmatch_flags > 1 THEN 1
+                ELSE 0 END) +
+          (CASE WHEN x.ero_det_like < 8.0 THEN 2
+                ELSE 0 END)
+         ) AS priority,
+         (CASE WHEN (   ps.g_stk_psf_flux > 9.120e-4
+                        OR ps.r_stk_psf_flux > 9.120e-4
+                        OR ps.i_stk_psf_flux > 9.120e-4) THEN 'bright_2x1'
+                  WHEN (   ps.g_stk_psf_flux > 1.445e-4
+                        OR ps.r_stk_psf_flux > 1.445e-4
+                        OR ps.i_stk_psf_flux > 1.445e-4) THEN 'dark_1x2'
+                  WHEN (   ps.g_stk_psf_flux < 1.445e-4
+                       AND ps.r_stk_psf_flux < 1.445e-4
+                       AND ps.i_stk_psf_flux < 1.445e-4) THEN 'dark_1x4'
+                  ELSE 'unknown_cadence' END) AS cadence,
+         (CASE WHEN s16.specobjid IS NOT NULL THEN 1
+               WHEN sV.specobjid IS NOT NULL THEN 1
+               WHEN s2020.pk IS NOT NULL THEN 1
+               ELSE 0 END) as has_spec
+
+    INTO sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog
+    FROM panstarrs1 AS ps
+    JOIN ( SELECT *
+           FROM erosita_superset_agn
+           WHERE ero_version = 'em01_c946_201008_poscorr'
+             AND xmatch_method = 'XPS/NWAY'
+             AND xmatch_version = 'JWMS_CW2_v_03_TDopt'
+             AND opt_cat = 'ps1dr2'
+             AND xmatch_metric > 0.1
+             AND ero_det_like > 6.0
+             AND q3c_radial_query(opt_ra,opt_dec,160.0,15.0,10.0)
+         ) AS x
+         ON x.ps1_dr2_id = ps.catid_objid
+    LEFT OUTER JOIN
+        (
+          SELECT DISTINCT ON (specobjid)
+                 specobjid,ra,dec
+          FROM sdss_dr16_specobj
+          WHERE zwarning = 0
+            AND snmedian > 1.6
+            AND zerr < 0.002
+            AND z > 0.0
+            AND scienceprimary > 0
+        ) AS s16
+        ON ( q3c_join(s16.ra,s16.dec,x.opt_ra,x.opt_dec,1.0/3600.))
+    LEFT OUTER JOIN
+        ( SELECT DISTINCT ON (plug_ra,plug_dec)
+                 pk,plug_ra,plug_dec
+          FROM bhm_efeds_veto
+               WHERE zwarning = 0
+                 AND sn_median_all > 1.6
+                 AND z_err < 0.002
+                 AND z_err > 0.0
+        ) AS s2020
+        ON ( q3c_join(s2020.plug_ra,s2020.plug_dec,x.opt_ra,x.opt_dec,1.0/3600.))
+    LEFT OUTER JOIN
+        (
+          SELECT DISTINCT ON (specobjid)
+                 specobjid, plug_ra,plug_dec
+          FROM sdssv_boss_spall
+          WHERE zwarning = 0
+            AND sn_median_all > 1.6
+            AND z_err < 0.002
+            AND z > 0.0
+        ) AS sV
+        ON ( q3c_join(sV.plug_ra,sV.plug_dec,x.opt_ra,x.opt_dec,1.0/3600.))
+    WHERE
+            ps.g_stk_psf_flux < 1.445e-2
+        AND ps.r_stk_psf_flux < 1.445e-2
+        AND ps.i_stk_psf_flux < 1.445e-2
+        AND ps.g_stk_psf_flux != 'NaN'
+        AND ps.r_stk_psf_flux != 'NaN'
+        AND ps.i_stk_psf_flux != 'NaN'
+        AND ( ps.g_stk_psf_flux > 3.631e-6
+           OR ps.r_stk_psf_flux > 5.754e-6
+           OR ps.i_stk_psf_flux > 9.120e-6
+           OR ps.z_stk_psf_flux > 2.291e-5 )
+        AND (ps.flags & 134217728 ) > 0
+    ;
+
+select count(*) as ntot,count (distinct ps1_dr2_id) as nunique,sum(has_spec) as nspec from sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog ;
+
+
+             AND q3c_radial_query(opt_ra,opt_dec,119.07002,27.141125,2.0)
+
+
+    DROP TABLE sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog;
+
+    SELECT
+         ps.catid_objid AS ps1_dr2_id,
+         MAX(x.ero_detuid) AS ero_detuid,
+         MAX(ps.ra) AS ra,
+         MAX(ps.dec) AS dec,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.g_stk_psf_flux)))  AS psf_g,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.r_stk_psf_flux)))  AS psf_r,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.i_stk_psf_flux)))  AS psf_i,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.z_stk_psf_flux)))  AS psf_z,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.g_stk_aper_flux))) AS aper_g,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.r_stk_aper_flux))) AS aper_r,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.i_stk_aper_flux))) AS aper_i,
+         MAX(8.9-2.5*log10(greatest(3.631e-9,ps.z_stk_aper_flux))) AS aper_z,
+         MAX(CASE WHEN (ps.flags & (8388608 + 16777216)) = 0 THEN 'ps_psfmag'
+                  ELSE 'ps_apermag' END) AS opt_prov,
+         MIN(1530 +
+          (CASE WHEN x.xmatch_flags > 1 THEN 1
+                ELSE 0 END) +
+          (CASE WHEN x.ero_det_like < 8.0 THEN 2
+                ELSE 0 END)
+         ) AS priority,
+         MAX(CASE WHEN (   ps.g_stk_psf_flux > 9.120e-4
+                        OR ps.r_stk_psf_flux > 9.120e-4
+                        OR ps.i_stk_psf_flux > 9.120e-4) THEN 'bright_2x1'
+                  WHEN (   ps.g_stk_psf_flux > 1.445e-4
+                        OR ps.r_stk_psf_flux > 1.445e-4
+                        OR ps.i_stk_psf_flux > 1.445e-4) THEN 'dark_1x2'
+                  WHEN (   ps.g_stk_psf_flux < 1.445e-4
+                       AND ps.r_stk_psf_flux < 1.445e-4
+                       AND ps.i_stk_psf_flux < 1.445e-4) THEN 'dark_1x4'
+                  ELSE 'unknown_cadence' END) AS cadence,
+         MAX(CASE WHEN sV.specobjid IS NOT NULL THEN 1
+                  ELSE 0 END) as has_spec
+
+    INTO sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog
+    FROM panstarrs1 AS ps
+    JOIN ( SELECT *
+           FROM erosita_superset_agn
+           WHERE ero_version = 'em01_c946_201008_poscorr'
+             AND xmatch_method = 'XPS/NWAY'
+             AND xmatch_version = 'JWMS_CW2_v_03_TDopt'
+             AND opt_cat = 'ps1dr2'
+             AND xmatch_metric > 0.1
+             AND ero_det_like > 6.0
+             AND q3c_radial_query(opt_ra,opt_dec,119.07002,27.141125,2.0)
+         ) AS x
+         ON x.ps1_dr2_id = ps.catid_objid
+    LEFT OUTER JOIN
+        (
+          SELECT DISTINCT ON (catalogid)
+                 specobjid,catalogid, plug_ra,plug_dec
+          FROM sdssv_boss_spall
+          WHERE zwarning = 0
+            AND sn_median_all > 1.6
+            AND z_err < 0.002
+            AND z > 0.0
+        ) AS sV
+        ON ( q3c_join(sV.plug_ra,sV.plug_dec,x.opt_ra,x.opt_dec,1.0/3600.))
+    WHERE
+            x.ero_version = 'em01_c946_201008_poscorr'
+        AND x.xmatch_method = 'XPS/NWAY'
+        AND x.xmatch_version = 'JWMS_CW2_v_03_TDopt'
+        AND x.opt_cat = 'ps1dr2'
+        AND x.xmatch_metric > 0.1
+        AND x.ero_det_like > 6.0
+        AND ps.g_stk_psf_flux < 1.445e-2
+        AND ps.r_stk_psf_flux < 1.445e-2
+        AND ps.i_stk_psf_flux < 1.445e-2
+        AND ps.g_stk_psf_flux != 'NaN'
+        AND ps.r_stk_psf_flux != 'NaN'
+        AND ps.i_stk_psf_flux != 'NaN'
+        AND ( ps.g_stk_psf_flux > 3.631e-6
+           OR ps.r_stk_psf_flux > 5.754e-6
+           OR ps.i_stk_psf_flux > 9.120e-6
+           OR ps.z_stk_psf_flux > 2.291e-5 )
+        AND (ps.flags & 134217728 ) > 0
+    GROUP BY ps.catid_objid
+    ;
+
+select * from sandbox.temp_td_bhm_spiders_agn_ps1dr2_nocatalog;
+
+
+
+#          SELECT DISTINCT ON (catalogid)
+
+#WHEN s16.specobjid IS NOT NULL THEN 1
+#                  WHEN s2020.pk      IS NOT NULL THEN 1
+
+    # end simple test
+    #    AND q3c_radial_query(ps.ra,ps.dec,180.0,10.0,1.0)
+    #          AND q3c_radial_query(xx.ero_ra,xx.ero_dec,180.0,10.0,2.0)
+    #################################################
+
+
+
+
     DROP TABLE sandbox.temp_td_bhm_spiders_agn_ps1dr2;
 
     SELECT
@@ -1322,9 +1634,9 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
                WHEN (   MAX(ps.g_stk_psf_flux) > 1.445e-4
                      OR MAX(ps.r_stk_psf_flux) > 1.445e-4
                      OR MAX(ps.i_stk_psf_flux) > 1.445e-4) THEN 'dark_1x2'
-               WHEN (    MAX(ps.g_stk_psf_flux) < 1.445e-4
-                     AND MAX(ps.r_stk_psf_flux) < 1.445e-4
-                     AND MAX(ps.i_stk_psf_flux) < 1.445e-4) THEN 'dark_1x4'
+               WHEN (   MAX(ps.g_stk_psf_flux) < 1.445e-4
+                    AND MAX(ps.r_stk_psf_flux) < 1.445e-4
+                    AND MAX(ps.i_stk_psf_flux) < 1.445e-4) THEN 'dark_1x4'
                ELSE 'unknown_cadence' END) AS cadence,
          MAX(x.xmatch_flags) AS xmatch_flags,
          MAX(x.ero_det_like) AS ero_det_like
@@ -1377,6 +1689,10 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         AND ps.g_stk_psf_flux != 'NaN'
         AND ps.r_stk_psf_flux != 'NaN'
         AND ps.i_stk_psf_flux != 'NaN'
+        AND ( ps.g_stk_psf_flux > 3.631e-6
+           OR ps.r_stk_psf_flux > 5.754e-6
+           OR ps.i_stk_psf_flux > 9.120e-6
+           OR ps.z_stk_psf_flux > 2.291e-5 )
         AND (ps.flags & 134217728 ) > 0
         AND c.version_id = 21
         AND c2ps.version_id = 21
