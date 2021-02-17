@@ -120,7 +120,8 @@ class BhmGuaBaseCarton(BaseCarton):
                 ss.specobjid.alias('specobjid'),
                 # ss.ra.alias('ra'),
                 # ss.dec.alias('dec'),
-            ).where(
+            )
+            .where(
                 ss.snmedian >= self.parameters['spec_sn_thresh'],
                 ss.zwarning == 0,
                 ss.zerr <= self.parameters['spec_z_err_thresh'],
@@ -222,7 +223,7 @@ class BhmGuaBaseCarton(BaseCarton):
                     (ph.yanny_uid == phm.yanny_uid) ## &
                     ## TODO add this back in when isvalid column is added to sdssv_plateholes_meta
                     ## (phm.isvalid > 0)
-                    )
+                )
             )
             # standard selection that chooses correct catalogdb version etc
             .where(

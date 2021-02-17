@@ -262,9 +262,10 @@ class BhmCscBaseCarton(BaseCarton):
                 .join(
                     phm, JOIN.LEFT_OUTER,
                     on=(
-                        (ph.yanny_uid == phm.yanny_uid) ## &
-                        ## TODO add this back in when isvalid column is added to sdssv_plateholes_meta
-                        ## (phm.isvalid > 0)
+                        (ph.yanny_uid == phm.yanny_uid)  # &
+                        ## TODO add this back in when isvalid column is
+                        #  added to sdssv_plateholes_meta
+                        # (phm.isvalid > 0)
                     )
                 )
             )
@@ -274,7 +275,6 @@ class BhmCscBaseCarton(BaseCarton):
                                                            query_region[0],
                                                            query_region[1],
                                                            query_region[2]))
-
 
         return query
 
