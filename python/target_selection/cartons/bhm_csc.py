@@ -10,11 +10,23 @@
 # isort: skip_file
 
 import peewee
+from peewee import JOIN
+from peewee import fn
 # import sdssdb
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              BHM_CSC,
                                              CatalogToBHM_CSC)
+
+# imports of existing spectro catalogues
+from sdssdb.peewee.sdss5db.catalogdb import (
+    CatalogToSDSS_DR16_SpecObj,
+    SDSS_DR16_SpecObj,
+    BHM_eFEDS_Veto,
+    SDSSV_BOSS_SPALL,
+    SDSSV_Plateholes,
+    SDSSV_Plateholes_Meta,
+)
 
 from target_selection.cartons.base import BaseCarton
 
@@ -83,7 +95,8 @@ class BhmCscBaseCarton(BaseCarton):
         ) AS subq
       WHERE subq.lead = 'bhm_csc';
 
-      SELECT DISTINCT ON (t.pk)
+    #
+    SELECT DISTINCT ON (t.pk)
           c.catalogid, c.lead, c.ra, c.dec,
           q3c_dist(c.ra, c.dec,t.oir_ra, t.oir_dec)*3600.0 as sep,
           t.mag_g, t.mag_r, t.mag_i
@@ -115,50 +128,153 @@ class BhmCscBaseCarton(BaseCarton):
     priority = None
     alias_t = None
     instrument = None
+    this_cadence = None
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2t = CatalogToBHM_CSC.alias()
         t = BHM_CSC.alias()
         self.alias_t = t
+        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
+        s16 = SDSS_DR16_SpecObj.alias()
+        s2020 = BHM_eFEDS_Veto.alias()
+        sV = SDSSV_BOSS_SPALL.alias()
+        ph = SDSSV_Plateholes.alias()
+        phm = SDSSV_Plateholes_Meta.alias()
 
         # set the Carton priority+values here - read from yaml
-        priority = peewee.Value(int(self.parameters.get('priority', 10000))).alias('priority')
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float').alias('value')
-        instrument = peewee.Value(self.instrument).alias('instrument')
-        cadence = peewee.Value(self.cadence).cast('string').alias('cadence')
+        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        instrument = peewee.Value(self.instrument)
+        cadence = peewee.Value(self.this_cadence)
 
-        # TODO need to process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros/nulls
+        priority_1 = 0
+        if (self.instrument == 'BOSS'):
+            priority_1 = peewee.Case(
+                None,
+                (
+                    (s16.specobjid.is_null(False), 1),  # any of these can be satisfied
+                    (s2020.pk.is_null(False), 1),
+                    (sV.specobjid.is_null(False), 1),
+                    (ph.pkey.is_null(False) & phm.yanny_uid.is_null(False), 1),
+                ),
+                0)
+
+        priority = (
+            self.parameters['priority_floor'] +
+            priority_1 * self.parameters['dpriority_has_spec']
+        )
+
+        ## TODO need to process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros/nulls
 
         query = (
             c.select(
                 c.catalogid,
+                t.cxo_name,   # extra
+                t.pk.alias('csc_pk'),   # extra
                 c.ra,  # extra
                 c.dec,  # extra
-                priority,
-                value,
-                cadence,
-                instrument,
+                priority.alias('priority'),
+                value.alias('value'),
+                cadence.alias('cadence'),
+                instrument.alias('instrument'),
                 t.mag_g.alias('g'),
                 t.mag_r.alias('r'),
                 t.mag_i.alias('i'),
                 t.mag_z.alias('z'),
                 t.mag_h.alias('h'),
-                t.oir_ra.alias('csc_ra'),
-                t.oir_dec.alias('csc_dec'),
+                t.oir_ra.alias('csc_oir_ra'),
+                t.oir_dec.alias('csc_oir_dec'),
             )
             .join(c2t)
             .join(t)
             .where(
                 c.version_id == version_id,
                 c2t.version_id == version_id,
-                c2t.best >> True)
-            .distinct([c2t.target_id])  # avoid duplicates - initially trust the CSC parent sample,
+                # c2t.best >> True
+            )
+            # .distinct([c2t.target_id])  # avoid duplicates - trust the CSC parent sample,
+            .distinct([c.catalogid])  # avoid duplicates - trust the catalogid,
             .where
             (
                 t.spectrograph == self.instrument
             )
         )
+
+        if (self.instrument == 'BOSS'):
+            match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
+            spec_sn_thresh = self.parameters['spec_sn_thresh']
+            spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+            query = (
+                query
+                .join(
+                    c2s16, JOIN.LEFT_OUTER,
+                    on=(c2s16.catalogid == c.catalogid)
+                )
+                .join(
+                    s16, JOIN.LEFT_OUTER,
+                    on=(
+                        (c2s16.version_id == version_id) &
+                        (c2s16.target_id == s16.specobjid) &   # keep processing time low
+                        (s16.snmedian >= spec_sn_thresh) &
+                        (s16.zwarning == 0) &
+                        (s16.zerr <= spec_z_err_thresh) &
+                        (s16.zerr > 0.0) &
+                        (s16.scienceprimary > 0)
+                    )
+                )
+                .join(
+                    s2020, JOIN.LEFT_OUTER,
+                    on=(
+                        fn.q3c_join(s2020.plug_ra, s2020.plug_dec,
+                                    c.ra, c.dec,
+                                    match_radius_spectro) &
+                        (s2020.sn_median_all >= spec_sn_thresh) &
+                        (s2020.zwarning == 0) &
+                        (s2020.z_err <= spec_z_err_thresh) &
+                        (s2020.z_err > 0.0)
+                    )
+                )
+                .join(
+                    sV, JOIN.LEFT_OUTER,
+                    on=(
+                        fn.q3c_join(sV.plug_ra, sV.plug_dec,
+                                    c.ra, c.dec,
+                                    match_radius_spectro) &
+                        (sV.sn_median_all >= spec_sn_thresh) &
+                        (sV.zwarning == 0) &
+                        (sV.z_err <= spec_z_err_thresh) &
+                        (sV.z_err > 0.0)
+                    )
+                )
+                .join(
+                    ph, JOIN.LEFT_OUTER,
+                    on=(
+                        fn.q3c_join(ph.target_ra, ph.target_dec,
+                                    c.ra, c.dec,
+                                    match_radius_spectro) &
+                        (ph.holetype == 'BOSS_SHARED') &
+                        (
+                            (ph.sourcetype == 'SCI') |
+                            (ph.sourcetype == 'STA')
+                        )
+                    )
+                )
+                .join(
+                    phm, JOIN.LEFT_OUTER,
+                    on=(
+                        (ph.yanny_uid == phm.yanny_uid) ## &
+                        ## TODO add this back in when isvalid column is added to sdssv_plateholes_meta
+                        ## (phm.isvalid > 0)
+                    )
+                )
+            )
+
+        if query_region:
+            query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
+                                                           query_region[0],
+                                                           query_region[1],
+                                                           query_region[2]))
+
 
         return query
 
@@ -170,7 +286,7 @@ class BhmCscBossDarkCarton(BhmCscBaseCarton):
        ND c.mag_i BETWEEN 17.x AND 21.x
     '''
     name = 'bhm_csc_boss_dark'
-    cadence = 'dark_1x4'
+    this_cadence = 'dark_1x4'
     instrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
@@ -190,7 +306,7 @@ class BhmCscBossBrightCarton(BhmCscBaseCarton):
       AND c.mag_i BETWEEN 1x.0 AND 18.x
     '''
     name = 'bhm_csc_boss_bright'
-    cadence = 'bright_1x1'
+    this_cadence = 'bright_1x1'
     instrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
@@ -210,7 +326,7 @@ class BhmCscApogeeCarton(BhmCscBaseCarton):
       AND c.mag_H BETWEEN 1x.x AND 1x.x
     '''
     name = 'bhm_csc_apogee'
-    cadence = 'bright_3x1'
+    this_cadence = 'bright_3x1'
     instrument = 'APOGEE'
 
     def build_query(self, version_id, query_region=None):

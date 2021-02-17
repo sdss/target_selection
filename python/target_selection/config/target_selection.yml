@@ -64,6 +64,12 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1520
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
         bhm_spiders_agn_efeds_stragglers:
             value: 1.0
             ero_version1: 'eFEDS_c001_V18C_V3_main'
@@ -93,6 +99,10 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1510
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_ero_version: 4
+            dpriority_has_spec: 100
         bhm_spiders_agn_gaiadr2:
             value: 1.0
             ero_version: 'em01_c946_201008_poscorr'
@@ -115,6 +125,9 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1540
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
         bhm_spiders_agn_sep:
             value: 1.0
             ero_version: 'em01_SEP_c946'
@@ -135,6 +148,9 @@
             det_like_for_priority: 8.0
             p_any_min: 0.1
             priority_floor: 1510
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_match_method: 4
         bhm_spiders_agn_ps1dr2:
             value: 1.0
             ero_version: 'em01_c946_201008_poscorr'
@@ -150,6 +166,7 @@
             g_psf_mag_min: 13.5
             r_psf_mag_min: 13.5
             i_psf_mag_min: 13.5
+            z_psf_mag_min: 13.5
             g_psf_mag_max: 22.5
             r_psf_mag_max: 22.0
             i_psf_mag_max: 21.5
@@ -167,6 +184,9 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1530
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
         bhm_spiders_clusters_lsdr8:
             value_bcg: 5.0
             value_member: 1.0
@@ -258,37 +278,25 @@
         bhm_aqmes_med:
             priority: 1100
             value: 100.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
             mag_i_min: 16.0
             mag_i_max: 19.1
         bhm_aqmes_med_faint:
             priority: 3100
             value: 1.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits
-            mag_i_min: 19.1
-            mag_i_max: 21.0
-        bhm_aqmes_wide3:
-            priority: 1200
-            value: 100.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
-            mag_i_min: 16.0
-            mag_i_max: 19.1
-        bhm_aqmes_wide3_faint:
-            priority: 3200
-            value: 1.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
             mag_i_min: 19.1
             mag_i_max: 21.0
         bhm_aqmes_wide2:
             priority: 1210
             value: 100.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
             mag_i_min: 16.0
             mag_i_max: 19.1
         bhm_aqmes_wide2_faint:
             priority: 3210
             value: 1.0
-            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits
+            fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
             mag_i_min: 19.1
             mag_i_max: 21.0
         bhm_aqmes_bonus_core:
@@ -361,6 +369,30 @@
             mag_g_max_cvz_s: 21.7
             pmsig_max: 3.0
             plxsig_max: 3.0
+        bhm_csc_boss_dark:
+            mag_i_min: 16.0
+            mag_i_max: 22.0
+            priority_floor: 3000
+            dpriority_has_spec: 10
+            value: 1.0
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.60
+            spec_z_err_thresh: 0.002
+        bhm_csc_boss_bright:
+            mag_i_min: 13.0
+            mag_i_max: 18.0
+            priority_floor: 4000
+            dpriority_has_spec: 10
+            value: 1.0
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.60
+            spec_z_err_thresh: 0.002
+        bhm_csc_apogee:
+            mag_h_min: 10.0
+            mag_h_max: 15.0
+            priority_floor: 4000
+            dpriority_has_spec: 10
+            value: 1.0
 
 '0.1.3':
     xmatch_plan: 0.1.0
