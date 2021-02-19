@@ -46,6 +46,7 @@ out = os.path.join(outdir, outstem)
 # Now, the lists of exception plates
 # derived from here:
 # https://wiki.sdss.org/pages/viewpage.action?pageId=69043025
+# updated on 19th Feb 2021 (added MWM plate 15188 to exclusion list)
 
 # list of plates that were designed but never drilled:
 phantom_plates = [
@@ -88,6 +89,7 @@ rejected_plates = []
 
 # list of plates that have no hope of observation during SDSS-V 2020/21 plate operations
 hopeless_plates = [
+    15188,
     15204,   # Do Not Mark! (they have set already
     15205,   # and won't be observed during plate program)
     15206,   #
