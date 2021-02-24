@@ -19,7 +19,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, CompositeKey, Model, fn
+from peewee import SQL, Case, CompositeKey, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
@@ -1077,8 +1077,37 @@ class XMatchPlanner(object):
 
         to_epoch = self._options['epoch']
 
-        # RA, Dec, and pro[er motion fields.
-        if xmatch.pmra_column:
+        # RA, Dec, and proper motion fields.
+        if model._table.table_name == 'tic_v8':
+            # TODO: this should be handled in a way that can be opted-in from
+            # the configuration, but for now I'll just hardcode it here.
+
+            pmra_field = fields[xmatch.pmra_column]
+            pmdec_field = fields[xmatch.pmdec_column]
+            delta_years = to_epoch - get_epoch(model)
+
+            racorr_field, deccorr_field = sql_apply_pm(ra_field, dec_field,
+                                                       pmra_field, pmdec_field,
+                                                       delta_years,
+                                                       xmatch.is_pmra_cos)
+
+            ra_field = Case(
+                None,
+                [(model.posflag == 'gaia2', model.ra_orig)],
+                racorr_field
+            )
+            dec_field = Case(
+                None,
+                [(model.posflag == 'gaia2', model.decorig)],
+                deccorr_field
+            )
+
+            model_fields.extend([ra_field.alias('ra'),
+                                 dec_field.alias('dec')])
+            model_fields.extend([pmra_field.alias('pmra'),
+                                 pmdec_field.alias('pmdec')])
+
+        elif xmatch.pmra_column:
 
             pmra_field = fields[xmatch.pmra_column]
             pmdec_field = fields[xmatch.pmdec_column]
