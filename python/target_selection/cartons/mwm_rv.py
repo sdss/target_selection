@@ -304,7 +304,9 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
-        ra = [0] * 21
+        ra_hours_to_degrees = (360.0 / 24.0)
+
+        ra = [0] * 40
         dec = [0] * 21
         ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
         ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
@@ -327,6 +329,63 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
         ra[19] = 240.575;  dec[19] = 28.09     # noqa: E702, E241
         ra[20] = 248.3458; dec[20] = -0.5336   # noqa: E702, E241
 
+        # M67_btx
+        ra[21] = 8.8695 * ra_hours_to_degrees; dec[21] = 11.8252  # noqa: E702, E241
+
+        # M35N2158_btx
+        ra[22] = 6.126 * ra_hours_to_degrees; dec[22] = 24.32512  # noqa: E702, E241
+
+        # NGC2632_btx
+        ra[23] = 8.6685 * ra_hours_to_degrees; dec[23] = 19.6596  # noqa: E702, E241
+
+        # M3-RV
+        ra[24] = 13.7531 * ra_hours_to_degrees; dec[24] = 27.6256  # noqa: E702, E241
+
+        # BOOTES1
+        ra[25] = 13.9907 * ra_hours_to_degrees; dec[25] = 14.7  # noqa: E702, E241
+
+        # URMINOR
+        ra[26] = 15.1933 * ra_hours_to_degrees; dec[26] = 67.11  # noqa: E702, E241
+
+        # K2EB_C06_320+48_btx
+        ra[27] = 13.62 * ra_hours_to_degrees; dec[27] = -13.28  # noqa: E702, E241
+
+        # GD1-1
+        ra[28] = 8.4333 * ra_hours_to_degrees; dec[28] = 0.1666  # noqa: E702, E241
+
+        # GD1-2
+        ra[29] = 8.7667 * ra_hours_to_degrees; dec[29] = 11.8833  # noqa: E702, E241
+
+        # GD1-3
+        ra[30] = 9.25 * ra_hours_to_degrees; dec[30] = 22.3166  # noqa: E702, E241
+
+        # GD1-4
+        ra[31] = 10.9333 * ra_hours_to_degrees; dec[31] = 48.7333  # noqa: E702, E241
+
+        # GD1-5
+        ra[32] = 14.4833 * ra_hours_to_degrees; dec[32] = 57.5166  # noqa: E702, E241
+
+        # ORPHAN-5
+        ra[33] = 9.4833 * ra_hours_to_degrees; dec[33] = 47.8666  # noqa: E702, E241
+
+        # ORPHAN-4
+        ra[34] = 9.8167 * ra_hours_to_degrees; dec[34] = 38.0999  # noqa: E702, E241
+
+        # ORPHAN-3
+        ra[35] = 10.1167 * ra_hours_to_degrees; dec[35] = 26.0833  # noqa: E702, E241
+
+        # ORPHAN-2
+        ra[36] = 10.4167 * ra_hours_to_degrees; dec[36] = 15.0499  # noqa: E702, E241
+
+        # ORPHAN-1
+        ra[37] = 10.8833 * ra_hours_to_degrees; dec[37] = -3.0667  # noqa: E702, E241
+
+        # PAL5-2
+        ra[38] = 16.0333 * ra_hours_to_degrees; dec[38] = 6.1666  # noqa: E702, E241
+
+        # PAL5-1
+        ra[39] = 14.8333 * ra_hours_to_degrees; dec[39] = -7.1  # noqa: E702, E241
+
         ra_dec_condition = (
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[1], dec[1], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[2], dec[2], 3) |
@@ -347,7 +406,26 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[17], dec[17], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[18], dec[18], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
-            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[21], dec[21], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[22], dec[22], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[23], dec[23], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[24], dec[24], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[25], dec[25], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[26], dec[26], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[27], dec[27], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[28], dec[28], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[29], dec[29], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[30], dec[30], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[31], dec[31], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[32], dec[32], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[33], dec[33], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[34], dec[34], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[35], dec[35], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[36], dec[36], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[37], dec[37], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[38], dec[38], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[39], dec[39], 3))
 
 # We use *mwm_rv_long_condition to unpack the tuple mwm_rv_long_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
