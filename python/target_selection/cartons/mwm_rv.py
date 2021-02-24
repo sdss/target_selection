@@ -307,7 +307,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
         ra_hours_to_degrees = (360.0 / 24.0)
 
         ra = [0] * 40
-        dec = [0] * 21
+        dec = [0] * 40
         ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
         ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
         ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
