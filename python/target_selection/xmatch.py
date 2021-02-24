@@ -1553,6 +1553,10 @@ class XMatchPlanner(object):
             unmatched = unmatched.where(model_ra.is_null(False),
                                         model_dec.is_null(False))
 
+        # TODO: this is horrible and should be moved to the configuration in some form.
+        if model._meta.table_name == 'tic_v8':
+            unmatched = unmatched.where(model.objtype != 'EXTENDED')
+
         with Timer() as timer:
             with self.database.atomic():
 

@@ -2,6 +2,7 @@
   run_id: 1
   order:
     - tic_v8
+    - tic_v8_extended
     - legacy_survey_dr8
     - panstarrs1
     - supercosmos
@@ -49,6 +50,14 @@
       parallax_column: plx
       epoch: 2000.0
       join_weight: 0.1
+    tic_v8_extended:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: plx
+      epoch: 2000.0
     gaia_dr2_source:
       ra_column: ra
       dec_column: dec
