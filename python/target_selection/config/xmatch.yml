@@ -1,5 +1,5 @@
 '0.5.0-beta.1':
-  version_bit: 1
+  run_id: 1
   order:
     - tic_v8
     - legacy_survey_dr8

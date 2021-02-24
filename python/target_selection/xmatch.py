@@ -24,7 +24,7 @@ from peewee import SQL, CompositeKey, Model, fn
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
-from sdsstools.color_print import color_text
+from sdsstools._vendor.color_print import color_text
 
 import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
@@ -37,6 +37,9 @@ from target_selection.utils import (Timer, get_configuration_values,
 
 EPOCH = 2015.5
 QUERY_RADIUS = 1.
+
+#: Reserve last 11 bits for the run id.
+RUN_ID_BIT_SHIFT = 64 - 11
 
 
 class Version(peewee.Model):
@@ -321,6 +324,12 @@ class XMatchPlanner(object):
         correspond to a non-existing table it will be silently ignored.
     plan : str
         The cross-matching plan version.
+    run_id : int
+        An integer to identify this run of cross-matching. The ID is bit
+        shifted `.RUN_ID_BIT_SHIFT` positions and added to the catalogid.
+        This allows to quickly associate a ``catalogid`` with a run without
+        having to query ``catalogdb``. A ``run_id`` cannot be used if there
+        are targets already in ``catalog`` using that same ``run_id``.
     extra_nodes : list
         List of PeeWee models to be used as extra nodes for joins (i.e.,
         already established cross-matches between catalogues). This models
@@ -381,7 +390,7 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, database, models, plan, extra_nodes=[],
+    def __init__(self, database, models, plan, run_id, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{plan}.log',
@@ -416,8 +425,11 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.plan = plan
+        self.run_id = run_id
         self.tag = target_selection.__version__
-        self.log.info(f'plan = {self.plan!r}; tag = {self.tag!r}.')
+        self.log.info(f'plan = {self.plan!r}; '
+                      f'run_id = {self.run_id}; '
+                      f'tag = {self.tag!r}.')
 
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
@@ -442,7 +454,7 @@ class XMatchPlanner(object):
         self.set_process_order(order=order, key=key, start_node=start_node)
 
         self._version_id = None
-        self._max_cid = None
+        self._max_cid = self.run_id << RUN_ID_BIT_SHIFT
 
     @classmethod
     def read(cls, in_models, plan, config_file=None, **kwargs):
@@ -943,11 +955,6 @@ class XMatchPlanner(object):
 
             self._check_version(TempCatalog, force)
 
-            self._temp_count = int(get_row_count(self.database,
-                                                 self._temp_table,
-                                                 schema=self.schema,
-                                                 approximate=True))
-
         else:
 
             # Add Q3C index for TempCatalog
@@ -959,10 +966,8 @@ class XMatchPlanner(object):
 
             self.log.info(f'Created table {self._temp_table}.')
 
-            self._temp_count = 0
-
     def run(self, vacuum=False, analyze=False, from_=None,
-            force=False, keep_temp=False, start_catalogid=None):
+            force=False, keep_temp=False):
         """Runs the cross-matching process.
 
         Parameters
@@ -1003,11 +1008,10 @@ class XMatchPlanner(object):
                        not table.startswith(self.output_table + '_to_') and
                        table != self._temp_table]
 
-        if len(temp_tables) > 0 and not start_catalogid:
+        if len(temp_tables) > 0:
             raise XMatchError('Another cross-matching plan is currently running.')
 
         self._create_models(force or (from_ is not None))
-        self._max_cid = start_catalogid
 
         with Timer() as timer:
             p_order = self.process_order
@@ -1502,22 +1506,6 @@ class XMatchPlanner(object):
         model_pk = meta.primary_key
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
-
-        # Get the max catalogid currently in the table for the version.
-        if not self._max_cid:
-
-            self.log.debug('Getting max. catalogid.')
-
-            temp_max_cid = (TempCatalog
-                            .select(fn.MAX(TempCatalog.catalogid))
-                            .scalar() or 0)
-
-            if temp_max_cid == 0:
-                self._max_cid = (Catalog
-                                 .select(fn.MAX(Catalog.catalogid))
-                                 .scalar() or 0)
-            else:
-                self._max_cid = temp_max_cid
 
         unmatched = (model
                      .select((fn.row_number().over() + self._max_cid).alias('catalogid'),
