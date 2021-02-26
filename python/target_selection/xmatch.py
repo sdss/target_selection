@@ -1423,7 +1423,8 @@ class XMatchPlanner(object):
                             model_pk.alias('target_id'),
                             q3c_dist.alias('distance'))
                     .join(model, peewee.JOIN.CROSS)
-                    .where(q3c_join))
+                    .where(q3c_join)
+                    .where(self._get_sample_where(model_ra, model_dec)))
 
         # This may break the use of the index but I think it's needed if
         # the model is the second table in q3c_join and has empty RA/Dec.
