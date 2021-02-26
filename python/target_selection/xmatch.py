@@ -1029,7 +1029,7 @@ class XMatchPlanner(object):
                 model = self.models[table_name]
                 self.process_model(model)
 
-        self._load_output_table(keep_temp=keep_temp)
+            self._load_output_table(keep_temp=keep_temp)
 
         self.log.info(f'Cross-matching completed in {timer.interval:.3f} s.')
 
