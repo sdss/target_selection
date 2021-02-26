@@ -1389,58 +1389,32 @@ class XMatchPlanner(object):
 
             self.log.debug(f'Maximum epoch delta: {max_delta_epoch:.3f} (+ 0.1 year).')
 
-        # Determine which of the two tables is smaller. Q3C really wants the
-        # larger table last.
-        if self._temp_count > meta.xmatch.row_count:  # TempCatalog is larger
+        self.log.debug('Cross-matching model against temporary table.')
 
-            self.log.debug('Cross-matching model against temporary table.')
+        if use_pm:
 
-            if use_pm:
+            model_pmra = meta.fields[xmatch.pmra_column]
+            model_pmdec = meta.fields[xmatch.pmdec_column]
+            model_is_pmra_cos = int(xmatch.is_pmra_cos)
 
-                model_pmra = meta.fields[xmatch.pmra_column]
-                model_pmdec = meta.fields[xmatch.pmdec_column]
-                model_is_pmra_cos = int(xmatch.is_pmra_cos)
+            q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
+                                      model_pmra, model_pmdec,
+                                      model_is_pmra_cos, model_epoch,
+                                      TempCatalog.ra, TempCatalog.dec,
+                                      catalog_epoch)
+            q3c_join = fn.q3c_join_pm(model_ra, model_dec,
+                                      model_pmra, model_pmdec,
+                                      model_is_pmra_cos, model_epoch,
+                                      TempCatalog.ra, TempCatalog.dec,
+                                      catalog_epoch, max_delta_epoch,
+                                      query_radius / 3600.)
+        else:
 
-                q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
-                                          model_pmra, model_pmdec,
-                                          model_is_pmra_cos, model_epoch,
-                                          TempCatalog.ra, TempCatalog.dec,
-                                          catalog_epoch)
-                q3c_join = fn.q3c_join_pm(model_ra, model_dec,
-                                          model_pmra, model_pmdec,
-                                          model_is_pmra_cos, model_epoch,
-                                          TempCatalog.ra, TempCatalog.dec,
-                                          catalog_epoch, max_delta_epoch,
-                                          query_radius / 3600.)
-            else:
-
-                q3c_dist = fn.q3c_dist(model_ra, model_dec,
-                                       TempCatalog.ra, TempCatalog.dec)
-                q3c_join = fn.q3c_join(model_ra, model_dec,
-                                       TempCatalog.ra, TempCatalog.dec,
-                                       query_radius / 3600.)
-
-        else:  # Model is larger
-
-            self.log.debug('Cross-matching temporary table against model.')
-
-            if use_pm:
-                q3c_dist = fn.q3c_dist_pm(TempCatalog.ra, TempCatalog.dec,
-                                          TempCatalog.pmra, TempCatalog.pmdec,
-                                          1, catalog_epoch,
-                                          model_ra, model_dec, model_epoch)
-                q3c_join = fn.q3c_join_pm(TempCatalog.ra, TempCatalog.dec,
-                                          TempCatalog.pmra, TempCatalog.pmdec,
-                                          1, catalog_epoch,
-                                          model_ra, model_dec,
-                                          model_epoch, max_delta_epoch,
-                                          query_radius / 3600.)
-            else:
-                q3c_dist = fn.q3c_dist(TempCatalog.ra, TempCatalog.dec,
-                                       model_ra, model_dec)
-                q3c_join = fn.q3c_join(TempCatalog.ra, TempCatalog.dec,
-                                       model_ra, model_dec,
-                                       query_radius / 3600.)
+            q3c_dist = fn.q3c_dist(model_ra, model_dec,
+                                   TempCatalog.ra, TempCatalog.dec)
+            q3c_join = fn.q3c_join(model_ra, model_dec,
+                                   TempCatalog.ra, TempCatalog.dec,
+                                   query_radius / 3600.)
 
         # Get the cross-matched catalogid and model target pk (target_id),
         # and their distance.
