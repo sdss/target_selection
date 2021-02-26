@@ -1340,7 +1340,8 @@ class XMatchPlanner(object):
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
 
-        self._analyze(rel_model)
+        if 1 in self._phases_run:
+            self._analyze(rel_model)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1507,12 +1508,13 @@ class XMatchPlanner(object):
 
         self.log.info('Phase 3: adding non cross-matched targets.')
 
-        if 3 in xmatch.skip_phases:
-            self.log.warning('Skipping due to configuration.')
-            return
-
         rel_model = self._get_relational_model(model, create=True)
         rel_table_name = rel_model._meta.table_name
+
+        if 3 in xmatch.skip_phases:
+            self.log.warning('Skipping due to configuration.')
+            self._analyze(rel_model, catalog=True)
+            return
 
         table_name = meta.table_name
 

@@ -145,6 +145,7 @@
     bhm_csc:
       ra_column: oir_ra
       dec_column: oir_dec
+      query_radius: 2
     gaia_dr2_wd_sdss:
       ra_column: ra
       dec_column: dec
