@@ -1299,6 +1299,10 @@ class XMatchPlanner(object):
                      # In case we have duplicates in the catalogue.
                      .distinct(model_pk))
 
+            # Deal with duplicates in LS8
+            if table_name == 'legacy_survey_dr8':
+                query = query.where(self._get_ls8_where(model))
+
             # In query we do not include a Q3C where for the sample region
             # because TempCatalog for this plan should already be sample
             # region limited.
@@ -1565,6 +1569,9 @@ class XMatchPlanner(object):
         if model._meta.table_name == 'tic_v8':
             unmatched = unmatched.where(model.objtype != 'EXTENDED')
 
+        if table_name == 'legacy_survey_dr8':
+            unmatched = unmatched.where(self._get_ls8_where(model))
+
         with Timer() as timer:
             with self.database.atomic():
 
@@ -1743,6 +1750,13 @@ class XMatchPlanner(object):
                                                 ra, dec, radius)
 
         return sample_conds
+
+    def _get_ls8_where(self, model):
+        """Removes duplicates from LS8 queries."""
+
+        return ~(((model.release == 8000) & (model.dec > 32.375) &
+                 (model.ra > 100.) & (model.ra < 300.)) |
+                 ((model.release == 8001) & (model.dec < 32.375)))
 
     def show_join_paths(self):
         """Prints all the available joint paths.
