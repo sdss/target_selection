@@ -955,6 +955,10 @@ class XMatchPlanner(object):
 
             self._check_version(TempCatalog, force)
 
+            self._temp_count = int(get_row_count(self.database,
+                                                 self._temp_table,
+                                                 schema=self.schema,
+                                                 approximate=True))
         else:
 
             # Add Q3C index for TempCatalog
@@ -965,6 +969,8 @@ class XMatchPlanner(object):
             self.database.create_tables([TempCatalog])
 
             self.log.info(f'Created table {self._temp_table}.')
+
+            self._temp_count = 0
 
     def run(self, vacuum=False, analyze=False, from_=None,
             force=False, keep_temp=False):
@@ -1078,7 +1084,7 @@ class XMatchPlanner(object):
         to_epoch = self._options['epoch']
 
         # RA, Dec, and proper motion fields.
-        if model._table.table_name == 'tic_v8':
+        if model._meta.table_name == 'tic_v8':
             # TODO: this should be handled in a way that can be opted-in from
             # the configuration, but for now I'll just hardcode it here.
 
@@ -1098,7 +1104,7 @@ class XMatchPlanner(object):
             )
             dec_field = Case(
                 None,
-                [(model.posflag == 'gaia2', model.decorig)],
+                [(model.posflag == 'gaia2', model.dec_orig)],
                 deccorr_field
             )
 
@@ -1260,8 +1266,7 @@ class XMatchPlanner(object):
             # relational model, saving us one join.
             path = path[0:-1]
 
-            join_models = [self.model_graph.nodes[node]['model']
-                           for node in path]
+            join_models = [self.model_graph.nodes[node]['model'] for node in path]
 
             # Get the relational model that leads to the temporary catalog
             # table in the join. We'll want to filter on version_id to avoid
@@ -1325,6 +1330,9 @@ class XMatchPlanner(object):
                                           peewee.Value(self._version_id),
                                           temp_model.best),
                         fields).returning().execute()
+
+                    if nids > 0:
+                        self._phases_run.add(1)
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
             self._analyze(rel_model)

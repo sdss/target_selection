@@ -37,9 +37,8 @@
   schema: catalogdb
   output_table: catalog
   start_node: tic_v8
-  disable_seqscan: false
   debug: true
-  log_path: xmatch_{version}.log
+  log_path: xmatch_{plan}.log
   tables:
     tic_v8:
       ra_column: ra
