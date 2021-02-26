@@ -1478,7 +1478,7 @@ class XMatchPlanner(object):
                 # make sure the Q3C index is used.
                 self._setup_transaction(model, phase=2)
 
-                # 2. Run cross-match and insert data into relationa; model.
+                # 2. Run cross-match and insert data into relational model.
 
                 fields = [rel_model.target_id, rel_model.catalogid,
                           rel_model.version_id, rel_model.distance,
@@ -1497,8 +1497,9 @@ class XMatchPlanner(object):
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
-        self._phases_run.add(2)
-        self._analyze(rel_model)
+        if n_catalogid > 0:
+            self._phases_run.add(2)
+            self._analyze(rel_model)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
