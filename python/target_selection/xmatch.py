@@ -1339,7 +1339,8 @@ class XMatchPlanner(object):
                         self._phases_run.add(1)
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
-            self._analyze(rel_model)
+
+        self._analyze(rel_model)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
