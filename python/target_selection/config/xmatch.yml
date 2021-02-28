@@ -179,3 +179,42 @@
     work_mem: '10GB'
     temp_buffers: '10GB'
     maintenance_work_mem: '10GB'
+
+'0.5.0':
+  base_plan: '0.5.0-beta.1'
+  run_id: 2
+  order:
+    - tic_v8
+    - tic_v8_extended
+    - legacy_survey_dr8
+    - panstarrs1
+    - sdss_dr13_photoobj_primary
+    - sdss_dr16_specobj
+    - skymapper_dr2
+    - kepler_input_10
+    - bhm_rm_v0
+    - ps1_g18
+    - tycho2
+    - gaia_qso
+    - bhm_csc
+    - gaia_dr2_wd_sdss
+    - guvcat
+    - supercosmos
+    - bhm_efeds_veto
+    - twoqz_sixqz
+    - catwise2020
+    - allwise
+    - glimpse
+    - glimpse360
+    - uvotssc1
+    - xmm_om_suss_4_1
+  exclude:
+    - skymapper_gaia
+  sample_region: null
+  tables:
+    legacy_survey_dr8:
+      skip_phases: null
+    guvcat:
+      query_radius: 2.5
+    tic_v8_extended:
+      query_radius: 2
