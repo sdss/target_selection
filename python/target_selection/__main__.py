@@ -98,9 +98,6 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
         skip_query, include, exclude, write_table, allow_errors):
     """Runs target selection for all cartons."""
 
-#    carton_classes = {Carton.name: Carton
-#                      for Carton in BaseCarton.__subclasses__()}
-    # find grandchilden Cartons as well
     carton_classes = {Carton.name: Carton
                       for Carton in all_subclasses(BaseCarton)}
 
