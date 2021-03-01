@@ -18,11 +18,10 @@ from sdssdb.peewee import BaseModel
 from sdssdb.peewee.sdss5db import catalogdb as cdb
 from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdsstools import read_yaml_file
-from sdsstools.color_print import color_text
+from sdsstools._vendor.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
 from target_selection.utils import Timer
 
 
@@ -88,8 +87,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
     query_region = None
 
-    def __init__(self, targeting_plan, config_file=None,
-                 schema=None, table_name=None):
+    def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
         assert self.name, 'carton subclass must override name'
         assert self.category, 'carton subclass must override category'
@@ -104,8 +102,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
             this_config = config
 
         if self.plan not in this_config:
-            raise TargetSelectionError(f'({self.name}): cannot find plan '
-                                       f'{self.plan!r} in config.')
+            raise TargetSelectionError(
+                f'({self.name}): cannot find plan {self.plan!r} in config.'
+            )
 
         self.config = this_config[self.plan]
 
@@ -117,14 +116,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         try:
             self.xmatch_plan = self.config['xmatch_plan']
         except KeyError:
-            raise TargetSelectionError(f'({self.name}): xmatch_plan '
-                                       'not found in config.')
+            raise TargetSelectionError(
+                f'({self.name}): xmatch_plan not found in config.'
+            )
 
         # Check the signature of build_query
         self._build_query_signature = inspect.signature(self.build_query)
         if 'version_id' not in self._build_query_signature.parameters:
-            raise TargetSelectionError('build_query does not '
-                                       'accept version_id')
+            raise TargetSelectionError('build_query does not accept version_id')
 
         self.database = tdb.database
         assert self.database.connected, 'database is not connected.'
@@ -133,11 +132,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.table_name = table_name or f'temp_{self.name}'
 
         if self.cadence:
-            assert (tdb.Cadence
-                    .select()
-                    .where(tdb.Cadence.label == self.cadence)
-                    .count() == 1), (f'{self.cadence!r} does not '
-                                     'exist in targetdb.cadence.')
+            ncad = tdb.Cadence.select().where(tdb.Cadence.label == self.cadence).count()
+            assert ncad == 1, f'{self.cadence!r} does not exist in targetdb.cadence.'
 
         self.log = log
         self.has_run = False
@@ -197,13 +193,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 use_reflection = True
 
         if not Model.table_exists():
-            raise TargetSelectionError(f'temporary table {self.path!r} does '
-                                       'not exist.')
+            raise TargetSelectionError(f'temporary table {self.path!r} does not exist.')
 
         return Model
 
-    def run(self, tile=None, query_region=None, overwrite=False,
-            **post_process_kawrgs):
+    def run(self, tile=None, query_region=None, overwrite=False, **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
@@ -238,8 +232,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 log.info(f'Dropping table {self.path!r}.')
                 self.drop_table()
             else:
-                raise RuntimeError(f'Temporary table {self.path!r} '
-                                   'already exists.')
+                raise RuntimeError(f'Temporary table {self.path!r} already exists.')
 
         log.info('Running query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
@@ -261,52 +254,67 @@ class BaseCarton(metaclass=abc.ABCMeta):
             else:
                 # This may be quite inefficient depending on the query.
                 subq = query.alias('subq')
-                query = (peewee.Select(columns=[peewee.SQL('subq.*')])
-                         .from_(subq)
-                         .join(cdb.Catalog,
-                               on=(cdb.Catalog.catalogid == subq.c.catalogid))
-                         .where(peewee.fn.q3c_radial_query(cdb.Catalog.ra,
-                                                           cdb.Catalog.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2])))
+                query = (
+                    peewee.Select(columns=[peewee.SQL('subq.*')])
+                    .from_(subq)
+                    .join(cdb.Catalog, on=(cdb.Catalog.catalogid == subq.c.catalogid))
+                    .where(
+                        peewee.fn.q3c_radial_query(
+                            cdb.Catalog.ra,
+                            cdb.Catalog.dec,
+                            query_region[0],
+                            query_region[1],
+                            query_region[2],
+                        )
+                    )
+                )
 
         query_sql, params = query.sql()
         cursor = self.database.cursor()
         query_str = cursor.mogrify(query_sql, params).decode()
 
-        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {self.path} AS ' +
-                             query_str, 'darkgrey'))
+        log.debug(
+            color_text(
+                f'CREATE TABLE IF NOT EXISTS {self.path} AS ' + query_str, 'darkgrey'
+            )
+        )
 
         with self.database.atomic():
             with Timer() as timer:
                 self.setup_transaction()
-                self.database.execute_sql(f'CREATE TABLE IF NOT EXISTS '
-                                          f'{self.path} AS ' + query_sql,
-                                          params)
+                self.database.execute_sql(
+                    f'CREATE TABLE IF NOT EXISTS ' f'{self.path} AS ' + query_sql,
+                    params,
+                )
 
         log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
 
         log.debug('Adding columns and indexes.')
 
-        columns = [col.name
-                   for col in self.database.get_columns(self.table_name,
-                                                        self.schema)]
+        columns = [
+            col.name for col in self.database.get_columns(self.table_name, self.schema)
+        ]
 
         if 'selected' not in columns:
-            self.database.execute_sql(f'ALTER TABLE {self.path} '
-                                      'ADD COLUMN selected BOOL DEFAULT TRUE;')
+            self.database.execute_sql(
+                f'ALTER TABLE {self.path} ADD COLUMN selected BOOL DEFAULT TRUE;'
+            )
 
         if 'cadence' not in columns:
-            self.database.execute_sql(f'ALTER TABLE {self.path} '
-                                      'ADD COLUMN cadence VARCHAR DEFAULT NULL;')
-        if 'priority' not in columns:
-            self.database.execute_sql(f'ALTER TABLE {self.path} '
-                                      'ADD COLUMN priority INTEGER '
-                                      'DEFAULT NULL;')
+            self.database.execute_sql(
+                f'ALTER TABLE {self.path} ADD COLUMN cadence VARCHAR DEFAULT NULL;'
+            )
 
-        self.database.execute_sql(f'ALTER TABLE {self.path} '
-                                  'ADD PRIMARY KEY (catalogid);')
+        if 'priority' not in columns:
+            self.database.execute_sql(
+                f'ALTER TABLE {self.path} '
+                'ADD COLUMN priority INTEGER '
+                'DEFAULT NULL;'
+            )
+
+        self.database.execute_sql(
+            f'ALTER TABLE {self.path} ADD PRIMARY KEY (catalogid);'
+        )
         self.database.execute_sql(f'CREATE INDEX ON {self.path} (selected);')
         self.database.execute_sql(f'ANALYZE {self.path};')
 
@@ -411,8 +419,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if mode == 'results':
 
             results_model = self.get_model()
-            assert results_model.table_exists(), \
-                'temporary table does not exist.'
+            assert results_model.table_exists(), 'temporary table does not exist.'
 
             write_query = results_model.select()
 
@@ -420,24 +427,30 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         elif mode == 'targetdb':
 
-            mag_fields = [field
-                          for field in tdb.Magnitude._meta.fields.values()
-                          if field.name not in ['pk', 'target_pk', 'target']]
+            mag_fields = [
+                field
+                for field in tdb.Magnitude._meta.fields.values()
+                if field.name not in ['pk', 'target_pk', 'target']
+            ]
 
-            write_query = (tdb.Target
-                           .select(tdb.Target,
-                                   *mag_fields,
-                                   tdb.CartonToTarget.priority,
-                                   tdb.Cadence.label.alias('cadence'))
-                           .join(tdb.CartonToTarget)
-                           .join(tdb.Magnitude)
-                           .join_from(tdb.CartonToTarget, tdb.Cadence,
-                                      peewee.JOIN.LEFT_OUTER)
-                           .join_from(tdb.CartonToTarget, tdb.Carton)
-                           .join(tdb.Version)
-                           .where(tdb.Carton.carton == self.name,
-                                  tdb.Version.plan == self.plan,
-                                  tdb.Version.target_selection >> True))
+            write_query = (
+                tdb.Target.select(
+                    tdb.Target,
+                    *mag_fields,
+                    tdb.CartonToTarget.priority,
+                    tdb.Cadence.label.alias('cadence'),
+                )
+                .join(tdb.CartonToTarget)
+                .join(tdb.Magnitude)
+                .join_from(tdb.CartonToTarget, tdb.Cadence, peewee.JOIN.LEFT_OUTER)
+                .join_from(tdb.CartonToTarget, tdb.Carton)
+                .join(tdb.Version)
+                .where(
+                    tdb.Carton.carton == self.name,
+                    tdb.Version.plan == self.plan,
+                    tdb.Version.target_selection >> True,
+                )
+            )
 
             colnames = []
             for col in write_query._returning:
@@ -449,18 +462,22 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col.name)
 
         else:
-            raise ValueError('invalud mode. Available modes are '
-                             '"results" and "targetdb".')
+            raise ValueError(
+                'invalud mode. Available modes are "results" and "targetdb".'
+            )
 
         if not write_query.exists():
             raise TargetSelectionError('no records found.')
 
         results = write_query.tuples()
-        results = ((col if col is not None else numpy.nan for col in row)
-                   for row in tuple(results))
+        results = (
+            (col if col is not None else numpy.nan for col in row)
+            for row in tuple(results)
+        )
 
         warnings.filterwarnings(
-            'ignore', message='.*converting a masked element to nan.*')
+            'ignore', message='.*converting a masked element to nan.*'
+        )
 
         carton_table = table.Table(rows=results, names=colnames, masked=True)
 
@@ -474,29 +491,31 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if self.check_targets():
             if overwrite:
-                warnings.warn(f'Carton {self.name!r} with plan {self.plan!r} '
-                              f'and tag {self.tag!r} already has targets '
-                              'loaded. Dropping carton-to-target entries.',
-                              TargetSelectionUserWarning)
+                warnings.warn(
+                    f'Carton {self.name!r} with plan {self.plan!r} '
+                    f'and tag {self.tag!r} already has targets '
+                    'loaded. Dropping carton-to-target entries.',
+                    TargetSelectionUserWarning,
+                )
                 self.drop_carton()
             else:
-                raise TargetSelectionError(f'Found existing targets for '
-                                           f'carton {self.name!r} with plan '
-                                           f'{self.plan!r} and tag '
-                                           f'{self.tag!r}.')
+                raise TargetSelectionError(
+                    f'Found existing targets for '
+                    f'carton {self.name!r} with plan '
+                    f'{self.plan!r} and tag '
+                    f'{self.tag!r}.'
+                )
 
         RModel = self.get_model()
         if not RModel.table_exists():
-            raise TargetSelectionError(f'No temporary table found '
-                                       f'{self.full}. Did you call run()?')
+            raise TargetSelectionError(
+                f'No temporary table found ' f'{self.full}. Did you call run()?'
+            )
 
-        has_targets = (RModel.select()
-                       .where(RModel.selected >> True)
-                       .exists())
+        has_targets = RModel.select().where(RModel.selected >> True).exists()
 
         if not has_targets:
-            raise TargetSelectionError('No targets found in '
-                                       'intermediate table.')
+            raise TargetSelectionError('No targets found in intermediate table.')
 
         with self.database.atomic():
             self.setup_transaction()
@@ -506,22 +525,24 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if self.load_magnitudes:
                 self._load_magnitudes(RModel)
             else:
-                warnings.warn('Skipping magnitude load.',
-                              TargetSelectionUserWarning)
+                warnings.warn('Skipping magnitude load.', TargetSelectionUserWarning)
 
             self.log.debug('Committing records and checking constraints.')
 
     def check_targets(self):
         """Check if data has been loaded for this carton and targeting plan."""
 
-        has_targets = (tdb.CartonToTarget
-                       .select()
-                       .join(tdb.Carton)
-                       .join(tdb.Version)
-                       .where(tdb.Carton.carton == self.name,
-                              tdb.Version.plan == self.plan,
-                              tdb.Version.target_selection >> True)
-                       .exists())
+        has_targets = (
+            tdb.CartonToTarget.select()
+            .join(tdb.Carton)
+            .join(tdb.Version)
+            .where(
+                tdb.Carton.carton == self.name,
+                tdb.Version.plan == self.plan,
+                tdb.Version.target_selection >> True,
+            )
+            .exists()
+        )
 
         return has_targets
 
@@ -531,19 +552,22 @@ class BaseCarton(metaclass=abc.ABCMeta):
         category_pk = None
 
         # Create targeting plan in tdb.
-        version, created = tdb.Version.get_or_create(plan=self.plan,
-                                                     tag=self.tag,
-                                                     target_selection=True)
+        version, created = tdb.Version.get_or_create(
+            plan=self.plan, tag=self.tag, target_selection=True
+        )
         version_pk = version.pk
 
         if created:
-            log.info(f'Created record in targetdb.version for '
-                     f'{self.plan!r} with tag {self.tag!r}.')
+            log.info(
+                f'Created record in targetdb.version for '
+                f'{self.plan!r} with tag {self.tag!r}.'
+            )
 
-        if (tdb.Carton.select()
-                      .where(tdb.Carton.carton == self.name,
-                             tdb.Carton.version_pk == version_pk)
-                      .exists()):
+        if (
+            tdb.Carton.select()
+            .where(tdb.Carton.carton == self.name, tdb.Carton.version_pk == version_pk)
+            .exists()
+        ):
             return
 
         # Create carton and associated values.
@@ -559,9 +583,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if created:
                 log.debug(f'Created category {self.category!r}')
 
-        tdb.Carton.create(carton=self.name, category_pk=category_pk,
-                          program=self.program, mapper_pk=mapper_pk,
-                          version_pk=version_pk).save()
+        tdb.Carton.create(
+            carton=self.name,
+            category_pk=category_pk,
+            program=self.program,
+            mapper_pk=mapper_pk,
+            version_pk=version_pk,
+        ).save()
 
         log.debug(f'Created carton {self.name!r}')
 
@@ -570,27 +598,39 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('loading data into targetdb.target.')
 
-        n_inserted = tdb.Target.insert_from(
-            cdb.Catalog.select(cdb.Catalog.catalogid,
-                               cdb.Catalog.ra,
-                               cdb.Catalog.dec,
-                               cdb.Catalog.pmra,
-                               cdb.Catalog.pmdec,
-                               cdb.Catalog.parallax,
-                               peewee.Value(EPOCH))
-            .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
-            .where(RModel.selected >> True)
-            .where(~peewee.fn.EXISTS(
-                tdb.Target
-                .select(peewee.SQL('1'))
-                .where(tdb.Target.catalogid == RModel.catalogid))),
-            [tdb.Target.catalogid,
-             tdb.Target.ra,
-             tdb.Target.dec,
-             tdb.Target.pmra,
-             tdb.Target.pmdec,
-             tdb.Target.parallax,
-             tdb.Target.epoch]).returning().execute()
+        n_inserted = (
+            tdb.Target.insert_from(
+                cdb.Catalog.select(
+                    cdb.Catalog.catalogid,
+                    cdb.Catalog.ra,
+                    cdb.Catalog.dec,
+                    cdb.Catalog.pmra,
+                    cdb.Catalog.pmdec,
+                    cdb.Catalog.parallax,
+                    peewee.Value(EPOCH),
+                )
+                .join(RModel, on=(cdb.Catalog.catalogid == RModel.catalogid))
+                .where(RModel.selected >> True)
+                .where(
+                    ~peewee.fn.EXISTS(
+                        tdb.Target.select(peewee.SQL('1')).where(
+                            tdb.Target.catalogid == RModel.catalogid
+                        )
+                    )
+                ),
+                [
+                    tdb.Target.catalogid,
+                    tdb.Target.ra,
+                    tdb.Target.dec,
+                    tdb.Target.pmra,
+                    tdb.Target.pmdec,
+                    tdb.Target.parallax,
+                    tdb.Target.epoch,
+                ],
+            )
+            .returning()
+            .execute()
+        )
 
         log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
 
@@ -606,18 +646,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
         magnitude_paths = self.config['magnitudes']
         fields = [Magnitude.carton_to_target_pk]
 
-        select_from = (RModel
-                       .select(tdb.CartonToTarget.pk)
-                       .join(tdb.Target,
-                             on=(RModel.catalogid == tdb.Target.catalogid))
-                       .join(tdb.CartonToTarget)
-                       .join(tdb.Carton)
-                       .join(tdb.Version)
-                       .where(RModel.selected >> True)
-                       .where(tdb.Carton.carton == self.name,
-                              tdb.Version.plan == self.plan,
-                              tdb.Version.tag == self.tag,
-                              tdb.Version.target_selection >> True))
+        select_from = (
+            RModel.select(tdb.CartonToTarget.pk)
+            .join(tdb.Target, on=(RModel.catalogid == tdb.Target.catalogid))
+            .join(tdb.CartonToTarget)
+            .join(tdb.Carton)
+            .join(tdb.Version)
+            .where(RModel.selected >> True)
+            .where(
+                tdb.Carton.carton == self.name,
+                tdb.Version.plan == self.plan,
+                tdb.Version.tag == self.tag,
+                tdb.Version.target_selection >> True,
+            )
+        )
 
         for mag, mpath in magnitude_paths.items():
 
@@ -641,8 +683,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 if node == mpath[-1]:
                     node, column = node.split('.')
                 node_model = self.database.models.get('catalogdb.' + node)
-                joins = [model[0] for join in select_from._joins.values()
-                         for model in join]
+                joins = [
+                    model[0] for join in select_from._joins.values() for model in join
+                ]
                 if node_model in joins:
                     select_from = select_from.switch(node_model)
                 else:
@@ -650,20 +693,19 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         select_from = select_from.join(
                             node_model,
                             peewee.JOIN.LEFT_OUTER,
-                            on=(tdb.Target.catalogid == node_model.catalogid))
-                        select_from = (select_from
-                                       .where((node_model.best >> True) |
-                                              (node_model.catalogid >> None)))
+                            on=(tdb.Target.catalogid == node_model.catalogid),
+                        )
+                        select_from = select_from.where(
+                            (node_model.best >> True) | (node_model.catalogid >> None)
+                        )
                     else:
-                        select_from = select_from.join(node_model,
-                                                       peewee.JOIN.LEFT_OUTER)
+                        select_from = select_from.join(
+                            node_model, peewee.JOIN.LEFT_OUTER
+                        )
                 if column:
-                    select_from = (select_from
-                                   .select_extend(getattr(node_model, column)))
+                    select_from = select_from.select_extend(getattr(node_model, column))
 
-        n_inserted = (Magnitude
-                      .insert_from(select_from, fields)
-                      .returning().execute())
+        n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
 
         log.info(f'Inserted {n_inserted:,} new rows into targetdb.magnitude.')
 
@@ -672,35 +714,41 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('Loading data into targetdb.carton_to_target.')
 
-        version_pk = tdb.Version.get(plan=self.plan, tag=self.tag,
-                                     target_selection=True)
+        version_pk = tdb.Version.get(
+            plan=self.plan, tag=self.tag, target_selection=True
+        )
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
         Target = tdb.Target
         CartonToTarget = tdb.CartonToTarget
 
-        select_from = (RModel
-                       .select(Target.pk,
-                               carton_pk)
-                       .join(Target,
-                             on=(Target.catalogid == RModel.catalogid))
-                       .where(RModel.selected >> True)
-                       .where(~peewee.fn.EXISTS(
-                           CartonToTarget
-                           .select(peewee.SQL('1'))
-                           .join(tdb.Carton)
-                           .where(CartonToTarget.target_pk == Target.pk,
-                                  CartonToTarget.carton_pk == carton_pk,
-                                  tdb.Carton.version_pk == version_pk))))
+        select_from = (
+            RModel.select(Target.pk, carton_pk)
+            .join(Target, on=(Target.catalogid == RModel.catalogid))
+            .where(RModel.selected >> True)
+            .where(
+                ~peewee.fn.EXISTS(
+                    CartonToTarget.select(peewee.SQL('1'))
+                    .join(tdb.Carton)
+                    .where(
+                        CartonToTarget.target_pk == Target.pk,
+                        CartonToTarget.carton_pk == carton_pk,
+                        tdb.Carton.version_pk == version_pk,
+                    )
+                )
+            )
+        )
 
         if self.cadence is not None:
 
             # Check that not both the carton cadence and the cadence column
             # are not null.
             if RModel.select().where(~(RModel.cadence >> None)).exists():
-                raise TargetSelectionError('both carton cadence and target '
-                                           'cadence defined. This is not '
-                                           'allowed.')
+                raise TargetSelectionError(
+                    'both carton cadence and target '
+                    'cadence defined. This is not '
+                    'allowed.'
+                )
 
             cadence_pk = tdb.Cadence.get(label=self.cadence)
             select_from = select_from.select_extend(cadence_pk)
@@ -712,11 +760,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if not RModel.select().where(~(RModel.cadence >> None)).exists():
                 select_from = select_from.select_extend(peewee.SQL('null'))
             else:
-                select_from = (select_from
-                               .select_extend(tdb.Cadence.pk)
-                               .switch(RModel)
-                               .join(tdb.Cadence, 'LEFT OUTER JOIN',
-                                     on=(tdb.Cadence.label == RModel.cadence)))
+                select_from = (
+                    select_from.select_extend(tdb.Cadence.pk)
+                    .switch(RModel)
+                    .join(
+                        tdb.Cadence,
+                        'LEFT OUTER JOIN',
+                        on=(tdb.Cadence.label == RModel.cadence),
+                    )
+                )
 
         if self.priority is None:
             select_from = select_from.select_extend(RModel.priority)
@@ -724,27 +776,34 @@ class BaseCarton(metaclass=abc.ABCMeta):
             select_from = select_from.select_extend(self.priority)
 
         # Now do the insert
-        n_inserted = CartonToTarget.insert_from(
-            select_from,
-            [CartonToTarget.target_pk,
-             CartonToTarget.carton_pk,
-             CartonToTarget.cadence_pk,
-             CartonToTarget.priority]).returning().execute()
+        n_inserted = (
+            CartonToTarget.insert_from(
+                select_from,
+                [
+                    CartonToTarget.target_pk,
+                    CartonToTarget.carton_pk,
+                    CartonToTarget.cadence_pk,
+                    CartonToTarget.priority,
+                ],
+            )
+            .returning()
+            .execute()
+        )
 
-        log.info(f'Inserted {n_inserted:,} rows '
-                 'into targetdb.carton_to_target.')
+        log.info(f'Inserted {n_inserted:,} rows into targetdb.carton_to_target.')
 
     def drop_carton(self):
         """Drops the entry in ``targetdb.carton``."""
 
-        version = (tdb.Version
-                   .select()
-                   .where(tdb.Version.plan == self.plan,
-                          tdb.Version.tag == self.tag,
-                          tdb.Version.target_selection >> True))
+        version = tdb.Version.select().where(
+            tdb.Version.plan == self.plan,
+            tdb.Version.tag == self.tag,
+            tdb.Version.target_selection >> True,
+        )
 
         if version.count() == 0:
             return
 
-        tdb.Carton.delete().where(tdb.Carton.carton == self.name,
-                                  tdb.Carton.version == version).execute()
+        tdb.Carton.delete().where(
+            tdb.Carton.carton == self.name, tdb.Carton.version == version
+        ).execute()
