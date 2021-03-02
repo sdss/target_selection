@@ -48,7 +48,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
     mapper = 'MWM'
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    priority = None # priority is set in post_process()
+    priority = None  # priority is set in post_process()
 
     def build_query(self, version_id, query_region=None):
 
