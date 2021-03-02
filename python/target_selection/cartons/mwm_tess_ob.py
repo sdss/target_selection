@@ -85,7 +85,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
     cadence = None  # assigned in query
     program = 'mwm_tess_ob'
     mapper = 'MWM'
-    priority = None  # assigned in post_processs()
+    priority = 2200  # from the table in the V0.5 carton wiki page
 
     def build_query(self, version_id, query_region=None):
 
