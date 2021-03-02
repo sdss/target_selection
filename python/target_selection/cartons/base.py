@@ -305,11 +305,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 f'ALTER TABLE {self.path} ADD COLUMN cadence VARCHAR DEFAULT NULL;'
             )
 
+        if 'instrument' not in columns:
+            self.database.execute_sql(
+                f'ALTER TABLE {self.path} ADD COLUMN instrument VARCHAR DEFAULT NULL;'
+            )
+
         if 'priority' not in columns:
             self.database.execute_sql(
-                f'ALTER TABLE {self.path} '
-                'ADD COLUMN priority INTEGER '
-                'DEFAULT NULL;'
+                f'ALTER TABLE {self.path} ADD COLUMN priority INTEGER DEFAULT NULL;'
             )
 
         self.database.execute_sql(
@@ -509,7 +512,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         RModel = self.get_model()
         if not RModel.table_exists():
             raise TargetSelectionError(
-                f'No temporary table found ' f'{self.full}. Did you call run()?'
+                f'No temporary table found {self.full}. Did you call run()?'
             )
 
         has_targets = RModel.select().where(RModel.selected >> True).exists()
