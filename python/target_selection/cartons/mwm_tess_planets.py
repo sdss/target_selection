@@ -9,9 +9,8 @@
 import numpy
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (TESS_TOI_v05, Catalog,
-                                             CatalogToTIC_v8, TIC_v8,
-                                             TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+                                             TESS_TOI_v05, TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
