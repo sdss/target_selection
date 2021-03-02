@@ -48,7 +48,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
     mapper = 'MWM'
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    priority = 2600
+    priority = None # priority is set in post_process()
 
     def build_query(self, version_id, query_region=None):
 
@@ -85,6 +85,11 @@ class MWM_TESS_Planets_Carton(BaseCarton):
         #               'exo_CTOI': 2605,
         #               '2min': 2610}
 
+        # TODO remove later
+        # (later target_selection code will create table with instrument column)
+        self.database.execute_sql('alter table sandbox.temp_mwm_tess_planet ' +
+                                  ' add column instrument text')
+
         cursor = self.database.execute_sql(
             "select catalogid, hmag, tess_target_type from " +
             " sandbox.temp_mwm_tess_planet ;")
@@ -111,7 +116,8 @@ class MWM_TESS_Planets_Carton(BaseCarton):
                 current_cadence = 'bright_1x1'
             else:
                 current_instrument = 'APOGEE'
-                current_cadence = "bright_1x{}f".format(numexp)
+                current_cadence = "bright_1x" + str(int(numexp))
+                # current_cadence = "bright_1x{}f".format(numexp)
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -128,5 +134,5 @@ class MWM_TESS_Planets_Carton(BaseCarton):
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_tess_planet " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
