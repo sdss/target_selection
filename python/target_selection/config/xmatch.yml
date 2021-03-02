@@ -180,7 +180,7 @@
     temp_buffers: '10GB'
     maintenance_work_mem: '10GB'
 
-'0.5.0':
+'0.5.0-beta.2':
   base_plan: '0.5.0-beta.1'
   run_id: 2
   order:
@@ -210,7 +210,13 @@
     - xmm_om_suss_4_1
   exclude:
     - skymapper_gaia
-  sample_region: null
+  sample_region:
+    - [270., 66.56, 5.] # North CVZ
+    - [90., -66.56, 5.] # South CVZ
+    - [45.0, 0.0, 5.] # Stripe-82-West
+    - [135.0, 1.0, 5.] # eFEDS
+    - [315.0, 0.0, 5.] # Stripe-82-East
+    - [200.0, 32.375, 1.0] # North/South boundary
   tables:
     legacy_survey_dr8:
       skip_phases: null

@@ -1426,6 +1426,9 @@ class XMatchPlanner(object):
                     .where(q3c_join)
                     .where(self._get_sample_where(model_ra, model_dec)))
 
+        if table_name == 'legacy_survey_dr8':
+            xmatched = xmatched.where(self._get_ls8_where(model))
+
         # This may break the use of the index but I think it's needed if
         # the model is the second table in q3c_join and has empty RA/Dec.
         if xmatch.has_missing_coordinates and use_pm:
