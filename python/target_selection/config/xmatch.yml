@@ -231,3 +231,12 @@
     twoqz_sixqz:
       ra_column: ra_degree
       dec_column: dec_degree
+
+'0.5.0':
+  base_plan: '0.5.0-beta.2'
+  run_id: 3
+  sample_region: null
+  database_options:
+    work_mem: '2GB'
+    temp_buffers: '2GB'
+    maintenance_work_mem: '2GB'
