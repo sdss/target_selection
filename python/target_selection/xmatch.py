@@ -1019,6 +1019,10 @@ class XMatchPlanner(object):
 
         self._create_models(force or (from_ is not None))
 
+        if from_ is not None:
+            max_cid = TempCatalog.select(fn.MAX(TempCatalog.catalogid)).scalar()
+            self._max_cid = max_cid + 1  # I think we don't need the +1, but to be sure.
+
         with Timer() as timer:
             p_order = self.process_order
             for table_name in p_order:
