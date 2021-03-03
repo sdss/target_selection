@@ -1019,6 +1019,10 @@ class XMatchPlanner(object):
 
         self._create_models(force or (from_ is not None))
 
+        if from_ is not None:
+            max_cid = TempCatalog.select(fn.MAX(TempCatalog.catalogid)).scalar()
+            self._max_cid = max_cid + 1  # I think we don't need the +1, but to be sure.
+
         with Timer() as timer:
             p_order = self.process_order
             for table_name in p_order:
@@ -1335,11 +1339,11 @@ class XMatchPlanner(object):
                                           temp_model.best),
                         fields).returning().execute()
 
-                    if nids > 0:
-                        self._phases_run.add(1)
-                        self._analyze(rel_model)
-
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
+
+            if nids > 0:
+                self._phases_run.add(1)
+                self._analyze(rel_model)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1383,7 +1387,11 @@ class XMatchPlanner(object):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
             else:
                 max_delta_epoch = float(
-                    model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
+                    model
+                    .select(fn.MAX(fn.ABS(model_epoch - catalog_epoch)))
+                    .where(self._get_sample_where(model_ra, model_dec))
+                    .scalar()
+                )
 
             max_delta_epoch += .1  # Add a .1 yr just to be sure it's an upper bound.
 
