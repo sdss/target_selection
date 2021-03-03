@@ -99,7 +99,7 @@ class MWM_TESS_Planets_Carton(BaseCarton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_hmag = output[i][1]
-            current_tess_target_type = output[i][2]
+            current_tess_target_type = str(output[i][2]).strip()
 
             if(current_tess_target_type == 'exo_TOI'):
                 current_priority = 2600
@@ -117,7 +117,6 @@ class MWM_TESS_Planets_Carton(BaseCarton):
             else:
                 current_instrument = 'APOGEE'
                 current_cadence = "bright_1x" + str(int(numexp))
-                # current_cadence = "bright_1x{}f".format(numexp)
 
             if current_instrument is not None:
                 self.database.execute_sql(
