@@ -1645,9 +1645,10 @@ class XMatchPlanner(object):
 
         self._phases_run.add(3)
 
-        self.log.debug(f'Running CLUSTER on {self._temp_table} with q3c index.')
-        self.database.execute_sql(f'CLUSTER {self._temp_table} '
-                                  f'using {self._temp_table}_q3c_idx;')
+        if n_rows > 0.2 * self._temp_count:  # Cluster if we have added > 20% new rows.
+            self.log.debug(f'Running CLUSTER on {self._temp_table} with q3c index.')
+            self.database.execute_sql(f'CLUSTER {self._temp_table} '
+                                      f'using {self._temp_table}_q3c_idx;')
 
         self._analyze(rel_model, catalog=True)
 
