@@ -1387,7 +1387,11 @@ class XMatchPlanner(object):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
             else:
                 max_delta_epoch = float(
-                    model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
+                    model
+                    .select(fn.MAX(fn.ABS(model_epoch - catalog_epoch)))
+                    .where(self._get_sample_where(model_ra, model_dec))
+                    .scalar()
+                )
 
             max_delta_epoch += .1  # Add a .1 yr just to be sure it's an upper bound.
 
