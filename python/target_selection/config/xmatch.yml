@@ -217,6 +217,7 @@
     - [135.0, 1.0, 5.] # eFEDS
     - [315.0, 0.0, 5.] # Stripe-82-East
     - [200.0, 32.375, 1.0] # North/South boundary
+    - [282.95, 0.18, 5.0] # GG crowded region
   tables:
     legacy_survey_dr8:
       skip_phases: null
@@ -224,3 +225,9 @@
       query_radius: 2.5
     tic_v8_extended:
       query_radius: 2
+    bhm_efeds_veto:
+      ra_column: plug_ra
+      dec_column: plug_dec
+    twoqz_sixqz:
+      ra_column: ra_degree
+      dec_column: dec_degree
