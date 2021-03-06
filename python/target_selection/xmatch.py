@@ -1576,8 +1576,8 @@ class XMatchPlanner(object):
                 unmatched.create_table(temp_table, temporary=True)
 
                 # Analyze the temporary table to gather stats.
-                self.log.debug('Running ANALYZE on temporary table.')
-                self.database.execute_sql(f'ANALYZE "{temp_table}";')
+                # self.log.debug('Running ANALYZE on temporary table.')
+                # self.database.execute_sql(f'ANALYZE "{temp_table}";')
 
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
