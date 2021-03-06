@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* :release:`0.2.1 <2021-03-05>`
+* Pin ``sdssdb==0.4.8``.
+
 * :release:`0.2.0 <2021-03-05>`
 * :feature:`39` Improvements for cross-match ``v0.5``. Implements ``run_id`` and catalogid with ``run_id`` bit shifting, use of ``ra_orig`` and ``dec_orig`` from TIC_v8 when ``posflag=gaia2``, reject extended sources when matching against TIC_v8, and several improvements to cross-matching performance.
 
