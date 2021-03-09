@@ -720,7 +720,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         log.debug('Loading data into targetdb.carton_to_target.')
 
         version_pk = tdb.Version.get(
-            plan=self.plan, tag=self.tag, target_selection=True
+            plan=self.plan,
+            tag=self.tag,
+            target_selection=True,
         )
         carton_pk = tdb.Carton.get(carton=self.name, version_pk=version_pk).pk
 
@@ -780,6 +782,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             select_from = select_from.select_extend(self.priority)
 
+        if self.instrument is None:
+            assert 'instrument' in RModel._meta.columns, 'instrument not defined'
+            select_from = select_from.select_extend(RModel.instrument)
+        else:
+            select_from = select_from.select_extend(self.instrument)
+
+        for colname in ['delta_ra', 'delta_dec', 'intertial']:
+            if colname in RModel._meta.columns:
+                select_from = select_from.select_extend(RModel._meta.columns[colname])
+            else:
+                select_from = select_from.select_extend(peewee.SQL('null'))
+
         # Now do the insert
         n_inserted = (
             CartonToTarget.insert_from(
@@ -789,6 +803,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.carton_pk,
                     CartonToTarget.cadence_pk,
                     CartonToTarget.priority,
+                    CartonToTarget.instrument,
+                    CartonToTarget.delta_ra,
+                    CartonToTarget.delta_dec,
+                    CartonToTarget.inertial,
                 ],
             )
             .returning()
