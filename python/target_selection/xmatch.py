@@ -19,7 +19,7 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, Case, CompositeKey, Model, fn
+from peewee import SQL, Case, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
