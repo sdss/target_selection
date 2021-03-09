@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* :release:`0.1.5 <2021-03-09>`
+* Backport new version of ``mwm_rv_long_bplates`` to use for the plate program. Add target selection plan ``0.1.4``.
+
 * :release:`0.1.4 <2021-01-11>`
 * Unpin ``healpy`` version.
 
