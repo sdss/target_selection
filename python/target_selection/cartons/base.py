@@ -660,6 +660,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         for mag, mpath in magnitude_paths.items():
 
+            if mag == 'optical_prov':
+                continue
+
             fields.append(getattr(Magnitude, mag))
             if hasattr(RModel, mag):
                 select_from = select_from.select_extend(getattr(RModel, mag))
@@ -701,6 +704,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         )
                 if column:
                     select_from = select_from.select_extend(getattr(node_model, column))
+
+        if 'optical_prov' in RModel._meta.columns:
+            select_from = select_from.extend(RModel._meta.columns['optical_prov'])
+        else:
+            select_from = select_from.extend(magnitude_paths['optical_prov'])
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
 
