@@ -21,7 +21,8 @@ from sdsstools import read_yaml_file
 from sdsstools._vendor.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 from target_selection.utils import Timer
 
 
@@ -226,13 +227,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """
 
         query_region = query_region or self.query_region
+        path = self.path
 
         if self.database.table_exists(self.table_name, schema=self.schema):
             if overwrite:
-                log.info(f'Dropping table {self.path!r}.')
+                log.info(f'Dropping table {path!r}.')
                 self.drop_table()
             else:
-                raise RuntimeError(f'Temporary table {self.path!r} already exists.')
+                raise RuntimeError(f'Temporary table {path!r} already exists.')
 
         log.info('Running query ...')
         version_id = cdb.Version.get(plan=self.xmatch_plan).id
@@ -274,20 +276,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
         query_str = cursor.mogrify(query_sql, params).decode()
 
         log.debug(
-            color_text(
-                f'CREATE TABLE IF NOT EXISTS {self.path} AS ' + query_str, 'darkgrey'
-            )
+            color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str, 'darkgrey')
         )
 
         with self.database.atomic():
             with Timer() as timer:
                 self.setup_transaction()
                 self.database.execute_sql(
-                    f'CREATE TABLE IF NOT EXISTS ' f'{self.path} AS ' + query_sql,
+                    f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_sql,
                     params,
                 )
 
-        log.info(f'Created table {self.path!r} in {timer.interval:.3f} s.')
+        log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
         log.debug('Adding columns and indexes.')
 
@@ -297,34 +297,28 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if 'selected' not in columns:
             self.database.execute_sql(
-                f'ALTER TABLE {self.path} ADD COLUMN selected BOOL DEFAULT TRUE;'
+                f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;'
             )
 
-        if 'cadence' not in columns:
-            self.database.execute_sql(
-                f'ALTER TABLE {self.path} ADD COLUMN cadence VARCHAR DEFAULT NULL;'
-            )
-
-        if 'instrument' not in columns:
-            self.database.execute_sql(
-                f'ALTER TABLE {self.path} ADD COLUMN instrument VARCHAR DEFAULT NULL;'
-            )
+        for colname in ['cadence', 'instrument']:
+            if colname not in columns:
+                self.database.execute_sql(
+                    f'ALTER TABLE {path} ADD COLUMN {colname} VARCHAR;'
+                )
 
         if 'priority' not in columns:
             self.database.execute_sql(
-                f'ALTER TABLE {self.path} ADD COLUMN priority INTEGER DEFAULT NULL;'
+                f'ALTER TABLE {path} ADD COLUMN priority INTEGER;'
             )
 
-        self.database.execute_sql(
-            f'ALTER TABLE {self.path} ADD PRIMARY KEY (catalogid);'
-        )
-        self.database.execute_sql(f'CREATE INDEX ON {self.path} (selected);')
-        self.database.execute_sql(f'ANALYZE {self.path};')
+        self.database.execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
+        self.database.execute_sql(f'CREATE INDEX ON {path} (selected);')
+        self.database.execute_sql(f'ANALYZE {path};')
 
         ResultsModel = self.get_model()
 
         n_rows = ResultsModel.select().count()
-        log.debug(f'Table {self.path!r} contains {n_rows:,} rows.')
+        log.debug(f'Table {path!r} contains {n_rows:,} rows.')
 
         log.debug('Running post-process.')
         with self.database.atomic():
