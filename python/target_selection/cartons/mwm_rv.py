@@ -434,6 +434,7 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
                         ra_dec_condition,
+                        SDSS_APOGEE_AllStarMerge_r13.h < 12.2,
                         SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
