@@ -56,7 +56,7 @@ class Version(peewee.Model):
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField(primary_key=True, null=False)
+    catalogid = peewee.BigIntegerField(index=True, null=False)
     iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
@@ -70,7 +70,7 @@ class Catalog(peewee.Model):
 class TempCatalog(Catalog):
     """Temporary output table."""
 
-    catalogid = peewee.BigIntegerField(index=True, primary_key=False)
+    catalogid = peewee.BigIntegerField(index=True, null=False)
     version_id = peewee.IntegerField(index=False)
 
     class Meta:
@@ -1178,16 +1178,14 @@ class XMatchPlanner(object):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
             target_id = model_pk_class(null=False, index=True)
-            version_id = peewee.SmallIntegerField(null=False)
+            version_id = peewee.SmallIntegerField(null=False, index=True)
             distance = peewee.DoubleField(null=True)
-            best = peewee.BooleanField(null=False, index=True)
+            best = peewee.BooleanField(null=False)
 
             class Meta:
                 database = meta.database
                 schema = meta.schema
-                primary_key = CompositeKey('version_id', 'catalogid', 'target_id')
-                indexes = ((('version_id', 'target_id', 'best'), False),
-                           (('version_id', 'best'), False))
+                primary_key = False
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))
