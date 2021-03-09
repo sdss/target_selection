@@ -130,7 +130,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert self.database.connected, 'database is not connected.'
 
         self.schema = schema or self.config.get('schema', None) or 'sandbox'
-        self.table_name = table_name or f'temp_{self.name}'
+        self.table_name = table_name or f'temp_{self.name}'.replace('-', '_')
 
         if self.cadence:
             ncad = tdb.Cadence.select().where(tdb.Cadence.label == self.cadence).count()
