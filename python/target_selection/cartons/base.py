@@ -707,9 +707,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     select_from = select_from.select_extend(getattr(node_model, column))
 
         if 'optical_prov' in RModel._meta.columns:
-            select_from = select_from.extend(RModel._meta.columns['optical_prov'])
+            select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
         else:
-            select_from = select_from.extend(magnitude_paths['optical_prov'])
+            select_from = select_from.select_extend(magnitude_paths['optical_prov'])
+        fields.append(Magnitude.optical_prov)
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
 
