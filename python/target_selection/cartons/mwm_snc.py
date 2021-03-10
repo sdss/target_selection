@@ -14,10 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
 from target_selection.cartons import BaseCarton
 
 
-__all__ = ['MWM_SNC_100pc', 'MWM_SNC_250pc']
-
-
-class MWM_SNC_100pc(BaseCarton):
+class MWM_SNC_100pc_Carton(BaseCarton):
     """MWM Solar Neighbourhood Census 100pc.
 
     Definition:
@@ -45,19 +42,10 @@ class MWM_SNC_100pc(BaseCarton):
            (sqrt(pow(l - 280.3, 2) + 2 * pow(b + 33.0, 2)) < 8) )
         )
 
-    """
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
 
-    name = 'mwm_snc_100pc'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    # Old cadence = 'mwm_100pc_faint_1x1'
-    # From cadence wiki page:
-    # mwm_100pc_faint_1x1 -> boss_dark_1x1
-    # Hence we set:
-    instrument = 'BOSS'
-    cadence = 'dark_1x1'
-    priority = 1800
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -73,6 +61,7 @@ class MWM_SNC_100pc(BaseCarton):
         query = (Gaia_DR2
                  .select(Catalog.catalogid,
                          TIC_v8.gaia_int.alias('gaia_source_id'),
+                         Gaia_DR2.phot_g_mean_mag,
                          l, b)
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
@@ -93,7 +82,49 @@ class MWM_SNC_100pc(BaseCarton):
         return query
 
 
-class MWM_SNC_250pc(BaseCarton):
+class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
+    """MWM SNC 100pc targets to be observed with APOGEE."""
+
+    name = 'mwm_snc_100pc_apogee'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1805
+
+    def __init__(self, targeting_plan, config_file, schema, table_name):
+
+        query = super().__init__(targeting_plan,
+                                 config_file=config_file,
+                                 schema=schema,
+                                 table_name=table_name)
+
+        return query.where(TIC_v8.hmag < 11)
+
+
+class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
+    """MWM SNC 100pc targets to be observed with BOSS."""
+
+    name = 'mwm_snc_100pc_boss'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'BOSS'
+    priority = 1800
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+
+        return model
+
+
+class MWM_SNC_250pc_Carton(BaseCarton):
     """MWM Solar Neighbourhood Census 250pc.
 
     Definition:
@@ -124,15 +155,10 @@ class MWM_SNC_250pc(BaseCarton):
             )
         )
 
-    """
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
 
-    name = 'mwm_snc_250pc'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = None
-    cadence = None
-    priority = 1810
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -150,6 +176,7 @@ class MWM_SNC_250pc(BaseCarton):
         query = (Gaia_DR2
                  .select(CatalogToTIC_v8.catalogid,
                          TIC_v8.gaia_int.alias('gaia_source_id'),
+                         Gaia_DR2.phot_g_mean_mag,
                          l, b)
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
@@ -169,3 +196,45 @@ class MWM_SNC_250pc(BaseCarton):
                                                 query_region[2])))
 
         return query
+
+
+class MWM_SNC_250pc_APOGEE_Carton(MWM_SNC_250pc_Carton):
+    """MWM SNC 250pc targets to be observed with APOGEE."""
+
+    name = 'mwm_snc_250pc_apogee'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1815
+
+    def __init__(self, targeting_plan, config_file, schema, table_name):
+
+        query = super().__init__(targeting_plan,
+                                 config_file=config_file,
+                                 schema=schema,
+                                 table_name=table_name)
+
+        return query.where(TIC_v8.hmag < 11)
+
+
+class MWM_SNC_250pc_BOSS_Carton(MWM_SNC_250pc_Carton):
+    """MWM SNC 250pc targets to be observed with BOSS."""
+
+    name = 'mwm_snc_250pc_boss'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'BOSS'
+    priority = 1810
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+
+        return model
