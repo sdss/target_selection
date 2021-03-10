@@ -40,10 +40,6 @@ class MWM_Galactic_Genesis_Carton(BaseCarton):
 
     name = 'mwm_gg_core'
     category = 'science'
-    # Old cadence = 'mwm_galactic_1x1'
-    # From cadence wiki page:
-    # mwm_galactic_1x1 → apogee_bright_1x1
-    # Hence we set:
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
     priority = 2710
