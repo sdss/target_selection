@@ -198,7 +198,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return Model
 
-    def run(self, tile=None, query_region=None, overwrite=False, **post_process_kawrgs):
+    def run(self, query_region=None, overwrite=False, **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
