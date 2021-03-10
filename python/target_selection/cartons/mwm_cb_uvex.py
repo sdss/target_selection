@@ -61,7 +61,30 @@ astrometric_cuts = (BJ.r_lo <= 1500,
                        fn.pow(epar, 2) / (4.5 * 4.5) <= 1)))
 
 
-class MWM_CB_UVEX1_Carton(BaseCarton):
+class MWM_CB_UVEX_BaseCarton(BaseCarton):
+
+    def post_process(self, model, **kwargs):
+
+        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN value REAL;')
+
+        # G < 17 => cadence = bright_1x1
+        model.update(cadence='bright_1x1').where(model.phot_g_mean_mag < 17).execute()
+        model.update(value=1).where(model.phot_g_mean_mag < 17).execute()
+
+        # 17 < G < 19 => cadence = dark_1x2
+        model.update(cadence='dark_1x2').where((model.phot_g_mean_mag > 17) &
+                                               (model.phot_g_mean_mag < 19)).execute()
+        model.update(value=1).where((model.phot_g_mean_mag > 17) &
+                                    (model.phot_g_mean_mag < 19)).execute()
+
+        # G > 19 => cadence = dark_1x3
+        model.update(cadence='dark_1x3').where(model.phot_g_mean_mag > 19).execute()
+        model.update(value=3).where(model.phot_g_mean_mag > 19).execute()
+
+        return model
+
+
+class MWM_CB_UVEX1_Carton(MWM_CB_UVEX_BaseCarton):
     """MWM Compact Binaries UV excess 1.
 
     Definition:
@@ -190,7 +213,7 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
         return query
 
 
-class MWM_CB_UVEX2_Carton(BaseCarton):
+class MWM_CB_UVEX2_Carton(MWM_CB_UVEX_BaseCarton):
     """MWM Compact Binaries UV excess 2.
 
     Definition:
@@ -315,7 +338,7 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
         return query
 
 
-class MWM_CB_UVEX3_Carton(BaseCarton):
+class MWM_CB_UVEX3_Carton(MWM_CB_UVEX_BaseCarton):
     """MWM Compact Binaries UV excess 3.
 
     Definition:
@@ -464,7 +487,7 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
         return query
 
 
-class MWM_CB_UVEX4_Carton(BaseCarton):
+class MWM_CB_UVEX4_Carton(MWM_CB_UVEX_BaseCarton):
     """MWM Compact Binaries UV excess 4.
 
     Definition:
@@ -616,7 +639,7 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
         return query
 
 
-class MWM_CB_UVEX5_Carton(BaseCarton):
+class MWM_CB_UVEX5_Carton(MWM_CB_UVEX_BaseCarton):
     """MWM Compact Binaries UV excess 5.
 
     Definition:
