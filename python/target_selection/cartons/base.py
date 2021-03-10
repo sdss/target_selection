@@ -228,6 +228,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """
 
         query_region = query_region or self.query_region
+
         path = self.path
         execute_sql = self.database.execute_sql
 
@@ -277,17 +278,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         cursor = self.database.cursor()
         query_str = cursor.mogrify(query_sql, params).decode()
 
-        log.debug(
-            color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str, 'darkgrey')
-        )
+        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
+                             'darkgrey'))
 
         with self.database.atomic():
             with Timer() as timer:
                 self.setup_transaction()
-                self.database.execute_sql(
-                    f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_sql,
-                    params,
-                )
+                execute_sql(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_sql,
+                            params)
 
         log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
@@ -298,23 +296,21 @@ class BaseCarton(metaclass=abc.ABCMeta):
         ]
 
         if 'selected' not in columns:
-            self.database.execute_sql(
-                f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;'
-            )
+            execute_sql(f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;')
 
         for colname in ['cadence', 'instrument']:
             if colname not in columns:
-                self.database.execute_sql(
-                    f'ALTER TABLE {path} ADD COLUMN {colname} VARCHAR;'
-                )
+                execute_sql(f'ALTER TABLE {path} ADD COLUMN {colname} VARCHAR;')
 
         if 'priority' not in columns:
+            execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
+
         if 'value' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN value REAL;')
 
-        self.database.execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
-        self.database.execute_sql(f'CREATE INDEX ON {path} (selected);')
-        self.database.execute_sql(f'ANALYZE {path};')
+        execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
+        execute_sql(f'CREATE INDEX ON {path} (selected);')
+        execute_sql(f'ANALYZE {path};')
 
         ResultsModel = self.get_model()
 
