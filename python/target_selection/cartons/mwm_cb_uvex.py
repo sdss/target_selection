@@ -119,7 +119,6 @@ class MWM_CB_UVEX1_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
@@ -251,7 +250,6 @@ class MWM_CB_UVEX2_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
@@ -332,30 +330,14 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
         - Apply some general UV quality flags and work on subset of entries
           in OM-SUSS:
             - (UVW2_AB_MAG >-100) || (UVW1_AB_MAG >-100) || (UVM2_AB_MAG>-100)
-            - !(equals(substring(UVW2_QUALITY_FLAG_ST,0,1),"T") ||
-                equals(substring(UVM2_QUALITY_FLAG_ST,0,1),"T") ||
-                equals(substring(UVW1_QUALITY_FLAG_ST,0,1),"T") ||
-                (equals(substring(UVW2_QUALITY_FLAG_ST,1,2),"T") &&
-                 UVW2_SIGNIF <10) ||
+            - !(equals(substring(UVM2_QUALITY_FLAG_ST,0,1),"T") ||
                 (equals(substring(UVM2_QUALITY_FLAG_ST,1,2),"T") &&
                  UVM2_SIGNIF <10) ||
-                (equals(substring(UVW1_QUALITY_FLAG_ST,1,2),"T") &&
-                 UVW1_SIGNIF <10) ||
-                (equals(substring(UVW2_QUALITY_FLAG_ST,2,3) ,"T") &&
-                 UVW2_SIGNIF <10) ||
                 (equals(substring(UVM2_QUALITY_FLAG_ST,2,3),"T") &&
                  UVM2_SIGNIF <10) ||
-                (equals(substring(UVW1_QUALITY_FLAG_ST,2,3),"T") &&
-                 UVW1_SIGNIF <10) ||
-                (equals(substring(UVW2_QUALITY_FLAG_ST,6,7) ,"T")) ||
                 equals(substring(UVM2_QUALITY_FLAG_ST,6,7),"T") ||
-                equals(substring(UVW1_QUALITY_FLAG_ST,6,7),"T") ||
-                equals(substring(UVW2_QUALITY_FLAG_ST,7,8),"T") ||
                 equals(substring(UVM2_QUALITY_FLAG_ST,7,8),"T") ||
-                equals(substring(UVW1_QUALITY_FLAG_ST,7,8),"T") ||
-                equals(substring(UVW2_QUALITY_FLAG_ST,8,9),"T") ||
-                equals(substring(UVM2_QUALITY_FLAG_ST,8,9),"T") ||
-                equals(substring(UVW1_QUALITY_FLAG_ST,8,9),"T"))
+                equals(substring(UVM2_QUALITY_FLAG_ST,8,9),"T"))
 
         - Match UV catalog with Gaia DR2 within 3 arcsec, keep the nearest
           match only, add distance and lower limit distance (columns r_est,
@@ -400,45 +382,24 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
 
-        uvw2_ab_mag = XMM_OM_SUSS_4_1.uvw2_ab_mag
-        uvw1_ab_mag = XMM_OM_SUSS_4_1.uvw1_ab_mag
         uvm2_ab_mag = XMM_OM_SUSS_4_1.uvm2_ab_mag
-
-        uvw2_quality_flag_st = XMM_OM_SUSS_4_1.uvw2_quality_flag_st
         uvm2_quality_flag_st = XMM_OM_SUSS_4_1.uvm2_quality_flag_st
-        uvw1_quality_flag_st = XMM_OM_SUSS_4_1.uvw1_quality_flag_st
-
-        uvw2_signif = XMM_OM_SUSS_4_1.uvw2_signif
         uvm2_signif = XMM_OM_SUSS_4_1.uvm2_signif
-        uvw1_signif = XMM_OM_SUSS_4_1.uvw1_signif
 
         quality_flags = (
-            (uvw2_ab_mag > -100) | (uvw1_ab_mag > -100) | (uvm2_ab_mag > -100),
-            ~((fn.substr(uvw2_quality_flag_st, 1, 1) == 'T') |
-              (fn.substr(uvm2_quality_flag_st, 1, 1) == 'T') |
-              (fn.substr(uvw1_quality_flag_st, 1, 1) == 'T') |
-              ((fn.substr(uvw2_quality_flag_st, 2, 1) == 'T') & (uvw2_signif < 10)) |
+            (uvm2_ab_mag > -100),
+            ~((fn.substr(uvm2_quality_flag_st, 1, 1) == 'T') |
               ((fn.substr(uvm2_quality_flag_st, 2, 1) == 'T') & (uvm2_signif < 10)) |
-              ((fn.substr(uvw1_quality_flag_st, 2, 1) == 'T') & (uvw1_signif < 10)) |
-              ((fn.substr(uvw2_quality_flag_st, 3, 1) == 'T') & (uvw2_signif < 10)) |
               ((fn.substr(uvm2_quality_flag_st, 3, 1) == 'T') & (uvm2_signif < 10)) |
-              ((fn.substr(uvw1_quality_flag_st, 3, 1) == 'T') & (uvw1_signif < 10)) |
-              ((fn.substr(uvw2_quality_flag_st, 7, 1) == 'T') |
-               (fn.substr(uvm2_quality_flag_st, 7, 1) == 'T') |
-               (fn.substr(uvw1_quality_flag_st, 7, 1) == 'T') |
-               (fn.substr(uvw2_quality_flag_st, 8, 1) == 'T') |
-               (fn.substr(uvm2_quality_flag_st, 8, 1) == 'T') |
-               (fn.substr(uvw1_quality_flag_st, 8, 1) == 'T') |
-               (fn.substr(uvw2_quality_flag_st, 9, 1) == 'T') |
-               (fn.substr(uvm2_quality_flag_st, 9, 1) == 'T') |
-               (fn.substr(uvw1_quality_flag_st, 9, 1) == 'T')))
+              (fn.substr(uvm2_quality_flag_st, 7, 1) == 'T') |
+              (fn.substr(uvm2_quality_flag_st, 8, 1) == 'T') |
+              (fn.substr(uvm2_quality_flag_st, 9, 1) == 'T'))
         )
 
         quality_cte = (XMM_OM_SUSS_4_1
@@ -450,10 +411,11 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
                        .where(*quality_flags)
                        .cte('quality_cte', materialized=True))
 
-        colour_cuts = (colour_absg,
-                       ((quality_cte.c.uvm2_ab_mag - gmagab) < 2.25) |
-                       (((quality_cte.c.uvm2_ab_mag - gmagab) < 6) &
-                        ((quality_cte.c.uvm2_ab_mag - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
+        colour_cuts = (
+            colour_absg,
+            ((quality_cte.c.uvm2_ab_mag - gmagab) < 2.25) |
+            (((quality_cte.c.uvm2_ab_mag - gmagab) < 6) &
+             ((quality_cte.c.uvm2_ab_mag - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
 
         query = (Catalog
                  .select(Catalog.catalogid,
@@ -473,12 +435,12 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
                          BJ.r_est,
                          BJ.r_lo,
                          XMM_OM_SUSS_4_1.srcnum,
+                         XMM_OM_SUSS_4_1.obsid,
+                         XMM_OM_SUSS_4_1.ra.alias('xmm_ra'),
+                         XMM_OM_SUSS_4_1.dec.alias('xmm_dec'),
+                         XMM_OM_SUSS_4_1.uvm2_signif,
                          quality_cte.c.uvm2_ab_mag.alias('uvm2_ab_mag'),
-                         quality_cte.c.uvw2_ab_mag.alias('uvw2_ab_mag'),
-                         quality_cte.c.uvw1_ab_mag.alias('uvw1_ab_mag'),
-                         quality_cte.c.uvm2_quality_flag_st.alias('uvm2_quality_flag_st'),
-                         quality_cte.c.uvw2_quality_flag_st.alias('uvw2_quality_flag_st'),
-                         quality_cte.c.uvw1_quality_flag_st.alias('uvw1_quality_flag_st'))
+                         quality_cte.c.uvm2_quality_flag_st.alias('uvm2_quality_flag_st'))
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(Gaia_DR2)
@@ -493,12 +455,11 @@ class MWM_CB_UVEX3_Carton(BaseCarton):
                  .with_cte(quality_cte))
 
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = (query.where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                            Catalog.dec,
+                                                            query_region[0],
+                                                            query_region[1],
+                                                            query_region[2])))
 
         return query
 
@@ -518,20 +479,10 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
         - Apply some general UV quality flags and work on subset of entries
         in UVOT catalog::
             - (UVW2_AB_MAG >-100) || (UVW1_AB_MAG >-100) || (UVM2_AB_MAG>-100)
-            - !(equals(substring(UVW1_QUALITY_FLAG_BIN,8,9),"1") ||
-                equals(substring(UVW2_QUALITY_FLAG_BIN,8,9),"1") ||
-                equals(substring(UVM2_QUALITY_FLAG_BIN,8,9),"1") ||
-                (equals(substring(UVW1_QUALITY_FLAG_BIN,7,8),"1") && UVW1_SIGNIF <10) ||
-                (equals(substring(UVW2_QUALITY_FLAG_BIN,7,8),"1") && UVW2_SIGNIF <10) ||
+            - !(equals(substring(UVM2_QUALITY_FLAG_BIN,8,9),"1") ||
                 (equals(substring(UVM2_QUALITY_FLAG_BIN,7,8),"1") && UVM2_SIGNIF <10) ||
-                (equals(substring(UVW1_QUALITY_FLAG_BIN,6,7),"1") && UVW1_SIGNIF <10) ||
-                (equals(substring(UVW2_QUALITY_FLAG_BIN,6,7),"1") && UVW2_SIGNIF <10) ||
                 (equals(substring(UVM2_QUALITY_FLAG_BIN,6,7),"1") && UVM2_SIGNIF <10) ||
-                (equals(substring(UVW1_QUALITY_FLAG_BIN,3,4),"1") && UVW1_SIGNIF <10) ||
-                (equals(substring(UVW2_QUALITY_FLAG_BIN,3,4),"1") && UVW2_SIGNIF <10) ||
                 (equals(substring(UVM2_QUALITY_FLAG_BIN,3,4),"1") && UVM2_SIGNIF <10) ||
-                equals(substring(UVW1_QUALITY_FLAG_BIN,2,3),"1") ||
-                equals(substring(UVW2_QUALITY_FLAG_BIN,2,3),"1") ||
                 equals(substring(UVM2_QUALITY_FLAG_BIN,2,3),"1"))
 
         - Match UV catalog with Gaia DR2 within 3 arcsec, keep the nearest
@@ -577,7 +528,6 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
@@ -588,33 +538,18 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
         uvm2_ab_mag = UVOT_SSC_1.uvm2_ab
         uvw1_ab_mag = UVOT_SSC_1.uvw1_ab
 
-        uvw2_quality_flag = UVOT_SSC_1.fuvw2
         uvm2_quality_flag = UVOT_SSC_1.fuvm2
-        uvw1_quality_flag = UVOT_SSC_1.fuvw1
-
-        uvw2_signif = UVOT_SSC_1.suvw2
         uvm2_signif = UVOT_SSC_1.suvm2
-        uvw1_signif = UVOT_SSC_1.suvw1
 
         # uvXY_quality_flag is a 9-bit integer so character 8 (0-indexed) in
         # the binary string is the first bit, 7 is the second, etc.
 
         quality_flags = (
             (uvw2_ab_mag > -100) | (uvw1_ab_mag > -100) | (uvm2_ab_mag > -100),
-            ~((uvw1_quality_flag.bin_and(2**0) > 0) |
-              (uvw2_quality_flag.bin_and(2**0) > 0) |
-              (uvm2_quality_flag.bin_and(2**0) > 0) |
-              (uvw1_quality_flag.bin_and(2**1) > 0) & (uvw1_signif < 10) |
-              (uvw2_quality_flag.bin_and(2**1) > 0) & (uvw2_signif < 10) |
+            ~((uvm2_quality_flag.bin_and(2**0) > 0) |
               (uvm2_quality_flag.bin_and(2**1) > 0) & (uvm2_signif < 10) |
-              (uvw1_quality_flag.bin_and(2**2) > 0) & (uvw1_signif < 10) |
-              (uvw2_quality_flag.bin_and(2**2) > 0) & (uvw2_signif < 10) |
               (uvm2_quality_flag.bin_and(2**2) > 0) & (uvm2_signif < 10) |
-              (uvw1_quality_flag.bin_and(2**5) > 0) & (uvw1_signif < 10) |
-              (uvw2_quality_flag.bin_and(2**5) > 0) & (uvw2_signif < 10) |
               (uvm2_quality_flag.bin_and(2**5) > 0) & (uvm2_signif < 10) |
-              (uvw1_quality_flag.bin_and(2**6) > 0) |
-              (uvw2_quality_flag.bin_and(2**6) > 0) |
               (uvm2_quality_flag.bin_and(2**6) > 0))
         )
 
@@ -627,10 +562,11 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
                        .where(*quality_flags)
                        .cte('quality_cte', materialized=True))
 
-        colour_cuts = (colour_absg,
-                       ((quality_cte.c.uvm2_ab - gmagab) < 2.25) |
-                       (((quality_cte.c.uvm2_ab - gmagab) < 6) &
-                        ((quality_cte.c.uvm2_ab - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
+        colour_cuts = (
+            colour_absg,
+            ((quality_cte.c.uvm2_ab - gmagab) < 2.25) |
+            (((quality_cte.c.uvm2_ab - gmagab) < 6) &
+             ((quality_cte.c.uvm2_ab - gmagab) < 5.57377 * (B_AB_R_AB) + 0.2049)))
 
         query = (Catalog
                  .select(Catalog.catalogid,
@@ -650,12 +586,12 @@ class MWM_CB_UVEX4_Carton(BaseCarton):
                          BJ.r_est,
                          BJ.r_lo,
                          UVOT_SSC_1.srcnum,
+                         UVOT_SSC_1.obsid,
+                         UVOT_SSC_1.ra.alias('uvot_ra'),
+                         UVOT_SSC_1.dec.alias('uvot_dec'),
+                         UVOT_SSC_1.suvm2,
                          quality_cte.c.uvm2_ab.alias('uvm2_ab'),
-                         quality_cte.c.uvw2_ab.alias('uvw2_ab'),
-                         quality_cte.c.uvw1_ab.alias('uvw1_ab'),
-                         quality_cte.c.fuvw2.alias('fuvw2'),
-                         quality_cte.c.fuvm2.alias('fuvm2'),
-                         quality_cte.c.fuvw1.alias('fuvw1'))
+                         quality_cte.c.fuvm2.alias('fuvm2'))
                  .join(CatalogToTIC_v8)
                  .join(TIC_v8)
                  .join(Gaia_DR2)
@@ -739,7 +675,6 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
@@ -784,7 +719,11 @@ class MWM_CB_UVEX5_Carton(BaseCarton):
                          GUVCat.fuv_mag,
                          GUVCat.nuv_magerr,
                          GUVCat.fuv_magerr,
-                         GMS.alias('GMS'))
+                         GMS.alias('GMS'),
+                         TwoMassPSC.ra,
+                         TwoMassPSC.decl,
+                         TwoMassPSC.h_m,
+                         TwoMassPSC.pts_key)
                  .join(CatalogToGUVCat)
                  .join(CatalogToTIC_v8,
                        on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
