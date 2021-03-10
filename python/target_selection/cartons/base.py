@@ -790,9 +790,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if self.instrument is None:
             assert 'instrument' in RModel._meta.columns, 'instrument not defined'
-            select_from = select_from.select_extend(RModel.instrument)
+            select_from = (select_from.select_extend(tdb.Instrument.pk).switch(RModel)
+                           .join(tdb.Instrument, 'LEFT OUTER JOIN',
+                                 on=(tdb.Instrument.label == RModel.instrument)))
         else:
-            select_from = select_from.select_extend(self.instrument)
+            select_from = select_from.select_extend(
+                tdb.Instrument.get(label=self.instrument).pk)
 
         for colname in ['delta_ra', 'delta_dec', 'intertial']:
             if colname in RModel._meta.columns:
@@ -810,6 +813,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.cadence_pk,
                     CartonToTarget.priority,
                     CartonToTarget.value,
+                    CartonToTarget.instrument_pk,
                     CartonToTarget.delta_ra,
                     CartonToTarget.delta_dec,
                     CartonToTarget.inertial,
