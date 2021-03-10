@@ -758,6 +758,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
             cadence_pk = tdb.Cadence.get(label=self.cadence)
             select_from = select_from.select_extend(cadence_pk)
 
+            if not self.value:
+                self.value = float(numpy.multiply(
+                    *map(int, self.cadence.split('_')[-1].split('x'))
+                ))
+
         else:
 
             # If all cadences are null we'll set that as a value and save us
@@ -780,7 +785,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             select_from = select_from.select_extend(self.priority)
 
-        if self.value is None:
+        if 'value' in RModel._meta.columns:
             select_from = select_from.select_extend(RModel.value)
         else:
             select_from = select_from.select_extend(self.value)
