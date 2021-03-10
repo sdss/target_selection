@@ -83,6 +83,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     program = None
     mapper = None
     priority = None
+    value = None
 
     load_magnitudes = True
 
@@ -228,6 +229,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         query_region = query_region or self.query_region
         path = self.path
+        execute_sql = self.database.execute_sql
 
         if self.database.table_exists(self.table_name, schema=self.schema):
             if overwrite:
@@ -307,9 +309,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 )
 
         if 'priority' not in columns:
-            self.database.execute_sql(
-                f'ALTER TABLE {path} ADD COLUMN priority INTEGER;'
-            )
+        if 'value' not in columns:
+            execute_sql(f'ALTER TABLE {path} ADD COLUMN value REAL;')
 
         self.database.execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
         self.database.execute_sql(f'CREATE INDEX ON {path} (selected);')
@@ -782,6 +783,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             select_from = select_from.select_extend(self.priority)
 
+        if self.value is None:
+            select_from = select_from.select_extend(RModel.value)
+        else:
+            select_from = select_from.select_extend(self.value)
+
         if self.instrument is None:
             assert 'instrument' in RModel._meta.columns, 'instrument not defined'
             select_from = select_from.select_extend(RModel.instrument)
@@ -803,7 +809,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.carton_pk,
                     CartonToTarget.cadence_pk,
                     CartonToTarget.priority,
-                    CartonToTarget.instrument,
+                    CartonToTarget.value,
                     CartonToTarget.delta_ra,
                     CartonToTarget.delta_dec,
                     CartonToTarget.inertial,
