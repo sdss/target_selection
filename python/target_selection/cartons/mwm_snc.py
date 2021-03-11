@@ -93,12 +93,9 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     cadence = 'bright_1x1'
     priority = 1805
 
-    def __init__(self, targeting_plan, config_file, schema, table_name):
+    def build_query(self, version_id, query_region=None):
 
-        query = super().__init__(targeting_plan,
-                                 config_file=config_file,
-                                 schema=schema,
-                                 table_name=table_name)
+        query = super().build_query(version_id, query_region=query_region)
 
         return query.where(TIC_v8.hmag < 11)
 
@@ -209,12 +206,9 @@ class MWM_SNC_250pc_APOGEE_Carton(MWM_SNC_250pc_Carton):
     cadence = 'bright_1x1'
     priority = 1815
 
-    def __init__(self, targeting_plan, config_file, schema, table_name):
+    def build_query(self, version_id, query_region=None):
 
-        query = super().__init__(targeting_plan,
-                                 config_file=config_file,
-                                 schema=schema,
-                                 table_name=table_name)
+        query = super().build_query(version_id, query_region=query_region)
 
         return query.where(TIC_v8.hmag < 11)
 

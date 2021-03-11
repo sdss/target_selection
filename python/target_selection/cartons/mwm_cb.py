@@ -91,9 +91,9 @@ class MWM_CB_300_APOGEE_Carton(MWM_CB_300_Carton):
     cadence = 'bright_1x1'
     priority = 1400
 
-    def build(self, *args, **kwargs):
+    def build_query(self, *args, **kwargs):
 
-        query = super().build(*args, **kwargs)
+        query = super().build_query(*args, **kwargs)
         query.where(TIC_v8.hmag < 11)
 
         return query
@@ -192,13 +192,9 @@ class MWM_CB_Gaia_Galex_APOGEE_Carton(MWM_CB_Gaia_Galex_Carton):
     cadence = 'bright_1x1'
     priority = 1400
 
-    def __init__(self, targeting_plan, config_file, schema, table_name):
+    def build_query(self, version_id, query_region=None):
 
-        query = super().__init__(
-            targeting_plan,
-            config_file=config_file,
-            schema=schema,
-            table_name=table_name)
+        query = super().build_query(version_id, query_region=query_region)
 
         return query.where(TIC_v8.hmag < 11)
 
@@ -281,13 +277,9 @@ class MWM_CB_CV_Candidates_APOGEE_Carton(MWM_CB_CV_Candidates_Carton):
     cadence = 'bright_1x1'
     priority = 1400
 
-    def __init__(self, targeting_plan, config_file, schema, table_name):
+    def build_query(self, version_id, query_region=None):
 
-        query = super().__init__(
-            targeting_plan,
-            config_file=config_file,
-            schema=schema,
-            table_name=table_name)
+        query = super().build_query(version_id, query_region=query_region)
 
         return query.where(TIC_v8.hmag < 11)
 
