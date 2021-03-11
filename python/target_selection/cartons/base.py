@@ -298,15 +298,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'selected' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;')
 
-        for colname in ['cadence', 'instrument']:
-            if colname not in columns:
-                execute_sql(f'ALTER TABLE {path} ADD COLUMN {colname} VARCHAR;')
+        if 'cadence' not in columns:
+            execute_sql(f'ALTER TABLE {path} ADD COLUMN cadence VARCHAR;')
 
         if 'priority' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
-
-        if 'value' not in columns:
-            execute_sql(f'ALTER TABLE {path} ADD COLUMN value REAL;')
 
         execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
         execute_sql(f'CREATE INDEX ON {path} (selected);')
