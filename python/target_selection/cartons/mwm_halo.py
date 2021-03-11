@@ -62,7 +62,6 @@ class MWM_Halo_Best_Brightest_Base_Carton(BaseCarton):
                        on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
-                 .where(Gaia_DR2.parallax > 0)
                  .where(CatalogToAllWise.version_id == version_id,
                         CatalogToAllWise.best >> True))
 
@@ -128,6 +127,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6050})
             .where(version == 2)
             .where(g < 16)
+            .where(parallax > 0)
             .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
 
         # BB2: Select (Best & Brightest catalog version = 1) AND (Gaia G < 16) AND
@@ -137,6 +137,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6060})
             .where(version == 1)
             .where(g < 16)
+            .where(parallax > 0)
             .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
 
         # BB3: Select (Best & Brightest catalog version = 2) AND (Gaia G >= 16) AND
@@ -146,6 +147,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6065})
             .where(version == 2)
             .where(g >= 16)
+            .where(parallax > 0)
             .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
 
         # BB4: Select (Best & Brightest catalog version = 1) AND (Gaia G >= 16) AND
@@ -155,6 +157,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6075})
             .where(version == 1)
             .where(g >= 16)
+            .where(parallax > 0)
             .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
 
         # BB5: (Best & Brightest catalog version = 2) AND (Gaia G < 16) AND
@@ -164,7 +167,8 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6080})
             .where(version == 2)
             .where(g < 16)
-            .where(~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
+            .where((parallax < 0) |
+                   ~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
 
         # BB6: (Best & Brightest catalog version = 1) AND (Gaia G < 16) AND
         #   not in mwm_halo_bb2
@@ -173,7 +177,8 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6085})
             .where(version == 1)
             .where(g < 16)
-            .where(~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
+            .where((parallax < 0) |
+                   ~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
 
 
 class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
