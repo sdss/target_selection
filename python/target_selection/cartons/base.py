@@ -781,13 +781,47 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             select_from = select_from.select_extend(self.priority)
 
-        if 'value' in RModel._meta.columns:
-            select_from = select_from.select_extend(RModel.value)
-        else:
+        if self.value is not None:
             select_from = select_from.select_extend(self.value)
+        else:
+            # We will use the cadence to determine the value. First, if there is
+            # not a user-defined value column, create it.
+            if 'value' not in RModel._meta.columns:
+                self.database.execute_sql(f'ALTER TABLE {self.path} '
+                                          'ADD COLUMN value REAL;')
+
+                # We need to add the field like this and not call get_model() because
+                # at this point the temporary table is locked and reflection won't work.
+                RModel._meta.add_field('value', peewee.FloatField())
+
+            # Get the value as the n_epochs * n_exposures_per_epoch. Probably this can
+            # be done directly in SQL but it's just easier in Python. Note that because
+            # we set value above in the case when cadence is a single value, if we
+            # are here that means there is a cadence column.
+
+            data = numpy.array(RModel.select(RModel.catalogid, RModel.cadence).tuples())
+
+            values = tuple(
+                int(numpy.multiply(*map(int, cadence.split('_')[-1].split('x'))))
+                for cadence in data[:, 1]
+            )
+
+            catalogid_values = zip(map(int, data[:, 0]), values)
+
+            vl = peewee.ValuesList(catalogid_values,
+                                   columns=('catalogid', 'value'),
+                                   alias='vl')
+
+            (RModel
+             .update(value=vl.c.value)
+             .from_(vl)
+             .where(RModel.catalogid == vl.c.catalogid)
+             .where(RModel.value.is_null())).execute()
+
+            select_from = select_from.select_extend(RModel.value)
 
         if self.instrument is None:
-            assert 'instrument' in RModel._meta.columns, 'instrument not defined'
+            assert 'instrument' in RModel._meta.columns, 'instrument column not defined'
             select_from = (select_from.select_extend(tdb.Instrument.pk).switch(RModel)
                            .join(tdb.Instrument, 'LEFT OUTER JOIN',
                                  on=(tdb.Instrument.label == RModel.instrument)))
