@@ -1,60 +1,89 @@
 '0.5.0-beta.1':
   xmatch_plan: 0.5.0-beta.2
   cartons:
-    - mwm_ob
-    - mwm_ob_cepheids
-    - mwm_galactic
-    - mwm_planet
-    - mwm_snc_100pc
-    - mwm_snc_250pc
-    - mwm_cb_300pc
-    - mwm_cb_gaiagalex
-    - mwm_cb_cvcandidates
+    - ops_std_boss_tic
+    - ops_std_boss_lsdr8
+    - ops_std_eboss
+    - ops_std_boss
+    - ops_std_boss_red
+    - ops_std_apogee
+    - mwm_tess_ob
+    - mwm_cb_300pc_apogee
+    - mwm_cb_300pc_boss
+    - mwm_cb_gaiagalex_apogee
+    - mwm_cb_gaiagalex_boss
+    - mwm_cb_cvcandidates_apogee
+    - mwm_cb_cvcandidates_boss
+    - mwm_galactic_core
     - mwm_cb_uvex1
     - mwm_cb_uvex2
     - mwm_cb_uvex3
     - mwm_cb_uvex4
     - mwm_cb_uvex5
-    - mwm_halo_bb
-    - mwm_halo_sm
-    - mwm_tess_rgb
-    - bhm_rm_core
-    - bhm_rm_known-spec
-    - bhm_rm_var
-    - bhm_rm_ancillary
-    - bhm_aqmes_med
-    - bhm_aqmes_med-faint
-    - bhm_aqmes_wide3
-    - bhm_aqmes_wide3-faint
-    - bhm_aqmes_wide2
-    - bhm_aqmes_wide2-faint
-    - bhm_aqmes_bonus-dark
-    - bhm_aqmes_bonus-bright
-    - bhm_spiders_agn-efeds
-    - bhm_spiders_clusters-efeds-sdss-redmapper
-    - bhm_spiders_clusters-efeds-hsc-redmapper
-    - bhm_spiders_clusters-efeds-ls-redmapper
-    - bhm_spiders_clusters-efeds-erosita
-    - bhm_csc_boss-dark
-    - bhm_csc_boss-bright
-    - bhm_csc_apogee
-    - bhm_gua_dark
-    - bhm_gua_bright
-    - mwm_yso_s1
-    - mwm_yso_s2
-    - mwm_yso_s2_5
-    - mwm_yso_s3
-    - mwm_yso_ob
-    - mwm_yso_cmz
-    - mwm_yso_cluster
-    - mwm_dust
-    - mwm_wd
-    - mwm_rv_long_rm
-    - mwm_rv_long_bplates
+    - mwm_snc_100pc_apogee
+    - mwm_snc_100pc_boss
+    - mwm_snc_250pc_apogee
+    - mwm_snc_250pc_boss
+    - mwm_halo_bb_apogee
+    - mwm_halo_bb_boss
+    - mwm_halo_sm_apogee
+    - mwm_halo_sm_boss
+    - mwm_yso_disk_apogee
+    - mwm_yso_disk_boss
+    - mwm_yso_embedded_apogee
+    - mwm_yso_nebula_apogee
+    - mwm_yso_variable_apogee
+    - mwm_yso_variable_boss
+    - mwm_yso_ob_apogee
+    - mwm_yso_ob_boss
+    - mwm_yso_cmz_apogee
+    - mwm_yso_cluster_apogee
+    - mwm_yso_cluster_boss
+    - mwm_yso_pms_apogee
+    - mwm_yso_pms_boss
     - mwm_rv_long_fps
     - mwm_rv_short_rm
     - mwm_rv_short_bplates
     - mwm_rv_short_fps
+    - mwm_rv_long_rm
+    - mwm_rv_long_bplates
+    - mwm_galactic_core
+    - mwm_legacy_ir2opt
+    - mwm_ob_core
+    - mwm_ob_cepheids
+    - mwm_dust_core
+    - mwm_tessrgb_core
+    - mwm_wd_core
+    - mwm_tess_planet
+    # TODO: Check if the list of BHM is complete
+    - bhm_spiders_agn_lsdr8
+    - bhm_spiders_agn_gaiadr2
+    - bhm_spiders_agn_ps1dr2
+    - bhm_spiders_agn_skymapperdr2
+    - bhm_spiders_agn_supercosmos
+    - bhm_spiders_agn_sep
+    - bhm_spiders_agn_efeds_stragglers
+    - bhm_spiders_clusters_lsdr8
+    - bhm_spiders_clusters_efeds_stragglers
+    - bhm_spiders_clusters_ps1dr2
+    - bhm_rm_core
+    - bhm_rm_known_spec
+    - bhm_rm_var
+    - bhm_rm_ancillary
+    - bhm_aqmes_medium
+    - bhm_aqmes_medium_faint
+    - bhm_aqmes_wide3
+    - bhm_aqmes_wide2
+    - bhm_aqmes_wide3_faint
+    - bhm_aqmes_wide2_faint
+    - bhm_aqmes_bonus_core
+    - bhm_aqmes_bonus_faint
+    - bhm_aqmes_bonus_bright
+    - bhm_gua_dark
+    - bhm_gua_bright
+    - bhm_csc_boss_dark
+    - bhm_csc_boss_bright
+    - bhm_csc_apogee_dark
     - ops_apogee_sky
     - ops_boss_sky
   schema: sandbox
@@ -261,20 +290,15 @@
       spec_z_err_thresh: 0.01
       priority: 4040
       value: 0.5
-    mwm_wd:
+    mwm_wd_core:
       gaia_mag: 20
       pwd: 0.5
-    mwm_galactic:
+    mwm_galactic_core:
       h_max: 11
       g_h: 3.5
-    mwm_planet:
+    mwm_tess_planet:
       h_min: 7
       h_max: 12
-    mwm_halo_sm:
-      feh: -1.7
-    mwm_halo_bb:
-      priority_version_1: 6050
-      priority_version_2: 6000
   database_options:
     work_mem: '5GB'
 
