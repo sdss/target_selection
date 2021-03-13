@@ -84,6 +84,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     mapper = None
     priority = None
     value = None
+    instrument = None
 
     load_magnitudes = True
 
@@ -834,14 +835,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             select_from = select_from.select_extend(RModel.value)
 
-        if self.instrument is None:
-            assert 'instrument' in RModel._meta.columns, 'instrument column not defined'
+        if 'instrument' in RModel._meta.columns:
             select_from = (select_from.select_extend(tdb.Instrument.pk).switch(RModel)
                            .join(tdb.Instrument, 'LEFT OUTER JOIN',
                                  on=(tdb.Instrument.label == RModel.instrument)))
-        else:
+        elif self.instrument is not None:
             select_from = select_from.select_extend(
                 tdb.Instrument.get(label=self.instrument).pk)
+        else:
+            select_from = select_from.select_extend(peewee.SQL('null'))
 
         for colname in ['delta_ra', 'delta_dec', 'intertial']:
             if colname in RModel._meta.columns:
