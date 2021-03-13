@@ -299,6 +299,20 @@
     mwm_tess_planet:
       h_min: 7
       h_max: 12
+    ops_std_boss_lsdr8:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min: -0.5
+      parallax_max: 1.0
+      gaia_bp_rp_min: 0.619
+      gaia_bp_rp_max: 0.863
+      ls_g_r_min: 0.254
+      ls_g_r_max: 0.448
+      ls_r_z_min: 0.024
+      ls_r_z_max: 0.190
+      gaia_g_ls_r_min: 0.0
+      gaia_g_ls_r_max: 0.1
   database_options:
     work_mem: '5GB'
 
