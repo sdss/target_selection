@@ -87,6 +87,8 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
                    'table if it exists')
 @click.option('--region', '-r', type=float, nargs=3, default=None,
               help='the region (ra, dec, radius) to query')
+@click.option('--limit', '-l', type=int, default=None,
+              help='limit number of targets in the carton')
 @click.option('--load/--no-load', is_flag=True, default=True,
               help='whether to load data into targetdb.target')
 @click.option('--include', '-i', type=str,
@@ -98,7 +100,7 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
 @click.option('--allow-errors', is_flag=True,
               help='continue processing cartons if a carton fails')
 def run(targeting_plan, config_file, overwrite, keep, region, load,
-        skip_query, include, exclude, write_table, allow_errors):
+        skip_query, include, exclude, write_table, allow_errors, limit):
     """Runs target selection for all cartons."""
 
     carton_classes = {Carton.name: Carton
@@ -137,7 +139,9 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                                  f'{carton.name!r} with plan {carton.plan!r}.')
 
             if not skip_query:
-                carton.run(query_region=(region or None), overwrite=overwrite)
+                carton.run(query_region=(region or None),
+                           overwrite=overwrite,
+                           limit=limit)
                 if write_table:
                     carton.write_table()
             else:

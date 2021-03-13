@@ -199,7 +199,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return Model
 
-    def run(self, query_region=None, overwrite=False, **post_process_kawrgs):
+    def run(self, query_region=None, overwrite=False, limit=None, **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
@@ -217,6 +217,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
             will append a ``q3c_radial_query`` condition to the query.
         overwrite : bool
             Whether to overwrite the intermediary table if already exists.
+        limit : int or None
+            Limit the query to this number of targets. Useful for testing.
+            The ``LIMIT`` statement is added to the query returned by
+            `.build_query` and the exact behaviour will depend on the query.
         post_process_args : dict
             Keyword arguments to be passed to `.post_process`.
 
@@ -273,6 +277,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         )
                     )
                 )
+
+        if limit:
+            query = query.limit(limit)
 
         query_sql, params = query.sql()
         cursor = self.database.cursor()
