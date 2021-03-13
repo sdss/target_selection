@@ -806,24 +806,31 @@ class BaseCarton(metaclass=abc.ABCMeta):
             # we set value above in the case when cadence is a single value, if we
             # are here that means there is a cadence column.
 
-            data = numpy.array(RModel.select(RModel.catalogid, RModel.cadence).tuples())
-
-            values = tuple(
-                int(numpy.multiply(*map(int, cadence.split('_')[-1].split('x'))))
-                for cadence in data[:, 1]
+            data = numpy.array(
+                RModel.select(RModel.catalogid, RModel.cadence)
+                .where(RModel.cadence.is_null(False))
+                .tuples()
             )
 
-            catalogid_values = zip(map(int, data[:, 0]), values)
+            if data.size > 0:
 
-            vl = peewee.ValuesList(catalogid_values,
-                                   columns=('catalogid', 'value'),
-                                   alias='vl')
+                values = tuple(
+                    int(numpy.multiply(
+                        *map(int, cadence.split('_')[-1].split('x'))))
+                    for cadence in data[:, 1]
+                )
 
-            (RModel
-             .update(value=vl.c.value)
-             .from_(vl)
-             .where(RModel.catalogid == vl.c.catalogid)
-             .where(RModel.value.is_null())).execute()
+                catalogid_values = zip(map(int, data[:, 0]), values)
+
+                vl = peewee.ValuesList(catalogid_values,
+                                       columns=('catalogid', 'value'),
+                                       alias='vl')
+
+                (RModel
+                 .update(value=vl.c.value)
+                 .from_(vl)
+                 .where(RModel.catalogid == vl.c.catalogid)
+                 .where(RModel.value.is_null())).execute()
 
             select_from = select_from.select_extend(RModel.value)
 
