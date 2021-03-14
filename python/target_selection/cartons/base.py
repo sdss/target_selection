@@ -8,6 +8,7 @@
 
 import abc
 import inspect
+import time
 import warnings
 
 import numpy
@@ -192,7 +193,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 database = self.database
                 table_name = self.table_name
                 schema = self.schema
-                reflection_options = {'skip_foreign_keys': True}
+                reflection_options = {'skip_foreign_keys': True,
+                                      'use_peewee_reflection': True}
                 use_reflection = True
 
         if not Model.table_exists():
@@ -312,10 +314,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'priority' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
 
+        if 'instrument' not in columns:
+            execute_sql(f'ALTER TABLE {path} ADD COLUMN instrument TEXT;')
+
         execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
 
+        time.sleep(2)
         ResultsModel = self.get_model()
 
         n_rows = ResultsModel.select().count()
@@ -513,7 +519,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         has_targets = RModel.select().where(RModel.selected >> True).exists()
 
         if not has_targets:
-            raise TargetSelectionError('No targets found in intermediate table.')
+            warnings.warn('No targets found in intermediate table.',
+                          TargetSelectionUserWarning)
 
         with self.database.atomic():
             self.setup_transaction()
@@ -843,7 +850,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             select_from = select_from.select_extend(
                 tdb.Instrument.get(label=self.instrument).pk)
         else:
-            select_from = select_from.select_extend(peewee.SQL('null'))
+            select_from = select_from.select_extend(RModel.instrument)
 
         for colname in ['delta_ra', 'delta_dec', 'intertial']:
             if colname in RModel._meta.columns:

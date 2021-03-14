@@ -59,7 +59,7 @@ class MWM_SNC_100pc_Carton(BaseCarton):
                    (fn.sqrt(fn.pow(l - 280.3, 2) + 2 * fn.pow(b + 33.0, 2)) < 8))
 
         query = (Gaia_DR2
-                 .select(Catalog.catalogid,
+                 .select(CatalogToTIC_v8.catalogid,
                          TIC_v8.gaia_int.alias('gaia_source_id'),
                          Gaia_DR2.phot_g_mean_mag,
                          l, b)

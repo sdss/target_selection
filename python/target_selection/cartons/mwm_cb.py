@@ -91,9 +91,9 @@ class MWM_CB_300_APOGEE_Carton(MWM_CB_300_Carton):
     cadence = 'bright_1x1'
     priority = 1400
 
-    def build_query(self, *args, **kwargs):
+    def build_query(self, version_id, **kwargs):
 
-        query = super().build_query(*args, **kwargs)
+        query = super().build_query(version_id, **kwargs)
         query.where(TIC_v8.hmag < 11)
 
         return query

@@ -1498,8 +1498,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_boss_pms ;")
+            "select catalogid, gaia_dr2_rp from " + self.path)
 
         output = cursor.fetchall()
 
@@ -1525,12 +1524,12 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_boss_pms " +
+                    f" update {self.path} " +
                     " set instrument = '" + current_instrument + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_boss_pms " +
+                    f" update {self.path} " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")

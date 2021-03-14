@@ -156,7 +156,7 @@ class MWM_Dust_Carton(BaseCarton):
         # Do a quick check to be sure the GG carton exists in targetdb.
         gg_exists = (targetdb.Carton.select()
                      .join(targetdb.Version)
-                     .where(targetdb.Carton.carton == 'mwm_galactic',
+                     .where(targetdb.Carton.carton == 'mwm_galactic_core',
                             targetdb.Version.plan == self.plan,
                             targetdb.Version.target_selection >> True)
                      .exists())
@@ -265,7 +265,7 @@ class MWM_Dust_Carton(BaseCarton):
                         .join(targetdb.CartonToTarget)
                         .join(targetdb.Carton)
                         .join(targetdb.Version)
-                        .where(targetdb.Carton.carton == 'mwm_galactic',
+                        .where(targetdb.Carton.carton == 'mwm_galactic_core',
                                targetdb.Version.plan == self.plan,
                                targetdb.Version.target_selection >> True))
 

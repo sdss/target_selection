@@ -66,6 +66,7 @@ class MWM_CB_UVEX_BaseCarton(BaseCarton):
     def post_process(self, model, **kwargs):
 
         self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN value REAL;')
+        model._meta.add_field('value', peewee.FloatField())
 
         # G < 17 => cadence = bright_1x1
         model.update(cadence='bright_1x1').where(model.phot_g_mean_mag < 17).execute()
@@ -74,7 +75,7 @@ class MWM_CB_UVEX_BaseCarton(BaseCarton):
         # 17 < G < 19 => cadence = dark_1x2
         model.update(cadence='dark_1x2').where((model.phot_g_mean_mag > 17) &
                                                (model.phot_g_mean_mag < 19)).execute()
-        model.update(value=1).where((model.phot_g_mean_mag > 17) &
+        model.update(value=2).where((model.phot_g_mean_mag > 17) &
                                     (model.phot_g_mean_mag < 19)).execute()
 
         # G > 19 => cadence = dark_1x3
@@ -143,7 +144,7 @@ class MWM_CB_UVEX1_Carton(MWM_CB_UVEX_BaseCarton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'
+    cadence = None
     priority = 1400
 
     def setup_transaction(self):
@@ -274,7 +275,7 @@ class MWM_CB_UVEX2_Carton(MWM_CB_UVEX_BaseCarton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'
+    cadence = None
     priority = 1400
 
     def setup_transaction(self):
@@ -406,7 +407,7 @@ class MWM_CB_UVEX3_Carton(MWM_CB_UVEX_BaseCarton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'
+    cadence = None
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -457,11 +458,11 @@ class MWM_CB_UVEX3_Carton(MWM_CB_UVEX_BaseCarton):
                          gmagab.alias('gmagab'),
                          BJ.r_est,
                          BJ.r_lo,
-                         XMM_OM_SUSS_4_1.srcnum,
-                         XMM_OM_SUSS_4_1.obsid,
-                         XMM_OM_SUSS_4_1.ra.alias('xmm_ra'),
-                         XMM_OM_SUSS_4_1.dec.alias('xmm_dec'),
-                         XMM_OM_SUSS_4_1.uvm2_signif,
+                         quality_cte.c.srcnum,
+                         quality_cte.c.obsid,
+                         quality_cte.c.ra.alias('xmm_ra'),
+                         quality_cte.c.dec.alias('xmm_dec'),
+                         quality_cte.c.uvm2_signif,
                          quality_cte.c.uvm2_ab_mag.alias('uvm2_ab_mag'),
                          quality_cte.c.uvm2_quality_flag_st.alias('uvm2_quality_flag_st'))
                  .join(CatalogToTIC_v8)
@@ -552,7 +553,7 @@ class MWM_CB_UVEX4_Carton(MWM_CB_UVEX_BaseCarton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'
+    cadence = None
     priority = 1400
 
     def build_query(self, version_id, query_region=None):
@@ -608,11 +609,11 @@ class MWM_CB_UVEX4_Carton(MWM_CB_UVEX_BaseCarton):
                          gmagab.alias('gmagab'),
                          BJ.r_est,
                          BJ.r_lo,
-                         UVOT_SSC_1.srcnum,
-                         UVOT_SSC_1.obsid,
-                         UVOT_SSC_1.ra.alias('uvot_ra'),
-                         UVOT_SSC_1.dec.alias('uvot_dec'),
-                         UVOT_SSC_1.suvm2,
+                         quality_cte.c.srcid,
+                         quality_cte.c.obsid,
+                         quality_cte.c.radeg.alias('uvot_ra'),
+                         quality_cte.c.dedeg.alias('uvot_dec'),
+                         quality_cte.c.suvm2,
                          quality_cte.c.uvm2_ab.alias('uvm2_ab'),
                          quality_cte.c.fuvm2.alias('fuvm2'))
                  .join(CatalogToTIC_v8)
@@ -699,7 +700,7 @@ class MWM_CB_UVEX5_Carton(MWM_CB_UVEX_BaseCarton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'
+    cadence = None
     priority = 1400
 
     def setup_transaction(self):

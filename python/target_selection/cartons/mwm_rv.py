@@ -407,6 +407,11 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[33], dec[33], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[34], dec[34], 3))
 
+        catalog_regions = (Catalog
+                           .select(Catalog.catalogid, Catalog.ra, Catalog.dec)
+                           .where(ra_dec_condition)
+                           .cte('catalog_regions'))
+
 # We use *mwm_rv_long_condition to unpack the tuple mwm_rv_long_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
@@ -420,8 +425,11 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                          SDSS_APOGEE_AllStarMerge_r13.h,
                          SDSS_APOGEE_AllStarMerge_r13.baseline,
                          SDSS_APOGEE_AllStarMerge_r13.fields)
+                 .join(catalog_regions,
+                       on=(Catalog.catalogid == catalog_regions.c.catalogid))
+                 .switch(Catalog)
                  .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                       on=(catalog_regions.c.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
@@ -433,17 +441,16 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        ra_dec_condition,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.2,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6))
+                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6)
+                 .with_cte(catalog_regions))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
+                     .where(peewee.fn.q3c_radial_query(catalog_regions.c.ra,
+                                                       catalog_regions.c.dec,
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
@@ -900,6 +907,11 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
+        catalog_regions = (Catalog
+                           .select(Catalog.catalogid, Catalog.ra, Catalog.dec)
+                           .where(ra_dec_condition)
+                           .cte('catalog_regions'))
+
 # We use *mwm_rv_short_condition to unpack the tuple mwm_rv_short_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
@@ -909,6 +921,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
                          Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
                          Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
                          TwoMassPSC.h_m.alias('twomass_h_m'))
+                 .join(catalog_regions,
+                       on=(Catalog.catalogid == catalog_regions.c.catalogid))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -920,8 +934,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
-                        ra_dec_condition,
-                        TwoMassPSC.h_m < 12.2))
+                        TwoMassPSC.h_m < 12.2)
+                 .with_cte(catalog_regions))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
