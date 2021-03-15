@@ -105,8 +105,8 @@ NA
 
     name = 'mwm_legacy_ir2opt'
     category = 'science'
-    instrument = None
-    cadence = None
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
     program = 'mwm_legacy'
     mapper = 'MWM'
     priority = 6100

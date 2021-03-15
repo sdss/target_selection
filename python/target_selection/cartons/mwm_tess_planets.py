@@ -85,11 +85,6 @@ class MWM_TESS_Planets_Carton(BaseCarton):
         #               'exo_CTOI': 2605,
         #               '2min': 2610}
 
-        # TODO remove later
-        # (later target_selection code will create table with instrument column)
-        self.database.execute_sql('alter table sandbox.temp_mwm_tess_planet ' +
-                                  ' add column instrument text')
-
         cursor = self.database.execute_sql(
             "select catalogid, hmag, tess_target_type from " +
             " sandbox.temp_mwm_tess_planet ;")

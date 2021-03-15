@@ -147,13 +147,8 @@ class MWM_Dust_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_dust'
-    # Old cadence = 'mwm_dust_1x1'
-    # From wiki cadence page:
-    # apogee_bright_1x1 - mwm_gg, mwm_dust, mwm_tess_rgb, mwm_planet
-    # Hence we set:
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-
     priority = 2720
 
     def build_query(self, version_id, query_region=None):
@@ -161,7 +156,7 @@ class MWM_Dust_Carton(BaseCarton):
         # Do a quick check to be sure the GG carton exists in targetdb.
         gg_exists = (targetdb.Carton.select()
                      .join(targetdb.Version)
-                     .where(targetdb.Carton.carton == 'mwm_galactic',
+                     .where(targetdb.Carton.carton == 'mwm_galactic_core',
                             targetdb.Version.plan == self.plan,
                             targetdb.Version.target_selection >> True)
                      .exists())
@@ -270,7 +265,7 @@ class MWM_Dust_Carton(BaseCarton):
                         .join(targetdb.CartonToTarget)
                         .join(targetdb.Carton)
                         .join(targetdb.Version)
-                        .where(targetdb.Carton.carton == 'mwm_galactic',
+                        .where(targetdb.Carton.carton == 'mwm_galactic_core',
                                targetdb.Version.plan == self.plan,
                                targetdb.Version.target_selection >> True))
 

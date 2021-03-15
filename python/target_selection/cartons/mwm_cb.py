@@ -33,16 +33,10 @@ class MWM_CB_300_Carton(BaseCarton):
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
 
-    """
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
 
-    name = 'mwm_cb_300pc'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
-    instrument = 'BOSS'
-    cadence = 'dark_2x1'
-    priority = 1400
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -57,8 +51,10 @@ class MWM_CB_300_Carton(BaseCarton):
                  .select(CatalogToTIC_v8.catalogid,
                          GD.source_id,
                          GD.r_est,
-                         FUV, NUV,
-                         TIC_v8.hmag.alias('h'))
+                         FUV,
+                         NUV,
+                         TIC_v8.hmag.alias('h'),
+                         Gaia_DR2.phot_g_mean_mag.alias('gaia_g'))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .join(GD)
@@ -84,6 +80,47 @@ class MWM_CB_300_Carton(BaseCarton):
         return query
 
 
+class MWM_CB_300_APOGEE_Carton(MWM_CB_300_Carton):
+    """MWM CB 300pc targets to be observed with APOGEE."""
+
+    name = 'mwm_cb_300pc_apogee'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1400
+
+    def build_query(self, version_id, **kwargs):
+
+        query = super().build_query(version_id, **kwargs)
+        query.where(TIC_v8.hmag < 11)
+
+        return query
+
+
+class MWM_CB_300_BOSS_Carton(MWM_CB_300_Carton):
+    """MWM CB 300pc targets to be observed with BOSS."""
+
+    name = 'mwm_cb_300pc_boss'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'BOSS'
+    cadence = None
+    priority = 1400
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='dark_2x1').where(model.gaia_g > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='bright_2x1').where(model.gaia_g < 16).execute()
+
+        return model
+
+
 class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     """MWM Compact Binaries 300pc.
 
@@ -98,16 +135,10 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
 
-    """
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
 
-    name = 'mwm_cb_gaiagalex'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
-    instrument = 'BOSS'
-    cadence = 'dark_2x1'
-    priority = 1400
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -119,8 +150,10 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2.source_id.alias('gaia_source_id'),
-                         Gaia_DR2.parallax, Gaia_DR2.parallax_error,
-                         FUV, gaiag.alias('phot_g_mean_mag'),
+                         Gaia_DR2.parallax,
+                         Gaia_DR2.parallax_error,
+                         FUV,
+                         gaiag.alias('phot_g_mean_mag'),
                          TIC_v8.hmag.alias('h'))
                  .join(TIC_v8)
                  .join(Gaia_DR2)
@@ -148,6 +181,46 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
         return query
 
 
+class MWM_CB_Gaia_Galex_APOGEE_Carton(MWM_CB_Gaia_Galex_Carton):
+    """MWM CB GaiaGalex to be observed with APOGEE."""
+
+    name = 'mwm_cb_gaiagalex_apogee'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1400
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region=query_region)
+
+        return query.where(TIC_v8.hmag < 11)
+
+
+class MWM_CB_Gaia_Galex_BOSS_Carton(MWM_CB_Gaia_Galex_Carton):
+    """MWM CB GaiaGalex to be observed with BOSS."""
+
+    name = 'mwm_cb_gaiagalex_boss'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'BOSS'
+    cadence = None
+    priority = 1400
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+
+        return model
+
+
 class MWM_CB_CV_Candidates_Carton(BaseCarton):
     """MWM Compact Binaries 300pc.
 
@@ -163,16 +236,10 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
 
-    """
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
 
-    name = 'mwm_cb_cvcandidates'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_cb'
-    # mwm_cb_2x1 -> boss_dark_2x1
-    instrument = 'BOSS'
-    cadence = 'dark_2x1'
-    priority = 1400
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -197,3 +264,43 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_CB_CV_Candidates_APOGEE_Carton(MWM_CB_CV_Candidates_Carton):
+    """MWM CB CV to be observed with APOGEE."""
+
+    name = 'mwm_cb_cvcandidates_apogee'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1400
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region=query_region)
+
+        return query.where(TIC_v8.hmag < 11)
+
+
+class MWM_CB_CV_Candidates_BOSS_Carton(MWM_CB_CV_Candidates_Carton):
+    """MWM CB CV to be observed with BOSS."""
+
+    name = 'mwm_cb_cvcandidates_boss'
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_cb'
+    instrument = 'BOSS'
+    cadence = None
+    priority = 1400
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+
+        return model

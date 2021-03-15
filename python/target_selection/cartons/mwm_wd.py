@@ -26,10 +26,6 @@ class MWM_WD_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
-    # Old cadence = 'mwm_wd_2x1'
-    # From cadence wiki page:
-    # mwm_wd_2x1 -> boss_dark_2x1
-    # Hence we set
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400

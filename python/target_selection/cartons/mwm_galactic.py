@@ -14,7 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
 from target_selection.cartons import BaseCarton
 
 
-class MWM_Galactic_Genesis_Carton(BaseCarton):
+class MWM_Galactic_Core_Carton(BaseCarton):
     """Galactic Genesis carton.
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
@@ -38,16 +38,12 @@ class MWM_Galactic_Genesis_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_gg_core'
+    name = 'mwm_galactic_core'
     category = 'science'
-    # Old cadence = 'mwm_galactic_1x1'
-    # From cadence wiki page:
-    # mwm_galactic_1x1 → apogee_bright_1x1
-    # Hence we set:
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
     priority = 2710
-    program = 'mwm_gg'
+    program = 'mwm_galactic'
     mapper = 'MWM'
 
     def build_query(self, version_id, query_region=None):
