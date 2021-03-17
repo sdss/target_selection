@@ -559,14 +559,13 @@ class XMatchPlanner(object):
         config = XMatchPlanner._read_config(config_file, plan)
 
         table_config = config.pop('tables', {}) or {}
-        exclude = config.pop('exclude', []) or []
+        exclude_nodes = config.pop('exclude_nodes', []) or []
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config['schema']
 
         models = {model._meta.table_name: model for model in models
-                  if (model._meta.schema == schema and
-                      model._meta.table_name not in exclude)}
+                  if model._meta.schema == schema}
 
         xmatch_models = {}
         for table_name in table_config:
@@ -577,7 +576,8 @@ class XMatchPlanner(object):
                                                     **table_params)
 
         extra_nodes = [models[table_name] for table_name in models
-                       if table_name not in xmatch_models]
+                       if table_name not in xmatch_models and
+                       table_name not in exclude_nodes]
 
         config.update(kwargs)
 
