@@ -1647,8 +1647,10 @@ class XMatchPlanner(object):
             self.log.debug(f'Running CLUSTER on {self._temp_table} with q3c index.')
             self.database.execute_sql(f'CLUSTER {self._temp_table} '
                                       f'using {self._temp_table}_q3c_idx;')
+            self.log.debug(f'Running ANALYZE on {self._temp_table}.')
+            self.database.execute_sql(f'ANALYZE {self._temp_table};')
 
-        self._analyze(rel_model, catalog=True)
+        self._analyze(rel_model, catalog=False)
 
     def _load_output_table(self, keep_temp=False):
         """Copies the temporary table to the real output table."""
