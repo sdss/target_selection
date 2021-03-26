@@ -796,7 +796,8 @@ class XMatchPlanner(object):
                         sg_ext.append((table_name, resolution, 1))
                 # Use table name as second sorting order to use alphabetic order in
                 # case of draw.
-                sg_ordered = list(zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
+                sg_ordered = list(
+                    zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
                 ordered_tables.extend(sg_ordered)
 
         self.log.info(f'processing order: {ordered_tables}')
@@ -1466,13 +1467,14 @@ class XMatchPlanner(object):
 
         # We only need to care about already linked targets if phase 1 run.
         if 1 in self._phases_run:
-            insert_query = (insert_query
-                            .where(~fn.EXISTS(
-                                rel_model
-                                .select(SQL('1'))
-                                .where((rel_model.version_id == self._version_id) &
-                                       ((rel_model.catalogid == xmatched.c.catalogid) |
-                                        (rel_model.target_id == xmatched.c.target_id))))))
+            insert_query = (
+                insert_query .where(
+                    ~fn.EXISTS(
+                        rel_model .select(
+                            SQL('1')) .where(
+                            (rel_model.version_id == self._version_id) & (
+                                (rel_model.catalogid == xmatched.c.catalogid) | (
+                                    rel_model.target_id == xmatched.c.target_id))))))
 
         with Timer() as timer:
 
@@ -1521,7 +1523,6 @@ class XMatchPlanner(object):
 
         if 3 in xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
-            self._analyze(rel_model, catalog=True)
             return
 
         table_name = meta.table_name
@@ -1539,11 +1540,13 @@ class XMatchPlanner(object):
                      .where(self._get_sample_where(model_ra, model_dec)))
 
         if 1 in self._phases_run or 2 in self._phases_run:
-            unmatched = (unmatched
-                         .where(~fn.EXISTS(rel_model
-                                           .select(SQL('1'))
-                                           .where(rel_model.version_id == self._version_id,
-                                                  rel_model.target_id == model_pk))))
+            unmatched = (
+                unmatched .where(
+                    ~fn.EXISTS(
+                        rel_model .select(
+                            SQL('1')) .where(
+                            rel_model.version_id == self._version_id,
+                            rel_model.target_id == model_pk))))
 
         if xmatch.has_missing_coordinates:
             unmatched = unmatched.where(model_ra.is_null(False),
@@ -1747,7 +1750,7 @@ class XMatchPlanner(object):
         """Removes duplicates from LS8 queries."""
 
         return ~(((model.release == 8000) & (model.dec > 32.375) &
-                 (model.ra > 100.) & (model.ra < 300.)) |
+                  (model.ra > 100.) & (model.ra < 300.)) |
                  ((model.release == 8001) & (model.dec < 32.375)))
 
     def show_join_paths(self):
