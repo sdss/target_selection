@@ -282,18 +282,3 @@ class BhmGuaBrightCarton(BhmGuaBaseCarton):
 
     '''
     name = 'bhm_gua_bright'
-
-
-#
-# Exporting from the temp table - from within psql
-#
-# psql> \copy (SELECT * FROM sandbox.temp_bhm_gaia_unwise_agn_dark)
-# psql>   TO 'bhm_gaia_unwise_agn_dark.csv' with csv header
-# psql> \copy (SELECT * FROM sandbox.temp_bhm_gaia_unwise_agn_bright)
-# psql>   TO 'bhm_gaia_unwise_agn_bright.csv' with csv header
-#
-# Back in bash
-# #> for F in bhm_gaia_unwise_agn_*.csv; do
-# #>     stilts tpipe in=${F} out="${F%.*}.fits" ifmt=csv ofmt=fits-basic;
-# #> done
-#
