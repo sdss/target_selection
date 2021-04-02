@@ -332,9 +332,115 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
 
+        log.debug('Adding optical magnitude columns.')
+        self.add_optical_magnitudes()
+
         self.has_run = True
 
         return ResultsModel
+
+    def add_optical_magnitudes(self):
+        """Adds ``gri`` magnitude columns."""
+
+        Model = self.get_model()
+
+        magnitudes = ['g', 'r', 'i']
+
+        # Check if ALL the columns have already been created in the query.
+        # If so, just return.
+        if any([mag in Model._meta.columns for mag in magnitudes]):
+            if not all([mag in Model._meta.columns for mag in magnitudes]):
+                raise TargetSelectionError(
+                    'Some optical magnitudes are defined in the query '
+                    'but not all of them.')
+            if 'optical_prov' not in Model._meta.columns:
+                raise TargetSelectionError('optical_prov column does not exist.')
+            warnings.warn('All optical magnitude columns are defined in the query.',
+                          TargetSelectionUserWarning)
+            return
+
+        # First create the columns.
+        for mag in magnitudes:
+            self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN {mag} REAL;')
+        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+
+        # Refresh model.
+        Model = self.get_model()
+
+        # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
+
+        Model.insert_from(
+            Model
+            .select(cdb.SDSS_DR13_PhotoObj.psfmag_g,
+                    cdb.SDSS_DR13_PhotoObj.psfmag_r,
+                    cdb.SDSS_DR13_PhotoObj.psfmag_i,
+                    peewee.Value('sdss_psfmag'))
+            .join(cdb.CatalogToSDSS_DR13_PhotoObj_Primary,
+                  on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.catalogid == Model.catalogid))
+            .join(cdb.SDSS_DR13_PhotoObj,
+                  on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
+                      cdb.SDSS_DR13_PhotoObj.objid)),
+            [Model.g, Model.r, Model.i, Model.optical_prov]
+        ).execute()
+
+        # Step 2: localise entries with empty magnitudes and use PanSTARRS1
+        # transformations.
+
+        # PS1 fluxes are in Janskys. We use stacked fluxes instead of mean
+        # magnitudes since they are more complete on the faint end.
+        ps1_g = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.g_stk_psf_flux)
+        ps1_r = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.r_stk_psf_flux)
+        ps1_i = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.i_stk_psf_flux)
+
+        # Use transformations to SDSS from Tonry et al. 2012 (section 3.2, table 6).
+        x = ps1_g - ps1_r
+        ps1_sdss_g = 0.013 + 0.145 * x + 0.019 * x**2 + ps1_g
+        ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x**2 + ps1_r
+        ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x**2 + ps1_i
+
+        Model.insert_from(
+            Model
+            .select(ps1_sdss_g, ps1_sdss_r, ps1_sdss_i, peewee.Value('sdss_psfmag_ps1'))
+            .join(cdb.CatalogToPanstarrs1,
+                  on=(cdb.CatalogToPanstarrs1.catalogid == Model.catalogid))
+            .join(cdb.Panstarrs1,
+                  on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
+            .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null()),
+            [Model.g, Model.r, Model.i, Model.optical_prov]
+        ).execute()
+
+        # Step 3: localise entries with empty magnitudes and use Gaia transformations
+        # from Evans et al (2018).
+
+        gaia_G = cdb.Gaia_DR2.phot_g_mean_mag
+        gaia_BP = cdb.Gaia_DR2.phot_bp_mean_mag
+        gaia_RP = cdb.Gaia_DR2.phot_RP_mean_mag
+
+        x = gaia_BP - gaia_RP
+        gaia_sdss_g = -(0.13518 - 0.46245 * x - 0.25171 * x**2 + 0.021349 * x**3) + gaia_G
+        gaia_sdss_r = -(-0.12879 + 0.24662 * x - 0.027464 * x**2 - 0.049465 * x**3) + gaia_G
+        gaia_sdss_i = -(-0.29676 + 0.64728 * x - 0.10141 * x**2) + gaia_G
+
+        Model.insert_from(
+            Model
+            .select(gaia_sdss_g, gaia_sdss_r, gaia_sdss_i, peewee.Value('sdss_psfmag_gaia'))
+            .join(cdb.CatalogToGaia_DR2, on=(cdb.CatalogToGaia_DR2.catalogid == Model.catalogid))
+            .join(cdb.Gaia_DR2, on=(cdb.CatalogToGaia_DR2.target_id == cdb.Gaia_DR2.catid_objid))
+            .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null()),
+            [Model.g, Model.r, Model.i, Model.optical_prov]
+        ).execute()
+
+        # Finally, check if there are any rows in which at least some of the
+        # magnitudes are null.
+
+        n_empty = (Model
+                   .select()
+                   .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+                   .count())
+
+        if n_empty > 0:
+            warnings.warn('Found {n_empty} entries with some empty magnitudes.',
+                          TargetSelectionUserWarning)
 
     def post_process(self, model, **kwargs):
         """Post-processes the temporary table.
@@ -668,9 +774,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         for mag, mpath in magnitude_paths.items():
 
-            if mag == 'optical_prov':
-                continue
-
             fields.append(getattr(Magnitude, mag))
             if hasattr(RModel, mag):
                 select_from = select_from.select_extend(getattr(RModel, mag))
@@ -713,10 +816,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 if column:
                     select_from = select_from.select_extend(getattr(node_model, column))
 
-        if 'optical_prov' in RModel._meta.columns:
-            select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
-        else:
-            select_from = select_from.select_extend(magnitude_paths['optical_prov'])
+        if 'optical_prov' not in RModel._meta.columns:
+            raise TargetSelectionError('optical_prov column not found in temporary table.')
+
+        select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
         fields.append(Magnitude.optical_prov)
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
