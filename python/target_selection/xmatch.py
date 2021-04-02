@@ -1339,9 +1339,9 @@ class XMatchPlanner(object):
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
+            self._phases_run.add(1)
 
             if nids > 0:
-                self._phases_run.add(1)
                 self._analyze(rel_model)
 
     def _run_phase_2(self, model):
