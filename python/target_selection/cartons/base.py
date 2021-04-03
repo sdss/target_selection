@@ -368,67 +368,120 @@ class BaseCarton(metaclass=abc.ABCMeta):
         Model = self.get_model()
 
         # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
+        cte = (Model
+               .select(Model.catalogid,
+                       cdb.SDSS_DR13_PhotoObj.psfmag_g,
+                       cdb.SDSS_DR13_PhotoObj.psfmag_r,
+                       cdb.SDSS_DR13_PhotoObj.psfmag_i)
+               .join(cdb.CatalogToSDSS_DR13_PhotoObj_Primary,
+                     on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.catalogid == Model.catalogid))
+               .join(cdb.SDSS_DR13_PhotoObj,
+                     on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
+                         cdb.SDSS_DR13_PhotoObj.objid))
+               .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True)
+               .where(Model.selected >> True)
+               .cte('cte'))
 
-        Model.insert_from(
-            Model
-            .select(cdb.SDSS_DR13_PhotoObj.psfmag_g,
-                    cdb.SDSS_DR13_PhotoObj.psfmag_r,
-                    cdb.SDSS_DR13_PhotoObj.psfmag_i,
-                    peewee.Value('sdss_psfmag'))
-            .join(cdb.CatalogToSDSS_DR13_PhotoObj_Primary,
-                  on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.catalogid == Model.catalogid))
-            .join(cdb.SDSS_DR13_PhotoObj,
-                  on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
-                      cdb.SDSS_DR13_PhotoObj.objid)),
-            [Model.g, Model.r, Model.i, Model.optical_prov]
-        ).execute()
+        (Model.update(
+            {Model.g: cte.c.psfmag_g,
+             Model.r: cte.c.psfmag_r,
+             Model.i: cte.c.psfmag_i,
+             Model.optical_prov: peewee.Value('sdss_psfmag')})
+         .with_cte(cte)
+         .from_(cte)
+         .where(Model.catalogid == cte.c.catalogid)
+         .where(cte.c.psfmag_g.is_null(False) &
+                cte.c.psfmag_r.is_null(False) &
+                cte.c.psfmag_i.is_null(False))).execute()
 
         # Step 2: localise entries with empty magnitudes and use PanSTARRS1
         # transformations.
 
         # PS1 fluxes are in Janskys. We use stacked fluxes instead of mean
         # magnitudes since they are more complete on the faint end.
-        ps1_g = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.g_stk_psf_flux)
-        ps1_r = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.r_stk_psf_flux)
-        ps1_i = 8.9 - 2.5 * numpy.log10(cdb.Panstarrs1.i_stk_psf_flux)
+        ps1_g = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.g_stk_psf_flux)
+        ps1_r = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.r_stk_psf_flux)
+        ps1_i = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.i_stk_psf_flux)
 
         # Use transformations to SDSS from Tonry et al. 2012 (section 3.2, table 6).
         x = ps1_g - ps1_r
-        ps1_sdss_g = 0.013 + 0.145 * x + 0.019 * x**2 + ps1_g
-        ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x**2 + ps1_r
-        ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x**2 + ps1_i
+        ps1_sdss_g = 0.013 + 0.145 * x + 0.019 * x * x + ps1_g
+        ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x * x + ps1_r
+        ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x * x + ps1_i
 
-        Model.insert_from(
-            Model
-            .select(ps1_sdss_g, ps1_sdss_r, ps1_sdss_i, peewee.Value('sdss_psfmag_ps1'))
-            .join(cdb.CatalogToPanstarrs1,
-                  on=(cdb.CatalogToPanstarrs1.catalogid == Model.catalogid))
-            .join(cdb.Panstarrs1,
-                  on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
-            .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null()),
-            [Model.g, Model.r, Model.i, Model.optical_prov]
-        ).execute()
+        cte = (Model
+               .select(Model.catalogid,
+                       ps1_sdss_g.alias('ps1_sdss_g'),
+                       ps1_sdss_r.alias('ps1_sdss_r'),
+                       ps1_sdss_i.alias('ps1_sdss_i'))
+               .join(cdb.CatalogToPanstarrs1,
+                     on=(cdb.CatalogToPanstarrs1.catalogid == Model.catalogid))
+               .join(cdb.Panstarrs1,
+                     on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
+               .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+               .where(Model.selected >> True)
+               .where(cdb.CatalogToPanstarrs1.best >> True)
+               .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
+                      (cdb.Panstarrs1.g_stk_psf_flux > 0))
+               .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
+                      (cdb.Panstarrs1.r_stk_psf_flux > 0))
+               .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False) &
+                      (cdb.Panstarrs1.i_stk_psf_flux > 0))
+               .cte('cte'))
+
+        (Model.update(
+            {Model.g: cte.c.ps1_sdss_g,
+             Model.r: cte.c.ps1_sdss_r,
+             Model.i: cte.c.ps1_sdss_i,
+             Model.optical_prov: peewee.Value('sdss_psfmag_ps1')})
+         .with_cte(cte)
+         .from_(cte)
+         .where(Model.catalogid == cte.c.catalogid)
+         .where(cte.c.ps1_sdss_g.is_null(False) &
+                cte.c.ps1_sdss_r.is_null(False) &
+                cte.c.ps1_sdss_i.is_null(False))).execute()
 
         # Step 3: localise entries with empty magnitudes and use Gaia transformations
         # from Evans et al (2018).
 
         gaia_G = cdb.Gaia_DR2.phot_g_mean_mag
         gaia_BP = cdb.Gaia_DR2.phot_bp_mean_mag
-        gaia_RP = cdb.Gaia_DR2.phot_RP_mean_mag
+        gaia_RP = cdb.Gaia_DR2.phot_rp_mean_mag
 
         x = gaia_BP - gaia_RP
-        gaia_sdss_g = -(0.13518 - 0.46245 * x - 0.25171 * x**2 + 0.021349 * x**3) + gaia_G
-        gaia_sdss_r = -(-0.12879 + 0.24662 * x - 0.027464 * x**2 - 0.049465 * x**3) + gaia_G
-        gaia_sdss_i = -(-0.29676 + 0.64728 * x - 0.10141 * x**2) + gaia_G
+        x2 = x * x
+        x3 = x * x * x
+        gaia_sdss_g = -1 * (0.13518 - 0.46245 * x - 0.25171 * x2 + 0.021349 * x3) + gaia_G
+        gaia_sdss_r = -1 * (-0.12879 + 0.24662 * x - 0.027464 * x2 - 0.049465 * x3) + gaia_G
+        gaia_sdss_i = -1 * (-0.29676 + 0.64728 * x - 0.10141 * x2) + gaia_G
 
-        Model.insert_from(
-            Model
-            .select(gaia_sdss_g, gaia_sdss_r, gaia_sdss_i, peewee.Value('sdss_psfmag_gaia'))
-            .join(cdb.CatalogToGaia_DR2, on=(cdb.CatalogToGaia_DR2.catalogid == Model.catalogid))
-            .join(cdb.Gaia_DR2, on=(cdb.CatalogToGaia_DR2.target_id == cdb.Gaia_DR2.catid_objid))
-            .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null()),
-            [Model.g, Model.r, Model.i, Model.optical_prov]
-        ).execute()
+        cte = (Model
+               .select(Model.catalogid,
+                       gaia_sdss_g.alias('gaia_sdss_g'),
+                       gaia_sdss_r.alias('gaia_sdss_r'),
+                       gaia_sdss_i.alias('gaia_sdss_i'))
+               .join(cdb.CatalogToTIC_v8, on=(cdb.CatalogToTIC_v8.catalogid == Model.catalogid))
+               .join(cdb.TIC_v8)
+               .join(cdb.Gaia_DR2)
+               .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+               .where(Model.selected >> True)
+               .where(cdb.CatalogToTIC_v8.best >> True)
+               .where(cdb.Gaia_DR2.phot_g_mean_mag.is_null(False))
+               .where(cdb.Gaia_DR2.phot_bp_mean_mag.is_null(False))
+               .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
+               .cte('cte'))
+
+        (Model.update(
+            {Model.g: cte.c.gaia_sdss_g,
+             Model.r: cte.c.gaia_sdss_r,
+             Model.i: cte.c.gaia_sdss_i,
+             Model.optical_prov: peewee.Value('sdss_psfmag_gaia')})
+         .with_cte(cte)
+         .from_(cte)
+         .where(Model.catalogid == cte.c.catalogid)
+         .where(cte.c.gaia_sdss_g.is_null(False) &
+                cte.c.gaia_sdss_r.is_null(False) &
+                cte.c.gaia_sdss_i.is_null(False))).execute()
 
         # Finally, check if there are any rows in which at least some of the
         # magnitudes are null.
@@ -436,6 +489,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         n_empty = (Model
                    .select()
                    .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+                   .where(Model.selected >> True)
                    .count())
 
         if n_empty > 0:

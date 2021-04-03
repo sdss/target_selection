@@ -135,9 +135,9 @@
     work_mem: '5GB'
 
 '0.0.0-test':
-  xmatch_plan: 0.1.0
+  xmatch_plan: 0.5.0-beta.2
   cartons:
-    - ops_apogee_stds
+    - ops_std_boss_tic
   schema: sandbox
   magnitudes:
     z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
