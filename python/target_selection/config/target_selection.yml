@@ -2,6 +2,58 @@
   xmatch_plan: 0.5.0
   cartons:
     - ops_std_boss_tic
+    - ops_std_boss_lsdr8
+    - ops_std_eboss
+    - ops_std_boss
+    - ops_std_boss_red
+    - ops_std_apogee
+    - mwm_tess_ob
+    - mwm_cb_300pc_apogee
+    - mwm_cb_300pc_boss
+    - mwm_cb_gaiagalex_apogee
+    - mwm_cb_gaiagalex_boss
+    - mwm_cb_cvcandidates_apogee
+    - mwm_cb_cvcandidates_boss
+    - mwm_galactic_core
+    - mwm_cb_uvex1
+    - mwm_cb_uvex2
+    - mwm_cb_uvex3
+    - mwm_cb_uvex4
+    - mwm_cb_uvex5
+    - mwm_snc_100pc_apogee
+    - mwm_snc_100pc_boss
+    - mwm_snc_250pc_apogee
+    - mwm_snc_250pc_boss
+    - mwm_halo_bb_apogee
+    - mwm_halo_bb_boss
+    - mwm_halo_sm_apogee
+    - mwm_halo_sm_boss
+    - mwm_yso_disk_apogee
+    - mwm_yso_disk_boss
+    - mwm_yso_embedded_apogee
+    - mwm_yso_nebula_apogee
+    - mwm_yso_variable_apogee
+    - mwm_yso_variable_boss
+    - mwm_yso_ob_apogee
+    - mwm_yso_ob_boss
+    - mwm_yso_cmz_apogee
+    - mwm_yso_cluster_apogee
+    - mwm_yso_cluster_boss
+    - mwm_yso_pms_apogee
+    - mwm_yso_pms_boss
+    - mwm_rv_long_fps
+    - mwm_rv_short_rm
+    - mwm_rv_short_bplates
+    - mwm_rv_short_fps
+    - mwm_rv_long_rm
+    - mwm_rv_long_bplates
+    - mwm_legacy_ir2opt
+    - mwm_ob_core
+    - mwm_ob_cepheids
+    - mwm_dust_core
+    - mwm_tessrgb_core
+    - mwm_wd_core
+    - mwm_tess_planet
   schema: sandbox
   magnitudes:
     z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
@@ -36,7 +88,8 @@
       gaia_g_ls_r_min: 0.0
       gaia_g_ls_r_max: 0.1
   database_options:
-    work_mem: '5GB'
+    work_mem: 5GB
+    temp_buffers: 10GB
 
 '0.5.0-beta.1':
   xmatch_plan: 0.5.0-beta.2
