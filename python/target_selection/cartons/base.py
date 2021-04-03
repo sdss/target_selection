@@ -98,7 +98,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert self.program, 'carton subclass must override program'
 
         self.plan = targeting_plan
-        self.tag = __version__
+        self.tag = __version__ if self.plan != '0.0.0-test' else None
 
         if config_file:
             this_config = read_yaml_file(config_file)
@@ -331,6 +331,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         with self.database.atomic():
             self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
+
+        n_selected = ResultsModel.select().where(ResultsModel.selected >> True).count()
+        log.debug(f'Selected {n_selected} rows.')
 
         log.debug('Adding optical magnitude columns.')
         self.add_optical_magnitudes()
@@ -869,6 +872,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         )
                 if column:
                     select_from = select_from.select_extend(getattr(node_model, column))
+
+        # Add gri from the temporary table.
+        for mag in ['g', 'r', 'i']:
+            select_from = select_from.select_extend(RModel._meta.columns[mag])
+            fields.append(Magnitude._meta.columns[mag])
 
         if 'optical_prov' not in RModel._meta.columns:
             raise TargetSelectionError('optical_prov column not found in temporary table.')
