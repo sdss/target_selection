@@ -138,7 +138,23 @@
   xmatch_plan: 0.5.0-beta.2
   cartons:
     - ops_std_boss_tic
+    # - ops_std_boss_lsdr8
   schema: sandbox
+  parameters:
+    ops_std_boss_lsdr8:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min: -0.5
+      parallax_max: 1.0
+      gaia_bp_rp_min: 0.619
+      gaia_bp_rp_max: 0.863
+      ls_g_r_min: 0.254
+      ls_g_r_max: 0.448
+      ls_r_z_min: 0.024
+      ls_r_z_max: 0.190
+      gaia_g_ls_r_min: 0.0
+      gaia_g_ls_r_max: 0.1
   magnitudes:
     z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
