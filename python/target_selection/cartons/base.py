@@ -333,7 +333,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.post_process(ResultsModel, **post_process_kawrgs)
 
         n_selected = ResultsModel.select().where(ResultsModel.selected >> True).count()
-        log.debug(f'Selected {n_selected} rows.')
+        log.debug(f'Selected {n_selected:,} rows.')
 
         log.debug('Adding optical magnitude columns.')
         self.add_optical_magnitudes()
