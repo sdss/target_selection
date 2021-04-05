@@ -874,7 +874,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     select_from = select_from.select_extend(getattr(node_model, column))
 
         # Add gri from the temporary table.
-        for mag in ['g', 'r', 'i']:
+        for mag in ['g', 'r', 'i', 'z']:
             select_from = select_from.select_extend(RModel._meta.columns[mag])
             fields.append(Magnitude._meta.columns[mag])
 
