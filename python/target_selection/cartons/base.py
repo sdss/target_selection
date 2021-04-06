@@ -103,7 +103,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if config_file:
             this_config = read_yaml_file(config_file)
         else:
-            this_config = config
+            this_config = config.copy()
 
         if self.plan not in this_config:
             raise TargetSelectionError(
@@ -141,6 +141,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log = log
         self.has_run = False
+
+        # We cannot set temp_buffers multiple times if there are temporary tables
+        # (as in add_optical_magnitudes) so we set it here.
+        if ('database_options' in self.config and
+                'temp_buffers' in self.config['database_options']):
+            temp_buffers = self.config['database_options'].pop('temp_buffers')
+            self.database.execute_sql(f'SET temp_buffers = \'{temp_buffers}\'')
 
     @property
     def path(self):
