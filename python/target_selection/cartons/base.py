@@ -516,7 +516,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                    .count())
 
         if n_empty > 0:
-            warnings.warn('Found {n_empty} entries with some empty magnitudes.',
+            warnings.warn(f'Found {n_empty} entries with some empty magnitudes.',
                           TargetSelectionUserWarning)
 
     def post_process(self, model, **kwargs):
