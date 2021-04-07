@@ -114,19 +114,19 @@ class BhmGuaBaseCarton(BaseCarton):
 
         # Keep things simple by trusting the specprimary labels in the
         # SDSS specObj file - consider only the 'best' spectrum per sky position
-        ss = SDSS_DR16_SpecObj.alias()
+        ss16 = SDSS_DR16_SpecObj.alias()
         s16 = (
-            ss.select(
-                ss.specobjid.alias('specobjid'),
-                # ss.ra.alias('ra'),
-                # ss.dec.alias('dec'),
+            ss16.select(
+                ss16.specobjid.alias('specobjid'),
+                # ss16.ra.alias('ra'),
+                # ss16.dec.alias('dec'),
             )
             .where(
-                ss.snmedian >= self.parameters['spec_sn_thresh'],
-                ss.zwarning == 0,
-                ss.zerr <= self.parameters['spec_z_err_thresh'],
-                ss.zerr > 0.0,
-                ss.scienceprimary > 0,
+                ss16.snmedian >= self.parameters['spec_sn_thresh'],
+                ss16.zwarning == 0,
+                ss16.zerr <= self.parameters['spec_z_err_thresh'],
+                ss16.zerr > 0.0,
+                ss16.scienceprimary > 0,
             )
             .alias('s16')
         )

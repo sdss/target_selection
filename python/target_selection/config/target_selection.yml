@@ -1,5 +1,5 @@
 '0.5.0-bhm.1':
-    xmatch_plan: 0.5.0-beta.2
+    xmatch_plan: 0.5.0
     cartons:
         - bhm_gua
     schema: sandbox
@@ -184,6 +184,76 @@
             spec_sn_thresh: 1.60
             spec_z_err_thresh: 0.002
             priority_floor: 1530
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
+        bhm_spiders_agn_skymapperdr2:
+            value: 1.0
+            ero_version: 'em01_c946_201008_poscorr'
+            xmatch_method: 'XPS/NWAY'
+            xmatch_version: 'JWMS_CW2_v_03_TDopt'
+            opt_cat: 'skymapperdr2'
+            g_psf_mag_max_for_cadence1: 16.0
+            r_psf_mag_max_for_cadence1: 16.0
+            i_psf_mag_max_for_cadence1: 16.0
+            g_psf_mag_max_for_cadence2: 19.0
+            r_psf_mag_max_for_cadence2: 19.0
+            i_psf_mag_max_for_cadence2: 19.0
+            g_psf_mag_min: 13.5
+            r_psf_mag_min: 13.5
+            i_psf_mag_min: 13.5
+            z_psf_mag_min: 13.5
+            g_psf_mag_max: 22.5
+            r_psf_mag_max: 22.0
+            i_psf_mag_max: 21.5
+            z_psf_mag_max: 20.5
+            gaia_g_mag_limit: 13.5
+            gaia_rp_mag_limit: 13.5
+            tic_t_mag_limit: 13.0
+            cadence1: 'bright_2x1'
+            cadence2: 'dark_1x2'
+            cadence3: 'dark_1x4'
+            det_like_min: 6.0
+            det_like_for_priority: 8.0
+            p_any_min: 0.1
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.60
+            spec_z_err_thresh: 0.002
+            priority_floor: 1550
+            dpriority_match_flags: 1
+            dpriority_det_like: 2
+            dpriority_has_spec: 80
+        bhm_spiders_agn_supercosmos:
+            value: 1.0
+            ero_version: 'em01_c946_201008_poscorr'
+            xmatch_method: 'XPS/NWAY'
+            xmatch_version: 'JWMS_v_03'
+            opt_cat: 'catwise2020'
+            b_psf_mag_max_for_cadence1: 16.0
+            r_psf_mag_max_for_cadence1: 16.0
+            i_psf_mag_max_for_cadence1: 16.0
+            b_psf_mag_max_for_cadence2: 19.0
+            r_psf_mag_max_for_cadence2: 19.0
+            i_psf_mag_max_for_cadence2: 19.0
+            b_psf_mag_min: 13.5
+            r_psf_mag_min: 13.5
+            i_psf_mag_min: 13.5
+            b_psf_mag_max: 22.5
+            r_psf_mag_max: 22.0
+            i_psf_mag_max: 21.5
+            gaia_g_mag_limit: 13.5
+            gaia_rp_mag_limit: 13.5
+            tic_t_mag_limit: 13.0
+            cadence1: 'bright_2x1'
+            cadence2: 'dark_1x2'
+            cadence3: 'dark_1x4'
+            det_like_min: 6.0
+            det_like_for_priority: 8.0
+            p_any_min: 0.1
+            spec_join_radius: 1.0
+            spec_sn_thresh: 1.60
+            spec_z_err_thresh: 0.002
+            priority_floor: 1560
             dpriority_match_flags: 1
             dpriority_det_like: 2
             dpriority_has_spec: 80
