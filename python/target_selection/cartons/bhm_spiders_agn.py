@@ -29,9 +29,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToBHM_eFEDS_Veto,
     BHM_eFEDS_Veto,
     SDSSV_BOSS_SPALL,
-    SDSSV_BOSS_Conflist,      # only used by eFEDS
-    SDSSV_Plateholes,         # only used by eFEDS
-    SDSSV_Plateholes_Meta,    # only used by eFEDS
+    SDSSV_BOSS_Conflist,
+    SDSSV_Plateholes,
+    SDSSV_Plateholes_Meta,
 )
 
 # additional imports required by bhm_spiders_agn_lsdr8
@@ -171,44 +171,6 @@ from target_selection.mag_flux import AB2nMgy, AB2Jy
 # END PREAMBLE
 # ##################################################################################
 
-#
-# def join_s16_to_query(query,
-#                       ss16,
-#                       version_id,
-#                       spec_sn_thresh,
-#                       spec_z_err_thresh):
-#     # SDSS DR16
-#     c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-#     # ss16 = SDSS_DR16_SpecObj.alias()
-#
-#     s16 = (
-#         ss16.select(
-#             ss16.specobjid.alias('spec_id'),
-#         )
-#         .where(
-#             ss16.snmedian >= spec_sn_thresh,
-#             ss16.zwarning == 0,
-#             ss16.zerr <= spec_z_err_thresh,
-#             ss16.zerr > 0.0,
-#             ss16.scienceprimary > 0,
-#         )
-#         .alias('s16')
-#     )
-#
-#     q = (
-#         query
-#         .switch(c)
-#         .join(c2s16, JOIN.LEFT_OUTER)
-#         .join(
-#             s16, JOIN.LEFT_OUTER,
-#             on=(
-#                 (c2s16.target_id == s16.c.spec_id) &
-#                 (c2s16.version_id == version_id)
-#             )
-#         )
-#     )
-#     return q
-#
 
 class BhmSpidersAgnLsdr8Carton(BaseCarton):
 
@@ -241,12 +203,12 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
         flux30 = AB2nMgy(30.00)
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
 
+        # #########################################################################
+        # prepare the spectroscopy catalogues
+
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
-
-        # #########################################################################
-        # prepare the spectroscopy catalogues
 
         # SDSS DR16
         c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
@@ -519,8 +481,6 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         x = EROSITASupersetAGN.alias()
         ls = Legacy_Survey_DR8.alias()
         c2ls = CatalogToLegacy_Survey_DR8.alias()
-        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-        c2s2020 = CatalogToBHM_eFEDS_Veto.alias()
 
         instrument = peewee.Value(self.instrument)
 
@@ -546,6 +506,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         # prepare the spectroscopy catalogues
 
         # SDSS DR16
+        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
         ss16 = SDSS_DR16_SpecObj.alias()
         s16 = (
             ss16.select(
@@ -561,8 +522,8 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
             .alias('s16')
         )
 
-
         # SDSS-IV/eFEDS March2020
+        c2s2020 = CatalogToBHM_eFEDS_Veto.alias()
         ss2020 = BHM_eFEDS_Veto.alias()
         s2020 = (
             ss2020.select(
@@ -576,7 +537,6 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
             )
             .alias('s2020')
         )
-
 
         # SDSS-V spAll
         ssV = SDSSV_BOSS_SPALL.alias()
@@ -596,33 +556,34 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
             .alias('sV')
         )
 
-        # SDSS-V plateholes - only consider plateholes that
-        # were drilled+shipped but that were not yet observed
-        ssph = SDSSV_Plateholes.alias()
-        ssphm = SDSSV_Plateholes_Meta.alias()
-        ssconf = SDSSV_BOSS_Conflist.alias()
-        sph = (
-            ssph.select(
-                ssph.pkey.alias('pkey'),
-                ssph.target_ra.alias('target_ra'),
-                ssph.target_dec.alias('target_dec'),
-            )
-            .join(
-                ssphm,
-                on=(ssph.yanny_uid == ssphm.yanny_uid)
-            )
-            .join(
-                ssconf, JOIN.LEFT_OUTER,
-                on=(ssphm.plateid == ssconf.plate)
-            )
-            .where(
-                (ssph.holetype == 'BOSS_SHARED'),
-                (ssph.sourcetype == 'SCI') | (ssph.sourcetype == 'STA'),
-                ssphm.isvalid > 0,
-                ssconf.plate.is_null(),
-            )
-            .alias('sph')
-        )
+        # All eFEDS plates have been observed so ignore plateholes now
+        # # SDSS-V plateholes - only consider plateholes that
+        # # were drilled+shipped but that were not yet observed
+        # ssph = SDSSV_Plateholes.alias()
+        # ssphm = SDSSV_Plateholes_Meta.alias()
+        # ssconf = SDSSV_BOSS_Conflist.alias()
+        # sph = (
+        #     ssph.select(
+        #         ssph.pkey.alias('pkey'),
+        #         ssph.target_ra.alias('target_ra'),
+        #         ssph.target_dec.alias('target_dec'),
+        #     )
+        #     .join(
+        #         ssphm,
+        #         on=(ssph.yanny_uid == ssphm.yanny_uid)
+        #     )
+        #     .join(
+        #         ssconf, JOIN.LEFT_OUTER,
+        #         on=(ssphm.plateid == ssconf.plate)
+        #     )
+        #     .where(
+        #         (ssph.holetype == 'BOSS_SHARED'),
+        #         (ssph.sourcetype == 'SCI') | (ssph.sourcetype == 'STA'),
+        #         ssphm.isvalid > 0,
+        #         ssconf.plate.is_null(),
+        #     )
+        #     .alias('sph')
+        # )
 
         # priority is determined by target properties
         # start with a priority floor value (per carton)
@@ -630,7 +591,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         # add +1 if target is a secondary cross-match (match_flag > 1)
         # add +2 if target has a low value of ero_det_like
         # add +4 if target is from the secondary eFEDS catalogue
-        # ### not any more ### add +80 if target has existing good SDSS spectroscopy
+        # add +80 if target has existing good SDSS spectroscopy
 
         priority_1 = peewee.Case(
             None,
@@ -653,7 +614,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 (s16.c.specobjid.is_null(False), 1),  # any of these can be satisfied
                 (s2020.c.pk.is_null(False), 1),
                 (sV.c.specobjid.is_null(False), 1),
-                (sph.c.pkey.is_null(False), 1),
+                # (sph.c.pkey.is_null(False), 1),
             ),
             0)
 
@@ -729,8 +690,8 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 fn.min(magnitude_r).alias('r'),
                 fn.min(magnitude_i).alias('i'),
                 fn.min(magnitude_z).alias('z'),
-                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_g'),  #extra
-                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_rp'), #extra
+                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_g'),   # extra
+                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_rp'),  # extra
                 fn.min(opt_prov).alias('opt_prov'),
             )
             .join(c2ls)
@@ -741,6 +702,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
             )
             .join(ls)
             .join(x, on=(ls.ls_id == x.ls_id))
+            # start joining the spectroscopy
             .switch(c)
             .join(c2s16, JOIN.LEFT_OUTER)
             .join(
@@ -767,14 +729,15 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                                 match_radius_spectro)
                 )
             )
-            .join(
-                sph, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
-                )
-            )
+            # .join(
+            #     sph, JOIN.LEFT_OUTER,
+            #     on=(
+            #         fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
+            #                     c.ra, c.dec,
+            #                     match_radius_spectro)
+            #     )
+            # )
+            # finished joining the spectroscopy
             .where(
                 (
                     (x.ero_version == self.parameters['ero_version1']) &
@@ -797,11 +760,6 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 # gaia safety checks to avoid bad ls photometry
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
-                ## TODO maybe add these selections back in?
-                # s16.c.specobjid.is_null(True),
-                # s2020.c.pk.is_null(True),
-                # sV.c.specobjid.is_null(True),
-                # ph.c.pkey.is_null(True),
             )
             .group_by(x.ls_id)   # avoid duplicates - we trust the legacy survey entries
         )
@@ -833,10 +791,6 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
         x = EROSITASupersetAGN.alias()
         tic = TIC_v8.alias()
         c2tic = CatalogToTIC_v8.alias()
-        # c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-        # s16 = SDSS_DR16_SpecObj.alias()
-        # s2020 = BHM_eFEDS_Veto.alias()
-        # sV = SDSSV_BOSS_SPALL.alias()
 
         instrument = peewee.Value(self.instrument)
 
@@ -851,7 +805,6 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
-
 
         # #########################################################################
         # prepare the spectroscopy catalogues
@@ -934,8 +887,7 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
             )
             .alias('sph')
         )
-
-
+        # #########################################################################
 
         # priority is determined by target properties
         # start with a priority floor value (per carton)
@@ -1101,7 +1053,7 @@ class BhmSpidersAgnSepCarton(BaseCarton):
         # then increment if any conditions are met:
         # add +1 if target is a secondary cross-match (match_flag > 1)
         # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +4 if target has existing good SDSS spectroscopy - N/A here
 
         priority_1 = peewee.Case(
             None,
@@ -1210,11 +1162,6 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         x = EROSITASupersetAGN.alias()
         ps = Panstarrs1.alias()
         c2ps = CatalogToPanstarrs1.alias()
-        # c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-        # s16 = SDSS_DR16_SpecObj.alias()
-        # c2s2020 = CatalogToBHM_eFEDS_Veto.alias()
-        # s2020 = BHM_eFEDS_Veto.alias()
-        # sV = SDSSV_BOSS_SPALL.alias()
         tic = TIC_v8.alias()
         c2tic = CatalogToTIC_v8.alias()
 
@@ -1323,6 +1270,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
             )
             .alias('sph')
         )
+        # #########################################################################
 
         # priority is determined by target properties
         # start with a priority floor value (per carton)
@@ -1405,7 +1353,6 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
             ps.flags.bin_and(ext_flags),
             ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_psf_flux))).cast('float')),),
             (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_aper_flux))).cast('float'))
-
 
         query = (
             c.select(
@@ -1532,6 +1479,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
 # END BhmSpidersAgnPs1dr2Carton
 # ##################################################################################
 
+
 class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
 
     name = 'bhm_spiders_agn_skymapperdr2'
@@ -1655,6 +1603,7 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
             )
             .alias('sph')
         )
+        # #########################################################################
 
         # priority is determined by target properties
         # start with a priority floor value (per carton)
@@ -1709,8 +1658,7 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
             cadence4)
 
         # We want to only use psfmags
-        opt_prov =peewee.Value('sm_psfmag')
-
+        opt_prov = peewee.Value('sm_psfmag')
 
         query = (
             c.select(
@@ -1742,7 +1690,8 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
             .join(sm)
             .join(x, on=(sm.object_id == x.skymapper_dr2_id))
             .switch(c)
-            .join(c2tic, JOIN.LEFT_OUTER,
+            .join(
+                c2tic, JOIN.LEFT_OUTER,
                 on=(
                     (c.catalogid == c2tic.catalogid) &
                     (c2tic.version_id == version_id)
@@ -1805,7 +1754,12 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
                     (sm.i_psf < i_psf_mag_max) |
                     (sm.z_psf < z_psf_mag_max)
                 ),
-                ## (sm.flags.bin_and(TODO) > 0),
+                # see description of skymapper flags here:
+                # http://skymapper.anu.edu.au/table-browser/dr2/
+                # "flags - Bitwise OR of Source Extractor flags across all observations"
+                # Sextractor flags described here: https://sextractor.readthedocs.io/en/latest/Flagging.html  # noqa
+                # everything beyond flag>=4 sounds pretty bad
+                (sm.flags < 4),
             )
             .group_by(sm.object_id)   # avoid duplicates - we trust the sm2 ids
             .having(
@@ -1833,7 +1787,6 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
 #
 # END BhmSpidersAgnSkyMapperDr2Carton
 # ##################################################################################
-
 
 
 class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
@@ -1958,6 +1911,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             )
             .alias('sph')
         )
+        # #########################################################################
 
         # priority is determined by target properties
         # start with a priority floor value (per carton)
@@ -1995,7 +1949,6 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         cadence1 = self.parameters['cadence1']
         cadence2 = self.parameters['cadence2']
         cadence3 = self.parameters['cadence3']
-        # cadence4 = 'unknown_cadence'
         cadence = peewee.Case(
             None,
             (
@@ -2011,12 +1964,24 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             cadence3)
 
         # We only use psfmags
-        opt_prov =peewee.Value('sc_psfmag')
+        opt_prov = peewee.Value('sc_psfmag')
+        ## TODO - transform the B,V,R,I -> to griz
+
+        # some very crude by-eye fits to SPIDERS AGN targets matched to SC and SDSSdr9 (via stilts)
+        # completely ignore differences between psfmags and total mags
+        magnitude_g = (sc.scormagb + 0.1 + (sc.scormagb - sc.scormagr2) * -0.23).cast('float')
+        magnitude_r = (sc.scormagr2 + 0.25 + (sc.scormagb - sc.scormagr2) * 0.12).cast('float')
+        magnitude_i = (fn.greatest(sc.scormagr2, sc.scormagi) + 0.1).cast('float')
+        magnitude_z = (
+            fn.greatest(sc.scormagr2, sc.scormagi) +
+            0.2 + (sc.scormagb - sc.scormagr2) * -0.2 +
+            -0.28 * (sc.scormagb - sc.scormagr2) * (sc.scormagb - sc.scormagr2)
+        ).cast('float')
 
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                fn.array_agg(sc.objid, coerce=False).alias('sc_objids'),
+                # fn.array_agg(sc.objid, coerce=False).alias('sc_objids'),
                 x.catwise2020_id.alias('cw2020_source_id'),
                 fn.min(tic.gaia_int).alias('gaia_source'),
                 fn.min(x.ero_detuid).alias('ero_detuid'),
@@ -2026,9 +1991,13 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
                 fn.min(value).alias('value'),
                 fn.min(cadence).alias('cadence'),
                 fn.min(instrument).alias('instrument'),
-                fn.min(sc.scormagb).alias('g'),
-                fn.min(sc.scormagr2).alias('r'),
-                fn.min(sc.scormagi).alias('i'),
+                fn.min(magnitude_g).alias('g'),
+                fn.min(magnitude_r).alias('r'),
+                fn.min(magnitude_i).alias('i'),
+                fn.min(magnitude_z).alias('z'),
+                fn.min(sc.scormagb).alias('scormagb'),
+                fn.min(sc.scormagr2).alias('scormagr2'),
+                fn.min(sc.scormagi).alias('scormagi'),
                 fn.min(sc.classmagb).alias('classmagb'),
                 fn.min(sc.classmagr2).alias('classmagr2'),
                 fn.min(sc.classmagi).alias('classmagi'),
@@ -2104,14 +2073,14 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
                 (x.xmatch_metric >= self.parameters['p_any_min']),
                 (x.ero_det_like > self.parameters['det_like_min']),
                 (  # include anything that falls in suitable mag range
-                    sc.scormagb.between(b_psf_mag_min,b_psf_mag_max) |
-                    sc.scormagr2.between(r_psf_mag_min,r_psf_mag_max) |
-                    sc.scormagi.between(i_psf_mag_min,i_psf_mag_max)
+                    sc.scormagb.between(b_psf_mag_min, b_psf_mag_max) |
+                    sc.scormagr2.between(r_psf_mag_min, r_psf_mag_max) |
+                    sc.scormagi.between(i_psf_mag_min, i_psf_mag_max)
                 ),
-                ~sc.scormagb.between(-99.0,b_psf_mag_min), # exclude anything that strays too bright
-                ~sc.scormagr2.between(-99.0,r_psf_mag_min),
-                ~sc.scormagi.between(-99.0,i_psf_mag_min),
-                ## (sm.flags.bin_and(TODO) > 0),
+                # exclude anything that strays too bright:
+                ~sc.scormagb.between(-99.0, b_psf_mag_min),
+                ~sc.scormagr2.between(-99.0, r_psf_mag_min),
+                ~sc.scormagi.between(-99.0, i_psf_mag_min),
             )
             .group_by(x.catwise2020_id)   # avoid duplicates - we trust the CatWISE2020 ids
             .having(

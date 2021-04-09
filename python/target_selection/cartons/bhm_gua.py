@@ -22,8 +22,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToSDSS_DR16_SpecObj,
     SDSS_DR16_SpecObj,
     Gaia_unWISE_AGN,
+    CatalogToBHM_eFEDS_Veto,
     BHM_eFEDS_Veto,
     SDSSV_BOSS_SPALL,
+    SDSSV_BOSS_Conflist,
     SDSSV_Plateholes,
     SDSSV_Plateholes_Meta,
 )
@@ -103,35 +105,99 @@ class BhmGuaBaseCarton(BaseCarton):
         # ## c2t = CatalogToGaia_unWISE_AGN.alias() - deprecated - but leave this as a reminder
         c2tic = CatalogToTIC_v8.alias()
         tic = TIC_v8.alias()
-        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-        s2020 = BHM_eFEDS_Veto.alias()
-        sV = SDSSV_BOSS_SPALL.alias()
-        ph = SDSSV_Plateholes.alias()
-        phm = SDSSV_Plateholes_Meta.alias()
+        # s2020 = BHM_eFEDS_Veto.alias()
+        # sV = SDSSV_BOSS_SPALL.alias()
+        # ph = SDSSV_Plateholes.alias()
+        # phm = SDSSV_Plateholes_Meta.alias()
 
         g = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
 
-        # Keep things simple by trusting the specprimary labels in the
-        # SDSS specObj file - consider only the 'best' spectrum per sky position
+        match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
+        spec_sn_thresh = self.parameters['spec_sn_thresh']
+        spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+
+        # #########################################################################
+        # prepare the spectroscopy catalogues
+
+        # SDSS DR16
+        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
         ss16 = SDSS_DR16_SpecObj.alias()
         s16 = (
             ss16.select(
                 ss16.specobjid.alias('specobjid'),
-                # ss16.ra.alias('ra'),
-                # ss16.dec.alias('dec'),
             )
             .where(
-                ss16.snmedian >= self.parameters['spec_sn_thresh'],
+                ss16.snmedian >= spec_sn_thresh,
                 ss16.zwarning == 0,
-                ss16.zerr <= self.parameters['spec_z_err_thresh'],
+                ss16.zerr <= spec_z_err_thresh,
                 ss16.zerr > 0.0,
                 ss16.scienceprimary > 0,
             )
             .alias('s16')
         )
 
-        # s = SDSS_DR16_SpecObj.alias()
+        # SDSS-IV/eFEDS March2020
+        c2s2020 = CatalogToBHM_eFEDS_Veto.alias()
+        ss2020 = BHM_eFEDS_Veto.alias()
+        s2020 = (
+            ss2020.select(
+                ss2020.pk.alias('pk'),
+            )
+            .where(
+                ss2020.sn_median_all >= spec_sn_thresh,
+                ss2020.zwarning == 0,
+                ss2020.z_err <= spec_z_err_thresh,
+                ss2020.z_err > 0.0,
+            )
+            .alias('s2020')
+        )
+
+        # SDSS-V spAll
+        ssV = SDSSV_BOSS_SPALL.alias()
+        sV = (
+            ssV.select(
+                ssV.specobjid.alias('specobjid'),
+                ssV.plug_ra.alias('plug_ra'),
+                ssV.plug_dec.alias('plug_dec'),
+            )
+            .where(
+                ssV.sn_median_all >= spec_sn_thresh,
+                ssV.zwarning == 0,
+                ssV.z_err <= spec_z_err_thresh,
+                ssV.z_err > 0.0,
+                ssV.specprimary > 0,
+            )
+            .alias('sV')
+        )
+
+        # SDSS-V plateholes - only consider plateholes that
+        # were drilled+shipped but that were not yet observed
+        ssph = SDSSV_Plateholes.alias()
+        ssphm = SDSSV_Plateholes_Meta.alias()
+        ssconf = SDSSV_BOSS_Conflist.alias()
+        sph = (
+            ssph.select(
+                ssph.pkey.alias('pkey'),
+                ssph.target_ra.alias('target_ra'),
+                ssph.target_dec.alias('target_dec'),
+            )
+            .join(
+                ssphm,
+                on=(ssph.yanny_uid == ssphm.yanny_uid)
+            )
+            .join(
+                ssconf, JOIN.LEFT_OUTER,
+                on=(ssphm.plateid == ssconf.plate)
+            )
+            .where(
+                (ssph.holetype == 'BOSS_SHARED'),
+                (ssph.sourcetype == 'SCI') | (ssph.sourcetype == 'STA'),
+                ssphm.isvalid > 0,
+                ssconf.plate.is_null(),
+            )
+            .alias('sph')
+        )
 
         # set the Carton priority+values here - read from yaml
         priority = peewee.Value(int(self.parameters.get('priority', 10000)))
@@ -169,8 +235,8 @@ class BhmGuaBaseCarton(BaseCarton):
             .join(tic)
             .join(g)
             .join(t, on=(g.source_id == t.gaia_sourceid))
+            # start joining the spectroscopy
             .switch(c)
-            # rely on catalogdb.catalog cross-matches to keep processing time down
             .join(c2s16, JOIN.LEFT_OUTER)
             .join(
                 s16, JOIN.LEFT_OUTER,
@@ -178,58 +244,38 @@ class BhmGuaBaseCarton(BaseCarton):
                     (c2s16.target_id == s16.c.specobjid) &
                     (c2s16.version_id == version_id)
                 )
-                # on=(fn.q3c_join(s.c.ra, s.c.dec, c.ra, c.dec, match_radius_spectro),
             )
+            .switch(c)
+            .join(c2s2020, JOIN.LEFT_OUTER)
             .join(
                 s2020, JOIN.LEFT_OUTER,
                 on=(
-                    fn.q3c_join(s2020.plug_ra, s2020.plug_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro) &
-                    (s2020.sn_median_all >= spec_sn_thresh) &
-                    (s2020.zwarning == 0) &
-                    (s2020.z_err <= spec_z_err_thresh) &
-                    (s2020.z_err > 0.0)
+                    (c2s2020.target_id == s2020.c.pk) &
+                    (c2s2020.version_id == version_id)
                 )
             )
             .join(
                 sV, JOIN.LEFT_OUTER,
                 on=(
-                    fn.q3c_join(sV.plug_ra, sV.plug_dec,
+                    fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
                                 c.ra, c.dec,
-                                match_radius_spectro) &
-                    (sV.sn_median_all >= spec_sn_thresh) &
-                    (sV.zwarning == 0) &
-                    (sV.z_err <= spec_z_err_thresh) &
-                    (sV.z_err > 0.0)
+                                match_radius_spectro)
                 )
             )
             .join(
-                ph, JOIN.LEFT_OUTER,
+                sph, JOIN.LEFT_OUTER,
                 on=(
-                    fn.q3c_join(ph.target_ra, ph.target_dec,
+                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
                                 c.ra, c.dec,
-                                match_radius_spectro) &
-                    (ph.holetype == 'BOSS_SHARED') &
-                    (
-                        (ph.sourcetype == 'SCI') |
-                        (ph.sourcetype == 'STA')
-                    )
+                                match_radius_spectro)
                 )
             )
-            .join(
-                phm, JOIN.LEFT_OUTER,
-                on=(
-                    (ph.yanny_uid == phm.yanny_uid) ## &
-                    ## TODO add this back in when isvalid column is added to sdssv_plateholes_meta
-                    ## (phm.isvalid > 0)
-                )
-            )
+            # finished joining the spectroscopy
             # standard selection that chooses correct catalogdb version etc
             .where(
                 c.version_id == version_id,
                 c2tic.version_id == version_id,
-                # c2tic.best >> True,    ## this is often dangerous in v0 cross-match
+                c2tic.best >> True,
             )
             .where(
                 (t.prob_rf >= self.parameters['prob_rf_min']),
@@ -243,21 +289,12 @@ class BhmGuaBaseCarton(BaseCarton):
             # then reject any GUA targets with existing good DR16+SDSS-V spectroscopy
             .where(
                 s16.c.specobjid.is_null(True),
-                s2020.pk.is_null(True),
-                sV.specobjid.is_null(True),
-                ph.pkey.is_null(True) | phm.yanny_uid.is_null(True),
+                s2020.c.pk.is_null(True),
+                sV.c.specobjid.is_null(True),
+                sph.c.pkey.is_null(True),
             )
             # avoid duplicates - trust the gaia ids in the GUA parent sample
             .distinct([t.gaia_sourceid])
-            # .switch(c)
-            # .join(c2s, JOIN.LEFT_OUTER)
-            # .join(s, JOIN.LEFT_OUTER)
-            # .where(
-            #     (s.specobjid.is_null()) |
-            #     (s.zwarning != 0 ) |
-            #     (s.snmedian < self.parameters['spec_sn_thresh']) |
-            #     (s.zerr >  self.parameters['spec_z_err_thresh'])
-            # )
         )
 
         return query

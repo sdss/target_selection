@@ -1,7 +1,33 @@
 '0.5.0-bhm.1':
     xmatch_plan: 0.5.0
     cartons:
-        - bhm_gua
+        - bhm_gua_dark
+        - bhm_gua_bright
+        - bhm_spiders_agn_lsdr8
+        - bhm_spiders_agn_efeds_stragglers
+        - bhm_spiders_agn_gaiadr2
+        - bhm_spiders_agn_sep
+        - bhm_spiders_agn_ps1dr2
+        - bhm_spiders_agn_skymapperdr2
+        - bhm_spiders_agn_supercosmos
+        - bhm_spiders_clusters_lsdr8
+        - bhm_spiders_clusters_efeds_stragglers
+        - bhm_spiders_clusters_ps1dr2
+        - bhm_aqmes_med
+        - bhm_aqmes_med_faint
+        - bhm_aqmes_wide2
+        - bhm_aqmes_wide2_faint
+        - bhm_aqmes_bonus_core
+        - bhm_aqmes_bonus_faint
+        - bhm_aqmes_bonus_bright
+        - bhm_rm_base
+        - bhm_rm_core
+        - bhm_rm_known_spec
+        - bhm_rm_var
+        - bhm_rm_ancillary
+        - bhm_csc_boss_dark
+        - bhm_csc_boss_bright
+        - bhm_csc_apogee
     schema: sandbox
     magnitudes:
         g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
@@ -461,7 +487,6 @@
             mag_h_min: 10.0
             mag_h_max: 15.0
             priority_floor: 4000
-            dpriority_has_spec: 10
             value: 1.0
 
 '0.1.3':

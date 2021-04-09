@@ -22,8 +22,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToSDSS_DR16_SpecObj,
     SDSS_DR16_SpecObj,
+    CatalogToBHM_eFEDS_Veto,
     BHM_eFEDS_Veto,
     SDSSV_BOSS_SPALL,
+    SDSSV_BOSS_Conflist,
     SDSSV_Plateholes,
     SDSSV_Plateholes_Meta,
 )
@@ -135,36 +137,132 @@ class BhmCscBaseCarton(BaseCarton):
         c2t = CatalogToBHM_CSC.alias()
         t = BHM_CSC.alias()
         self.alias_t = t
-        c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
-        s16 = SDSS_DR16_SpecObj.alias()
-        s2020 = BHM_eFEDS_Veto.alias()
-        sV = SDSSV_BOSS_SPALL.alias()
-        ph = SDSSV_Plateholes.alias()
-        phm = SDSSV_Plateholes_Meta.alias()
+        # c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
+        # s16 = SDSS_DR16_SpecObj.alias()
+        # s2020 = BHM_eFEDS_Veto.alias()
+        # sV = SDSSV_BOSS_SPALL.alias()
+        # ph = SDSSV_Plateholes.alias()
+        # phm = SDSSV_Plateholes_Meta.alias()
 
         # set the Carton priority+values here - read from yaml
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
         instrument = peewee.Value(self.instrument)
         cadence = peewee.Value(self.this_cadence)
+        opt_prov = peewee.Value('ps1_psfmag')
 
-        priority_1 = 0
         if (self.instrument == 'BOSS'):
+
+            # #########################################################################
+            # prepare the spectroscopy catalogues
+            match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
+            spec_sn_thresh = self.parameters['spec_sn_thresh']
+            spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+            dpriority_has_spec = self.parameters['dpriority_has_spec']
+
+            # SDSS DR16
+            c2s16 = CatalogToSDSS_DR16_SpecObj.alias()
+            ss16 = SDSS_DR16_SpecObj.alias()
+            s16 = (
+                ss16.select(
+                    ss16.specobjid.alias('specobjid'),
+                )
+                .where(
+                    ss16.snmedian >= spec_sn_thresh,
+                    ss16.zwarning == 0,
+                    ss16.zerr <= spec_z_err_thresh,
+                    ss16.zerr > 0.0,
+                    ss16.scienceprimary > 0,
+                )
+                .alias('s16')
+            )
+
+            # SDSS-IV/eFEDS March2020
+            c2s2020 = CatalogToBHM_eFEDS_Veto.alias()
+            ss2020 = BHM_eFEDS_Veto.alias()
+            s2020 = (
+                ss2020.select(
+                    ss2020.pk.alias('pk'),
+                )
+                .where(
+                    ss2020.sn_median_all >= spec_sn_thresh,
+                    ss2020.zwarning == 0,
+                    ss2020.z_err <= spec_z_err_thresh,
+                    ss2020.z_err > 0.0,
+                )
+                .alias('s2020')
+            )
+
+            # SDSS-V spAll
+            ssV = SDSSV_BOSS_SPALL.alias()
+            sV = (
+                ssV.select(
+                    ssV.specobjid.alias('specobjid'),
+                    ssV.plug_ra.alias('plug_ra'),
+                    ssV.plug_dec.alias('plug_dec'),
+                )
+                .where(
+                    ssV.sn_median_all >= spec_sn_thresh,
+                    ssV.zwarning == 0,
+                    ssV.z_err <= spec_z_err_thresh,
+                    ssV.z_err > 0.0,
+                    ssV.specprimary > 0,
+                )
+                .alias('sV')
+            )
+
+            # SDSS-V plateholes - only consider plateholes that
+            # were drilled+shipped but that were not yet observed
+            ssph = SDSSV_Plateholes.alias()
+            ssphm = SDSSV_Plateholes_Meta.alias()
+            ssconf = SDSSV_BOSS_Conflist.alias()
+            sph = (
+                ssph.select(
+                    ssph.pkey.alias('pkey'),
+                    ssph.target_ra.alias('target_ra'),
+                    ssph.target_dec.alias('target_dec'),
+                )
+                .join(
+                    ssphm,
+                    on=(ssph.yanny_uid == ssphm.yanny_uid)
+                )
+                .join(
+                    ssconf, JOIN.LEFT_OUTER,
+                    on=(ssphm.plateid == ssconf.plate)
+                )
+                .where(
+                    (ssph.holetype == 'BOSS_SHARED'),
+                    (ssph.sourcetype == 'SCI') | (ssph.sourcetype == 'STA'),
+                    ssphm.isvalid > 0,
+                    ssconf.plate.is_null(),
+                )
+                .alias('sph')
+            )
+
+            # adjust priority if target aleady has an SDSS spectrum
             priority_1 = peewee.Case(
                 None,
                 (
-                    (s16.specobjid.is_null(False), 1),  # any of these can be satisfied
-                    (s2020.pk.is_null(False), 1),
-                    (sV.specobjid.is_null(False), 1),
-                    (ph.pkey.is_null(False) & phm.yanny_uid.is_null(False), 1),
+                    (s16.c.specobjid.is_null(False), 1),  # any of these can be satisfied
+                    (s2020.c.pk.is_null(False), 1),
+                    (sV.c.specobjid.is_null(False), 1),
+                    (sph.c.pkey.is_null(False), 1),
                 ),
                 0)
+            #
+            # Compute net priority
+            priority = (
+                peewee.Value(self.parameters['priority_floor']) +
+                priority_1 * dpriority_has_spec
+            )
+        else:
+            priority = peewee.Value(self.parameters['priority_floor'])
 
-        priority = (
-            self.parameters['priority_floor'] +
-            priority_1 * self.parameters['dpriority_has_spec']
-        )
-
-        ## TODO need to process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros/nulls
+        # Process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros
+        magnitude_g = peewee.Case(None, ((t.mag_g <= 0.0, None),), t.mag_g).cast('float')
+        magnitude_r = peewee.Case(None, ((t.mag_r <= 0.0, None),), t.mag_r).cast('float')
+        magnitude_i = peewee.Case(None, ((t.mag_i <= 0.0, None),), t.mag_i).cast('float')
+        magnitude_z = peewee.Case(None, ((t.mag_z <= 0.0, None),), t.mag_z).cast('float')
+        magnitude_h = peewee.Case(None, ((t.mag_h <= 0.0, None),), t.mag_h).cast('float')
 
         query = (
             c.select(
@@ -177,11 +275,12 @@ class BhmCscBaseCarton(BaseCarton):
                 value.alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
-                t.mag_g.alias('g'),
-                t.mag_r.alias('r'),
-                t.mag_i.alias('i'),
-                t.mag_z.alias('z'),
-                t.mag_h.alias('h'),
+                magnitude_g.alias('g'),
+                magnitude_r.alias('r'),
+                magnitude_i.alias('i'),
+                magnitude_z.alias('z'),
+                magnitude_h.alias('h'),
+                opt_prov.alias('opt_prov'),
                 t.oir_ra.alias('csc_oir_ra'),
                 t.oir_dec.alias('csc_oir_dec'),
             )
@@ -190,7 +289,7 @@ class BhmCscBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2t.version_id == version_id,
-                # c2t.best >> True
+                c2t.best >> True
             )
             # .distinct([c2t.target_id])  # avoid duplicates - trust the CSC parent sample,
             .distinct([c.catalogid])  # avoid duplicates - trust the catalogid,
@@ -201,71 +300,41 @@ class BhmCscBaseCarton(BaseCarton):
         )
 
         if (self.instrument == 'BOSS'):
-            match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
-            spec_sn_thresh = self.parameters['spec_sn_thresh']
-            spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+            # Append the spectro query
             query = (
                 query
-                .join(
-                    c2s16, JOIN.LEFT_OUTER,
-                    on=(c2s16.catalogid == c.catalogid)
-                )
+                .switch(c)
+                .join(c2s16, JOIN.LEFT_OUTER)
                 .join(
                     s16, JOIN.LEFT_OUTER,
                     on=(
-                        (c2s16.version_id == version_id) &
-                        (c2s16.target_id == s16.specobjid) &   # keep processing time low
-                        (s16.snmedian >= spec_sn_thresh) &
-                        (s16.zwarning == 0) &
-                        (s16.zerr <= spec_z_err_thresh) &
-                        (s16.zerr > 0.0) &
-                        (s16.scienceprimary > 0)
+                        (c2s16.target_id == s16.c.specobjid) &
+                        (c2s16.version_id == version_id)
                     )
                 )
+                .switch(c)
+                .join(c2s2020, JOIN.LEFT_OUTER)
                 .join(
                     s2020, JOIN.LEFT_OUTER,
                     on=(
-                        fn.q3c_join(s2020.plug_ra, s2020.plug_dec,
-                                    c.ra, c.dec,
-                                    match_radius_spectro) &
-                        (s2020.sn_median_all >= spec_sn_thresh) &
-                        (s2020.zwarning == 0) &
-                        (s2020.z_err <= spec_z_err_thresh) &
-                        (s2020.z_err > 0.0)
+                        (c2s2020.target_id == s2020.c.pk) &
+                        (c2s2020.version_id == version_id)
                     )
                 )
                 .join(
                     sV, JOIN.LEFT_OUTER,
                     on=(
-                        fn.q3c_join(sV.plug_ra, sV.plug_dec,
+                        fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
                                     c.ra, c.dec,
-                                    match_radius_spectro) &
-                        (sV.sn_median_all >= spec_sn_thresh) &
-                        (sV.zwarning == 0) &
-                        (sV.z_err <= spec_z_err_thresh) &
-                        (sV.z_err > 0.0)
+                                    match_radius_spectro)
                     )
                 )
                 .join(
-                    ph, JOIN.LEFT_OUTER,
+                    sph, JOIN.LEFT_OUTER,
                     on=(
-                        fn.q3c_join(ph.target_ra, ph.target_dec,
+                        fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
                                     c.ra, c.dec,
-                                    match_radius_spectro) &
-                        (ph.holetype == 'BOSS_SHARED') &
-                        (
-                            (ph.sourcetype == 'SCI') |
-                            (ph.sourcetype == 'STA')
-                        )
-                    )
-                )
-                .join(
-                    phm, JOIN.LEFT_OUTER,
-                    on=(
-                        (ph.yanny_uid == phm.yanny_uid)  # &
-                        ## TODO add this back in when isvalid column is
-                        #  added to sdssv_plateholes_meta
-                        # (phm.isvalid > 0)
+                                    match_radius_spectro)
                     )
                 )
             )

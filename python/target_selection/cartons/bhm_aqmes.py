@@ -9,14 +9,20 @@
 # isort: skip_file
 
 import peewee
+from peewee import JOIN
+from peewee import fn
 from astropy.io import fits
 import pkg_resources
 
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             SDSS_DR16_SpecObj,
-                                             SDSS_DR16_QSO,
-                                             CatalogToSDSS_DR16_SpecObj)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    SDSS_DR16_SpecObj,
+    SDSS_DR16_QSO,
+    CatalogToSDSS_DR16_SpecObj,
+    SDSSV_Plateholes,
+    SDSSV_Plateholes_Meta,
+)
 
 
 from target_selection.cartons.base import BaseCarton
@@ -131,28 +137,63 @@ class BhmAqmesBaseCarton(BaseCarton):
         self.alias_t = t
         self.alias_c2s = c2s
 
+        # SDSS-V plateholes - only consider plateholes that
+        # were drilled+shipped and that have firstcarton ~ 'bhm_aqmes_'
+        ssph = SDSSV_Plateholes.alias()
+        ssphm = SDSSV_Plateholes_Meta.alias()
+        sph = (
+            ssph.select(
+                ssph.pkey.alias('pkey'),
+                ssph.target_ra.alias('target_ra'),
+                ssph.target_dec.alias('target_dec'),
+            )
+            .join(
+                ssphm,
+                on=(ssph.yanny_uid == ssphm.yanny_uid)
+            )
+            .where(
+                ssph.holetype == 'BOSS_SHARED',
+                ssph.sourcetype == 'SCI',
+                ssph.firstcarton.contains('bhm_aqmes_'),
+                ssphm.isvalid > 0,
+            )
+            .distinct([ssph.catalogid])
+            .alias('sph')
+        )
+
         # set the Carton priority+values here - read from yaml
-        priority = peewee.Value(int(self.parameters.get('priority', 999999)))
+        priority_floor = peewee.Value(int(self.parameters.get('priority', 999999)))
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
         instrument = peewee.Value(self.instrument)
         inertial = peewee.Value(self.inertial).cast('bool')
         opt_prov = peewee.Value('sdss_psfmag')
         cadence_v0 = cadence_map_v0p5_to_v0[self.cadence_v0p5]
-        cadence = peewee.Value(cadence_v0)
-        ##cadence = peewee.Value(self.cadence_v0p5) ## TODO replace this
+        # cadence = peewee.Value(cadence_v0)
+        cadence = peewee.Value(self.cadence_v0p5)
 
-        ## this is DEBUG until the new v0.5 cadences exist in the DB
-        ## - doesn't work because self.cadence is checked before this point
-        ## - so give up until targetdb.cadence is populated
+        # # this is DEBUG until the new v0.5 cadences exist in the DB
+        # # - doesn't work because self.cadence is checked before this point
+        # # - so give up until targetdb.cadence is populated
         # assert self.cadence in cadence_map_v0p5_to_v0
         # v0_cadence = cadence_map_v0p5_to_v0[self.cadence]
         # cadence = peewee.Value(v0_cadence).alias('cadence')
 
+        match_radius_spectro = 1.0 / 3600.0
+
+        priority_boost = peewee.Case(
+            None,
+            (
+                (sph.c.pkey.is_null(False), 0),  # has a platehole entry
+                (sph.c.pkey.is_null(True), 1),   # not in plate programme
+            ),
+            None
+        )
+        priority = priority_floor + priority_boost
         query = (
             c.select(
                 c.catalogid,
                 t.pk.alias('dr16q_pk'),  # extra
-                s.specobjid.alias('dr16_specobjid'),  # extra
+                s.specobjid.cast('text').alias('dr16_specobjid'),  # extra
                 c.ra,   # extra
                 c.dec,   # extra
                 priority.alias('priority'),
@@ -160,6 +201,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 inertial.alias('inertial'),
                 instrument.alias('instrument'),
                 cadence.alias('cadence'),
+                cadence_v0.alias('cadence_v0'),
                 t.psfmag[1].alias('g'),
                 t.psfmag[2].alias('r'),
                 t.psfmag[3].alias('i'),
@@ -179,10 +221,19 @@ class BhmAqmesBaseCarton(BaseCarton):
                     (s.mjd == t.mjd) &
                     (s.fiberid == t.fiberid))
             )
+            .join(
+                sph, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
+                                c.ra, c.dec,
+                                match_radius_spectro)
+                )
+            )
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
-                # c2s.best >> True,  ### this kills many AQMES targets in v0 cross-match!
+                c2s.best >> True,   # TODO check this is working in v0.5
+                                    # - the same filter killed many AQMES targets in v0 cross-match
             )
             .where
             (

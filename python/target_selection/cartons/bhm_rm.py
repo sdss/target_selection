@@ -18,10 +18,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     BHM_RM_v0_2,
     CatalogToBHM_RM_v0,
-    CatalogToSDSS_DR16_SpecObj,
-    SDSS_DR16_SpecObj,
     BHM_RM_Tweaks,
     SDSSV_BOSS_SPALL,
+    SDSSV_Plateholes,
+    SDSSV_Plateholes_Meta,
 )
 
 
@@ -45,7 +45,6 @@ class BhmRmBaseCarton(BaseCarton):
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_rm'
-    # cadence = 'bhm_rm_174x8'
     instrument = 'BOSS'
     tile = False
     priority = None
@@ -82,15 +81,63 @@ class BhmRmBaseCarton(BaseCarton):
         c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
         t = BHM_RM_v0_2.alias()
-        c2s = CatalogToSDSS_DR16_SpecObj.alias()
-        s = SDSS_DR16_SpecObj.alias()
         tw = BHM_RM_Tweaks.alias()
-        sV = SDSSV_BOSS_SPALL.alias()
         self.alias_c = c
         self.alias_t = t
         self.alias_tw = tw
 
         fieldlist = self.get_fieldlist()
+
+        # #########################################################################
+        # prepare the spectroscopy catalogues
+
+        # SDSS-V spAll - select only objects we want to exclude on
+        # the basis of their pipeline classifications
+        # Currently this is only for secure STARs in the COSMOS field
+        ssV = SDSSV_BOSS_SPALL.alias()
+        sV = (
+            ssV.select(
+                ssV.specobjid.alias('specobjid'),
+                ssV.plug_ra.alias('plug_ra'),
+                ssV.plug_dec.alias('plug_dec'),
+                fn.rank().over(partition_by=[ssV.catalogid],
+                               order_by=[ssV.sn_median_all.desc()]).alias('sn_rank'),
+            )
+            .where(
+                ssV.programname.contains('RM'),
+                ssV.firstcarton.contains('bhm_rm_'),
+                ssV.class_ == 'STAR',
+                ssV.zwarning == 0,
+                ssV.sn_median_all > 2.0,
+                # select only COSMOS plates
+                ssV.plate << [15038, 15070, 15071, 15252, 15253, 15289]
+            )
+            .alias('sV')
+        )
+
+        # SDSS-V plateholes - only consider plateholes that
+        # were drilled+shipped and that have firstcarton ~ 'bhm_rm_'
+        ssph = SDSSV_Plateholes.alias()
+        ssphm = SDSSV_Plateholes_Meta.alias()
+        sph = (
+            ssph.select(
+                ssph.pkey.alias('pkey'),
+                ssph.target_ra.alias('target_ra'),
+                ssph.target_dec.alias('target_dec'),
+            )
+            .join(
+                ssphm,
+                on=(ssph.yanny_uid == ssphm.yanny_uid)
+            )
+            .where(
+                ssph.holetype == 'BOSS_SHARED',
+                ssph.sourcetype == 'SCI',
+                ssph.firstcarton.contains('bhm_rm_'),
+                ssphm.isvalid > 0,
+            )
+            .distinct([ssph.catalogid])
+            .alias('sph')
+        )
 
         # fold in tiers of magnitude-based priority
         priority_mag_step = 0.5
@@ -123,12 +170,13 @@ class BhmRmBaseCarton(BaseCarton):
             None
         )
         # this secondary priority rule is based on whether this target was
-        # observed successfully during the plate phase of SDSS-V
+        # assigned a platehole during the SDSSV plate programme
+        # boost the priorities of those targets that were put onto plates
         priority2 = peewee.Case(
             None,
             (
-                (sV.specobjid.is_null(False), -100),
-                (sV.specobjid.is_null(True), 0),
+                (sph.c.pkey.is_null(False), -100),
+                (sph.c.pkey.is_null(True), 0),
             ),
             None
         )
@@ -140,24 +188,24 @@ class BhmRmBaseCarton(BaseCarton):
         match_radius_spectro = 1.0 / 3600.0
 
         # This is the scheme used in v0
-        cadence = peewee.Case(None,
-                              (
-                                  (t.field_name.contains('S-CVZ'), 'bhm_rm_lite5_100x8'),
-                              ),
-                              'bhm_rm_174x8')
+        cadence_v0 = peewee.Case(None,
+                                 (
+                                     (t.field_name.contains('S-CVZ'), 'bhm_rm_lite5_100x8'),
+                                 ),
+                                 'bhm_rm_174x8')
 
         # the following will replace old generic cadences when relevant table has been populated
-        ## TODO
-        cadence2 = peewee.Case(None,
-                               (
-                                   (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
-                                   (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
-                                   (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
-                                   (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
-                                   (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
-                                   (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
-                               ),
-                               'bhm_rm_174x8')
+        ## TODO - replace when correct cadences are loaded
+        cadence_v0p5 = peewee.Case(None,
+                                   (
+                                       (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
+                                       (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
+                                       (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
+                                       (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
+                                       (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
+                                       (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
+                                   ),
+                                   'bhm_rm_174x8')
 
         # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
         opt_prov = peewee.Case(None,
@@ -175,7 +223,8 @@ class BhmRmBaseCarton(BaseCarton):
                                       ((t.des == 1) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
                                       ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
                                       ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
-                                      ((t.optical_survey == 'Gaia') & (t.mg > 0.0), t.mg),
+                                      ((t.optical_survey == 'Gaia') & (t.mag_gaia[0] > 0.0),
+                                       t.mag_gaia[0]),  # just using gaia G for now
                                       ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
                                   ),
                                   None)  # should never get here
@@ -194,6 +243,8 @@ class BhmRmBaseCarton(BaseCarton):
                                       ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
                                       ((t.nsc == 1) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
                                       (t.mi > 0.0, t.mi),
+                                      ((t.optical_survey == 'Gaia') & (t.mag_gaia[2] > 0.0),
+                                       t.mag_gaia[2]),  # just using gaia RP for now
                                   ),
                                   None)  # should never get here
         magnitude_z = peewee.Case(None,
@@ -215,8 +266,9 @@ class BhmRmBaseCarton(BaseCarton):
                 instrument.alias('instrument'),
                 priority.alias('priority'),
                 value.alias('value'),
-                cadence.alias('cadence'),
-                cadence2.alias('cadence2'),
+                cadence_v0.alias('cadence'),
+                cadence_v0.alias('cadence_v0'),
+                cadence_v0p5.alias('cadence_v0p5'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
@@ -226,16 +278,14 @@ class BhmRmBaseCarton(BaseCarton):
                 t.optical_survey.alias('optical_survey'),
             )
             .join(c2t)
-            # The following is needed because we are using c2t for Catalog_to_BHM_RM_v0
+            # An explicit join is needed because we are using c2t for Catalog_to_BHM_RM_v0
             # rather than a native c2t for Catalog_to_BHM_RM_v0_2
             .join(t, on=(c2t.target_id == t.pk))
-            .where(c.version_id == version_id,
-                   c2t.version_id == version_id,
-                   (
-                       (c2s.version_id == version_id) |
-                       (c2s.version_id.is_null())
-                   ),
-                   c2t.best >> True)
+            .where(
+                c.version_id == version_id,
+                c2t.version_id == version_id,
+                c2t.best >> True
+            )
             .where
             (
                 (
@@ -250,15 +300,6 @@ class BhmRmBaseCarton(BaseCarton):
                 )
             )
             .switch(c)
-            .join(c2s, JOIN.LEFT_OUTER)
-            .join(
-                s,
-                JOIN.LEFT_OUTER,
-                on=(
-                    (c2s.target_id == s.specobjid) &
-                    (s.scienceprimary > 0)
-                ),
-            )
             .join(
                 tw,
                 JOIN.LEFT_OUTER,
@@ -267,30 +308,36 @@ class BhmRmBaseCarton(BaseCarton):
                                 match_radius_spectro))
             )
             .join(
-                sV,
-                JOIN.LEFT_OUTER,
+                sV, JOIN.LEFT_OUTER,
                 on=(
-                    fn.q3c_join(sV.plug_ra, sV.plug_dec,
+                    fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
                                 c.ra, c.dec,
                                 match_radius_spectro) &
-                    sV.programname.contains('RM') &
-                    sV.firstcarton.contains('bhm_rm_') &
-                    (sV.class_ == 'QSO') &
-                    (sV.zwarning == 0) &
-                    (sV.sn_median_all > 2.0)
+                    (sV.c.sn_rank == 1)   # only consider the best spectrum per object
+                )
+            )
+            .join(
+                sph, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
+                                c.ra, c.dec,
+                                match_radius_spectro)
                 )
             )
             .where(
-                # Reject objects where the best spectrum for
-                # this object in sdss_dr16_specobj is classified as STAR
-                (s.specobjid.is_null()) | ~(s.class_.contains('STAR')),
-
-                # Only keep objects that are not flagged as being bad for RM
+                # Reject any objects where the highest SNR spectrum for
+                # this target in sdssv_boss_spall is classified as STAR
+                sV.c.specobjid.is_null(True),
+                #
+                # Reject any targets that are flagged as being unsuitable for RM in bhm_rm_tweaks
                 # bhm_rm_tweaks.rm_suitability==0 means:
                 # 'target is probably unsuitable for RM, do not observe in the future'
-                (tw.pkey.is_null()) | (tw.rm_suitability != 0)
+                (
+                    tw.pkey.is_null(True) |
+                    (tw.rm_suitability != 0)
+                )
             )
-            .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
+            # .distinct([t.pk])   # avoid duplicates - trust the RM parent sample - not needed
         )
         query = self.append_spatial_query(query, fieldlist)
 
