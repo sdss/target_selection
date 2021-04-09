@@ -167,9 +167,9 @@ class BhmAqmesBaseCarton(BaseCarton):
         instrument = peewee.Value(self.instrument)
         inertial = peewee.Value(self.inertial).cast('bool')
         opt_prov = peewee.Value('sdss_psfmag')
-        cadence_v0 = cadence_map_v0p5_to_v0[self.cadence_v0p5]
+        cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
         # cadence = peewee.Value(cadence_v0)
-        cadence = peewee.Value(self.cadence_v0p5)
+        cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
         # # this is DEBUG until the new v0.5 cadences exist in the DB
         # # - doesn't work because self.cadence is checked before this point
