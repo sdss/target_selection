@@ -6,6 +6,8 @@
 # @Filename: mwm_rv.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import math
+
 import peewee
 from astropy.coordinates import Angle
 
@@ -155,7 +157,8 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_rm'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
@@ -187,7 +190,16 @@ class MWM_RV_Long_RM_Carton(BaseCarton):
         # all been put in a common epoch 2015.5.
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -282,7 +294,8 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_bplates'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2526
@@ -291,8 +304,10 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
     def build_query(self, version_id, query_region=None):
-        ra = [0] * 21
-        dec = [0] * 21
+        # ra_hours_to_degrees = (360.0 / 24.0)
+
+        ra = [0] * 35
+        dec = [0] * 35
         ra[1] = 11.83254;  dec[1] = 85.251     # noqa: E702, E241
         ra[2] = 47.39417;  dec[2] = 39.50294   # noqa: E702, E241
         ra[3] = 72.4084;   dec[3] = 63.603     # noqa: E702, E241
@@ -314,6 +329,48 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
         ra[19] = 240.575;  dec[19] = 28.09     # noqa: E702, E241
         ra[20] = 248.3458; dec[20] = -0.5336   # noqa: E702, E241
 
+        # 172+58_btx
+        ra[21] = 159.0315; dec[21] = 43.7589  # noqa: E702, E241
+
+        # 175+65_btx
+        ra[22] = 167.712; dec[22] = 39.8448  # noqa: E702, E241
+
+        # 232+66_btx
+        ra[23] = 170.031; dec[23] = 17.4326  # noqa: E702, E241
+
+        # 209+73_btx
+        ra[24] = 174.207; dec[24] = 26.9809  # noqa: E702, E241
+
+        # 248+68_btx
+        ra[25] = 174.642; dec[25] = 13.4369  # noqa: E702, E241
+
+        # 279+61_btx
+        ra[26] = 181.8465; dec[26] = 0.2  # noqa: E702, E241
+
+        # 246+77_btx
+        ra[27] = 181.9035; dec[27] = 19.9253  # noqa: E702, E241
+
+        # 290+76_btx
+        ra[28] = 189.867; dec[28] = 14.0728  # noqa: E702, E241
+
+        # 296+61_btx
+        ra[29] = 189.921; dec[29] = -1.3413  # noqa: E702, E241
+
+        # 120+67_btx
+        ra[30] = 194.2575; dec[30] = 49.9041  # noqa: E702, E241
+
+        # 104+77_btx
+        ra[31] = 197.9385; dec[31] = 38.743  # noqa: E702, E241
+
+        # 041+78_btx
+        ra[32] = 205.5945; dec[32] = 28.1849  # noqa: E702, E241
+
+        # 071+62_btx
+        ra[33] = 221.169; dec[33] = 41.0707  # noqa: E702, E241
+
+        # 063+55_btx
+        ra[34] = 231.8415; dec[34] = 39.0758  # noqa: E702, E241
+
         ra_dec_condition = (
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[1], dec[1], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[2], dec[2], 3) |
@@ -334,14 +391,45 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[17], dec[17], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[18], dec[18], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
-            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[21], dec[21], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[22], dec[22], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[23], dec[23], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[24], dec[24], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[25], dec[25], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[26], dec[26], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[27], dec[27], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[28], dec[28], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[29], dec[29], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[30], dec[30], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[31], dec[31], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[32], dec[32], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[33], dec[33], 3) |
+            peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[34], dec[34], 3))
+
+        catalog_regions = (Catalog
+                           .select(Catalog.catalogid, Catalog.ra, Catalog.dec)
+                           .where(ra_dec_condition)
+                           .cte('catalog_regions'))
 
 # We use *mwm_rv_long_condition to unpack the tuple mwm_rv_long_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
+                 .join(catalog_regions,
+                       on=(Catalog.catalogid == catalog_regions.c.catalogid))
+                 .switch(Catalog)
                  .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                       on=(catalog_regions.c.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
@@ -353,17 +441,16 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        ra_dec_condition,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 12.2,
-                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6))
+                        SDSS_APOGEE_AllStarMerge_r13.nvisits >= 6)
+                 .with_cte(catalog_regions))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
             query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
+                     .where(peewee.fn.q3c_radial_query(catalog_regions.c.ra,
+                                                       catalog_regions.c.dec,
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
@@ -405,7 +492,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_long_fps'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # cadence is set in post_process()
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2500
@@ -416,7 +504,16 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
+                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
+                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
+                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
+                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_APOGEE_AllStarMerge_r13.h,
+                         SDSS_APOGEE_AllStarMerge_r13.baseline,
+                         SDSS_APOGEE_AllStarMerge_r13.fields)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -443,6 +540,35 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
+
+    def post_process(self, model):
+        """
+        If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
+        where <nn> = 3*ceiling((18-nvisits)/3)
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, nvisits, h from " +
+            " sandbox.temp_mwm_rv_long_fps ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_nvisits = output[i][1]
+            current_h = output[i][2]
+
+            nn = 3 * math.ceil((18 - current_nvisits) / 3)
+            if(current_h > 10.8):
+                current_cadence = 'bright_' + str(nn) + 'x2'
+            else:
+                current_cadence = 'bright_' + str(nn) + 'x1'
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 # 2.2.2. Short Baseline (Fresh Targets)
@@ -591,7 +717,8 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_rm'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2571
@@ -637,7 +764,12 @@ class MWM_RV_Short_RM_Carton(BaseCarton):
          .create_table(RadialQuery.__name__, temporary=True))
 
         query = (CatalogToTIC_v8
-                 .select(RadialQuery.c.catalogid)
+                 .select(RadialQuery.c.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
                  .join(RadialQuery,
                        on=(RadialQuery.c.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -722,7 +854,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
 """
     name = 'mwm_rv_short_bplates'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = None  # plate only
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2576
@@ -774,10 +907,22 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[19], dec[19], 3) |
             peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec, ra[20], dec[20], 3))
 
+        catalog_regions = (Catalog
+                           .select(Catalog.catalogid, Catalog.ra, Catalog.dec)
+                           .where(ra_dec_condition)
+                           .cte('catalog_regions'))
+
 # We use *mwm_rv_short_condition to unpack the tuple mwm_rv_short_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
+                 .join(catalog_regions,
+                       on=(Catalog.catalogid == catalog_regions.c.catalogid))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -789,8 +934,8 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
-                        ra_dec_condition,
-                        TwoMassPSC.h_m < 12.2))
+                        TwoMassPSC.h_m < 12.2)
+                 .with_cte(catalog_regions))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -835,7 +980,8 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     """
     name = 'mwm_rv_short_fps'
     category = 'science'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = 2510
@@ -843,7 +989,12 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid)
+                 .select(CatalogToTIC_v8.catalogid,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         TwoMassPSC.h_m.alias('twomass_h_m'))
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))

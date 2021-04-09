@@ -4,6 +4,18 @@
 Change Log
 ==========
 
+* :release:`0.2.2 <2021-03-29>`
+* Various changes to ``xmatch`` plan ``0.5.0``.
+* Xmatch: Run ``ANALYZE`` on temporary table only when clustering.
+* Xmatch: Exclude reject tables from ``extra_nodes``.
+* Xmatch: No need to analyze if phase 3 is skipped.
+
+* :release:`0.2.1 <2021-03-05>`
+* Pin ``sdssdb==0.4.8``.
+
+* :release:`0.2.0 <2021-03-05>`
+* :feature:`39` Improvements for cross-match ``v0.5``. Implements ``run_id`` and catalogid with ``run_id`` bit shifting, use of ``ra_orig`` and ``dec_orig`` from TIC_v8 when ``posflag=gaia2``, reject extended sources when matching against TIC_v8, and several improvements to cross-matching performance.
+
 * :release:`0.1.4 <2021-01-11>`
 * Unpin ``healpy`` version.
 

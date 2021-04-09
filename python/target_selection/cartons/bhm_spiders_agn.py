@@ -1965,8 +1965,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
 
         # We only use psfmags
         opt_prov = peewee.Value('sc_psfmag')
-        ## TODO - transform the B,V,R,I -> to griz
-
+        # - transform the photographic B,R,I -> to griz
         # some very crude by-eye fits to SPIDERS AGN targets matched to SC and SDSSdr9 (via stilts)
         # completely ignore differences between psfmags and total mags
         magnitude_g = (sc.scormagb + 0.1 + (sc.scormagb - sc.scormagr2) * -0.23).cast('float')

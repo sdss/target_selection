@@ -19,12 +19,12 @@ import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
-from peewee import SQL, CompositeKey, Model, fn
+from peewee import SQL, Case, Model, fn
 
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
-from sdsstools.color_print import color_text
+from sdsstools._vendor.color_print import color_text
 
 import target_selection
 from target_selection.exceptions import (TargetSelectionNotImplemented,
@@ -37,6 +37,9 @@ from target_selection.utils import (Timer, get_configuration_values,
 
 EPOCH = 2015.5
 QUERY_RADIUS = 1.
+
+#: Reserve last 11 bits for the run id.
+RUN_ID_BIT_SHIFT = 64 - 11
 
 
 class Version(peewee.Model):
@@ -53,7 +56,7 @@ class Version(peewee.Model):
 class Catalog(peewee.Model):
     """Model for the output table."""
 
-    catalogid = peewee.BigIntegerField(primary_key=True, null=False)
+    catalogid = peewee.BigIntegerField(index=True, null=False)
     iauname = peewee.TextField(null=True)
     ra = peewee.DoubleField(null=False)
     dec = peewee.DoubleField(null=False)
@@ -67,7 +70,7 @@ class Catalog(peewee.Model):
 class TempCatalog(Catalog):
     """Temporary output table."""
 
-    catalogid = peewee.BigIntegerField(index=True, primary_key=False)
+    catalogid = peewee.BigIntegerField(index=True, null=False)
     version_id = peewee.IntegerField(index=False)
 
     class Meta:
@@ -321,6 +324,12 @@ class XMatchPlanner(object):
         correspond to a non-existing table it will be silently ignored.
     plan : str
         The cross-matching plan version.
+    run_id : int
+        An integer to identify this run of cross-matching. The ID is bit
+        shifted `.RUN_ID_BIT_SHIFT` positions and added to the catalogid.
+        This allows to quickly associate a ``catalogid`` with a run without
+        having to query ``catalogdb``. A ``run_id`` cannot be used if there
+        are targets already in ``catalog`` using that same ``run_id``.
     extra_nodes : list
         List of PeeWee models to be used as extra nodes for joins (i.e.,
         already established cross-matches between catalogues). This models
@@ -381,7 +390,7 @@ class XMatchPlanner(object):
 
     """
 
-    def __init__(self, database, models, plan, extra_nodes=[],
+    def __init__(self, database, models, plan, run_id, extra_nodes=[],
                  order='hierarchical', key='row_count', epoch=EPOCH,
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{plan}.log',
@@ -416,8 +425,11 @@ class XMatchPlanner(object):
         assert self.database.connected, 'database is not connected.'
 
         self.plan = plan
+        self.run_id = run_id
         self.tag = target_selection.__version__
-        self.log.info(f'plan = {self.plan!r}; tag = {self.tag!r}.')
+        self.log.info(f'plan = {self.plan!r}; '
+                      f'run_id = {self.run_id}; '
+                      f'tag = {self.tag!r}.')
 
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
@@ -442,7 +454,7 @@ class XMatchPlanner(object):
         self.set_process_order(order=order, key=key, start_node=start_node)
 
         self._version_id = None
-        self._max_cid = None
+        self._max_cid = self.run_id << RUN_ID_BIT_SHIFT
 
     @classmethod
     def read(cls, in_models, plan, config_file=None, **kwargs):
@@ -547,14 +559,13 @@ class XMatchPlanner(object):
         config = XMatchPlanner._read_config(config_file, plan)
 
         table_config = config.pop('tables', {}) or {}
-        exclude = config.pop('exclude', []) or []
+        exclude_nodes = config.pop('exclude_nodes', []) or []
 
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config['schema']
 
         models = {model._meta.table_name: model for model in models
-                  if (model._meta.schema == schema and
-                      model._meta.table_name not in exclude)}
+                  if model._meta.schema == schema}
 
         xmatch_models = {}
         for table_name in table_config:
@@ -565,7 +576,8 @@ class XMatchPlanner(object):
                                                     **table_params)
 
         extra_nodes = [models[table_name] for table_name in models
-                       if table_name not in xmatch_models]
+                       if table_name not in xmatch_models and
+                       table_name not in exclude_nodes]
 
         config.update(kwargs)
 
@@ -784,7 +796,8 @@ class XMatchPlanner(object):
                         sg_ext.append((table_name, resolution, 1))
                 # Use table name as second sorting order to use alphabetic order in
                 # case of draw.
-                sg_ordered = list(zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
+                sg_ordered = list(
+                    zip(*sorted(sg_ext, key=lambda x: (x[2], x[1], x[0]))))[0]
                 ordered_tables.extend(sg_ordered)
 
         self.log.info(f'processing order: {ordered_tables}')
@@ -947,7 +960,6 @@ class XMatchPlanner(object):
                                                  self._temp_table,
                                                  schema=self.schema,
                                                  approximate=True))
-
         else:
 
             # Add Q3C index for TempCatalog
@@ -962,7 +974,7 @@ class XMatchPlanner(object):
             self._temp_count = 0
 
     def run(self, vacuum=False, analyze=False, from_=None,
-            force=False, keep_temp=False, start_catalogid=None):
+            force=False, keep_temp=False):
         """Runs the cross-matching process.
 
         Parameters
@@ -1003,11 +1015,14 @@ class XMatchPlanner(object):
                        not table.startswith(self.output_table + '_to_') and
                        table != self._temp_table]
 
-        if len(temp_tables) > 0 and not start_catalogid:
+        if len(temp_tables) > 0:
             raise XMatchError('Another cross-matching plan is currently running.')
 
         self._create_models(force or (from_ is not None))
-        self._max_cid = start_catalogid
+
+        if from_ is not None:
+            max_cid = TempCatalog.select(fn.MAX(TempCatalog.catalogid)).scalar()
+            self._max_cid = max_cid + 1  # I think we don't need the +1, but to be sure.
 
         with Timer() as timer:
             p_order = self.process_order
@@ -1019,7 +1034,7 @@ class XMatchPlanner(object):
                 model = self.models[table_name]
                 self.process_model(model)
 
-        self._load_output_table(keep_temp=keep_temp)
+            self._load_output_table(keep_temp=keep_temp)
 
         self.log.info(f'Cross-matching completed in {timer.interval:.3f} s.')
 
@@ -1073,8 +1088,37 @@ class XMatchPlanner(object):
 
         to_epoch = self._options['epoch']
 
-        # RA, Dec, and pro[er motion fields.
-        if xmatch.pmra_column:
+        # RA, Dec, and proper motion fields.
+        if model._meta.table_name == 'tic_v8':
+            # TODO: this should be handled in a way that can be opted-in from
+            # the configuration, but for now I'll just hardcode it here.
+
+            pmra_field = fields[xmatch.pmra_column]
+            pmdec_field = fields[xmatch.pmdec_column]
+            delta_years = to_epoch - get_epoch(model)
+
+            racorr_field, deccorr_field = sql_apply_pm(ra_field, dec_field,
+                                                       pmra_field, pmdec_field,
+                                                       delta_years,
+                                                       xmatch.is_pmra_cos)
+
+            ra_field = Case(
+                None,
+                [(model.posflag == 'gaia2', model.ra_orig)],
+                racorr_field
+            )
+            dec_field = Case(
+                None,
+                [(model.posflag == 'gaia2', model.dec_orig)],
+                deccorr_field
+            )
+
+            model_fields.extend([ra_field.alias('ra'),
+                                 dec_field.alias('dec')])
+            model_fields.extend([pmra_field.alias('pmra'),
+                                 pmdec_field.alias('pmdec')])
+
+        elif xmatch.pmra_column:
 
             pmra_field = fields[xmatch.pmra_column]
             pmdec_field = fields[xmatch.pmdec_column]
@@ -1135,16 +1179,14 @@ class XMatchPlanner(object):
 
             catalogid = peewee.BigIntegerField(null=False, index=True)
             target_id = model_pk_class(null=False, index=True)
-            version_id = peewee.SmallIntegerField(null=False)
+            version_id = peewee.SmallIntegerField(null=False, index=True)
             distance = peewee.DoubleField(null=True)
-            best = peewee.BooleanField(null=False, index=True)
+            best = peewee.BooleanField(null=False)
 
             class Meta:
                 database = meta.database
                 schema = meta.schema
-                primary_key = CompositeKey('version_id', 'catalogid', 'target_id')
-                indexes = ((('version_id', 'target_id', 'best'), False),
-                           (('version_id', 'best'), False))
+                primary_key = False
 
         model_prefix = ''.join(x.capitalize() or '_'
                                for x in prefix.rstrip().split('_'))
@@ -1227,8 +1269,7 @@ class XMatchPlanner(object):
             # relational model, saving us one join.
             path = path[0:-1]
 
-            join_models = [self.model_graph.nodes[node]['model']
-                           for node in path]
+            join_models = [self.model_graph.nodes[node]['model'] for node in path]
 
             # Get the relational model that leads to the temporary catalog
             # table in the join. We'll want to filter on version_id to avoid
@@ -1260,6 +1301,10 @@ class XMatchPlanner(object):
                                  (rel_model.catalogid == join_rel_model.catalogid)))))
                      # In case we have duplicates in the catalogue.
                      .distinct(model_pk))
+
+            # Deal with duplicates in LS8
+            if table_name == 'legacy_survey_dr8':
+                query = query.where(self._get_ls8_where(model))
 
             # In query we do not include a Q3C where for the sample region
             # because TempCatalog for this plan should already be sample
@@ -1294,9 +1339,10 @@ class XMatchPlanner(object):
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in {timer.interval:.3f} s.')
-            self._analyze(rel_model)
+            self._phases_run.add(1)
 
-        self._phases_run.add(1)
+            if nids > 0:
+                self._analyze(rel_model)
 
     def _run_phase_2(self, model):
         """Associates existing targets in Catalog with entries in the model."""
@@ -1340,64 +1386,42 @@ class XMatchPlanner(object):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
             else:
                 max_delta_epoch = float(
-                    model.select(fn.MAX(fn.ABS(model_epoch - catalog_epoch))).scalar())
+                    model
+                    .select(fn.MAX(fn.ABS(model_epoch - catalog_epoch)))
+                    .where(self._get_sample_where(model_ra, model_dec))
+                    .scalar()
+                )
 
             max_delta_epoch += .1  # Add a .1 yr just to be sure it's an upper bound.
 
             self.log.debug(f'Maximum epoch delta: {max_delta_epoch:.3f} (+ 0.1 year).')
 
-        # Determine which of the two tables is smaller. Q3C really wants the
-        # larger table last.
-        if self._temp_count > meta.xmatch.row_count:  # TempCatalog is larger
+        self.log.debug('Cross-matching model against temporary table.')
 
-            self.log.debug('Cross-matching model against temporary table.')
+        if use_pm:
 
-            if use_pm:
+            model_pmra = meta.fields[xmatch.pmra_column]
+            model_pmdec = meta.fields[xmatch.pmdec_column]
+            model_is_pmra_cos = int(xmatch.is_pmra_cos)
 
-                model_pmra = meta.fields[xmatch.pmra_column]
-                model_pmdec = meta.fields[xmatch.pmdec_column]
-                model_is_pmra_cos = int(xmatch.is_pmra_cos)
+            q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
+                                      model_pmra, model_pmdec,
+                                      model_is_pmra_cos, model_epoch,
+                                      TempCatalog.ra, TempCatalog.dec,
+                                      catalog_epoch)
+            q3c_join = fn.q3c_join_pm(model_ra, model_dec,
+                                      model_pmra, model_pmdec,
+                                      model_is_pmra_cos, model_epoch,
+                                      TempCatalog.ra, TempCatalog.dec,
+                                      catalog_epoch, max_delta_epoch,
+                                      query_radius / 3600.)
+        else:
 
-                q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
-                                          model_pmra, model_pmdec,
-                                          model_is_pmra_cos, model_epoch,
-                                          TempCatalog.ra, TempCatalog.dec,
-                                          catalog_epoch)
-                q3c_join = fn.q3c_join_pm(model_ra, model_dec,
-                                          model_pmra, model_pmdec,
-                                          model_is_pmra_cos, model_epoch,
-                                          TempCatalog.ra, TempCatalog.dec,
-                                          catalog_epoch, max_delta_epoch,
-                                          query_radius / 3600.)
-            else:
-
-                q3c_dist = fn.q3c_dist(model_ra, model_dec,
-                                       TempCatalog.ra, TempCatalog.dec)
-                q3c_join = fn.q3c_join(model_ra, model_dec,
-                                       TempCatalog.ra, TempCatalog.dec,
-                                       query_radius / 3600.)
-
-        else:  # Model is larger
-
-            self.log.debug('Cross-matching temporary table against model.')
-
-            if use_pm:
-                q3c_dist = fn.q3c_dist_pm(TempCatalog.ra, TempCatalog.dec,
-                                          TempCatalog.pmra, TempCatalog.pmdec,
-                                          1, catalog_epoch,
-                                          model_ra, model_dec, model_epoch)
-                q3c_join = fn.q3c_join_pm(TempCatalog.ra, TempCatalog.dec,
-                                          TempCatalog.pmra, TempCatalog.pmdec,
-                                          1, catalog_epoch,
-                                          model_ra, model_dec,
-                                          model_epoch, max_delta_epoch,
-                                          query_radius / 3600.)
-            else:
-                q3c_dist = fn.q3c_dist(TempCatalog.ra, TempCatalog.dec,
-                                       model_ra, model_dec)
-                q3c_join = fn.q3c_join(TempCatalog.ra, TempCatalog.dec,
-                                       model_ra, model_dec,
-                                       query_radius / 3600.)
+            q3c_dist = fn.q3c_dist(model_ra, model_dec,
+                                   TempCatalog.ra, TempCatalog.dec)
+            q3c_join = fn.q3c_join(model_ra, model_dec,
+                                   TempCatalog.ra, TempCatalog.dec,
+                                   query_radius / 3600.)
 
         # Get the cross-matched catalogid and model target pk (target_id),
         # and their distance.
@@ -1406,7 +1430,11 @@ class XMatchPlanner(object):
                             model_pk.alias('target_id'),
                             q3c_dist.alias('distance'))
                     .join(model, peewee.JOIN.CROSS)
-                    .where(q3c_join))
+                    .where(q3c_join)
+                    .where(self._get_sample_where(model_ra, model_dec)))
+
+        if table_name == 'legacy_survey_dr8':
+            xmatched = xmatched.where(self._get_ls8_where(model))
 
         # This may break the use of the index but I think it's needed if
         # the model is the second table in q3c_join and has empty RA/Dec.
@@ -1439,13 +1467,14 @@ class XMatchPlanner(object):
 
         # We only need to care about already linked targets if phase 1 run.
         if 1 in self._phases_run:
-            insert_query = (insert_query
-                            .where(~fn.EXISTS(
-                                rel_model
-                                .select(SQL('1'))
-                                .where((rel_model.version_id == self._version_id) &
-                                       ((rel_model.catalogid == xmatched.c.catalogid) |
-                                        (rel_model.target_id == xmatched.c.target_id))))))
+            insert_query = (
+                insert_query .where(
+                    ~fn.EXISTS(
+                        rel_model .select(
+                            SQL('1')) .where(
+                            (rel_model.version_id == self._version_id) & (
+                                (rel_model.catalogid == xmatched.c.catalogid) | (
+                                    rel_model.target_id == xmatched.c.target_id))))))
 
         with Timer() as timer:
 
@@ -1458,7 +1487,7 @@ class XMatchPlanner(object):
                 # make sure the Q3C index is used.
                 self._setup_transaction(model, phase=2)
 
-                # 2. Run cross-match and insert data into relationa; model.
+                # 2. Run cross-match and insert data into relational model.
 
                 fields = [rel_model.target_id, rel_model.catalogid,
                           rel_model.version_id, rel_model.distance,
@@ -1477,8 +1506,9 @@ class XMatchPlanner(object):
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
-        self._phases_run.add(2)
-        self._analyze(rel_model)
+        if n_catalogid > 0:
+            self._phases_run.add(2)
+            self._analyze(rel_model)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
@@ -1488,12 +1518,12 @@ class XMatchPlanner(object):
 
         self.log.info('Phase 3: adding non cross-matched targets.')
 
+        rel_model = self._get_relational_model(model, create=True)
+        rel_table_name = rel_model._meta.table_name
+
         if 3 in xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
             return
-
-        rel_model = self._get_relational_model(model, create=True)
-        rel_table_name = rel_model._meta.table_name
 
         table_name = meta.table_name
 
@@ -1503,22 +1533,6 @@ class XMatchPlanner(object):
         model_ra = meta.fields[xmatch.ra_column]
         model_dec = meta.fields[xmatch.dec_column]
 
-        # Get the max catalogid currently in the table for the version.
-        if not self._max_cid:
-
-            self.log.debug('Getting max. catalogid.')
-
-            temp_max_cid = (TempCatalog
-                            .select(fn.MAX(TempCatalog.catalogid))
-                            .scalar() or 0)
-
-            if temp_max_cid == 0:
-                self._max_cid = (Catalog
-                                 .select(fn.MAX(Catalog.catalogid))
-                                 .scalar() or 0)
-            else:
-                self._max_cid = temp_max_cid
-
         unmatched = (model
                      .select((fn.row_number().over() + self._max_cid).alias('catalogid'),
                              model_pk.alias('target_id'),
@@ -1526,15 +1540,24 @@ class XMatchPlanner(object):
                      .where(self._get_sample_where(model_ra, model_dec)))
 
         if 1 in self._phases_run or 2 in self._phases_run:
-            unmatched = (unmatched
-                         .where(~fn.EXISTS(rel_model
-                                           .select(SQL('1'))
-                                           .where(rel_model.version_id == self._version_id,
-                                                  rel_model.target_id == model_pk))))
+            unmatched = (
+                unmatched .where(
+                    ~fn.EXISTS(
+                        rel_model .select(
+                            SQL('1')) .where(
+                            rel_model.version_id == self._version_id,
+                            rel_model.target_id == model_pk))))
 
         if xmatch.has_missing_coordinates:
             unmatched = unmatched.where(model_ra.is_null(False),
                                         model_dec.is_null(False))
+
+        # TODO: this is horrible and should be moved to the configuration in some form.
+        if model._meta.table_name == 'tic_v8':
+            unmatched = unmatched.where(model.objtype != 'EXTENDED')
+
+        if table_name == 'legacy_survey_dr8':
+            unmatched = unmatched.where(self._get_ls8_where(model))
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1554,8 +1577,8 @@ class XMatchPlanner(object):
                 unmatched.create_table(temp_table, temporary=True)
 
                 # Analyze the temporary table to gather stats.
-                self.log.debug('Running ANALYZE on temporary table.')
-                self.database.execute_sql(f'ANALYZE "{temp_table}";')
+                # self.log.debug('Running ANALYZE on temporary table.')
+                # self.database.execute_sql(f'ANALYZE "{temp_table}";')
 
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
@@ -1622,7 +1645,15 @@ class XMatchPlanner(object):
                        f'Total time: {timer.elapsed:.3f} s.')
 
         self._phases_run.add(3)
-        self._analyze(rel_model, catalog=True)
+
+        if n_rows > 0.5 * self._temp_count:  # Cluster if we have added > 50% new rows.
+            self.log.debug(f'Running CLUSTER on {self._temp_table} with q3c index.')
+            self.database.execute_sql(f'CLUSTER {self._temp_table} '
+                                      f'using {self._temp_table}_q3c_idx;')
+            self.log.debug(f'Running ANALYZE on {self._temp_table}.')
+            self.database.execute_sql(f'ANALYZE {self._temp_table};')
+
+        self._analyze(rel_model, catalog=False)
 
     def _load_output_table(self, keep_temp=False):
         """Copies the temporary table to the real output table."""
@@ -1714,6 +1745,13 @@ class XMatchPlanner(object):
                                                 ra, dec, radius)
 
         return sample_conds
+
+    def _get_ls8_where(self, model):
+        """Removes duplicates from LS8 queries."""
+
+        return ~(((model.release == 8000) & (model.dec > 32.375) &
+                  (model.ra > 100.) & (model.ra < 300.)) |
+                 ((model.release == 8001) & (model.dec < 32.375)))
 
     def show_join_paths(self):
         """Prints all the available joint paths.

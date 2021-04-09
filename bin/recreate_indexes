@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Date: 2021-03-30
+# @Filename: recreate_indexes
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
+from sdssdb.peewee.sdss5db import database
+from sdsstools._vendor.color_print import color_text
+
+
+database.become_admin()
+
+assert database.connected
+
+
+def execute(statement):
+
+    with database.atomic():
+        # Change isolation level to allow executing commands such as CREATE INDEX.
+        connection = database.connection()
+        original_isolation_level = connection.isolation_level
+        connection.set_isolation_level(0)
+
+        database.execute_sql('SET maintenance_work_mem = "20GB"')
+        database.execute_sql(statement)
+
+        connection.set_isolation_level(original_isolation_level)
+
+
+EXCLUDE = ['catalog_to_catwise', 'catalog_to_skies_v1', 'catalog_to_unwise']
+INDEXES = [['catalogid'], ['target_id'], ['version_id', 'target_id', 'best']]
+
+catalog_tos = [table for table in database.get_tables('catalogdb')
+               if table.startswith('catalog_to_') and table not in EXCLUDE]
+
+
+for table in sorted(catalog_tos):
+    pk = database.get_primary_keys(table, 'catalogdb')
+    colour_table = color_text(table, 'green')
+    if pk == ['version_id', 'catalogid', 'target_id']:
+        print(f'{colour_table} ... PK is OK')
+    else:
+        if pk != []:
+            print(f'{colour_table} ... incorrect PK {pk!r}. Dropping it.')
+            execute(f'ALTER TABLE catalogdb.{table} DROP CONSTRAINT {table}_pkey')
+        done = False
+        for idx in database.get_indexes(table, 'catalogdb'):
+            if idx.columns == ['version_id', 'catalogid', 'target_id'] and idx.unique:
+                print(f'{colour_table} ... converting index to PK')
+                execute(f'ALTER TABLE catalogdb.{table} ADD CONSTRAINT {table}_pkey '
+                        f'PRIMARY KEY USING INDEX {idx.name}')
+                done = True
+                break
+        if not done:
+            print(f'{colour_table} ... no PK, creating it.')
+            execute(f'ALTER TABLE catalogdb.{table} ADD PRIMARY KEY '
+                    '(version_id, catalogid, target_id)')
+
+    indexes_copy = INDEXES.copy()
+    for idx in database.get_indexes(table, 'catalogdb'):
+        if idx.name.endswith('pkey'):
+            continue
+        if idx.columns in indexes_copy:
+            indexes_copy.remove(idx.columns)
+        else:
+            print(f'{colour_table} ... removing index {idx.name}')
+            execute(f'DROP INDEX {idx.name}')
+    for idx_cols in indexes_copy:
+        col_tuple = '({})'.format(', '.join(map(str, idx_cols)))
+        print(f'{colour_table} ... creating index for {col_tuple}')
+        execute(f'CREATE INDEX CONCURRENTLY ON catalogdb.{table} {col_tuple}')
+
+    print(f'{colour_table} ... VACUUM ANALYZE')
+    execute(f'VACUUM ANALYZE catalogdb.{table}')

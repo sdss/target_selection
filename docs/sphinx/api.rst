@@ -18,7 +18,7 @@ XMatch
 ------
 
 .. automodule:: target_selection.xmatch
-   :members: XMatchModel, XMatchPlanner
+   :members: XMatchModel, XMatchPlanner, RUN_ID_BIT_SHIFT
 
 Skies
 -----

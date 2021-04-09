@@ -15,7 +15,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
                                              TIC_v8, TwoMassPSC)
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 TMBN = Gaia_DR2_TwoMass_Best_Neighbour
@@ -58,7 +58,8 @@ class MWM_OB_Carton(BaseCarton):
     name = 'mwm_ob_core'
     mapper = 'MWM'
     category = 'science'
-    cadence = 'mwm_ob_3x1'
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
 
@@ -200,7 +201,12 @@ class MWM_OB_Carton(BaseCarton):
 #     name = 'mwm_ob_mc'
 #     mapper = 'MWM'
 #     category = 'science'
-#     cadence = 'mwm_ob_3x1'
+#      # Old cadence = 'mwm_ob_3x1'
+#      # From cadence wiki page:
+#      # mwm_ob_3x1 -> boss_bright_3x1
+#      # Hence we set:
+#     instrument = 'BOSS'
+#     cadence = 'bright_3x1'
 #     program = 'OB'
 
 #     def build_query(self, version_id, query_region=None):
@@ -264,7 +270,8 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     name = 'mwm_ob_cepheids'
     mapper = 'MWM'
     category = 'science'
-    cadence = 'mwm_ob_3x1'
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
 

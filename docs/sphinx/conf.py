@@ -20,8 +20,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-from target_selection import __version__
 from pkg_resources import parse_version
+
+from target_selection import __version__
 
 
 # -- General configuration ------------------------------------------------

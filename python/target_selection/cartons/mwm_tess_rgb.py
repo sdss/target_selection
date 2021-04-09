@@ -6,12 +6,32 @@
 # @Filename: mwm_cb_uvex.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import numpy
 import peewee
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, TIC_v8
 
-from . import BaseCarton
+from target_selection.cartons import BaseCarton
+
+
+def h2exp(hmag, sn=100, exptime=15.0):
+    """ This function takes in a hmag and given signal to noise and spits back
+    the required time. Based on Hmag = 11 at S/N 100 in an hour.
+    """
+
+    # Scale the hmag based on t = (1 hour)*10^(0.4*(H-11))
+    # Then I cut it up into 15 minute exposures.
+    time = 60 * (sn**2 / 100.0**2) * 10**(0.4 * (hmag - 11))
+    nexp = numpy.array(numpy.round(time / exptime))
+
+    # Min value is 1
+    nexp[(nexp == 0)] = 1
+
+    # Set Nan's to nan
+    nexp[numpy.isnan(hmag)] = numpy.nan
+
+    return(nexp)
 
 
 class MWM_TESS_RGB_Carton(BaseCarton):
@@ -34,6 +54,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_tessrgb'
+    instrument = 'APOGEE'
     cadence = None
     priority = 2800
 
@@ -67,3 +88,19 @@ class MWM_TESS_RGB_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model, **kwargs):
+
+        data = numpy.array(model.select(model.catalogid, model.hmag).tuples())
+        hmag = data[:, 1]
+        n_exp = h2exp(hmag, sn=80)
+
+        values = ((data[ii, 0], 'bright_1x' + str(int(n_exp[ii]))
+                   if not numpy.isnan(n_exp[ii]) else None)
+                  for ii in range(data.shape[0]))
+        vl = peewee.ValuesList(values, columns=('catalogid', 'cadence'), alias='vl')
+
+        (model
+         .update(cadence=vl.c.cadence)
+         .from_(vl)
+         .where(model.catalogid == vl.c.catalogid)).execute()

@@ -1,0 +1,418 @@
+'0.1.0-alpha.1':
+  order: hierarchical
+  key: resolution
+  query_radius: 1.
+  schema: catalogdb
+  output_table: catalog
+  start_node: tic_v8
+  debug: true
+  log_path: false
+  disable_seqscan: true
+  sample_region:
+    - [270., 66.56, 5.] # North CVZ
+    - [90., -66.56, 5.] # South CVZ
+    - [45.0, 0.0, 5.] # Stripe-82-West
+    - [135.0, 1.0, 5.] # eFEDS
+    - [315.0, 0.0, 5.] # Stripe-82-East
+  exclude: null
+  tables:
+    tic_v8:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: plx
+      epoch: 2015.5
+      skip: false
+    gaia_dr2_source:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: parallax
+      epoch: 2015.5
+      skip: true
+    legacy_survey_dr8:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: parallax
+      epoch_column: ref_epoch
+    twomass_psc:
+      ra_column: ra
+      dec_column: decl
+      epoch_column: jdate
+      epoch_format: jd
+      skip: true
+    tycho2:
+      ra_column: ramdeg
+      dec_column: demdeg
+      pmra_column: pmra
+      pmdec_column: pmde
+      is_pmra_cos: true
+      epoch: 2000.0
+    ps1_g18:
+      ra_column: ramean
+      dec_column: decmean
+    catwise:
+      ra_column: ra_pm
+      dec_column: dec_pm
+      pmra_column: pmra
+      pmdec_column: pmdec
+      epoch: 2014.115 # MJD 56700
+      parallax_column: par_pm
+    guvcat:
+      ra_column: ra
+      dec_column: dec
+    sdss_dr13_photoobj:
+      ra_column: ra
+      dec_column: dec
+    kepler_input_10:
+      ra_column: kic_ra
+      dec_column: kic_dec
+    glimpse:
+      ra_column: ra
+      dec_column: dec
+    skymapper_dr1_1:
+      ra_column: raj2000
+      dec_column: dej2000
+    gaia_qso:
+      ra_column: raj2000
+      dec_column: dej2000
+    bhm_csc:
+      ra_column: oir_ra
+      dec_column: oir_dec
+    gaia_dr2_wd_sdss:
+      ra_column: ra
+      dec_column: dec
+    unwise:
+      ra_column: ra
+      dec_column: dec
+
+'0.1.0-alpha.2':
+  base_version: 0.1.0-alpha.1
+  key: row_count
+  log_path: xmatch_{version}.log
+  exclude: ['kepler_input_10']
+  tables:
+    allwise:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      epoch: 2010.5589 # MJD 55400.0
+    gaia_dr2_source:
+      join_weight: 0.1
+      skip: True
+    gaia_unwise_agn:
+      join_weight: 0.3
+
+'0.1.0-alpha.3':
+  base_version: 0.1.0-alpha.2
+  order:
+    - tic_v8
+    - legacy_survey_dr8
+    - sdss_dr13_photoobj
+    - skymapper_dr1_1
+    - kepler_input_10
+    - ps1_g18
+    - tycho2
+    - gaia_qso
+    - bhm_csc
+    - gaia_dr2_wd_sdss
+    - guvcat
+    - allwise
+    - unwise
+    - catwise
+    - glimpse
+  key: null
+  exclude: null
+  tables:
+    tic_v8:
+      join_weight: 0.1
+    gaia_dr2_source:
+      join_weight: 0.2
+      skip: True
+    gaia_unwise_agn:
+      join_weight: 0.3
+    legacy_survey_dr8:
+      skip_phases: [2]
+    allwise:
+      skip_phases: [3]
+      query_radius: 6
+    unwise:
+      skip_phases: [3]
+      query_radius: 6
+    catwise:
+      skip_phases: [3]
+      query_radius: 6
+    glimpse:
+      skip_phases: [3]
+      query_radius: 6
+    guvcat:
+      query_radius: 4.5
+    kepler_input_10:
+      ra_column: kic_ra_deg
+      dec_column: kic_dec
+
+'0.1.0-alpha.4':
+  base_version: 0.1.0-alpha.3
+  order:
+    - tic_v8
+    - legacy_survey_dr8
+    - sdss_dr13_photoobj
+    - skymapper_dr1_1
+    - kepler_input_10
+    - bhm_rm_v0
+    - ps1_g18
+    - tycho2
+    - gaia_qso
+    - bhm_csc
+    - gaia_dr2_wd_sdss
+    - guvcat
+    - allwise
+    - unwise
+    - catwise
+    - glimpse
+  tables:
+    tycho2:
+      has_missing_coordinates: true
+    bhm_rm_v0:
+      ra_column: ra
+      dec_column: dec
+    allwise:
+      skip_phases: [3]
+      query_radius: 3
+    unwise:
+      skip_phases: [3]
+      query_radius: 3
+    catwise:
+      skip_phases: [3]
+      query_radius: 3
+    glimpse:
+      skip_phases: [3]
+      query_radius: 3
+    guvcat:
+      query_radius: 2.5
+
+'0.1.0-alpha.5':
+  base_version: 0.1.0-beta.1
+  sample_region:
+    - [270., 66.56, 5.] # North CVZ
+    - [90., -66.56, 5.] # South CVZ
+    - [45.0, 0.0, 5.] # Stripe-82-West
+    - [135.0, 1.0, 5.] # eFEDS
+    - [315.0, 0.0, 5.] # Stripe-82-East
+
+# Copy all configuration here instead of using base_version for clarity.
+'0.1.0-beta.1':
+  order:
+    - tic_v8
+    - legacy_survey_dr8
+    - sdss_dr13_photoobj
+    - skymapper_dr1_1
+    - kepler_input_10
+    - bhm_rm_v0
+    - ps1_g18
+    - tycho2
+    - gaia_qso
+    - bhm_csc
+    - gaia_dr2_wd_sdss
+    - guvcat
+    - allwise
+    - unwise
+    - catwise
+    - glimpse
+  key: null
+  exclude: null
+  query_radius: 1.
+  schema: catalogdb
+  output_table: catalog
+  start_node: tic_v8
+  disable_seqscan: false
+  debug: true
+  log_path: xmatch_{version}.log
+  tables:
+    tic_v8:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: plx
+      epoch: 2015.5
+      join_weight: 0.1
+    gaia_dr2_source:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: parallax
+      epoch: 2015.5
+      join_weight: 0.2
+      skip: True
+    legacy_survey_dr8:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: parallax
+      epoch_column: ref_epoch
+      skip_phases: [2]
+    twomass_psc:
+      ra_column: ra
+      dec_column: decl
+      epoch_column: jdate
+      epoch_format: jd
+      skip: true
+    tycho2:
+      ra_column: ramdeg
+      dec_column: demdeg
+      pmra_column: pmra
+      pmdec_column: pmde
+      is_pmra_cos: true
+      epoch: 2000.0
+      has_missing_coordinates: true
+    ps1_g18:
+      ra_column: ramean
+      dec_column: decmean
+    catwise:
+      ra_column: ra_pm
+      dec_column: dec_pm
+      pmra_column: pmra
+      pmdec_column: pmdec
+      has_missing_coordinates: true
+      epoch: 2014.115 # MJD 56700
+      parallax_column: par_pm
+      skip_phases: [3]
+      query_radius: 3
+    guvcat:
+      ra_column: ra
+      dec_column: dec
+      query_radius: 2.5
+    sdss_dr13_photoobj:
+      ra_column: ra
+      dec_column: dec
+    kepler_input_10:
+      ra_column: kic_ra
+      dec_column: kic_dec
+    glimpse:
+      ra_column: ra
+      dec_column: dec
+      skip_phases: [3]
+      query_radius: 3
+    skymapper_dr1_1:
+      ra_column: raj2000
+      dec_column: dej2000
+    gaia_qso:
+      ra_column: raj2000
+      dec_column: dej2000
+    bhm_csc:
+      ra_column: oir_ra
+      dec_column: oir_dec
+    gaia_dr2_wd_sdss:
+      ra_column: ra
+      dec_column: dec
+    unwise:
+      ra_column: ra
+      dec_column: dec
+      skip_phases: [3]
+      query_radius: 3
+    allwise:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      epoch: 2010.5589 # MJD 55400.0
+      skip_phases: [3]
+      query_radius: 3
+    bhm_rm_v0:
+      ra_column: ra
+      dec_column: dec
+    gaia_unwise_agn: # Only for joining.
+      join_weight: 0.3
+
+'0.1.0-beta.2':
+  base_plan: '0.1.0-beta.1'
+  log_path: xmatch_{plan}.log
+  show_sql: true
+  order:
+    - tic_v8
+    - legacy_survey_dr8
+    - sdss_dr13_photoobj_primary
+    - sdss_dr16_specobj
+    - skymapper_dr1_1
+    - kepler_input_10
+    - bhm_rm_v0
+    - ps1_g18
+    - tycho2
+    - gaia_qso
+    - bhm_csc
+    - gaia_dr2_wd_sdss
+    - guvcat
+    - allwise
+    - unwise
+    - catwise
+    - glimpse
+    - uvotssc1
+    - xmm_om_suss_4_1
+  exclude:
+    - skymapper_gaia
+  tables:
+    tic_v8:
+      ra_column: ra
+      dec_column: dec
+      pmra_column: pmra
+      pmdec_column: pmdec
+      is_pmra_cos: true
+      parallax_column: plx
+      epoch: 2000.0
+      join_weight: 0.1
+    sdss_dr16_specobj:
+      ra_column: ra
+      dec_column: dec
+    sdss_dr13_photoobj_primary:
+      ra_column: ra
+      dec_column: dec
+    uvotssc1:
+      ra_column: radeg
+      dec_column: dedeg
+      skip_phases: [3]
+      query_radius: 3
+    xmm_om_suss_4_1:
+      ra_column: ra
+      dec_column: dec
+      skip_phases: [3]
+      query_radius: 3
+  database_options:
+    work_mem: '10GB'
+    temp_buffers: '10GB'
+    maintenance_work_mem: '10GB'
+
+'0.1.0-alpha.6':
+  base_plan: '0.1.0-beta.2'
+  sample_region:
+    - [270., 66.56, 5.] # North CVZ
+    - [90., -66.56, 5.] # South CVZ
+    - [45.0, 0.0, 5.] # Stripe-82-West
+    - [135.0, 1.0, 5.] # eFEDS
+    - [315.0, 0.0, 5.] # Stripe-82-East
+
+'0.1.0-alpha.7':
+  base_plan: '0.1.0-alpha.6'
+
+'0.1.0-alpha.8':
+  base_plan: '0.1.0-alpha.6'
+  database_options:
+    work_mem: '10GB'
+    temp_buffers: '10GB'
+    maintenance_work_mem: '60GB'
+
+'0.1.0':
+  base_plan: '0.1.0-beta.2'
