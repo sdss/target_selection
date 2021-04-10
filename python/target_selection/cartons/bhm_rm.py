@@ -195,7 +195,7 @@ class BhmRmBaseCarton(BaseCarton):
                                  'bhm_rm_174x8')
 
         # the following will replace old generic cadences when relevant table has been populated
-        ## TODO - replace when correct cadences are loaded
+        # TODO - replace when correct cadences are loaded
         cadence_v0p5 = peewee.Case(None,
                                    (
                                        (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
