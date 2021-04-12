@@ -146,6 +146,35 @@
     - mwm_tessrgb_core
     - mwm_wd_core
     - mwm_tess_planet
+    - bhm_gua_dark
+    - bhm_gua_bright
+    - bhm_spiders_agn_lsdr8
+    - bhm_spiders_agn_efeds_stragglers
+    - bhm_spiders_agn_gaiadr2
+    - bhm_spiders_agn_sep
+    - bhm_spiders_agn_ps1dr2
+    - bhm_spiders_agn_skymapperdr2
+    - bhm_spiders_agn_supercosmos
+    - bhm_spiders_clusters_lsdr8
+    - bhm_spiders_clusters_efeds_stragglers
+    - bhm_spiders_clusters_ps1dr2
+    - bhm_aqmes_med
+    - bhm_aqmes_med_faint
+    - bhm_aqmes_wide2
+    - bhm_aqmes_wide2_faint
+    - bhm_aqmes_bonus_core
+    - bhm_aqmes_bonus_faint
+    - bhm_aqmes_bonus_bright
+    - bhm_rm_base
+    - bhm_rm_core
+    - bhm_rm_known_spec
+    - bhm_rm_var
+    - bhm_rm_ancillary
+    - bhm_csc_boss_dark
+    - bhm_csc_boss_bright
+    - bhm_csc_apogee
+    # - ops_apogee_sky
+    # - ops_boss_sky
   schema: sandbox
   magnitudes:
     g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
@@ -169,6 +198,454 @@
     mwm_tess_planet:
       h_min: 7
       h_max: 12
+    bhm_gua_dark:
+        mag_g_min: 16.5
+        mag_g_max: 21.2
+        mag_rp_min: 16.5
+        mag_rp_max: 21.0
+        prob_rf_min: 0.80
+        spec_join_radius: 1.0
+        spec_sn_thresh: 2.0
+        spec_z_err_thresh: 0.01
+        priority: 3400
+        value: 0.5
+        cadence: 'dark_1x4'
+    bhm_gua_bright:
+        mag_g_min: 13.0
+        mag_g_max: 18.5
+        mag_rp_min: 13.5
+        mag_rp_max: 18.5
+        prob_rf_min: 0.80
+        spec_join_radius: 1.0
+        spec_sn_thresh: 2.0
+        spec_z_err_thresh: 0.01
+        priority: 4040
+        value: 0.5
+        cadence: 'bright_2x1'
+    bhm_spiders_agn_lsdr8:
+        value: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version: 'JWMS_v_40'
+        opt_cat: 'lsdr8'
+        fibertotmag_r_min: 13.5
+        fibertotmag_r_max: 22.5
+        fibertotmag_z_min: 13.5
+        fibertotmag_z_max: 21.0
+        fibertotmag_r_for_cadence1: 16.5
+        fibertotmag_r_for_cadence2: 18.5
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1520
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+    bhm_spiders_agn_efeds_stragglers:
+        value: 1.0
+        ero_version1: 'eFEDS_c001_V18C_V3_main'
+        ero_version2: 'eFEDS_c001_V18C_V3_ext'
+        xmatch_method1: 'XPS/NWAY'
+        xmatch_version1: 'Merged_03DEC2020'
+        xmatch_method2: 'XPS/NWAY'
+        xmatch_version2: 'Merged_03DEC2020'
+        opt_cat: 'lsdr8'
+        fibertotmag_r_min: 13.5
+        fibertotmag_r_max: 22.5
+        fibertotmag_z_min: 13.5
+        fibertotmag_z_max: 21.0
+        fibertotmag_r_for_cadence1: 16.5
+        fibertotmag_r_for_cadence2: 18.5
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1510
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_ero_version: 4
+        dpriority_has_spec: 100
+    bhm_spiders_agn_gaiadr2:
+        value: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version: 'JWMS_CW2_v_03_TDopt'
+        opt_cat: 'gaiadr2'
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_max_for_cadence2: 19.0
+        gaia_rp_max_for_cadence2: 19.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1540
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+    bhm_spiders_agn_sep:
+        value: 1.0
+        ero_version: 'em01_SEP_c946'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version1: 'SEP_CW2_07DEC2020_TDopt'
+        xmatch_version2: 'SEP_CW2_NOV2020_MSopt'
+        opt_cat: 'gaiadr2'
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_max_for_cadence2: 19.0
+        gaia_rp_max_for_cadence2: 19.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        priority_floor: 1510
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_match_method: 4
+    bhm_spiders_agn_ps1dr2:
+        value: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version: 'JWMS_CW2_v_03_TDopt'
+        opt_cat: 'ps1dr2'
+        g_psf_mag_max_for_cadence1: 16.0
+        r_psf_mag_max_for_cadence1: 16.0
+        i_psf_mag_max_for_cadence1: 16.0
+        g_psf_mag_max_for_cadence2: 19.0
+        r_psf_mag_max_for_cadence2: 19.0
+        i_psf_mag_max_for_cadence2: 19.0
+        g_psf_mag_min: 13.5
+        r_psf_mag_min: 13.5
+        i_psf_mag_min: 13.5
+        z_psf_mag_min: 13.5
+        g_psf_mag_max: 22.5
+        r_psf_mag_max: 22.0
+        i_psf_mag_max: 21.5
+        z_psf_mag_max: 20.5
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        tic_t_mag_limit: 13.0
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1530
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+    bhm_spiders_agn_skymapperdr2:
+        value: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version: 'JWMS_CW2_v_03_TDopt'
+        opt_cat: 'skymapperdr2'
+        g_psf_mag_max_for_cadence1: 16.0
+        r_psf_mag_max_for_cadence1: 16.0
+        i_psf_mag_max_for_cadence1: 16.0
+        g_psf_mag_max_for_cadence2: 19.0
+        r_psf_mag_max_for_cadence2: 19.0
+        i_psf_mag_max_for_cadence2: 19.0
+        g_psf_mag_min: 13.5
+        r_psf_mag_min: 13.5
+        i_psf_mag_min: 13.5
+        z_psf_mag_min: 13.5
+        g_psf_mag_max: 22.5
+        r_psf_mag_max: 22.0
+        i_psf_mag_max: 21.5
+        z_psf_mag_max: 20.5
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        tic_t_mag_limit: 13.0
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1550
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+    bhm_spiders_agn_supercosmos:
+        value: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'XPS/NWAY'
+        xmatch_version: 'JWMS_v_03'
+        opt_cat: 'catwise2020'
+        b_psf_mag_max_for_cadence1: 16.0
+        r_psf_mag_max_for_cadence1: 16.0
+        i_psf_mag_max_for_cadence1: 16.0
+        b_psf_mag_max_for_cadence2: 19.0
+        r_psf_mag_max_for_cadence2: 19.0
+        i_psf_mag_max_for_cadence2: 19.0
+        b_psf_mag_min: 13.5
+        r_psf_mag_min: 13.5
+        i_psf_mag_min: 13.5
+        b_psf_mag_max: 22.5
+        r_psf_mag_max: 22.0
+        i_psf_mag_max: 21.5
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        tic_t_mag_limit: 13.0
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        det_like_min: 6.0
+        det_like_for_priority: 8.0
+        p_any_min: 0.1
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+        priority_floor: 1560
+        dpriority_match_flags: 1
+        dpriority_det_like: 2
+        dpriority_has_spec: 80
+    bhm_spiders_clusters_lsdr8:
+        value_bcg: 5.0
+        value_member: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'EROMAPPER_LS_DR8'
+        xmatch_version: 'grzw1_v0.3_2020-12-04'
+        opt_cat: 'lsdr8'
+        det_like_min: 8.0
+        xmatch_metric_min: 0.25
+        fibertotmag_r_min: 13.5
+        fibertotmag_r_max: 21.0
+        fibertotmag_z_min: 13.5
+        fibertotmag_z_max: 20.0
+        fibertotmag_r_for_cadence1: 16.5
+        fibertotmag_z_for_cadence1: 16.5
+        fibertotmag_r_for_cadence2: 18.5
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        spec_join_radius: 1.0
+        spec_sn_thresh: 2.00
+        spec_z_err_thresh: 0.01
+        priority_floor_bcg: 1501
+        priority_floor_member: 1580
+        priority_levels: 31
+    bhm_spiders_clusters_efeds_stragglers:
+        value_bcg: 5.0
+        value_member: 1.0
+        ero_version: 'eFEDS_c001_V18C_legacy_d'
+        xmatch_method: 'EROMAPPER_LS_DR8'
+        xmatch_version: 'grzw1_v0.3_2020-12-04'
+        opt_cat: 'lsdr8'
+        det_like_min: 8.0
+        xmatch_metric_min: 0.25
+        fibertotmag_r_min: 13.5
+        fibertotmag_r_max: 21.0
+        fibertotmag_z_min: 13.5
+        fibertotmag_z_max: 20.0
+        fibertotmag_r_for_cadence1: 16.5
+        fibertotmag_z_for_cadence1: 16.5
+        fibertotmag_r_for_cadence2: 18.5
+        gaia_g_max_for_cadence1: 16.0
+        gaia_rp_max_for_cadence1: 16.0
+        gaia_g_mag_limit: 13.5
+        gaia_rp_mag_limit: 13.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        spec_join_radius: 1.0
+        spec_sn_thresh: 2.00
+        spec_z_err_thresh: 0.01
+        priority_floor_bcg: 1500
+        priority_floor_member: 1550
+        priority_levels: 31
+    bhm_spiders_clusters_ps1dr2:
+        value_bcg: 5.0
+        value_member: 1.0
+        ero_version: 'em01_c946_201008_poscorr'
+        xmatch_method: 'EROMAPPER_PS1_DR2'
+        xmatch_version: 'eromapper_2020-10-23'
+        opt_cat: 'ps1dr2'
+        det_like_min: 8.0
+        xmatch_metric_min: 0.25
+        r_psf_mag_max_for_cadence1: 16.0
+        i_psf_mag_max_for_cadence1: 16.0
+        z_psf_mag_max_for_cadence1: 16.0
+        r_psf_mag_max_for_cadence2: 19.0
+        i_psf_mag_max_for_cadence2: 19.0
+        z_psf_mag_max_for_cadence2: 19.0
+        r_psf_mag_min: 13.5
+        i_psf_mag_min: 13.5
+        z_psf_mag_min: 13.5
+        r_psf_mag_max: 21.5
+        i_psf_mag_max: 21.0
+        z_psf_mag_max: 20.5
+        cadence1: 'bright_2x1'
+        cadence2: 'dark_1x2'
+        cadence3: 'dark_1x4'
+        spec_join_radius: 1.0
+        spec_sn_thresh: 2.00
+        spec_z_err_thresh: 0.01
+        priority_floor_bcg: 1502
+        priority_floor_member: 1610
+        priority_levels: 31
+    bhm_aqmes_med:
+        priority: 1100
+        value: 100.0
+        fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
+        mag_i_min: 16.0
+        mag_i_max: 19.1
+    bhm_aqmes_med_faint:
+        priority: 3100
+        value: 1.0
+        fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
+        mag_i_min: 19.1
+        mag_i_max: 21.0
+    bhm_aqmes_wide2:
+        priority: 1210
+        value: 100.0
+        fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+        mag_i_min: 16.0
+        mag_i_max: 19.1
+    bhm_aqmes_wide2_faint:
+        priority: 3210
+        value: 1.0
+        fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+        mag_i_min: 19.1
+        mag_i_max: 21.0
+    bhm_aqmes_bonus_core:
+        priority: 3300
+        value: 0.2
+        fieldlist: None
+        mag_i_min: 16.0
+        mag_i_max: 19.1
+    bhm_aqmes_bonus_faint:
+        priority: 3301
+        value: 0.1
+        fieldlist: None
+        mag_i_min: 19.1
+        mag_i_max: 21.0
+    bhm_aqmes_bonus_bright:
+        priority: 4040
+        value: 0.1
+        fieldlist: None
+        mag_i_min: 14.0
+        mag_i_max: 18.0
+    bhm_rm_base:
+        fieldlist:
+        - {name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49}
+        - {name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49}
+        - {name: XMM-LSS,  racen: 35.70833, deccen: -5.05000,  radius: 1.49}
+        - {name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00}
+        - {name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00}
+        - {name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00}
+    bhm_rm_core:
+        priority: 1002
+        value: 1000.0
+        mag_i_min: 17.0
+        mag_i_max: 21.5
+        mag_g_min_cvz_s: 16.0
+        mag_g_max_cvz_s: 21.7
+        pmsig_max: 3.0
+        plxsig_max: 3.0
+    bhm_rm_known_spec:
+        priority: 1001
+        value: 1000.0
+        mag_i_min: 15.0
+        mag_i_max: 21.7
+        mag_i_max_sdss_rm: 21.7
+        mag_i_max_cosmos: 21.5
+        mag_i_max_xmm_lss: 21.5
+        mag_g_min_cvz_s: 16.0
+        mag_g_max_cvz_s: 21.7
+        specz_min: 0.005
+        specz_max: 7.0
+    bhm_rm_var:
+        priority: 1003
+        value: 1000.0
+        mag_i_min: 17.0
+        mag_i_max: 20.5
+        mag_g_min_cvz_s: 16.0
+        mag_g_max_cvz_s: 21.7
+        des_var_sn_min: 3.0
+        des_var_rms_min: 0.05
+        ps1_var_sn_min: 3.0
+        ps1_var_rms_min: 0.05
+        pmsig_max: 3.0
+        plxsig_max: 3.0
+    bhm_rm_ancillary:
+        priority: 1004
+        value: 1000.0
+        photo_bitmask: 3
+        mag_i_min: 15.0
+        mag_i_max: 21.5
+        mag_g_min_cvz_s: 16.0
+        mag_g_max_cvz_s: 21.7
+        pmsig_max: 3.0
+        plxsig_max: 3.0
+    bhm_csc_boss_dark:
+        mag_i_min: 16.0
+        mag_i_max: 22.0
+        priority_floor: 3000
+        dpriority_has_spec: 10
+        value: 1.0
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+    bhm_csc_boss_bright:
+        mag_i_min: 13.0
+        mag_i_max: 18.0
+        priority_floor: 4000
+        dpriority_has_spec: 10
+        value: 1.0
+        spec_join_radius: 1.0
+        spec_sn_thresh: 1.60
+        spec_z_err_thresh: 0.002
+    bhm_csc_apogee:
+        mag_h_min: 10.0
+        mag_h_max: 15.0
+        priority_floor: 4000
+        value: 1.0
     ops_std_boss_lsdr8:
       mag_ls_r_min: 15.95
       mag_ls_r_max: 18.05
