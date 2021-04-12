@@ -340,7 +340,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.post_process(ResultsModel, **post_process_kawrgs)
 
         n_selected = ResultsModel.select().where(ResultsModel.selected >> True).count()
-        log.debug(f'Selected {n_selected:,} rows.')
+        log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
         log.debug('Adding optical magnitude columns.')
         self.add_optical_magnitudes()
@@ -400,16 +400,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(Model.selected >> True)
              .create_table(temp_table._path[0], temporary=True))
 
-            (Model.update(
+            nrows = (Model.update(
                 {Model.g: temp_table.c.psfmag_g,
                  Model.r: temp_table.c.psfmag_r,
                  Model.i: temp_table.c.psfmag_i,
                  Model.optical_prov: peewee.Value('sdss_psfmag')})
-             .from_(temp_table)
-             .where(Model.catalogid == temp_table.c.catalogid)
-             .where(temp_table.c.psfmag_g.is_null(False) &
-                    temp_table.c.psfmag_r.is_null(False) &
-                    temp_table.c.psfmag_i.is_null(False))).execute()
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.psfmag_g.is_null(False) &
+                       temp_table.c.psfmag_r.is_null(False) &
+                       temp_table.c.psfmag_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with SDSS magnitudes.')
 
         # Step 2: localise entries with empty magnitudes and use PanSTARRS1
         # transformations.
@@ -450,16 +452,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     (cdb.Panstarrs1.i_stk_psf_flux > 0))
              .create_table(temp_table._path[0], temporary=True))
 
-            (Model.update(
+            nrows = (Model.update(
                 {Model.g: temp_table.c.ps1_sdss_g,
                  Model.r: temp_table.c.ps1_sdss_r,
                  Model.i: temp_table.c.ps1_sdss_i,
                  Model.optical_prov: peewee.Value('sdss_psfmag_ps1')})
-             .from_(temp_table)
-             .where(Model.catalogid == temp_table.c.catalogid)
-             .where(temp_table.c.ps1_sdss_g.is_null(False) &
-                    temp_table.c.ps1_sdss_r.is_null(False) &
-                    temp_table.c.ps1_sdss_i.is_null(False))).execute()
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.ps1_sdss_g.is_null(False) &
+                       temp_table.c.ps1_sdss_r.is_null(False) &
+                       temp_table.c.ps1_sdss_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with PS1 magnitudes.')
 
         # Step 3: localise entries with empty magnitudes and use Gaia transformations
         # from Evans et al (2018).
@@ -495,16 +499,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
              .create_table(temp_table._path[0], temporary=True))
 
-            (Model.update(
+            nrows = (Model.update(
                 {Model.g: temp_table.c.gaia_sdss_g,
                  Model.r: temp_table.c.gaia_sdss_r,
                  Model.i: temp_table.c.gaia_sdss_i,
                  Model.optical_prov: peewee.Value('sdss_psfmag_gaia')})
-             .from_(temp_table)
-             .where(Model.catalogid == temp_table.c.catalogid)
-             .where(temp_table.c.gaia_sdss_g.is_null(False) &
-                    temp_table.c.gaia_sdss_r.is_null(False) &
-                    temp_table.c.gaia_sdss_i.is_null(False))).execute()
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.gaia_sdss_g.is_null(False) &
+                       temp_table.c.gaia_sdss_r.is_null(False) &
+                       temp_table.c.gaia_sdss_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with Gaia magnitudes.')
 
         # Finally, check if there are any rows in which at least some of the
         # magnitudes are null.
@@ -516,7 +522,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                    .count())
 
         if n_empty > 0:
-            warnings.warn(f'Found {n_empty} entries with some empty magnitudes.',
+            warnings.warn(f'Found {n_empty} entries with empty magnitudes.',
                           TargetSelectionUserWarning)
 
     def post_process(self, model, **kwargs):
