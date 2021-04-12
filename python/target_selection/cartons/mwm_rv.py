@@ -303,6 +303,12 @@ class MWM_RV_Long_Bplates_Carton(BaseCarton):
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
 
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL random_page_cost = 2;')
+        self.database.execute_sql("SET LOCAL work_mem = '10GB';")
+        super().setup_transaction()
+
     def build_query(self, version_id, query_region=None):
         # ra_hours_to_degrees = (360.0 / 24.0)
 
@@ -860,6 +866,12 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
     mapper = 'MWM'
     priority = 2576
 
+    def setup_transaction(self):
+
+        self.database.execute_sql('SET LOCAL random_page_cost = 2;')
+        self.database.execute_sql("SET LOCAL work_mem = '10GB';")
+        super().setup_transaction()
+
     def build_query(self, version_id, query_region=None):
 
         ra = [0] * 21
@@ -910,7 +922,7 @@ class MWM_RV_Short_Bplates_Carton(BaseCarton):
         catalog_regions = (Catalog
                            .select(Catalog.catalogid, Catalog.ra, Catalog.dec)
                            .where(ra_dec_condition)
-                           .cte('catalog_regions'))
+                           .cte('catalog_regions', materialized=True))
 
 # We use *mwm_rv_short_condition to unpack the tuple mwm_rv_short_condition.
 # However, ra_dec_condition is not a tuple so it does not have a * in the front.

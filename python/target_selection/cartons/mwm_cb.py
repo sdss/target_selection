@@ -94,9 +94,8 @@ class MWM_CB_300_APOGEE_Carton(MWM_CB_300_Carton):
     def build_query(self, version_id, **kwargs):
 
         query = super().build_query(version_id, **kwargs)
-        query.where(TIC_v8.hmag < 11)
 
-        return query
+        return query.where(TIC_v8.hmag < 11)
 
 
 class MWM_CB_300_BOSS_Carton(MWM_CB_300_Carton):
