@@ -56,7 +56,6 @@
     - mwm_tess_planet
   schema: sandbox
   magnitudes:
-    z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
     k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
@@ -88,8 +87,8 @@
       gaia_g_ls_r_min: 0.0
       gaia_g_ls_r_max: 0.1
   database_options:
-    work_mem: 5GB
-    temp_buffers: 10GB
+    random_page_cost: 4
+    seq_page_cost: 1
 
 '0.5.0-beta.1':
   xmatch_plan: 0.5.0-beta.2
