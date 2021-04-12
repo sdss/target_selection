@@ -1,3 +1,95 @@
+'0.5.0':
+  xmatch_plan: 0.5.0
+  cartons:
+    - ops_std_boss_tic
+    - ops_std_boss_lsdr8
+    - ops_std_eboss
+    - ops_std_boss
+    - ops_std_boss_red
+    - ops_std_apogee
+    - mwm_tess_ob
+    - mwm_cb_300pc_apogee
+    - mwm_cb_300pc_boss
+    - mwm_cb_gaiagalex_apogee
+    - mwm_cb_gaiagalex_boss
+    - mwm_cb_cvcandidates_apogee
+    - mwm_cb_cvcandidates_boss
+    - mwm_galactic_core
+    - mwm_cb_uvex1
+    - mwm_cb_uvex2
+    - mwm_cb_uvex3
+    - mwm_cb_uvex4
+    - mwm_cb_uvex5
+    - mwm_snc_100pc_apogee
+    - mwm_snc_100pc_boss
+    - mwm_snc_250pc_apogee
+    - mwm_snc_250pc_boss
+    - mwm_halo_bb_apogee
+    - mwm_halo_bb_boss
+    - mwm_halo_sm_apogee
+    - mwm_halo_sm_boss
+    - mwm_yso_disk_apogee
+    - mwm_yso_disk_boss
+    - mwm_yso_embedded_apogee
+    - mwm_yso_nebula_apogee
+    - mwm_yso_variable_apogee
+    - mwm_yso_variable_boss
+    - mwm_yso_ob_apogee
+    - mwm_yso_ob_boss
+    - mwm_yso_cmz_apogee
+    - mwm_yso_cluster_apogee
+    - mwm_yso_cluster_boss
+    - mwm_yso_pms_apogee
+    - mwm_yso_pms_boss
+    - mwm_rv_long_fps
+    - mwm_rv_short_rm
+    - mwm_rv_short_bplates
+    - mwm_rv_short_fps
+    - mwm_rv_long_rm
+    - mwm_rv_long_bplates
+    - mwm_legacy_ir2opt
+    - mwm_ob_core
+    - mwm_ob_cepheids
+    - mwm_dust_core
+    - mwm_tessrgb_core
+    - mwm_wd_core
+    - mwm_tess_planet
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+    j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+    k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+    bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+    rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+  parameters:
+    mwm_wd_core:
+      gaia_mag: 20
+      pwd: 0.5
+    mwm_galactic_core:
+      h_max: 11
+      g_h: 3.5
+    mwm_tess_planet:
+      h_min: 7
+      h_max: 12
+    ops_std_boss_lsdr8:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min: -0.5
+      parallax_max: 1.0
+      gaia_bp_rp_min: 0.619
+      gaia_bp_rp_max: 0.863
+      ls_g_r_min: 0.254
+      ls_g_r_max: 0.448
+      ls_r_z_min: 0.024
+      ls_r_z_max: 0.190
+      gaia_g_ls_r_min: 0.0
+      gaia_g_ls_r_max: 0.1
+  database_options:
+    random_page_cost: 4
+    seq_page_cost: 1
+
 '0.5.0-beta.1':
   xmatch_plan: 0.5.0-beta.2
   cartons:
@@ -572,14 +664,27 @@
     work_mem: '5GB'
 
 '0.0.0-test':
-  xmatch_plan: 0.1.0
+  xmatch_plan: 0.5.0-beta.2
   cartons:
-    - ops_apogee_stds
+    - ops_std_boss_tic
+    # - ops_std_boss_lsdr8
   schema: sandbox
+  parameters:
+    ops_std_boss_lsdr8:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min: -0.5
+      parallax_max: 1.0
+      gaia_bp_rp_min: 0.619
+      gaia_bp_rp_max: 0.863
+      ls_g_r_min: 0.254
+      ls_g_r_max: 0.448
+      ls_r_z_min: 0.024
+      ls_r_z_max: 0.190
+      gaia_g_ls_r_min: 0.0
+      gaia_g_ls_r_max: 0.1
   magnitudes:
-    g: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_g]
-    r: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_r]
-    i: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_i]
     z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
@@ -587,6 +692,5 @@
     bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
     rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
-    optical_prov: 'psfmag'
   database_options:
     work_mem: '5GB'

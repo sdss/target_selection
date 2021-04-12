@@ -98,12 +98,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
         assert self.program, 'carton subclass must override program'
 
         self.plan = targeting_plan
-        self.tag = __version__
+        self.tag = __version__ if self.plan != '0.0.0-test' else None
 
         if config_file:
             this_config = read_yaml_file(config_file)
         else:
-            this_config = config
+            this_config = config.copy()
 
         if self.plan not in this_config:
             raise TargetSelectionError(
@@ -141,6 +141,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log = log
         self.has_run = False
+
+        # We cannot set temp_buffers multiple times if there are temporary tables
+        # (as in add_optical_magnitudes) so we set it here.
+        if ('database_options' in self.config and
+                'temp_buffers' in self.config['database_options']):
+            temp_buffers = self.config['database_options'].pop('temp_buffers')
+            self.database.execute_sql(f'SET temp_buffers = \'{temp_buffers}\'')
 
     @property
     def path(self):
@@ -332,9 +339,191 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.setup_transaction()
             self.post_process(ResultsModel, **post_process_kawrgs)
 
+        n_selected = ResultsModel.select().where(ResultsModel.selected >> True).count()
+        log.debug(f'Selected {n_selected:,} rows after post-processing.')
+
+        log.debug('Adding optical magnitude columns.')
+        self.add_optical_magnitudes()
+
         self.has_run = True
 
         return ResultsModel
+
+    def add_optical_magnitudes(self):
+        """Adds ``gri`` magnitude columns."""
+
+        Model = self.get_model()
+
+        magnitudes = ['g', 'r', 'i', 'z']
+
+        # Check if ALL the columns have already been created in the query.
+        # If so, just return.
+        if any([mag in Model._meta.columns for mag in magnitudes]):
+            if not all([mag in Model._meta.columns for mag in magnitudes]):
+                raise TargetSelectionError(
+                    'Some optical magnitudes are defined in the query '
+                    'but not all of them.')
+            if 'optical_prov' not in Model._meta.columns:
+                raise TargetSelectionError('optical_prov column does not exist.')
+            warnings.warn('All optical magnitude columns are defined in the query.',
+                          TargetSelectionUserWarning)
+            return
+
+        # First create the columns. Also create z to speed things up. We won't
+        # use transformations for z but we can use the initial query to populate
+        # it and avoid doing the same query later when loading the magnitudes.
+        for mag in magnitudes:
+            self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN {mag} REAL;')
+        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+
+        # Refresh model.
+        Model = self.get_model()
+
+        # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
+
+        with self.database.atomic():
+
+            temp_table = peewee.Table(self.table_name + '_sdss')
+
+            (Model
+             .select(Model.catalogid,
+                     cdb.SDSS_DR13_PhotoObj.psfmag_g,
+                     cdb.SDSS_DR13_PhotoObj.psfmag_r,
+                     cdb.SDSS_DR13_PhotoObj.psfmag_i,
+                     cdb.SDSS_DR13_PhotoObj.psfmag_z)
+             .join(cdb.CatalogToSDSS_DR13_PhotoObj_Primary,
+                   on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.catalogid == Model.catalogid))
+             .join(cdb.SDSS_DR13_PhotoObj,
+                   on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
+                       cdb.SDSS_DR13_PhotoObj.objid))
+             .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True)
+             .where(Model.selected >> True)
+             .create_table(temp_table._path[0], temporary=True))
+
+            nrows = (Model.update(
+                {Model.g: temp_table.c.psfmag_g,
+                 Model.r: temp_table.c.psfmag_r,
+                 Model.i: temp_table.c.psfmag_i,
+                 Model.optical_prov: peewee.Value('sdss_psfmag')})
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.psfmag_g.is_null(False) &
+                       temp_table.c.psfmag_r.is_null(False) &
+                       temp_table.c.psfmag_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with SDSS magnitudes.')
+
+        # Step 2: localise entries with empty magnitudes and use PanSTARRS1
+        # transformations.
+
+        # PS1 fluxes are in Janskys. We use stacked fluxes instead of mean
+        # magnitudes since they are more complete on the faint end.
+        ps1_g = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.g_stk_psf_flux)
+        ps1_r = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.r_stk_psf_flux)
+        ps1_i = 8.9 - 2.5 * peewee.fn.log(cdb.Panstarrs1.i_stk_psf_flux)
+
+        # Use transformations to SDSS from Tonry et al. 2012 (section 3.2, table 6).
+        x = ps1_g - ps1_r
+        ps1_sdss_g = 0.013 + 0.145 * x + 0.019 * x * x + ps1_g
+        ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x * x + ps1_r
+        ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x * x + ps1_i
+
+        with self.database.atomic():
+
+            temp_table = peewee.Table(self.table_name + '_ps1')
+
+            (Model
+             .select(Model.catalogid,
+                     ps1_sdss_g.alias('ps1_sdss_g'),
+                     ps1_sdss_r.alias('ps1_sdss_r'),
+                     ps1_sdss_i.alias('ps1_sdss_i'))
+             .join(cdb.CatalogToPanstarrs1,
+                   on=(cdb.CatalogToPanstarrs1.catalogid == Model.catalogid))
+             .join(cdb.Panstarrs1,
+                   on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+             .where(Model.selected >> True)
+             .where(cdb.CatalogToPanstarrs1.best >> True)
+             .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
+                    (cdb.Panstarrs1.g_stk_psf_flux > 0))
+             .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
+                    (cdb.Panstarrs1.r_stk_psf_flux > 0))
+             .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False) &
+                    (cdb.Panstarrs1.i_stk_psf_flux > 0))
+             .create_table(temp_table._path[0], temporary=True))
+
+            nrows = (Model.update(
+                {Model.g: temp_table.c.ps1_sdss_g,
+                 Model.r: temp_table.c.ps1_sdss_r,
+                 Model.i: temp_table.c.ps1_sdss_i,
+                 Model.optical_prov: peewee.Value('sdss_psfmag_ps1')})
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.ps1_sdss_g.is_null(False) &
+                       temp_table.c.ps1_sdss_r.is_null(False) &
+                       temp_table.c.ps1_sdss_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with PS1 magnitudes.')
+
+        # Step 3: localise entries with empty magnitudes and use Gaia transformations
+        # from Evans et al (2018).
+
+        gaia_G = cdb.Gaia_DR2.phot_g_mean_mag
+        gaia_BP = cdb.Gaia_DR2.phot_bp_mean_mag
+        gaia_RP = cdb.Gaia_DR2.phot_rp_mean_mag
+
+        x = gaia_BP - gaia_RP
+        x2 = x * x
+        x3 = x * x * x
+        gaia_sdss_g = -1 * (0.13518 - 0.46245 * x - 0.25171 * x2 + 0.021349 * x3) + gaia_G
+        gaia_sdss_r = -1 * (-0.12879 + 0.24662 * x - 0.027464 * x2 - 0.049465 * x3) + gaia_G
+        gaia_sdss_i = -1 * (-0.29676 + 0.64728 * x - 0.10141 * x2) + gaia_G
+
+        with self.database.atomic():
+
+            temp_table = peewee.Table(self.table_name + '_gaia')
+
+            (Model
+             .select(Model.catalogid,
+                     gaia_sdss_g.alias('gaia_sdss_g'),
+                     gaia_sdss_r.alias('gaia_sdss_r'),
+                     gaia_sdss_i.alias('gaia_sdss_i'))
+             .join(cdb.CatalogToTIC_v8, on=(cdb.CatalogToTIC_v8.catalogid == Model.catalogid))
+             .join(cdb.TIC_v8)
+             .join(cdb.Gaia_DR2)
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+             .where(Model.selected >> True)
+             .where(cdb.CatalogToTIC_v8.best >> True)
+             .where(cdb.Gaia_DR2.phot_g_mean_mag.is_null(False))
+             .where(cdb.Gaia_DR2.phot_bp_mean_mag.is_null(False))
+             .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
+             .create_table(temp_table._path[0], temporary=True))
+
+            nrows = (Model.update(
+                {Model.g: temp_table.c.gaia_sdss_g,
+                 Model.r: temp_table.c.gaia_sdss_r,
+                 Model.i: temp_table.c.gaia_sdss_i,
+                 Model.optical_prov: peewee.Value('sdss_psfmag_gaia')})
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.gaia_sdss_g.is_null(False) &
+                       temp_table.c.gaia_sdss_r.is_null(False) &
+                       temp_table.c.gaia_sdss_i.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with Gaia magnitudes.')
+
+        # Finally, check if there are any rows in which at least some of the
+        # magnitudes are null.
+
+        n_empty = (Model
+                   .select()
+                   .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+                   .where(Model.selected >> True)
+                   .count())
+
+        if n_empty > 0:
+            warnings.warn(f'Found {n_empty} entries with empty magnitudes.',
+                          TargetSelectionUserWarning)
 
     def post_process(self, model, **kwargs):
         """Post-processes the temporary table.
@@ -668,9 +857,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         for mag, mpath in magnitude_paths.items():
 
-            if mag == 'optical_prov':
-                continue
-
             fields.append(getattr(Magnitude, mag))
             if hasattr(RModel, mag):
                 select_from = select_from.select_extend(getattr(RModel, mag))
@@ -713,10 +899,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 if column:
                     select_from = select_from.select_extend(getattr(node_model, column))
 
-        if 'optical_prov' in RModel._meta.columns:
-            select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
-        else:
-            select_from = select_from.select_extend(magnitude_paths['optical_prov'])
+        # Add gri from the temporary table.
+        for mag in ['g', 'r', 'i', 'z']:
+            select_from = select_from.select_extend(RModel._meta.columns[mag])
+            fields.append(Magnitude._meta.columns[mag])
+
+        if 'optical_prov' not in RModel._meta.columns:
+            raise TargetSelectionError('optical_prov column not found in temporary table.')
+
+        select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
         fields.append(Magnitude.optical_prov)
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
