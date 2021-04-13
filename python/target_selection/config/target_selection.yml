@@ -1169,3 +1169,4 @@
     gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
   database_options:
     work_mem: '5GB'
+ 
