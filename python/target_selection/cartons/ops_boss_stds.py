@@ -70,6 +70,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5425
     mapper = None
+    intrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
 
@@ -203,6 +204,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5450
     mapper = None
+    intrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
 
@@ -314,6 +316,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5300
     mapper = None
+    intrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
 
@@ -393,6 +396,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5400
     mapper = None
+    intrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
 
@@ -550,6 +554,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5350
     mapper = None
+    intrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
 

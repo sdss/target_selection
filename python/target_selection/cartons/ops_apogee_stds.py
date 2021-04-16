@@ -72,6 +72,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     program = 'ops_std'
     priority = 5500
     mapper = None
+    intrument = 'APOGEE'
 
     def build_query(self, version_id, query_region=None):
 
