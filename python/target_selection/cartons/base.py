@@ -321,9 +321,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'priority' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
 
-        if 'instrument' not in columns:
-            execute_sql(f'ALTER TABLE {path} ADD COLUMN instrument TEXT;')
-
         execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
