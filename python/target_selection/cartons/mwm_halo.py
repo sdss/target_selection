@@ -184,6 +184,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         (model.update({model.priority: 6085})
             .where(model.priority.is_null())).execute()
 
+
 class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
     """MWM Halo SkyMapper.
 
