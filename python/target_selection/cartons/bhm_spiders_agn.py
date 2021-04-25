@@ -385,7 +385,7 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
                 fn.min(magnitude_r).alias('r'),
                 fn.min(magnitude_i).alias('i'),
                 fn.min(magnitude_z).alias('z'),
-                fn.min(opt_prov).alias('opt_prov'),
+                fn.min(opt_prov).alias('optical_prov'),
             )
             .join(c2ls)
             .where(
@@ -692,7 +692,7 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 fn.min(magnitude_z).alias('z'),
                 fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_g'),   # extra
                 fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_rp'),  # extra
-                fn.min(opt_prov).alias('opt_prov'),
+                fn.min(opt_prov).alias('optical_prov'),
             )
             .join(c2ls)
             .where(
@@ -1373,7 +1373,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
                 fn.min(tic.gaiamag).alias('gaia_g'),
                 fn.min(tic.gaiabp).alias('bp'),
                 fn.min(tic.gaiarp).alias('rp'),
-                fn.min(opt_prov).alias('opt_prov'),
+                fn.min(opt_prov).alias('optical_prov'),
             )
             .join(c2ps)
             .where(
@@ -1679,7 +1679,7 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
                 fn.min(tic.gaiamag).alias('gaia_g'),
                 fn.min(tic.gaiabp).alias('bp'),
                 fn.min(tic.gaiarp).alias('rp'),
-                fn.min(opt_prov).alias('opt_prov'),
+                fn.min(opt_prov).alias('optical_prov'),
             )
             .join(c2sm)
             .where(
@@ -2004,7 +2004,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
                 fn.min(tic.gaiamag).alias('gaia_g'),
                 fn.min(tic.gaiabp).alias('bp'),
                 fn.min(tic.gaiarp).alias('rp'),
-                fn.min(opt_prov).alias('opt_prov'),
+                fn.min(opt_prov).alias('optical_prov'),
             )
             .join(c2cw)
             .join(x, on=(c2cw.target_id == x.catwise2020_id))

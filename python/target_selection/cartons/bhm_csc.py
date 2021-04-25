@@ -280,7 +280,7 @@ class BhmCscBaseCarton(BaseCarton):
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 magnitude_h.alias('h'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
                 t.oir_ra.alias('csc_oir_ra'),
                 t.oir_dec.alias('csc_oir_dec'),
             )

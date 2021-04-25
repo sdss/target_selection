@@ -314,7 +314,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
             )
             .join(c2ls)
             .join(ls)
@@ -629,7 +629,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
             )
             .join(c2ls)
             .join(ls)
@@ -941,7 +941,7 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
                 (ps.flags.bin_and(ps1_good_stack_flag) > 0)
                 .cast('bool').alias('ps1_good_stack_flag'),
             )
