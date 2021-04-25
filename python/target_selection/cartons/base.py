@@ -291,7 +291,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if limit:
             query = query.limit(limit)
 
-        query_sql, params = query.sql()
+        query_sql, params = self.database.get_sql_context().sql(query).query()
         cursor = self.database.cursor()
         query_str = cursor.mogrify(query_sql, params).decode()
 
