@@ -325,7 +325,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
 
-        time.sleep(2)
+        time.sleep(5)
         ResultsModel = self.get_model()
 
         n_rows = ResultsModel.select().count()
