@@ -73,7 +73,6 @@
     - bhm_aqmes_bonus_core
     - bhm_aqmes_bonus_faint
     - bhm_aqmes_bonus_bright
-    - bhm_rm_base
     - bhm_rm_core
     - bhm_rm_known_spec
     - bhm_rm_var
@@ -163,9 +162,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1520
-      dpriority_has_spec: 80
       dpriority_match_flags: 1
       dpriority_det_like: 2
+      dpriority_has_spec: 200
     bhm_spiders_agn_efeds_stragglers:
       value: 1.0
       ero_version1: 'eFEDS_c001_V18C_V3_main'
@@ -198,7 +197,7 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_ero_version: 4
-      dpriority_has_spec: 100
+      dpriority_has_spec: 200
     bhm_spiders_agn_gaiadr2:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -223,7 +222,7 @@
       priority_floor: 1540
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_sep:
       value: 1.0
       ero_version: 'em01_SEP_c946'
@@ -282,7 +281,7 @@
       priority_floor: 1530
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_skymapperdr2:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -318,7 +317,7 @@
       priority_floor: 1550
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_supercosmos:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -352,7 +351,7 @@
       priority_floor: 1560
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_clusters_lsdr8:
       value_bcg: 5.0
       value_member: 1.0
@@ -380,7 +379,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1501
-      priority_floor_member: 1580
+      priority_floor_member: 1630
       priority_levels: 31
     bhm_spiders_clusters_efeds_stragglers:
       value_bcg: 5.0
@@ -409,7 +408,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1500
-      priority_floor_member: 1550
+      priority_floor_member: 1600
       priority_levels: 31
     bhm_spiders_clusters_ps1dr2:
       value_bcg: 5.0
@@ -439,7 +438,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1502
-      priority_floor_member: 1610
+      priority_floor_member: 1660
       priority_levels: 31
     bhm_aqmes_med:
       priority: 1100
@@ -634,7 +633,6 @@
     - bhm_aqmes_bonus_core
     - bhm_aqmes_bonus_faint
     - bhm_aqmes_bonus_bright
-    - bhm_rm_base
     - bhm_rm_core
     - bhm_rm_known_spec
     - bhm_rm_var
@@ -719,7 +717,7 @@
       priority_floor: 1520
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_efeds_stragglers:
       value: 1.0
       ero_version1: 'eFEDS_c001_V18C_V3_main'
@@ -752,7 +750,7 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_ero_version: 4
-      dpriority_has_spec: 100
+      dpriority_has_spec: 200
     bhm_spiders_agn_gaiadr2:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -777,7 +775,7 @@
       priority_floor: 1540
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_sep:
       value: 1.0
       ero_version: 'em01_SEP_c946'
@@ -836,7 +834,7 @@
       priority_floor: 1530
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_skymapperdr2:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -872,7 +870,7 @@
       priority_floor: 1550
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_agn_supercosmos:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -906,7 +904,7 @@
       priority_floor: 1560
       dpriority_match_flags: 1
       dpriority_det_like: 2
-      dpriority_has_spec: 80
+      dpriority_has_spec: 200
     bhm_spiders_clusters_lsdr8:
       value_bcg: 5.0
       value_member: 1.0
@@ -934,7 +932,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1501
-      priority_floor_member: 1580
+      priority_floor_member: 1630
       priority_levels: 31
     bhm_spiders_clusters_efeds_stragglers:
       value_bcg: 5.0
@@ -963,7 +961,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1500
-      priority_floor_member: 1550
+      priority_floor_member: 1600
       priority_levels: 31
     bhm_spiders_clusters_ps1dr2:
       value_bcg: 5.0
@@ -993,7 +991,7 @@
       spec_sn_thresh: 2.00
       spec_z_err_thresh: 0.01
       priority_floor_bcg: 1502
-      priority_floor_member: 1610
+      priority_floor_member: 1660
       priority_levels: 31
     bhm_aqmes_med:
       priority: 1100

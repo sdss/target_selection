@@ -1963,24 +1963,63 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             ),
             cadence3)
 
-        # We only use psfmags
+        # We only use pseudo psfmags for SuperCosmos
         opt_prov = peewee.Value('sc_psfmag')
         # - transform the photographic B,R,I -> to griz
         # some very crude by-eye fits to SPIDERS AGN targets matched to SC and SDSSdr9 (via stilts)
         # completely ignore differences between psfmags and total mags
-        magnitude_g = (sc.scormagb + 0.1 + (sc.scormagb - sc.scormagr2) * -0.23).cast('float')
-        magnitude_r = (sc.scormagr2 + 0.25 + (sc.scormagb - sc.scormagr2) * 0.12).cast('float')
-        magnitude_i = (fn.greatest(sc.scormagr2, sc.scormagi) + 0.1).cast('float')
-        magnitude_z = (
-            fn.greatest(sc.scormagr2, sc.scormagi) +
-            0.2 + (sc.scormagb - sc.scormagr2) * -0.2 +
-            -0.28 * (sc.scormagb - sc.scormagr2) * (sc.scormagb - sc.scormagr2)
-        ).cast('float')
+        # Check for out-of-range errors via case statements (fall back to single band
+        # estimates and typical colours when secondary mag is missing)
+        # assume a typical scormagb-scormagr2 = 0.8 mag in these cases
+        magnitude_g = peewee.Case(
+            None,
+            (
+                ((sc.scormagb > -90.) & (sc.scormagr2 > -90.),
+                 (sc.scormagb + 0.1 + (sc.scormagb - sc.scormagr2) * -0.23).cast('float')),
+                ((sc.scormagb > -90.),
+                 (sc.scormagb + 0.1 + (0.8 * -0.23)).cast('float')),
+            ),
+            None)
+        magnitude_r = peewee.Case(
+            None,
+            (
+                ((sc.scormagb > -90.) & (sc.scormagr2 > -90.),
+                 (sc.scormagr2 + 0.25 + (sc.scormagb - sc.scormagr2) * 0.12).cast('float')),
+                ((sc.scormagr2 > -90.),
+                 (sc.scormagr2 + 0.25 + (0.8 * 0.12)).cast('float')),
+            ),
+            None)
+        magnitude_i = peewee.Case(
+            None,
+            (
+                ((sc.scormagr2 > -90.) | (sc.scormagi > -90.),
+                 (fn.greatest(sc.scormagr2, sc.scormagi) + 0.1).cast('float')),
+            ),
+            None)
+        magnitude_z = peewee.Case(
+            None,
+            (
+                (
+                    (sc.scormagb > -90.) & (sc.scormagr2 > -90.),
+                    (
+                        fn.greatest(sc.scormagr2, sc.scormagi) + 0.2 +
+                        -0.2 * (sc.scormagb - sc.scormagr2) +
+                        -0.28 * (sc.scormagb - sc.scormagr2) * (sc.scormagb - sc.scormagr2)
+                    ).cast('float')
+                ),
+                (
+                    (sc.scormagr2 > -90.),
+                    (
+                        fn.greatest(sc.scormagr2, sc.scormagi) + 0.2 +
+                        (-0.2 * 0.8) + (-0.28 * 0.8 * 0.8)
+                    ).cast('float')
+                ),
+            ),
+            None)
 
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                # fn.array_agg(sc.objid, coerce=False).alias('sc_objids'),
                 x.catwise2020_id.alias('cw2020_source_id'),
                 fn.min(tic.gaia_int).alias('gaia_source'),
                 fn.min(x.ero_detuid).alias('ero_detuid'),
