@@ -167,8 +167,8 @@ class BhmGuaBaseCarton(BaseCarton):
                 ssV.z_err <= spec_z_err_thresh,
                 ssV.z_err > 0.0,
                 ssV.specprimary > 0,
+                ssV.specobjid.is_null()
             )
-            .alias('sV')
         )
 
         # SDSS-V plateholes - only consider plateholes that
@@ -195,8 +195,8 @@ class BhmGuaBaseCarton(BaseCarton):
                 (ssph.sourcetype == 'SCI') | (ssph.sourcetype == 'STA'),
                 ssphm.isvalid > 0,
                 ssconf.plate.is_null(),
+                ssph.pkey.is_null()
             )
-            .alias('sph')
         )
 
         # set the Carton priority+values here - read from yaml
@@ -210,7 +210,10 @@ class BhmGuaBaseCarton(BaseCarton):
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
 
-        query = (
+        # Create temporary tables for the base query and the Q3C cross-match
+        # tables.
+
+        bquery = (
             c.select(
                 c.catalogid,
                 c.ra,   # extra
@@ -241,8 +244,8 @@ class BhmGuaBaseCarton(BaseCarton):
             .join(
                 s16, JOIN.LEFT_OUTER,
                 on=(
-                    (c2s16.target_id == s16.c.specobjid) &
-                    (c2s16.version_id == version_id)
+                    (c2s16.target_id == s16.c.specobjid)
+                    # (c2s16.version_id == version_id)
                 )
             )
             .switch(c)
@@ -250,31 +253,14 @@ class BhmGuaBaseCarton(BaseCarton):
             .join(
                 s2020, JOIN.LEFT_OUTER,
                 on=(
-                    (c2s2020.target_id == s2020.c.pk) &
-                    (c2s2020.version_id == version_id)
-                )
-            )
-            .join(
-                sV, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
-                )
-            )
-            .join(
-                sph, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
+                    (c2s2020.target_id == s2020.c.pk)
+                    # (c2s2020.version_id == version_id)
                 )
             )
             # finished joining the spectroscopy
-            # standard selection that chooses correct catalogdb version etc
             .where(
                 c.version_id == version_id,
-                c2tic.version_id == version_id,
+                # c2tic.version_id == version_id,
                 c2tic.best >> True,
             )
             .where(
@@ -289,12 +275,48 @@ class BhmGuaBaseCarton(BaseCarton):
             # then reject any GUA targets with existing good DR16+SDSS-V spectroscopy
             .where(
                 s16.c.specobjid.is_null(True),
-                s2020.c.pk.is_null(True),
-                sV.c.specobjid.is_null(True),
-                sph.c.pkey.is_null(True),
+                s2020.c.pk.is_null(True)
             )
             # avoid duplicates - trust the gaia ids in the GUA parent sample
             .distinct([t.gaia_sourceid])
+        )
+
+        self.log.debug('Creating temporary table for base query ...')
+        bquery.create_table(self.name + '_bquery', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_bquery (ra, dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_bquery')
+
+        sph.create_table(self.name + '_sph', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_sph (target_ra, target_dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_sph')
+
+        sV.create_table(self.name + '_sv', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_sv (plug_ra, plug_dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_sv')
+
+        bquery_table = peewee.Table(f'{self.name}_bquery', alias='bquery')
+        sph_table = peewee.Table(f'{self.name}_sph')
+        sV_table = peewee.Table(f'{self.name}_sv')
+
+        query = (
+            bquery_table
+            .select(peewee.SQL('bquery.*'))
+            .join(
+                sV_table, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(bquery_table.c.ra, bquery_table.c.dec,
+                                sV_table.c.plug_ra, sV_table.c.plug_dec,
+                                match_radius_spectro)
+                )
+            )
+            .join(
+                sph_table, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(bquery_table.c.ra, bquery_table.c.dec,
+                                sph_table.c.target_ra, sph_table.c.target_dec,
+                                match_radius_spectro)
+                )
+            )
         )
 
         return query

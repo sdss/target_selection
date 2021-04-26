@@ -86,7 +86,7 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         try:
             hdul = fits.open(filename)
-        except:
+        except BaseException:
             raise Exception(f"Failed to find/open fieldlist file: {filename}")
 
         assert len(hdul[1].data) > 0
@@ -104,14 +104,14 @@ class BhmAqmesBaseCarton(BaseCarton):
                 for r in hdul[1].data
                 if r['CADENCE'] == cadence_v0
             ]
-        except:
+        except BaseException:
             raise Exception(f"Error interpreting contents of fieldlist file: {filename}")
 
         assert len(fieldlist) > 0
 
         return fieldlist
 
-    def append_spatial_query(self, query, fieldlist):
+    def append_spatial_query(self, query, cte, fieldlist):
         '''Extend the peewee query using a list of field centres'''
         if fieldlist is None:
             return query
@@ -120,8 +120,8 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         q = False
         for f in fieldlist:
-            q = (q | peewee.fn.q3c_radial_query(self.alias_c.ra,
-                                                self.alias_c.dec,
+            q = (q | peewee.fn.q3c_radial_query(cte.c.ra,
+                                                cte.c.dec,
                                                 f['racen'],
                                                 f['deccen'],
                                                 f['radius']))
@@ -189,7 +189,7 @@ class BhmAqmesBaseCarton(BaseCarton):
             None
         )
         priority = priority_floor + priority_boost
-        query = (
+        bquery = (
             c.select(
                 c.catalogid,
                 t.pk.alias('dr16q_pk'),  # extra
@@ -206,7 +206,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 t.psfmag[2].alias('r'),
                 t.psfmag[3].alias('i'),
                 t.psfmag[4].alias('z'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
                 t.fiberid.alias('dr16q_fiberid'),   # extra
@@ -243,10 +243,12 @@ class BhmAqmesBaseCarton(BaseCarton):
                 # (t.z <= self.parameters['redshift_max']),
             )
             .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            .cte('bquery', materialized=True)
         )
 
-        # append the spatial part of the query if necessary
-        query = self.append_spatial_query(query, self.get_fieldlist())
+        query = bquery.select(peewee.SQL('bquery.*'))
+        query = self.append_spatial_query(query, bquery, self.get_fieldlist())
+        query = query.with_cte(bquery)
 
         return query
 

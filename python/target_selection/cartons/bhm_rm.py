@@ -273,7 +273,7 @@ class BhmRmBaseCarton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('opt_prov'),
+                opt_prov.alias('optical_prov'),
                 inertial.alias('inertial'),
                 t.optical_survey.alias('optical_survey'),
             )
