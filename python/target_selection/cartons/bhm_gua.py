@@ -280,7 +280,7 @@ class BhmGuaBaseCarton(BaseCarton):
             # avoid duplicates - trust the gaia ids in the GUA parent sample
             .distinct([t.gaia_sourceid])
         )
-        
+
         self.log.debug('Creating temporary table for base query ...')
         bquery.create_table(self.name + '_bquery', temporary=True)
         self.database.execute_sql(f'CREATE INDEX ON {self.name}_bquery (ra, dec)')
