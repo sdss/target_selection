@@ -86,7 +86,7 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         try:
             hdul = fits.open(filename)
-        except:
+        except BaseException:
             raise Exception(f"Failed to find/open fieldlist file: {filename}")
 
         assert len(hdul[1].data) > 0
@@ -104,7 +104,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 for r in hdul[1].data
                 if r['CADENCE'] == cadence_v0
             ]
-        except:
+        except BaseException:
             raise Exception(f"Error interpreting contents of fieldlist file: {filename}")
 
         assert len(fieldlist) > 0
@@ -136,7 +136,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         self.alias_c = c
         self.alias_t = t
         self.alias_c2s = c2s
-        
+
         # SDSS-V plateholes - only consider plateholes that
         # were drilled+shipped and that have firstcarton ~ 'bhm_aqmes_'
         ssph = SDSSV_Plateholes.alias()
