@@ -232,6 +232,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
                 ),
                 (
                     x.c.x_rank > 1,
+                    self.parameters['priority_floor_member'] +
                     fn.least(self.parameters['priority_levels'] - 2,
                              x.c.x_rank - 2)
                 ),
@@ -857,6 +858,7 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
                 ),
                 (
                     x.c.x_rank > 1,
+                    self.parameters['priority_floor_member'] +
                     fn.least(self.parameters['priority_levels'] - 2,
                              x.c.x_rank - 2)
                 ),
