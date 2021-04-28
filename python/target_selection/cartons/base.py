@@ -1072,6 +1072,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.delta_ra,
                     CartonToTarget.delta_dec,
                     CartonToTarget.inertial,
+                    CartonToTarget.lambda_eff
                 ],
             )
             .returning()
