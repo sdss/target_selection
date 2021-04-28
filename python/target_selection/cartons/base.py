@@ -1038,13 +1038,25 @@ class BaseCarton(metaclass=abc.ABCMeta):
             select_from = select_from.select_extend(
                 tdb.Instrument.get(label=self.instrument).pk)
         else:
-            select_from = select_from.select_extend(RModel.instrument)
+            raise RuntimeError(f'Instrument not defined for carton {self.name}')
 
         for colname in ['delta_ra', 'delta_dec', 'intertial']:
             if colname in RModel._meta.columns:
                 select_from = select_from.select_extend(RModel._meta.columns[colname])
             else:
                 select_from = select_from.select_extend(peewee.SQL('null'))
+
+        if 'lambda_eff' in RModel._meta.columns:
+            select_from = select_from.select_extend(RModel._meta.columns['lambda_eff'])
+        else:
+            if self.instrument is not None:
+                instrument = self.instrument
+            else:
+                instrument = RModel.instrument
+            select_from = select_from.select_extend(
+                tdb.Instrument
+                .select(tdb.Instrument.default_lambda_eff)
+                .where(tdb.Instrument.label == instrument))
 
         # Now do the insert
         n_inserted = (
