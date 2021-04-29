@@ -141,6 +141,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log = log
         self.has_run = False
+        self._disable_query_log = False
 
         # We cannot set temp_buffers multiple times if there are temporary tables
         # (as in add_optical_magnitudes) so we set it here.
@@ -295,8 +296,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         cursor = self.database.cursor()
         query_str = cursor.mogrify(query_sql, params).decode()
 
-        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
-                             'darkgrey'))
+        if not self._disable_query_log:
+            log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
+                                 'darkgrey'))
+        else:
+            log.debug('Not printing VERY long query.')
 
         with self.database.atomic():
             with Timer() as timer:
