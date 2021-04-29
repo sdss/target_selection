@@ -85,7 +85,7 @@ class MWM_Halo_Best_Brightest_APOGEE_Carton(MWM_Halo_Best_Brightest_Base_Carton)
     category = 'science'
     program = 'mwm_filler'
     instrument = 'APOGEE'
-    cadence = None
+    cadence = 'bright_1x1'
     priority = 6050
 
     def build_query(self, version_id, query_region=None):
