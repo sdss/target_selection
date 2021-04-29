@@ -1049,11 +1049,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             raise RuntimeError(f'Instrument not defined for carton {self.name}')
 
-        for colname in ['delta_ra', 'delta_dec', 'intertial']:
+        for colname in ['delta_ra', 'delta_dec', 'inertial']:
             if colname in RModel._meta.columns:
                 select_from = select_from.select_extend(RModel._meta.columns[colname])
             else:
-                select_from = select_from.select_extend(peewee.SQL('null'))
+                if colname == 'inertial':
+                    select_from = select_from.select_extend(peewee.Value(False))
+                else:
+                    select_from = select_from.select_extend(peewee.SQL('null'))
 
         if 'lambda_eff' in RModel._meta.columns:
             select_from = select_from.select_extend(RModel._meta.columns['lambda_eff'])
