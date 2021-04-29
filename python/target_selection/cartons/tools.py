@@ -72,18 +72,24 @@ def get_file_carton(
             ls_id_case = peewee.Case(
                 None,
                 ((vl.c.LegacySurvey_DR8_ID > 0, vl.c.LegacySurvey_DR8_ID),))
+            inertial_case = peewee.Case(
+                None,
+                ((vl.c.inertial.cast('boolean').is_null(), False),),
+                vl.c.inertial.cast('boolean'))
 
-            query = (Catalog.select(Catalog.catalogid,
-                                    gid_case.alias('gaia_source_id'),
-                                    ls_id_case.alias('ls_id'),
-                                    vl.c.ra.cast('double precision'),
-                                    vl.c.dec.cast('double precision'),
-                                    vl.c.delta_ra.cast('double precision'),
-                                    vl.c.delta_dec.cast('double precision'),
-                                    vl.c.inertial.cast('boolean'),
-                                    vl.c.cadence,
-                                    vl.c.priority,
-                                    vl.c.instrument)
+            query = (Catalog
+                     .select(Catalog.catalogid,
+                             gid_case.alias('gaia_source_id'),
+                             ls_id_case.alias('ls_id'),
+                             vl.c.ra.cast('double precision'),
+                             vl.c.dec.cast('double precision'),
+                             vl.c.delta_ra.cast('double precision'),
+                             vl.c.delta_dec.cast('double precision'),
+                             inertial_case.alias('inertial'),
+                             vl.c.cadence,
+                             vl.c.priority,
+                             vl.c.instrument,
+                             peewee.Value(0).alias('value'))
                      .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
@@ -98,6 +104,9 @@ def get_file_carton(
                             ((CatalogToTIC_v8.best >> True) | (CatalogToTIC_v8.best.is_null())),
                             ((CatalogToLegacy_Survey_DR8.best >> True) |
                              (CatalogToLegacy_Survey_DR8.best.is_null()))))
+
+            if 'lambda_eff' in self._table.colnames:
+                query = query.select_extend(vl.c.lambda_eff.alias('lambda_eff'))
 
             return query
 
