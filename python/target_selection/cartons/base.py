@@ -1056,7 +1056,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 if colname == 'inertial':
                     select_from = select_from.select_extend(peewee.Value(False))
                 else:
-                    select_from = select_from.select_extend(peewee.SQL('null'))
+                    select_from = select_from.select_extend(peewee.Value(0.0))
 
         if 'lambda_eff' in RModel._meta.columns:
             select_from = select_from.select_extend(RModel._meta.columns['lambda_eff'])
