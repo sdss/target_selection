@@ -371,10 +371,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         # it and avoid doing the same query later when loading the magnitudes.
         for mag in magnitudes:
             self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN {mag} REAL;')
-        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+            Model._meta.add_field(mag, peewee.FloatField())
 
-        # Refresh model.
-        Model = self.get_model()
+        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+        Model._meta.add_field('optical_prov', peewee.TextField())
 
         # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
 
