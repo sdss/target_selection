@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Date: 2021-04-28
+# @Filename: list_missing_cadences
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
+# This script checks all the cartons for a plan. For those cartons that
+# have targets with carton_to_target.cadence_pk = null, lists the cadences
+# that are missing from the cadence table. This assumes that the temporary
+# tables in the sandbox correspond to the targets in targetdb.
+# Ignores cartons that start with ops_.
+
+import sys
+
+import peewee
+
+from sdssdb.peewee.sdss5db.targetdb import (Carton, CartonToTarget,
+                                            Target, Version, database)
+
+
+def list_cadences(plan, profile=None):
+
+    if profile:
+        assert database.set_profile(profile), f'Cannot connect to profile {profile}.'
+
+    # Get list of cartons with targets that are missing cadences.
+    cartons = (Carton.select(Carton.carton)
+               .join(CartonToTarget)
+               .switch(Carton)
+               .join(Version)
+               .where(Version.plan == plan)
+               .where(CartonToTarget.cadence_pk.is_null())
+               .where(~Carton.carton % 'ops_%')
+               .distinct(Carton.carton)
+               .order_by(Carton.carton)
+               .tuples())
+    cartons = list(zip(*cartons))[0]
+
+    print('\033[4m' + 'Cartons with some target missing cadence_pk:' + '\033[0m')
+    for carton in cartons:
+        print(carton)
+    print()
+
+    # For each carton, get number of targets without cadence_pk, then list
+    # the cadences that are not in targetdb.cadence.
+
+    for carton in cartons:
+        print('\033[4m' + carton + '\033[0m')
+
+        n_targets = (CartonToTarget.select()
+                     .join(Carton)
+                     .join(Version)
+                     .where(Version.plan == plan)
+                     .where(CartonToTarget.cadence_pk.is_null())
+                     .where(Carton.carton == carton)
+                     .count())
+        print(f'Targets without cadence_pk: {n_targets}')
+
+        if not database.table_exists('temp_' + carton, schema='sandbox'):
+            print('temp_' + carton + ' does not exist.\n')
+            continue
+
+        columns = [c.name for c in database.get_columns('temp_' + carton, schema='sandbox')]
+        if 'cadence' not in columns:
+            print('temp_' + carton + ' does not have cadence column.\n')
+            continue
+
+        temp_table = peewee.Table('temp_' + carton, schema='sandbox')
+
+        cadences = (temp_table.select(temp_table.c.cadence)
+                    .join(Target, on=(temp_table.c.catalogid == Target.catalogid))
+                    .join(CartonToTarget, on=(Target.pk == CartonToTarget.target_pk))
+                    .join(Carton, on=(CartonToTarget.carton_pk == Carton.pk))
+                    .join(Version, on=(Carton.version_pk == Version.pk))
+                    .where(Version.plan == plan)
+                    .where(Carton.carton == carton)
+                    .where(CartonToTarget.cadence_pk.is_null())
+                    .distinct(temp_table.c.cadence)
+                    .order_by(temp_table.c.cadence)
+                    .tuples()
+                    .execute(database))
+        cadences = list(zip(*cadences))[0]
+
+        print('Cadences missing:', cadences)
+
+        print()
+
+
+if __name__ == '__main__':
+
+    args = sys.argv[1:]
+
+    if len(args) == 0:
+        raise ValueError('Not enough arguments: <plan> [<db-profile>]')
+    elif len(args) == 1:
+        plan = args[0]
+        profile = None
+    else:
+        plan, profile = args[0:2]
+
+    list_cadences(plan, profile)
