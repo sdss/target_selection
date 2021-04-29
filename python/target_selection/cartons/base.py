@@ -683,8 +683,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(
                     f'Carton {self.name!r} with plan {self.plan!r} '
-                    f'and tag {self.tag!r} already has targets '
-                    'loaded. Dropping carton-to-target entries.',
+                    f'already has targets loaded. '
+                    'Dropping carton-to-target entries.',
                     TargetSelectionUserWarning,
                 )
                 self.drop_carton()
@@ -692,8 +692,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise TargetSelectionError(
                     f'Found existing targets for '
                     f'carton {self.name!r} with plan '
-                    f'{self.plan!r} and tag '
-                    f'{self.tag!r}.'
+                    f'{self.plan!r}.'
                 )
 
         RModel = self.get_model()
@@ -744,7 +743,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Create targeting plan in tdb.
         version, created = tdb.Version.get_or_create(
-            plan=self.plan, tag=self.tag, target_selection=True
+            plan=self.plan,
+            tag=self.tag,
+            target_selection=True,
+            robostrategy=False
         )
         version_pk = version.pk
 
