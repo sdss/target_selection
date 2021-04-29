@@ -72,15 +72,15 @@ class MWM_CB_UVEX_BaseCarton(BaseCarton):
         model.update(cadence='bright_1x1').where(model.phot_g_mean_mag < 17).execute()
         model.update(value=1).where(model.phot_g_mean_mag < 17).execute()
 
-        # 17 < G < 19 => cadence = dark_1x2
-        model.update(cadence='dark_1x2').where((model.phot_g_mean_mag > 17) &
+        # 17 <= G < 19 => cadence = dark_1x2
+        model.update(cadence='dark_1x2').where((model.phot_g_mean_mag >= 17) &
                                                (model.phot_g_mean_mag < 19)).execute()
-        model.update(value=2).where((model.phot_g_mean_mag > 17) &
+        model.update(value=2).where((model.phot_g_mean_mag >= 17) &
                                     (model.phot_g_mean_mag < 19)).execute()
 
-        # G > 19 => cadence = dark_1x3
-        model.update(cadence='dark_1x3').where(model.phot_g_mean_mag > 19).execute()
-        model.update(value=3).where(model.phot_g_mean_mag > 19).execute()
+        # G >= 19 => cadence = dark_1x3
+        model.update(cadence='dark_1x3').where(model.phot_g_mean_mag >= 19).execute()
+        model.update(value=3).where(model.phot_g_mean_mag >= 19).execute()
 
         return model
 
