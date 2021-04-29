@@ -380,6 +380,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_sdss')
             temp_table = peewee.Table(self.table_name + '_sdss')
 
             (Model
@@ -427,6 +428,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_ps1')
             temp_table = peewee.Table(self.table_name + '_ps1')
 
             (Model
@@ -478,6 +480,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_gaia')
             temp_table = peewee.Table(self.table_name + '_gaia')
 
             (Model
