@@ -11,6 +11,7 @@ import logging
 import os
 import sys
 import warnings
+from glob import glob
 
 import click
 import peewee
@@ -19,7 +20,9 @@ from sdssdb.peewee.sdss5db import targetdb as tdb
 from sdssdb.peewee.sdss5db.catalogdb import database
 
 import target_selection as tsmod
-from target_selection.exceptions import TargetSelectionError
+from target_selection.cartons.tools import get_file_carton
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 from target_selection.xmatch import XMatchPlanner
 
 
@@ -97,10 +100,10 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
               help='comma-separated carton names to exclude')
 @click.option('--write-table', '-w', is_flag=True,
               help='write table of loaded targets as a FITS file')
-@click.option('--allow-errors', is_flag=True,
-              help='continue processing cartons if a carton fails')
+@click.option('--exclude-open-fiber', is_flag=True,
+              help='do not process open fiber cartons')
 def run(targeting_plan, config_file, overwrite, keep, region, load,
-        skip_query, include, exclude, write_table, allow_errors, limit):
+        skip_query, include, exclude, write_table, limit, exclude_open_fiber):
     """Runs target selection for all cartons."""
 
     carton_classes = {Carton.name: Carton
@@ -115,62 +118,86 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
         raise TargetSelectionError('cannot find configuration for plan '
                                    f'{targeting_plan}.')
 
-    cartons = config_plan['cartons']
+    carton_names = config_plan['cartons']
 
     if exclude:
-        cartons = [carton for carton in cartons if carton not in exclude]
+        carton_names = [cn for cn in carton_names if cn not in exclude]
 
     if include:
-        cartons = [carton for carton in cartons if carton in include]
+        carton_names = include
 
-    for carton_name in cartons:
+    Cartons = [carton_classes[carton_name] for carton_name in carton_names]
 
-        try:
-
-            Carton = carton_classes[carton_name]
-            carton = Carton(targeting_plan, config_file=config_file)
-
-            tsmod.log.header = f'({carton.name}): '
-            tsmod.log.info(f'Running target selection for '
-                           f'carton {carton.name!r}.')
-
-            if carton.check_targets() and not overwrite:
-                raise ValueError(f'Found existing targets for carton '
-                                 f'{carton.name!r} with plan {carton.plan!r}.')
-
-            if not skip_query:
-                carton.run(query_region=(region or None),
-                           overwrite=overwrite,
-                           limit=limit)
-                if write_table:
-                    carton.write_table()
+    if not exclude_open_fiber:
+        if 'open_fiber_path' not in config_plan:
+            warnings.warn('Plan does not specify an "open_fiber_path".',
+                          TargetSelectionUserWarning)
+        else:
+            open_fiber_path = os.path.expandvars(config_plan['open_fiber_path'])
+            if not os.path.exists(open_fiber_path):
+                warnings.warn(f'Open fiber path {open_fiber_path} does not exist.',
+                              TargetSelectionUserWarning)
             else:
-                tsmod.log.debug('Skipping query.')
+                open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
+                OpenFiberCartons = [get_file_carton(fn, '', 'open_fiber', 'open_fiber')
+                                    for fn in open_fiber_files]
+                if include:
+                    OpenFiberCartons = [OFC for OFC in OpenFiberCartons
+                                        if OFC.name in include]
+                Cartons += OpenFiberCartons
+                tsmod.log.info(f'{len(OpenFiberCartons)} open fiber cartons selected.')
+    else:
+        tsmod.log.info('Excluding open fiber cartons.')
 
-            if load:
-                carton.load(overwrite=overwrite)
-            else:
-                tsmod.log.info('Not loading data into targetdb.target.')
+    for Carton in Cartons:
 
+        carton = Carton(targeting_plan, config_file=config_file)
+
+        tsmod.log.header = f'({carton.name}): '
+        tsmod.log.info(f'Running target selection for '
+                       f'carton {carton.name!r}.')
+
+        if carton.check_targets() and not overwrite:
+            raise ValueError(f'Found existing targets for carton '
+                             f'{carton.name!r} with plan {carton.plan!r}.')
+
+        if not skip_query:
+            carton.run(query_region=(region or None),
+                       overwrite=overwrite,
+                       limit=limit)
             if write_table:
-                carton.write_table(mode='targetdb')
+                carton.write_table()
+        else:
+            tsmod.log.debug('Skipping query.')
 
-            if not keep:
-                tsmod.log.info(f'Dropping temporary table {carton.path!r}.')
-                carton.drop_table()
+        if load:
+            carton.load(overwrite=overwrite)
+        else:
+            tsmod.log.info('Not loading data into targetdb.target.')
 
-        except Exception as ee:
+        if write_table:
+            carton.write_table(mode='targetdb')
 
-            if allow_errors:
-                if carton_name not in carton_classes:
-                    tsmod.log.error(f'No carton class found for {carton_name}')
-                else:
-                    tsmod.log.error(f'Errored processing carton '
-                                    f'{carton_name}: {ee}')
-            else:
-                raise
+        if not keep:
+            tsmod.log.info(f'Dropping temporary table {carton.path!r}.')
+            carton.drop_table()
 
     tsmod.log.header = ''
+
+
+@target_selection.command('load-files')
+@click.option('--program', type=str, default='open_fiber', show_default=True)
+@click.option('--category', type=str, default='open_fiber', show_default=True)
+@click.argument('PLAN', type=str, nargs=1)
+@click.argument('FILES', nargs=-1, required=True)
+def load_files(plan, files, program, category):
+    """Loads a carton from a FITS file."""
+
+    for fn in files:
+        Carton = get_file_carton(fn, '', category, program)
+        carton = Carton(plan)
+        carton.run(overwrite=True)
+        carton.load(overwrite=True)
 
 
 @target_selection.command()

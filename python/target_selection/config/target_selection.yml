@@ -80,6 +80,7 @@
     - bhm_csc_boss_dark
     - bhm_csc_boss_bright
     - bhm_csc_apogee
+  open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
   schema: sandbox
   magnitudes:
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
