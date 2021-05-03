@@ -57,6 +57,8 @@ def get_file_carton(
 
         def build_query(self, version_id, query_region=None):
 
+            self.log.debug(f'Processing file {self._file_path}.')
+
             gaia_ids = (self._table[self._table['Gaia_DR2_Source_ID'] > 0]
                         ['Gaia_DR2_Source_ID'].tolist())
             ls8_ids = (self._table[self._table['LegacySurvey_DR8_ID'] > 0]
