@@ -65,7 +65,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5425
@@ -199,7 +199,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_red'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5450
@@ -311,7 +311,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     """
 
     name = 'ops_std_eboss'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5300
@@ -391,7 +391,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_tic'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5400
@@ -549,7 +549,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_lsdr8'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5350
