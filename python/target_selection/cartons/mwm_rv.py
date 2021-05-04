@@ -484,6 +484,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
      (list all options, even though no single target will receive more than one):
       If H>10.8 then use mwm_rv_<nn>x2, otherwise use mwm_rv_<nn>x1,
        where <nn> = 3*ceiling((18-nvisits)/3)
+      if <nn> is less than 6 then
+         set <nn> = 6
 
     Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
      pmra, pmdec, h, baseline, fields FROM mwm_rv_long WHERE h<11.5
@@ -551,6 +553,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         """
         If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
         where <nn> = 3*ceiling((18-nvisits)/3)
+        if <nn> is less than 6 then
+            set <nn> = 6
         """
 
         cursor = self.database.execute_sql(
@@ -565,6 +569,9 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             current_h = output[i][2]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
+            if(nn < 6):
+                nn = 6
+
             if(current_h > 10.8):
                 current_cadence = 'bright_' + str(nn) + 'x2'
             else:
