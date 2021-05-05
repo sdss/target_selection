@@ -118,6 +118,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
         )
 
         instrument = peewee.Value(self.instrument)
+        inertial = peewee.Value(self.inertial).cast('bool')
 
         fibertotflux_r_max = AB2nMgy(self.parameters['fibertotmag_r_min'])
         fibertotflux_r_min = AB2nMgy(self.parameters['fibertotmag_r_max'])
@@ -316,6 +317,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 opt_prov.alias('optical_prov'),
+                inertial.alias('inertial'),
             )
             .join(c2ls)
             .join(ls)
@@ -433,6 +435,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
         )
 
         instrument = peewee.Value(self.instrument)
+        inertial = peewee.Value(self.inertial).cast('bool')
 
         fibertotflux_r_max = AB2nMgy(self.parameters['fibertotmag_r_min'])
         fibertotflux_r_min = AB2nMgy(self.parameters['fibertotmag_r_max'])
@@ -631,6 +634,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 opt_prov.alias('optical_prov'),
+                inertial.alias('inertial'),
             )
             .join(c2ls)
             .join(ls)
@@ -746,6 +750,7 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
         )
 
         instrument = peewee.Value(self.instrument)
+        inertial = peewee.Value(self.inertial).cast('bool')
 
         r_psf_flux_max = AB2Jy(self.parameters['r_psf_mag_min'])
         i_psf_flux_max = AB2Jy(self.parameters['i_psf_mag_min'])
@@ -946,6 +951,7 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
                 opt_prov.alias('optical_prov'),
                 (ps.flags.bin_and(ps1_good_stack_flag) > 0)
                 .cast('bool').alias('ps1_good_stack_flag'),
+                inertial.alias('inertial'),
             )
             .join(c2ps)
             .join(ps)
