@@ -212,6 +212,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 t.fiberid.alias('dr16q_fiberid'),   # extra
                 t.ra.alias("dr16q_ra"),   # extra
                 t.dec.alias("dr16q_dec"),   # extra
+                c2s.best.alias("c2s_best"),  # extra
             )
             .join(c2s)
             .join(s)
@@ -232,8 +233,9 @@ class BhmAqmesBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
-                c2s.best >> True,   # TODO check this is working in v0.5
-                                    # - the same filter killed many AQMES targets in v0 cross-match
+                # c2s.best >> True,   # TODO check this is working in v0.5
+                #                     # - this condition killed many AQMES
+                #                     #   targets in v0 cross-match
             )
             .where
             (
