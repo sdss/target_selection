@@ -471,7 +471,7 @@
       mag_i_min: 16.0
       mag_i_max: 19.1
     bhm_aqmes_bonus_faint:
-      priority: 3301
+      priority: 3302
       value: 0.1
       fieldlist: None
       mag_i_min: 19.1

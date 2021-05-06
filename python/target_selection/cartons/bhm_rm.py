@@ -194,18 +194,25 @@ class BhmRmBaseCarton(BaseCarton):
                                  ),
                                  'bhm_rm_174x8')
 
-        # the following will replace old generic cadences when relevant table has been populated
-        # TODO - replace when correct cadences are loaded
+        # this gives the new names for the same cadences assumed in v0
         cadence_v0p5 = peewee.Case(None,
                                    (
-                                       (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
-                                       (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
-                                       (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
-                                       (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
-                                       (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
-                                       (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
+                                       (t.field_name.contains('S-CVZ'), 'dark_100x8'),
                                    ),
-                                   'bhm_rm_174x8')
+                                   'dark_174x8')
+
+        # the following will replace old generic cadences when relevant table has been populated
+        # TODO - replace when correct cadences are loaded
+        cadence_v0p51 = peewee.Case(None,
+                                    (
+                                        (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
+                                        (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
+                                        (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
+                                        (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
+                                        (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
+                                        (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
+                                    ),
+                                    'dark_174x8')
 
         # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
         opt_prov = peewee.Case(None,
@@ -266,9 +273,10 @@ class BhmRmBaseCarton(BaseCarton):
                 instrument.alias('instrument'),
                 priority.alias('priority'),
                 value.alias('value'),
-                cadence_v0.alias('cadence'),
+                cadence_v0p5.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),
                 cadence_v0p5.alias('cadence_v0p5'),
+                cadence_v0p51.alias('cadence_v0p51'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
@@ -276,6 +284,7 @@ class BhmRmBaseCarton(BaseCarton):
                 opt_prov.alias('optical_prov'),
                 inertial.alias('inertial'),
                 t.optical_survey.alias('optical_survey'),
+                c2t.best.alias("c2t_best"),  # extra
             )
             .join(c2t)
             # An explicit join is needed because we are using c2t for Catalog_to_BHM_RM_v0
@@ -284,7 +293,8 @@ class BhmRmBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2t.version_id == version_id,
-                c2t.best >> True
+                # c2t.best >> True   # TODO check if this is dropping RM targets
+                                     # like it does for AQMES
             )
             .where
             (
@@ -337,7 +347,8 @@ class BhmRmBaseCarton(BaseCarton):
                     (tw.rm_suitability != 0)
                 )
             )
-            # .distinct([t.pk])   # avoid duplicates - trust the RM parent sample - not needed
+            .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
+                                # - only needed if NOT using c2t.best = True condition
         )
         query = self.append_spatial_query(query, fieldlist)
 
