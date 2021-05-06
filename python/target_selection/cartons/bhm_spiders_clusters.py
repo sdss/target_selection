@@ -87,6 +87,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
     program = 'bhm_spiders'
     tile = False
     instrument = 'BOSS'
+    inertial = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -402,6 +403,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
     program = 'bhm_spiders'
     tile = False
     instrument = 'BOSS'
+    inertial = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -719,6 +721,7 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
     program = 'bhm_spiders'
     tile = False
     instrument = 'BOSS'
+    inertial = True
 
     def build_query(self, version_id, query_region=None):
 
