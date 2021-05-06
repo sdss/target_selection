@@ -886,15 +886,15 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
         cadence = peewee.Case(
             None,
             (
-                ((ps.r_stk_psf_flux < r_psf_flux_min_for_cadence1) |
-                 (ps.i_stk_psf_flux < i_psf_flux_min_for_cadence1) |
-                 (ps.z_stk_psf_flux < z_psf_flux_min_for_cadence1), cadence1),
-                ((ps.r_stk_psf_flux < r_psf_flux_min_for_cadence2) |
-                 (ps.i_stk_psf_flux < i_psf_flux_min_for_cadence2) |
-                 (ps.z_stk_psf_flux < z_psf_flux_min_for_cadence2), cadence2),
-                ((ps.r_stk_psf_flux >= r_psf_flux_min_for_cadence2) &
-                 (ps.i_stk_psf_flux >= i_psf_flux_min_for_cadence2) &
-                 (ps.z_stk_psf_flux >= z_psf_flux_min_for_cadence2), cadence3),
+                ((ps.r_stk_psf_flux > r_psf_flux_min_for_cadence1) |
+                 (ps.i_stk_psf_flux > i_psf_flux_min_for_cadence1) |
+                 (ps.z_stk_psf_flux > z_psf_flux_min_for_cadence1), cadence1),
+                ((ps.r_stk_psf_flux > r_psf_flux_min_for_cadence2) |
+                 (ps.i_stk_psf_flux > i_psf_flux_min_for_cadence2) |
+                 (ps.z_stk_psf_flux > z_psf_flux_min_for_cadence2), cadence2),
+                ((ps.r_stk_psf_flux <= r_psf_flux_min_for_cadence2) &
+                 (ps.i_stk_psf_flux <= i_psf_flux_min_for_cadence2) &
+                 (ps.z_stk_psf_flux <= z_psf_flux_min_for_cadence2), cadence3),
             ),
             cadence4)
         # We want to switch between psfmags and fibertotmags depending on
