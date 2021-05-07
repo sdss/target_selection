@@ -843,6 +843,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         Magnitude = tdb.Magnitude
 
+        version_id = cdb.Version.get(plan=self.xmatch_plan).id
+
         magnitude_paths = self.config['magnitudes']
         fields = [Magnitude.carton_to_target_pk]
 
@@ -896,7 +898,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                             on=(tdb.Target.catalogid == node_model.catalogid),
                         )
                         select_from = select_from.where(
-                            (node_model.best >> True) | (node_model.catalogid >> None)
+                            ((node_model.best >> True) &
+                             (node_model.version_id == version_id)) |
+                            (node_model.catalogid >> None)
                         )
                     else:
                         select_from = select_from.join(
