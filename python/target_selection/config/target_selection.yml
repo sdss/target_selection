@@ -537,8 +537,8 @@
     bhm_csc_boss_dark:
       mag_i_min: 16.0
       mag_i_max: 22.0
-      priority_floor: 3000
-      dpriority_has_spec: 10
+      priority_floor: 1920
+      dpriority_has_spec: 1
       value: 1.0
       spec_join_radius: 1.0
       spec_sn_thresh: 1.60
@@ -546,8 +546,8 @@
     bhm_csc_boss_bright:
       mag_i_min: 13.0
       mag_i_max: 18.0
-      priority_floor: 4000
-      dpriority_has_spec: 10
+      priority_floor: 2920
+      dpriority_has_spec: 1
       value: 1.0
       spec_join_radius: 1.0
       spec_sn_thresh: 1.60
@@ -555,7 +555,7 @@
     bhm_csc_apogee:
       mag_h_min: 10.0
       mag_h_max: 15.0
-      priority_floor: 4000
+      priority_floor: 2930
       value: 1.0
 
 '0.5.0-beta.1':

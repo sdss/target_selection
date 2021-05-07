@@ -203,16 +203,16 @@ class BhmRmBaseCarton(BaseCarton):
 
         # the following will replace old generic cadences when relevant table has been populated
         # TODO - replace when correct cadences are loaded
-        cadence_v0p51 = peewee.Case(None,
-                                    (
-                                        (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
-                                        (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
-                                        (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
-                                        (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
-                                        (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
-                                        (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
-                                    ),
-                                    'dark_174x8')
+        cadence_v1p0 = peewee.Case(None,
+                                   (
+                                       (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
+                                       (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
+                                       (t.field_name.contains('XMM-LSS'), 'bhm_rm_xmm-lss'),
+                                       (t.field_name.contains('S-CVZ'), 'bhm_rm_cvz-s'),
+                                       (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
+                                       (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
+                                   ),
+                                   'dark_174x8')
 
         # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
         opt_prov = peewee.Case(None,
@@ -234,7 +234,7 @@ class BhmRmBaseCarton(BaseCarton):
                                        t.mag_gaia[0]),  # just using gaia G for now
                                       ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_r = peewee.Case(None,
                                   (
                                       ((t.des == 1) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
@@ -242,7 +242,7 @@ class BhmRmBaseCarton(BaseCarton):
                                       ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
                                       ((t.nsc == 1) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_i = peewee.Case(None,
                                   (
                                       ((t.des == 1) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
@@ -253,7 +253,7 @@ class BhmRmBaseCarton(BaseCarton):
                                       ((t.optical_survey == 'Gaia') & (t.mag_gaia[2] > 0.0),
                                        t.mag_gaia[2]),  # just using gaia RP for now
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_z = peewee.Case(None,
                                   (
                                       ((t.des == 1) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
@@ -261,7 +261,7 @@ class BhmRmBaseCarton(BaseCarton):
                                       ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
                                       ((t.nsc == 1) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
 
         query = (
             c.select(
@@ -276,7 +276,7 @@ class BhmRmBaseCarton(BaseCarton):
                 cadence_v0p5.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),
                 cadence_v0p5.alias('cadence_v0p5'),
-                cadence_v0p51.alias('cadence_v0p51'),
+                cadence_v1p0.alias('cadence_v1p0'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
