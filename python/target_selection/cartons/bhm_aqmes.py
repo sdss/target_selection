@@ -202,10 +202,10 @@ class BhmAqmesBaseCarton(BaseCarton):
                 instrument.alias('instrument'),
                 cadence.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),
-                t.psfmag[1].alias('g'),
-                t.psfmag[2].alias('r'),
-                t.psfmag[3].alias('i'),
-                t.psfmag[4].alias('z'),
+                (fn.COALESCE(t.psfmag[1], 99.9)).alias('g'),
+                (fn.COALESCE(t.psfmag[2], 99.9)).alias('r'),
+                (fn.COALESCE(t.psfmag[3], 99.9)).alias('i'),
+                (fn.COALESCE(t.psfmag[4], 99.9)).alias('z'),
                 opt_prov.alias('optical_prov'),
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
