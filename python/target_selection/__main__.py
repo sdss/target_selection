@@ -121,10 +121,14 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
     carton_names = config_plan['cartons']
 
     if exclude:
-        carton_names = [cn for cn in carton_names if cn not in exclude]
+        carton_names = [cn for cn in carton_names
+                        if cn not in exclude.split(',')]
 
     if include:
-        carton_names = include
+        carton_names = include.split(',')
+        for c in carton_names:
+            if c not in carton_classes:
+                raise ValueError(f'Carton {c} does not exist.')
 
     Cartons = [carton_classes[carton_name] for carton_name in carton_names]
 
