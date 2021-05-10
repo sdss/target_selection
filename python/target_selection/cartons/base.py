@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import abc
+import datetime
 import inspect
 import time
 import warnings
@@ -797,6 +798,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             program=self.program,
             mapper_pk=mapper_pk,
             version_pk=version_pk,
+            run_on=datetime.datetime.now().isoformat().split('T')[0]
         ).save()
 
         log.debug(f'Created carton {self.name!r}')
