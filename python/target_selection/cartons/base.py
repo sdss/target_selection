@@ -255,7 +255,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise RuntimeError(f'Temporary table {path!r} already exists.')
 
         log.info('Running query ...')
-        version_id = cdb.Version.get(plan=self.xmatch_plan).id
+        version_id = self.get_version_id()
 
         # If build_query accepts a query_region parameter, call with the query
         # region. Otherwise will add the radial query condition later.
@@ -350,6 +350,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return ResultsModel
 
+    def get_version_id(self):
+        """Returns the version_id for the cross-match plan."""
+
+        return cdb.Version.get(plan=self.xmatch_plan).id
+
     def add_optical_magnitudes(self):
         """Adds ``gri`` magnitude columns."""
 
@@ -398,7 +403,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.SDSS_DR13_PhotoObj,
                    on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
                        cdb.SDSS_DR13_PhotoObj.objid))
-             .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True)
+             .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
+                    cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
              .where(Model.selected >> True)
              .create_table(temp_table._path[0], temporary=True))
 
@@ -446,7 +452,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                    on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
-             .where(cdb.CatalogToPanstarrs1.best >> True)
+             .where(cdb.CatalogToPanstarrs1.best >> True,
+                    cdb.CatalogToPanstarrs1.version_id == self.get_version_id())
              .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
                     (cdb.Panstarrs1.g_stk_psf_flux > 0))
              .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
@@ -497,7 +504,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.Gaia_DR2)
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
-             .where(cdb.CatalogToTIC_v8.best >> True)
+             .where(cdb.CatalogToTIC_v8.best >> True,
+                    cdb.CatalogToTIC_v8.version_id == self.get_version_id())
              .where(cdb.Gaia_DR2.phot_g_mean_mag.is_null(False))
              .where(cdb.Gaia_DR2.phot_bp_mean_mag.is_null(False))
              .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
@@ -843,8 +851,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         Magnitude = tdb.Magnitude
 
-        version_id = cdb.Version.get(plan=self.xmatch_plan).id
-
         magnitude_paths = self.config['magnitudes']
         fields = [Magnitude.carton_to_target_pk]
 
@@ -899,7 +905,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         )
                         select_from = select_from.where(
                             ((node_model.best >> True) &
-                             (node_model.version_id == version_id)) |
+                             (node_model.version_id == self.get_version_id())) |
                             (node_model.catalogid >> None)
                         )
                     else:
