@@ -244,7 +244,8 @@ class BhmAqmesBaseCarton(BaseCarton):
                 # (t.z >= self.parameters['redshift_min']), # not needed
                 # (t.z <= self.parameters['redshift_max']),
             )
-            .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            # .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            .distinct([c.catalogid])   # avoid duplicates - trust the catalog
             .cte('bquery', materialized=True)
         )
 
