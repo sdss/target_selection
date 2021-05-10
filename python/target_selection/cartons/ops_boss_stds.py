@@ -401,8 +401,9 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
-                         TwoMassPSC.h_m, TwoMassPSC.pts_key,
+                 .select(CatalogToTIC_v8.catalogid,
+                         Catalog.ra, Catalog.dec,
+                         TIC_v8.hmag, TIC_v8.twomass_psc,
                          Gaia_DR2.phot_g_mean_mag,
                          TIC_v8.teff, TIC_v8.logg.alias('logg'),
                          TIC_v8.bmag, TIC_v8.vmag, TIC_v8.umag,
@@ -414,9 +415,6 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
                  .join(Gaia_DR2,
                        on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
