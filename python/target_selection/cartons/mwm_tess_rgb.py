@@ -91,13 +91,14 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
     def post_process(self, model, **kwargs):
 
-        data = numpy.array(model.select(model.catalogid, model.hmag).tuples())
-        hmag = data[:, 1]
-        n_exp = h2exp(hmag, sn=80)
+        data = numpy.array(model.select(model.catalogid, model.hmag).tuples(),
+                           dtype=[('catalogid', numpy.int64),
+                                  ('hmag', numpy.float32)])
+        n_exp = h2exp(data['hmag'], sn=80)
 
-        values = ((data[ii, 0], 'bright_1x' + str(int(n_exp[ii]))
+        values = ((int(data['catalogid'][ii]), 'bright_1x' + str(int(n_exp[ii]))
                    if not numpy.isnan(n_exp[ii]) else None)
-                  for ii in range(data.shape[0]))
+                  for ii in range(len(data)))
         vl = peewee.ValuesList(values, columns=('catalogid', 'cadence'), alias='vl')
 
         (model

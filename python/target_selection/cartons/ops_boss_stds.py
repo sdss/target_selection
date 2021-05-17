@@ -65,7 +65,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5425
@@ -199,7 +199,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_red'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5450
@@ -311,7 +311,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     """
 
     name = 'ops_std_eboss'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5300
@@ -391,7 +391,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_tic'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5400
@@ -401,8 +401,9 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
-                         TwoMassPSC.h_m, TwoMassPSC.pts_key,
+                 .select(CatalogToTIC_v8.catalogid,
+                         Catalog.ra, Catalog.dec,
+                         TIC_v8.hmag, TIC_v8.twomass_psc,
                          Gaia_DR2.phot_g_mean_mag,
                          TIC_v8.teff, TIC_v8.logg.alias('logg'),
                          TIC_v8.bmag, TIC_v8.vmag, TIC_v8.umag,
@@ -414,9 +415,6 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
                  .join(Gaia_DR2,
                        on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -549,7 +547,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     """
 
     name = 'ops_std_boss_lsdr8'
-    category = 'standard'
+    category = 'standard_boss'
     cadence = None
     program = 'ops_std'
     priority = 5350

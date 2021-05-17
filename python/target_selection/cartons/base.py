@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import abc
+import datetime
 import inspect
 import time
 import warnings
@@ -141,6 +142,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log = log
         self.has_run = False
+        self._disable_query_log = False
 
         # We cannot set temp_buffers multiple times if there are temporary tables
         # (as in add_optical_magnitudes) so we set it here.
@@ -254,7 +256,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise RuntimeError(f'Temporary table {path!r} already exists.')
 
         log.info('Running query ...')
-        version_id = cdb.Version.get(plan=self.xmatch_plan).id
+        version_id = self.get_version_id()
 
         # If build_query accepts a query_region parameter, call with the query
         # region. Otherwise will add the radial query condition later.
@@ -295,8 +297,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         cursor = self.database.cursor()
         query_str = cursor.mogrify(query_sql, params).decode()
 
-        log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
-                             'darkgrey'))
+        if not self._disable_query_log:
+            log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
+                                 'darkgrey'))
+        else:
+            log.debug('Not printing VERY long query.')
 
         with self.database.atomic():
             with Timer() as timer:
@@ -346,6 +351,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return ResultsModel
 
+    def get_version_id(self):
+        """Returns the version_id for the cross-match plan."""
+
+        return cdb.Version.get(plan=self.xmatch_plan).id
+
     def add_optical_magnitudes(self):
         """Adds ``gri`` magnitude columns."""
 
@@ -371,15 +381,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
         # it and avoid doing the same query later when loading the magnitudes.
         for mag in magnitudes:
             self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN {mag} REAL;')
-        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+            Model._meta.add_field(mag, peewee.FloatField())
 
-        # Refresh model.
-        Model = self.get_model()
+        self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
+        Model._meta.add_field('optical_prov', peewee.TextField())
 
         # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_sdss')
             temp_table = peewee.Table(self.table_name + '_sdss')
 
             (Model
@@ -393,7 +404,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.SDSS_DR13_PhotoObj,
                    on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
                        cdb.SDSS_DR13_PhotoObj.objid))
-             .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True)
+             .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
+                    cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
              .where(Model.selected >> True)
              .create_table(temp_table._path[0], temporary=True))
 
@@ -427,6 +439,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_ps1')
             temp_table = peewee.Table(self.table_name + '_ps1')
 
             (Model
@@ -440,7 +453,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                    on=(cdb.CatalogToPanstarrs1.target_id == cdb.Panstarrs1.catid_objid))
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
-             .where(cdb.CatalogToPanstarrs1.best >> True)
+             .where(cdb.CatalogToPanstarrs1.best >> True,
+                    cdb.CatalogToPanstarrs1.version_id == self.get_version_id())
              .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
                     (cdb.Panstarrs1.g_stk_psf_flux > 0))
              .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
@@ -478,6 +492,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_gaia')
             temp_table = peewee.Table(self.table_name + '_gaia')
 
             (Model
@@ -490,7 +505,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.Gaia_DR2)
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
-             .where(cdb.CatalogToTIC_v8.best >> True)
+             .where(cdb.CatalogToTIC_v8.best >> True,
+                    cdb.CatalogToTIC_v8.version_id == self.get_version_id())
              .where(cdb.Gaia_DR2.phot_g_mean_mag.is_null(False))
              .where(cdb.Gaia_DR2.phot_bp_mean_mag.is_null(False))
              .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
@@ -683,8 +699,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if overwrite:
                 warnings.warn(
                     f'Carton {self.name!r} with plan {self.plan!r} '
-                    f'and tag {self.tag!r} already has targets '
-                    'loaded. Dropping carton-to-target entries.',
+                    f'already has targets loaded. '
+                    'Dropping carton-to-target entries.',
                     TargetSelectionUserWarning,
                 )
                 self.drop_carton()
@@ -692,8 +708,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise TargetSelectionError(
                     f'Found existing targets for '
                     f'carton {self.name!r} with plan '
-                    f'{self.plan!r} and tag '
-                    f'{self.tag!r}.'
+                    f'{self.plan!r}.'
                 )
 
         RModel = self.get_model()
@@ -744,7 +759,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         # Create targeting plan in tdb.
         version, created = tdb.Version.get_or_create(
-            plan=self.plan, tag=self.tag, target_selection=True
+            plan=self.plan,
+            tag=self.tag,
+            target_selection=True,
+            robostrategy=False
         )
         version_pk = version.pk
 
@@ -780,6 +798,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             program=self.program,
             mapper_pk=mapper_pk,
             version_pk=version_pk,
+            run_on=datetime.datetime.now().isoformat().split('T')[0]
         ).save()
 
         log.debug(f'Created carton {self.name!r}')
@@ -887,7 +906,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                             on=(tdb.Target.catalogid == node_model.catalogid),
                         )
                         select_from = select_from.where(
-                            (node_model.best >> True) | (node_model.catalogid >> None)
+                            ((node_model.best >> True) &
+                             (node_model.version_id == self.get_version_id())) |
+                            (node_model.catalogid >> None)
                         )
                     else:
                         select_from = select_from.join(
@@ -1038,13 +1059,28 @@ class BaseCarton(metaclass=abc.ABCMeta):
             select_from = select_from.select_extend(
                 tdb.Instrument.get(label=self.instrument).pk)
         else:
-            select_from = select_from.select_extend(RModel.instrument)
+            raise RuntimeError(f'Instrument not defined for carton {self.name}')
 
-        for colname in ['delta_ra', 'delta_dec', 'intertial']:
+        for colname in ['delta_ra', 'delta_dec', 'inertial']:
             if colname in RModel._meta.columns:
                 select_from = select_from.select_extend(RModel._meta.columns[colname])
             else:
-                select_from = select_from.select_extend(peewee.SQL('null'))
+                if colname == 'inertial':
+                    select_from = select_from.select_extend(peewee.Value(False))
+                else:
+                    select_from = select_from.select_extend(peewee.Value(0.0))
+
+        if 'lambda_eff' in RModel._meta.columns:
+            select_from = select_from.select_extend(RModel._meta.columns['lambda_eff'])
+        else:
+            if self.instrument is not None:
+                instrument = self.instrument
+            else:
+                instrument = RModel.instrument
+            select_from = select_from.select_extend(
+                tdb.Instrument
+                .select(tdb.Instrument.default_lambda_eff)
+                .where(tdb.Instrument.label == instrument))
 
         # Now do the insert
         n_inserted = (
@@ -1060,6 +1096,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.delta_ra,
                     CartonToTarget.delta_dec,
                     CartonToTarget.inertial,
+                    CartonToTarget.lambda_eff
                 ],
             )
             .returning()

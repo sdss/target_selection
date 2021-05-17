@@ -12,6 +12,11 @@ Carton
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: target_selection.cartons.tools
+   :members: get_file_carton
+   :undoc-members:
+   :show-inheritance:
+
 .. _api-xmatch:
 
 XMatch

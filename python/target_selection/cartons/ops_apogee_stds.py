@@ -67,7 +67,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     """
 
     name = 'ops_std_apogee'
-    category = 'standard'
+    category = 'standard_apogee'
     cadence = None
     program = 'ops_std'
     priority = 5500

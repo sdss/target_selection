@@ -4,6 +4,9 @@
 Change Log
 ==========
 
+* Full implementation of all cartons for ``0.5.0``.
+* Implement method to create a carton from a FITS file (see `.get_file_carton`).
+
 * :release:`0.2.2 <2021-03-29>`
 * Various changes to ``xmatch`` plan ``0.5.0``.
 * Xmatch: Run ``ANALYZE`` on temporary table only when clustering.

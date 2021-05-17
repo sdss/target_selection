@@ -80,6 +80,7 @@
     - bhm_csc_boss_dark
     - bhm_csc_boss_bright
     - bhm_csc_apogee
+  open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
   schema: sandbox
   magnitudes:
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
@@ -1128,7 +1129,7 @@
     work_mem: '5GB'
 
 '0.0.0-test':
-  xmatch_plan: 0.5.0-beta.2
+  xmatch_plan: 0.5.0
   cartons:
     - ops_std_boss_tic
     # - ops_std_boss_lsdr8
@@ -1149,7 +1150,6 @@
       gaia_g_ls_r_min: 0.0
       gaia_g_ls_r_max: 0.1
   magnitudes:
-    z: [catalog_to_sdss_dr13_photoobj_primary, sdss_dr13_photoobj.psfmag_z]
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
     k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
