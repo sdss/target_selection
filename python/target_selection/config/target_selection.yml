@@ -103,16 +103,14 @@
       mag_ls_r_min: 15.95
       mag_ls_r_max: 18.05
       mag_gaia_g_min: 15.5
-      parallax_min: -0.5
-      parallax_max: 1.0
-      gaia_bp_rp_min: 0.619
-      gaia_bp_rp_max: 0.863
-      ls_g_r_min: 0.254
-      ls_g_r_max: 0.448
-      ls_r_z_min: 0.024
-      ls_r_z_max: 0.190
-      gaia_g_ls_r_min: 0.0
-      gaia_g_ls_r_max: 0.1
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.07
+      g_r_dered_nominal: 0.30
+      r_z_dered_nominal: 0.06
+      bp_rp_dered_nominal: 0.66
+      bp_g_dered_nominal: 0.22
     bhm_gua_dark:
       mag_g_min: 16.5
       mag_g_max: 21.2
@@ -1115,8 +1113,9 @@
       mag_ls_r_min: 15.95
       mag_ls_r_max: 18.05
       mag_gaia_g_min: 15.5
-      parallax_min: -0.5
-      parallax_max: 1.0
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
       gaia_bp_rp_min: 0.619
       gaia_bp_rp_max: 0.863
       ls_g_r_min: 0.254
@@ -1139,16 +1138,14 @@
       mag_ls_r_min: 15.95
       mag_ls_r_max: 18.05
       mag_gaia_g_min: 15.5
-      parallax_min: -0.5
-      parallax_max: 1.0
-      gaia_bp_rp_min: 0.619
-      gaia_bp_rp_max: 0.863
-      ls_g_r_min: 0.254
-      ls_g_r_max: 0.448
-      ls_r_z_min: 0.024
-      ls_r_z_max: 0.190
-      gaia_g_ls_r_min: 0.0
-      gaia_g_ls_r_max: 0.1
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.07
+      g_r_dered_nominal: 0.30
+      r_z_dered_nominal: 0.06
+      bp_rp_dered_nominal: 0.66
+      bp_g_dered_nominal: 0.22
   magnitudes:
     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
