@@ -599,7 +599,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                                     peewee.fn.greatest(nMgy_min, ls.flux_z)))
 
         g = (g0 + coeffs['g0'] + coeffs['g1'] * g_r + coeffs['g2'] * g_r * g_r)
-        r = (r0 + coeffs['r0'] + coeffs['r1'] * g_r + coeffs['g2'] * g_r * g_r)
+        r = (r0 + coeffs['r0'] + coeffs['r1'] * g_r + coeffs['r2'] * g_r * g_r)
         i = (r0 + coeffs['i0'] + coeffs['i1'] * r_z + coeffs['i2'] * r_z * r_z)
         z = (z0 + coeffs['z0'] + coeffs['z1'] * r_z + coeffs['z2'] * r_z * r_z)
 
