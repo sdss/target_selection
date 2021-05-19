@@ -132,7 +132,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
         gaia_g_max_for_cadence1 = self.parameters['gaia_g_max_for_cadence1']
         gaia_rp_max_for_cadence1 = self.parameters['gaia_rp_max_for_cadence1']
 
-        flux30 = AB2nMgy(30.00)
+        # flux30 = AB2nMgy(30.00)
         # match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
 
         # #########################################################################
@@ -247,7 +247,7 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
                 (x.c.x_rank == 1, self.parameters['value_bcg']),
                 (x.c.x_rank > 1, self.parameters['value_member']),
             ),
-            None)
+            None).cast('float')
 
         # choose cadence based on fiber magnitude in r-band
         cadence1 = self.parameters['cadence1']
@@ -268,36 +268,83 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
             ),
             cadence4)
 
-        # We want to switch between psfmags and fibertotmags depending on
-        # ls.type parameter (PSF or extended)
-        # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
-        opt_prov = peewee.Case(
-            ls.type,
-            (('PSF', 'ls_psfmag'),),
-            'ls_fibertotmag')
+        # compute transformed SDSS mags for pointlike and extended sources uniformly
+        # transform the legacysurvey grz into sdss psfmag griz
 
-        magnitude_g = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_g))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_g))).cast('float'))
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_clusters_lsdr8/lsdr8_fibermag_to_sdss_fiber2mag_?_results.log   # noqa
+        coeffs = {
+            "g2_e": -0.897719,
+            "g1_e": 2.298300,
+            "g0_e": -1.019299,
+            "i2_e": -0.950114,
+            "i1_e": 0.981972,
+            "i0_e": -0.261645,
+            "r2_e": -0.201741,
+            "r1_e": 0.697128,
+            "r0_e": -0.120926,
+            "z2_e": -1.424312,
+            "z1_e": 2.415301,
+            "z0_e": -0.677163,
+        }
 
-        magnitude_r = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_r))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_r))).cast('float'))
+        nMgy_min = 1e-3  # equiv to AB=30
+        # extended - start from ls8 fiberfluxes
+        g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
+        r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+        g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        r_z_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
 
-        magnitude_z = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_z))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_z))).cast('float'))
+        g_e = (g0_e + coeffs['g0_e'] + coeffs['g1_e'] * g_r_e + coeffs['g2_e'] * g_r_e * g_r_e)
+        r_e = (r0_e + coeffs['r0_e'] + coeffs['r1_e'] * g_r_e + coeffs['r2_e'] * g_r_e * g_r_e)
+        i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
+        z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
 
-        magnitude_i = peewee.Case(
-            ls.type,
-            (('PSF',
-              (22.5 - 2.5 * fn.log10(
-                  fn.greatest(flux30, 0.5 * (ls.flux_r + ls.flux_z)))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(
-                fn.greatest(flux30, 0.5 * (ls.fibertotflux_r + ls.fibertotflux_z)))).cast('float'))
+        # validity checks
+        valid = (g0_e.between(0.1, 29.9) &
+                 r0_e.between(0.1, 29.9) &
+                 z0_e.between(0.1, 29.9))
+
+        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
+        magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
+        magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
+        magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
+        magnitude_z = peewee.Case(None, ((valid, z_e),), 'NaN')
+
+        # # We want to switch between psfmags and fibertotmags depending on
+        # # ls.type parameter (PSF or extended)
+        # # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
+        # opt_prov = peewee.Case(
+        #     ls.type,
+        #     (('PSF', 'ls_psfmag'),),
+        #     'ls_fibertotmag')
+        #
+        # magnitude_g = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_g))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_g))).cast('float'))
+        #
+        # magnitude_r = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_r))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_r))).cast('float'))
+        #
+        # magnitude_z = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_z))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_z))).cast('float'))
+        #
+        # magnitude_i = peewee.Case(
+        #     ls.type,
+        #     (('PSF',
+        #       (22.5 - 2.5 * fn.log10(
+        #           fn.greatest(flux30, 0.5 * (ls.flux_r + ls.flux_z)))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(
+        #         fn.greatest(flux30, 0.5 * (ls.fibertotflux_r +
+        #                                    ls.fibertotflux_z)))).cast('float'))
 
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
@@ -305,20 +352,26 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
-                ls.ls_id.alias('ls_id'),
-                x.c.ero_detuid.cast('text').alias('ero_detuid'),
-                c.ra.alias('ra'),
-                c.dec.alias('dec'),
+                ls.ls_id.alias('ls_id'),  # extra
+                x.c.ero_detuid.cast('text').alias('ero_detuid'),  # extra
+                c.ra.alias('ra'),  # extra
+                c.dec.alias('dec'),  # extra
                 priority.alias('priority'),
-                value.cast('float').alias('value'),
+                value.alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
+                opt_prov.alias('optical_prov'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('optical_prov'),
+                ls.gaia_phot_g_mean_mag.alias('gaia_g'),
+                ls.gaia_phot_bp_mean_mag.alias('bp'),
+                ls.gaia_phot_rp_mean_mag.alias('rp'),
                 inertial.alias('inertial'),
+                g0_e.alias('ls8_fibermag_g'),  # extra
+                r0_e.alias('ls8_fibermag_r'),  # extra
+                z0_e.alias('ls8_fibermag_z'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -450,7 +503,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
         gaia_g_max_for_cadence1 = self.parameters['gaia_g_max_for_cadence1']
         gaia_rp_max_for_cadence1 = self.parameters['gaia_rp_max_for_cadence1']
 
-        flux30 = AB2nMgy(30.00)
+        # flux30 = AB2nMgy(30.00)
 
         # #########################################################################
         # prepare the spectroscopy catalogues
@@ -565,7 +618,7 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
                 (x.c.x_rank == 1, self.parameters['value_bcg']),
                 (x.c.x_rank > 1, self.parameters['value_member']),
             ),
-            None)
+            None).cast('float')
 
         # choose cadence based on fiber magnitude in r-band
         cadence1 = self.parameters['cadence1']
@@ -586,36 +639,82 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
             ),
             cadence4)
 
-        # We want to switch between psfmags and fibertotmags depending on
-        # ls.type parameter (PSF or extended)
-        # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
-        opt_prov = peewee.Case(
-            ls.type,
-            (('PSF', 'ls_psfmag'),),
-            'ls_fibertotmag')
+        # compute transformed SDSS mags for pointlike and extended sources separately
+        # transform the legacysurvey grz into sdss psfmag griz
 
-        magnitude_g = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_g))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_g))).cast('float'))
+        # copy of routine for bhm_spiders_clusters_lsdr8
+        coeffs = {
+            "g2_e": -0.897719,
+            "g1_e": 2.298300,
+            "g0_e": -1.019299,
+            "i2_e": -0.950114,
+            "i1_e": 0.981972,
+            "i0_e": -0.261645,
+            "r2_e": -0.201741,
+            "r1_e": 0.697128,
+            "r0_e": -0.120926,
+            "z2_e": -1.424312,
+            "z1_e": 2.415301,
+            "z0_e": -0.677163,
+        }
 
-        magnitude_r = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_r))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_r))).cast('float'))
+        nMgy_min = 1e-3  # equiv to AB=30
+        # extended - start from ls8 fiberfluxes
+        g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
+        r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+        g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        r_z_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
 
-        magnitude_z = peewee.Case(
-            ls.type,
-            (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_z))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_z))).cast('float'))
+        g_e = (g0_e + coeffs['g0_e'] + coeffs['g1_e'] * g_r_e + coeffs['g2_e'] * g_r_e * g_r_e)
+        r_e = (r0_e + coeffs['r0_e'] + coeffs['r1_e'] * g_r_e + coeffs['r2_e'] * g_r_e * g_r_e)
+        i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
+        z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
 
-        magnitude_i = peewee.Case(
-            ls.type,
-            (('PSF',
-              (22.5 - 2.5 * fn.log10(
-                  fn.greatest(flux30, 0.5 * (ls.flux_r + ls.flux_z)))).cast('float')),),
-            (22.5 - 2.5 * fn.log10(
-                fn.greatest(flux30, 0.5 * (ls.fibertotflux_r + ls.fibertotflux_z)))).cast('float'))
+        # validity checks
+        valid = (g0_e.between(0.1, 29.9) &
+                 r0_e.between(0.1, 29.9) &
+                 z0_e.between(0.1, 29.9))
+
+        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
+        magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
+        magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
+        magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
+        magnitude_z = peewee.Case(None, ((valid, z_e),), 'NaN')
+
+        # # We want to switch between psfmags and fibertotmags depending on
+        # # ls.type parameter (PSF or extended)
+        # # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
+        # opt_prov = peewee.Case(
+        #     ls.type,
+        #     (('PSF', 'ls_psfmag'),),
+        #     'ls_fibertotmag')
+        #
+        # magnitude_g = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_g))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_g))).cast('float'))
+        #
+        # magnitude_r = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_r))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_r))).cast('float'))
+        #
+        # magnitude_z = peewee.Case(
+        #     ls.type,
+        #     (('PSF', (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.flux_z))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(fn.greatest(flux30, ls.fibertotflux_z))).cast('float'))
+        #
+        # magnitude_i = peewee.Case(
+        #     ls.type,
+        #     (('PSF',
+        #       (22.5 - 2.5 * fn.log10(
+        #           fn.greatest(flux30, 0.5 * (ls.flux_r + ls.flux_z)))).cast('float')),),
+        #     (22.5 - 2.5 * fn.log10(
+        #         fn.greatest(flux30, 0.5 * (ls.fibertotflux_r +
+        #                                    ls.fibertotflux_z)))).cast('float'))
 
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
@@ -623,20 +722,26 @@ class BhmSpidersClustersEfedsStragglersCarton(BaseCarton):
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
-                ls.ls_id.alias('ls_id'),
-                x.c.ero_detuid.cast('text').alias('ero_detuid'),
-                c.ra.alias('ra'),
-                c.dec.alias('dec'),
+                ls.ls_id.alias('ls_id'),  # extra
+                x.c.ero_detuid.cast('text').alias('ero_detuid'),  # extra
+                c.ra.alias('ra'),  # extra
+                c.dec.alias('dec'),  # extra
                 priority.alias('priority'),
-                value.cast('float').alias('value'),
+                value.alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
+                opt_prov.alias('optical_prov'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('optical_prov'),
+                ls.gaia_phot_g_mean_mag.alias('gaia_g'),
+                ls.gaia_phot_bp_mean_mag.alias('bp'),
+                ls.gaia_phot_rp_mean_mag.alias('rp'),
                 inertial.alias('inertial'),
+                g0_e.alias('ls8_fibermag_g'),  # extra
+                r0_e.alias('ls8_fibermag_r'),  # extra
+                z0_e.alias('ls8_fibermag_z'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -900,60 +1005,113 @@ class BhmSpidersClustersPs1dr2Carton(BaseCarton):
                  (ps.z_stk_psf_flux <= z_psf_flux_min_for_cadence2), cadence3),
             ),
             cadence4)
-        # We want to switch between psfmags and fibertotmags depending on
-        # ps.flags EXT+EXT_ALT (i.e. extended sources)
-        # For non-extended targets, we use psfmags, but for extended sources use apermag
-        flux30 = AB2Jy(30.00)
-        ps1_ext_flags = 8388608 + 16777216
-        ps1_good_stack_flag = 134217728
-        opt_prov = peewee.Case(
-            ps.flags.bin_and(ps1_ext_flags),
-            ((0, 'ps_psfmag'),),
-            'ps_apermag')
 
-        magnitude_g = peewee.Case(
-            ps.flags.bin_and(ps1_ext_flags),
-            ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.g_stk_psf_flux))).cast('float')),),
-            (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.g_stk_aper_flux))).cast('float'))
+        # compute transformed SDSS mags for all sources uniformly
+        # transform the panstarrs1-dr2 griz into sdss psfmag griz
 
-        magnitude_r = peewee.Case(
-            ps.flags.bin_and(ps1_ext_flags),
-            ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.r_stk_psf_flux))).cast('float')),),
-            (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.r_stk_aper_flux))).cast('float'))
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_clusters_ps1dr2/ps1dr2_stk_psf_to_sdss_fiber2mag_?_results.log  # noqa
+        coeffs = {
+            "g2_e": -0.353294,
+            "g1_e": 0.699658,
+            "g0_e": 0.581569,
+            "i2_e": -0.446208,
+            "i1_e": 0.776628,
+            "i0_e": 0.421538,
+            "r2_e": -0.123243,
+            "r1_e": 0.401786,
+            "r0_e": 0.422531,
+            "z2_e": -0.488437,
+            "z1_e": 0.595132,
+            "z0_e": 0.439771,
+        }
 
-        magnitude_i = peewee.Case(
-            ps.flags.bin_and(ps1_ext_flags),
-            ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.i_stk_psf_flux))).cast('float')),),
-            (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.i_stk_aper_flux))).cast('float'))
+        Jy_min = AB2Jy(30.00)
 
-        magnitude_z = peewee.Case(
-            ps.flags.bin_and(ps1_ext_flags),
-            ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_psf_flux))).cast('float')),),
-            (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_aper_flux))).cast('float'))
+        # start from ps1dr2 stk psf fluxes
+        g0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.g_stk_psf_flux)))
+        r0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.r_stk_psf_flux)))
+        i0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.i_stk_psf_flux)))
+        z0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.z_stk_psf_flux)))
+        g_r = g0 - r0
+        r_i = r0 - i0
+        i_z = i0 - z0
+
+        # use single set of transform coeffs
+        g_e = (g0 + coeffs['g0_e'] + coeffs['g1_e'] * g_r + coeffs['g2_e'] * g_r * g_r)
+        r_e = (r0 + coeffs['r0_e'] + coeffs['r1_e'] * g_r + coeffs['r2_e'] * g_r * g_r)
+        i_e = (i0 + coeffs['i0_e'] + coeffs['i1_e'] * r_i + coeffs['i2_e'] * r_i * r_i)
+        z_e = (z0 + coeffs['z0_e'] + coeffs['z1_e'] * i_z + coeffs['z2_e'] * i_z * i_z)
+
+        # validity checks
+        valid = (g0.between(0.1, 29.9) &
+                 r0.between(0.1, 29.9) &
+                 i0.between(0.1, 29.9) &
+                 z0.between(0.1, 29.9))
+
+        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_ps1dr2'),), 'undefined')
+        magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
+        magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
+        magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
+        magnitude_z = peewee.Case(None, ((valid, z_e),), 'NaN')
+
+        # # We want to switch between psfmags and fibertotmags depending on
+        # # ps.flags EXT+EXT_ALT (i.e. extended sources)
+        # # For non-extended targets, we use psfmags, but for extended sources use apermag
+        # flux30 = AB2Jy(30.00)
+        # ps1_ext_flags = 8388608 + 16777216
+        # ps1_good_stack_flag = 134217728
+        # opt_prov = peewee.Case(
+        #     ps.flags.bin_and(ps1_ext_flags),
+        #     ((0, 'ps_psfmag'),),
+        #     'ps_apermag')
+        #
+        # magnitude_g = peewee.Case(
+        #     ps.flags.bin_and(ps1_ext_flags),
+        #     ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.g_stk_psf_flux))).cast('float')),),
+        #     (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.g_stk_aper_flux))).cast('float'))
+        #
+        # magnitude_r = peewee.Case(
+        #     ps.flags.bin_and(ps1_ext_flags),
+        #     ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.r_stk_psf_flux))).cast('float')),),
+        #     (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.r_stk_aper_flux))).cast('float'))
+        #
+        # magnitude_i = peewee.Case(
+        #     ps.flags.bin_and(ps1_ext_flags),
+        #     ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.i_stk_psf_flux))).cast('float')),),
+        #     (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.i_stk_aper_flux))).cast('float'))
+        #
+        # magnitude_z = peewee.Case(
+        #     ps.flags.bin_and(ps1_ext_flags),
+        #     ((0, (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_psf_flux))).cast('float')),),
+        #     (8.9 - 2.5 * fn.log10(fn.greatest(flux30, ps.z_stk_aper_flux))).cast('float'))
 
         # these control matching to spectroscopy
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
 
+        # this controls use of bad panstarrs photometry
+        ps1_good_stack_flag = 134217728
+
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
-                ps.catid_objid.alias('ps1_catid_objid'),
-                x.c.ero_detuid.cast('text').alias('ero_detuid'),
-                c.ra.alias('ra'),
-                c.dec.alias('dec'),
+                ps.catid_objid.alias('ps1_catid_objid'),  # extra
+                x.c.ero_detuid.cast('text').alias('ero_detuid'),  # extra
+                c.ra.alias('ra'),  # extra
+                c.dec.alias('dec'),  # extra
                 priority.alias('priority'),
                 value.cast('float').alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
+                opt_prov.alias('optical_prov'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                opt_prov.alias('optical_prov'),
                 (ps.flags.bin_and(ps1_good_stack_flag) > 0)
-                .cast('bool').alias('ps1_good_stack_flag'),
+                .cast('bool').alias('ps1_good_stack_flag'),   # extra
                 inertial.alias('inertial'),
             )
             .join(c2ps)

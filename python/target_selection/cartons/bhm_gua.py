@@ -210,6 +210,50 @@ class BhmGuaBaseCarton(BaseCarton):
         spec_sn_thresh = self.parameters['spec_sn_thresh']
         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
 
+        # compute transformed SDSS mags for pointlike and extended sources separately
+        # transform the Gaia dr2 G,BP,RP into sdss psfmag griz
+
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_gua/gdr2_mag_to_sdss_psfmag_?_results.log  # noqa
+        coeffs = {
+            "g3_p": 0.184158,
+            "g2_p": -0.457316,
+            "g1_p": 0.553505,
+            "g0_p": -0.029152,
+            "i3_p": 0.709818,
+            "i2_p": -2.207549,
+            "i1_p": 1.520957,
+            "i0_p": -0.417666,
+            "r3_p": 0.241611,
+            "r2_p": -0.803702,
+            "r1_p": 0.599944,
+            "r0_p": -0.119959,
+            "z3_p": 0.893988,
+            "z2_p": -2.759177,
+            "z1_p": 1.651668,
+            "z0_p": -0.440676,
+        }
+
+        bp_rp = t.bp - t.rp
+        g = (t.g + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp + coeffs['g2_p'] * bp_rp * bp_rp +
+             coeffs['g3_p'] * bp_rp * bp_rp * bp_rp)
+        r = (t.g + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp + coeffs['r2_p'] * bp_rp * bp_rp +
+             coeffs['r3_p'] * bp_rp * bp_rp * bp_rp)
+        i = (t.g + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp + coeffs['i2_p'] * bp_rp * bp_rp +
+             coeffs['i3_p'] * bp_rp * bp_rp * bp_rp)
+        z = (t.g + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp + coeffs['z2_p'] * bp_rp * bp_rp +
+             coeffs['z3_p'] * bp_rp * bp_rp * bp_rp)
+
+        # validity checks
+        valid = (t.g.between(0.1, 29.9) &
+                 t.bp.between(0.1, 29.9) &
+                 t.rp.between(0.1, 29.9))
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
+        magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
+        magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')
+        magnitude_i = peewee.Case(None, ((valid, i),), 'NaN')
+        magnitude_z = peewee.Case(None, ((valid, z),), 'NaN')
+
         # Create temporary tables for the base query and the Q3C cross-match
         # tables.
 
@@ -225,11 +269,16 @@ class BhmGuaBaseCarton(BaseCarton):
                 inertial.alias('inertial'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
-                t.g.alias('gua_gaia_g'),   # extra
-                t.bp.alias('gua_gaia_bp'),   # extra
-                t.rp.alias('gua_gaia_rp'),   # extra
-                t.w1.alias('gua_gaia_w1'),   # extra
-                t.w2.alias('gua_gaia_w2'),   # extra
+                opt_prov.alias('optical_prov'),
+                magnitude_g.alias('g'),
+                magnitude_r.alias('r'),
+                magnitude_i.alias('i'),
+                magnitude_z.alias('z'),
+                t.g.alias('gaia_g'),
+                t.bp.alias('bp'),
+                t.rp.alias('rp'),
+                t.w1.alias('gua_w1'),   # extra
+                t.w2.alias('gua_w2'),   # extra
                 t.prob_rf.alias('gua_prob_rf'),   # extra
                 t.phot_z.alias('gua_phot_z'),   # extra
                 # rely on the centralised magnitude routines for 'real' griz, bp,rp,gaia_g
