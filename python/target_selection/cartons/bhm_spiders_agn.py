@@ -2413,7 +2413,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         }
 
         b_r = sc.scormagb - sc.scormagr2
-        r_i = sc.scormagr2 - sc.scormagri
+        r_i = sc.scormagr2 - sc.scormagi
 
         g_p = (sc.scormagb + coeffs['g0_p'] + coeffs['g1_p'] * b_r + coeffs['g2_p'] * b_r * b_r)
         r_p = (sc.scormagr2 + coeffs['r0_p'] + coeffs['r1_p'] * b_r + coeffs['r2_p'] * b_r * b_r)
