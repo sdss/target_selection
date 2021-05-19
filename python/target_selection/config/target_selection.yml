@@ -54,6 +54,9 @@
     - mwm_tessrgb_core
     - mwm_wd_core
     - mwm_tess_planet
+    - mwm_erosita_compact_gen
+    - mwm_erosita_compact_var
+    - mwm_erosita_stars
     - bhm_gua_dark
     - bhm_gua_bright
     - bhm_spiders_agn_lsdr8
