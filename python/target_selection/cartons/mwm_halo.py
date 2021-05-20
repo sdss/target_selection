@@ -63,7 +63,9 @@ class MWM_Halo_Best_Brightest_Base_Carton(BaseCarton):
                  .join(TIC_v8)
                  .join(Gaia_DR2)
                  .where(CatalogToAllWise.version_id == version_id,
-                        CatalogToAllWise.best >> True))
+                        CatalogToAllWise.best >> True,
+                        CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = (query
@@ -92,7 +94,7 @@ class MWM_Halo_Best_Brightest_APOGEE_Carton(MWM_Halo_Best_Brightest_Base_Carton)
 
         query = super().build_query(version_id, query_region=query_region)
 
-        return query.where(BestBrightest.gmag < 13)
+        return query.where(Gaia_DR2.phot_g_mean_mag < 13)
 
 
 class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
@@ -110,7 +112,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
 
         query = super().build_query(version_id, query_region=query_region)
 
-        return query.where(BestBrightest.gmag >= 13)
+        return query.where(Gaia_DR2.phot_g_mean_mag >= 13)
 
     def post_process(self, model, **kwargs):
 
