@@ -70,6 +70,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 from target_selection.mag_flux import AB2nMgy, AB2Jy
 
 
+# used by cartons that need to compute Galactic latitude:
+north_gal_pole_ra = 192.85948   # deg, J2000
+north_gal_pole_dec = +27.12825   # deg, J2000
+
 # ############################################
 # ############################################
 # ############################################
@@ -292,9 +296,9 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
 
         priority_1 = peewee.Case(
             None,
@@ -400,13 +404,25 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
         i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
         z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
 
-        # validity checks
+        # validity checks - set limits semi-manually
+        g_r_p_min = -0.25
+        g_r_p_max = 1.75
+        r_z_p_min = -0.5
+        r_z_p_max = 2.5
+        g_r_e_min = 0.0
+        g_r_e_max = 1.75
+        r_z_e_min = 0.2
+        r_z_e_max = 1.6
         valid_p = (g0_p.between(0.1, 29.9) &
                    r0_p.between(0.1, 29.9) &
-                   z0_p.between(0.1, 29.9))
+                   z0_p.between(0.1, 29.9) &
+                   g_r_p.between(g_r_p_min, g_r_p_max) &
+                   r_z_p.between(r_z_p_min, r_z_p_max))
         valid_e = (g0_e.between(0.1, 29.9) &
                    r0_e.between(0.1, 29.9) &
-                   z0_e.between(0.1, 29.9))
+                   z0_e.between(0.1, 29.9) &
+                   g_r_e.between(g_r_e_min, g_r_e_max) &
+                   r_z_e.between(r_z_e_min, r_z_e_max))
 
         # We want to switch between psfmags and fibertotmags depending on
         # ls.type parameter (PSF or extended)
@@ -676,10 +692,10 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target is from the secondary eFEDS catalogue
-        # add +80 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_ero_version if target is from the secondary eFEDS catalogue
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
 
         priority_1 = peewee.Case(
             None,
@@ -793,13 +809,25 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
         i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
         z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
 
-        # validity checks
+        # validity checks - set limits semi-manually
+        g_r_p_min = -0.25
+        g_r_p_max = 1.75
+        r_z_p_min = -0.5
+        r_z_p_max = 2.5
+        g_r_e_min = 0.0
+        g_r_e_max = 1.75
+        r_z_e_min = 0.2
+        r_z_e_max = 1.6
         valid_p = (g0_p.between(0.1, 29.9) &
                    r0_p.between(0.1, 29.9) &
-                   z0_p.between(0.1, 29.9))
+                   z0_p.between(0.1, 29.9) &
+                   g_r_p.between(g_r_p_min, g_r_p_max) &
+                   r_z_p.between(r_z_p_min, r_z_p_max))
         valid_e = (g0_e.between(0.1, 29.9) &
                    r0_e.between(0.1, 29.9) &
-                   z0_e.between(0.1, 29.9))
+                   z0_e.between(0.1, 29.9) &
+                   g_r_e.between(g_r_e_min, g_r_e_max) &
+                   r_z_e.between(r_z_e_min, r_z_e_max))
 
         # We want to switch between psfmags and fibertotmags depending on
         # ls.type parameter (PSF or extended)
@@ -973,8 +1001,6 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
         gaia_g_max_for_cadence2 = self.parameters['gaia_g_max_for_cadence2']
         gaia_rp_max_for_cadence2 = self.parameters['gaia_rp_max_for_cadence2']
 
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
-
         # these control matching to spectroscopy
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
         spec_sn_thresh = self.parameters['spec_sn_thresh']
@@ -1063,12 +1089,25 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
         )
         # #########################################################################
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+
+        # value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        value = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'],
+              self.parameters.get('value', 1.0)),),
+            0.0
+        ).cast('float')
+
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
 
         priority_1 = peewee.Case(
             None,
@@ -1087,12 +1126,18 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
                 (sph.c.pkey.is_null(False), 1),
             ),
             0)
+        priority_4 = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'], 0),),
+            1
+        )
 
         priority = fn.max(
             self.parameters['priority_floor'] +
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
-            priority_3 * self.parameters['dpriority_has_spec']
+            priority_3 * self.parameters['dpriority_has_spec'] +
+            priority_4 * self.parameters['dpriority_in_plane']
         )
 
         # choose cadence based on magnitude in Gaia G and RP-bands
@@ -1112,53 +1157,129 @@ class BhmSpidersAgnGaiadr2Carton(BaseCarton):
             ),
             cadence4)
 
-        # compute transformed SDSS mags for pointlike and extended sources separately
+        # compute transformed SDSS mags
         # transform the Gaia dr2 G,BP,RP into sdss psfmag griz
-
-        # extract coeffs from fit logs via:
-        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_gaiadr2_*/gdr2_*mag_to_sdss_*mag_?_results.log  # noqa
+        # piecewise transformation either side of BP-RP=1.8
+        # fit to blue end is cubic, fit to red end is quadratic
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if(FILENAME~/_red/){pe="red"} else if (FILENAME~/_blue/){pe="blue"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_gaiadr2_red/gdr2_*mag_to_sdss_*mag_?_results.log bhm_spiders_agn_gaiadr2_blue/gdr2_*mag_to_sdss_*mag_?_results.log  # noqa
         coeffs = {
-            "g2_p": 0.236233,
-            "g1_p": 0.154277,
-            "g0_p": -0.066625,
-            "i2_p": 0.340616,
-            "i1_p": -1.395607,
-            "i0_p": 0.555709,
-            "r2_p": 0.410346,
-            "r1_p": -1.065556,
-            "r0_p": 0.441098,
-            "z2_p": 0.512729,
-            "z1_p": -2.214448,
-            "z0_p": 0.865291,
+            "g2_red": 0.081178,
+            "g1_red": 0.355677,
+            "g0_red": 0.510306,
+            "i2_red": 0.048864,
+            "i1_red": -0.287475,
+            "i0_red": -0.336712,
+            "r2_red": 0.028080,
+            "r1_red": 0.542331,
+            "r0_red": -1.055168,
+            "z2_red": -0.131385,
+            "z1_red": 0.302555,
+            "z0_red": -1.381648,
+            "g3_blue": 0.639054,
+            "g2_blue": -1.739187,
+            "g1_blue": 1.420330,
+            "g0_blue": -0.194071,
+            "i3_blue": 0.780585,
+            "i2_blue": -2.549848,
+            "i1_blue": 1.489880,
+            "i0_blue": -0.241381,
+            "r3_blue": 0.575494,
+            "r2_blue": -2.077000,
+            "r1_blue": 1.573302,
+            "r0_blue": -0.295026,
+            "z3_blue": 1.064986,
+            "z2_blue": -3.162969,
+            "z1_blue": 1.493750,
+            "z0_blue": -0.199582,
         }
 
-        bp_rp_p = tic.gaiabp - tic.gaiarp
-        g_p = (tic.gaiamag + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp_p +
-               coeffs['g2_p'] * bp_rp_p * bp_rp_p)
-        r_p = (tic.gaiamag + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp_p +
-               coeffs['r2_p'] * bp_rp_p * bp_rp_p)
-        i_p = (tic.gaiamag + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp_p +
-               coeffs['i2_p'] * bp_rp_p * bp_rp_p)
-        z_p = (tic.gaiamag + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp_p +
-               coeffs['z2_p'] * bp_rp_p * bp_rp_p)
+        # # Old method - only use a single transformation for all colour ranges
+        # # extract coeffs from fit logs via:
+        # # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_gaiadr2_pontlike/gdr2_*mag_to_sdss_*mag_?_results.log  # noqa
+        # coeffs = {
+        #     "g2_p": 0.236233,
+        #     "g1_p": 0.154277,
+        #     "g0_p": -0.066625,
+        #     "i2_p": 0.340616,
+        #     "i1_p": -1.395607,
+        #     "i0_p": 0.555709,
+        #     "r2_p": 0.410346,
+        #     "r1_p": -1.065556,
+        #     "r0_p": 0.441098,
+        #     "z2_p": 0.512729,
+        #     "z1_p": -2.214448,
+        #     "z0_p": 0.865291,
+        # }
 
-        # validity checks
-        valid_p = (tic.gaiamag.between(0.1, 29.9) &
-                   tic.gaiabp.between(0.1, 29.9) &
-                   tic.gaiarp.between(0.1, 29.9))
-        opt_prov = peewee.Case(None, ((valid_p, 'sdss_psfmag_from_gdr2'),), 'undefined')
-        magnitude_g = peewee.Case(None, ((valid_p, g_p),), 'NaN')
-        magnitude_r = peewee.Case(None, ((valid_p, r_p),), 'NaN')
-        magnitude_i = peewee.Case(None, ((valid_p, i_p),), 'NaN')
-        magnitude_z = peewee.Case(None, ((valid_p, z_p),), 'NaN')
+        # bp_rp_p = tic.gaiabp - tic.gaiarp
+        # g_p = (tic.gaiamag + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp_p +
+        #        coeffs['g2_p'] * bp_rp_p * bp_rp_p)
+        # r_p = (tic.gaiamag + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp_p +
+        #        coeffs['r2_p'] * bp_rp_p * bp_rp_p)
+        # i_p = (tic.gaiamag + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp_p +
+        #        coeffs['i2_p'] * bp_rp_p * bp_rp_p)
+        # z_p = (tic.gaiamag + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp_p +
+        #        coeffs['z2_p'] * bp_rp_p * bp_rp_p)
+
+        bp_rp = tic.gaiabp - tic.gaiarp
+        g_blue = (tic.gaiamag + coeffs['g0_blue'] + coeffs['g1_blue'] * bp_rp +
+                  coeffs['g2_blue'] * bp_rp * bp_rp +
+                  coeffs['g3_blue'] * bp_rp * bp_rp * bp_rp)
+        r_blue = (tic.gaiamag + coeffs['r0_blue'] + coeffs['r1_blue'] * bp_rp +
+                  coeffs['r2_blue'] * bp_rp * bp_rp +
+                  coeffs['r3_blue'] * bp_rp * bp_rp * bp_rp)
+        i_blue = (tic.gaiamag + coeffs['i0_blue'] + coeffs['i1_blue'] * bp_rp +
+                  coeffs['i2_blue'] * bp_rp * bp_rp +
+                  coeffs['i3_blue'] * bp_rp * bp_rp * bp_rp)
+        z_blue = (tic.gaiamag + coeffs['z0_blue'] + coeffs['z1_blue'] * bp_rp +
+                  coeffs['z2_blue'] * bp_rp * bp_rp +
+                  coeffs['z3_blue'] * bp_rp * bp_rp * bp_rp)
+
+        g_red = (tic.gaiamag + coeffs['g0_red'] + coeffs['g1_red'] * bp_rp +
+                 coeffs['g2_red'] * bp_rp * bp_rp)
+        r_red = (tic.gaiamag + coeffs['r0_red'] + coeffs['r1_red'] * bp_rp +
+                 coeffs['r2_red'] * bp_rp * bp_rp)
+        i_red = (tic.gaiamag + coeffs['i0_red'] + coeffs['i1_red'] * bp_rp +
+                 coeffs['i2_red'] * bp_rp * bp_rp)
+        z_red = (tic.gaiamag + coeffs['z0_red'] + coeffs['z1_red'] * bp_rp +
+                 coeffs['z2_red'] * bp_rp * bp_rp)
+
+        # validity checks - set limits semi-manually
+        bp_rp_min = 0.0
+        bp_rp_max = 3.0
+        valid = (tic.gaiamag.between(0.1, 29.9) &
+                 tic.gaiabp.between(0.1, 29.9) &
+                 tic.gaiarp.between(0.1, 29.9) &
+                 bp_rp.between(bp_rp_min, bp_rp_max))
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
+        magnitude_g = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), g_blue),
+                                      (valid & (bp_rp > 1.8), g_red),
+                                  ), 'NaN')
+        magnitude_r = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), r_blue),
+                                      (valid & (bp_rp > 1.8), r_red),
+                                  ), 'NaN')
+        magnitude_i = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), i_blue),
+                                      (valid & (bp_rp > 1.8), i_red),
+                                  ), 'NaN')
+        magnitude_z = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), z_blue),
+                                      (valid & (bp_rp > 1.8), z_red),
+                                  ), 'NaN')
 
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                fn.min(tic.gaia_int).alias('gaia_source'),
-                fn.min(x.ero_detuid).alias('ero_detuid'),
-                fn.min(c.ra).alias('ra'),
-                fn.min(c.dec).alias('dec'),
+                fn.min(tic.gaia_int).alias('gaia_source'),  # extra
+                fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
+                fn.min(c.ra).alias('ra'),  # extra
+                fn.min(c.dec).alias('dec'),  # extra
                 priority.alias("priority"),
                 fn.min(value).alias('value'),
                 fn.min(cadence).alias('cadence'),
@@ -1270,9 +1391,9 @@ class BhmSpidersAgnSepCarton(BaseCarton):
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy - N/A here
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
 
         priority_1 = peewee.Case(
             None,
@@ -1313,52 +1434,99 @@ class BhmSpidersAgnSepCarton(BaseCarton):
             ),
             cadence4)
 
-        # compute transformed SDSS mags for pointlike and extended sources separately
+        # compute transformed SDSS mags
         # transform the Gaia dr2 G,BP,RP into sdss psfmag griz
-        # copy of method for bhm_spiders_agn_gaiadr2
-
+        # direct copy of method for bhm_spiders_agn_gaiadr2
         coeffs = {
-            "g2_p": 0.236233,
-            "g1_p": 0.154277,
-            "g0_p": -0.066625,
-            "i2_p": 0.340616,
-            "i1_p": -1.395607,
-            "i0_p": 0.555709,
-            "r2_p": 0.410346,
-            "r1_p": -1.065556,
-            "r0_p": 0.441098,
-            "z2_p": 0.512729,
-            "z1_p": -2.214448,
-            "z0_p": 0.865291,
+            "g2_red": 0.081178,
+            "g1_red": 0.355677,
+            "g0_red": 0.510306,
+            "i2_red": 0.048864,
+            "i1_red": -0.287475,
+            "i0_red": -0.336712,
+            "r2_red": 0.028080,
+            "r1_red": 0.542331,
+            "r0_red": -1.055168,
+            "z2_red": -0.131385,
+            "z1_red": 0.302555,
+            "z0_red": -1.381648,
+            "g3_blue": 0.639054,
+            "g2_blue": -1.739187,
+            "g1_blue": 1.420330,
+            "g0_blue": -0.194071,
+            "i3_blue": 0.780585,
+            "i2_blue": -2.549848,
+            "i1_blue": 1.489880,
+            "i0_blue": -0.241381,
+            "r3_blue": 0.575494,
+            "r2_blue": -2.077000,
+            "r1_blue": 1.573302,
+            "r0_blue": -0.295026,
+            "z3_blue": 1.064986,
+            "z2_blue": -3.162969,
+            "z1_blue": 1.493750,
+            "z0_blue": -0.199582,
         }
 
-        bp_rp_p = tic.gaiabp - tic.gaiarp
-        g_p = (tic.gaiamag + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp_p +
-               coeffs['g2_p'] * bp_rp_p * bp_rp_p)
-        r_p = (tic.gaiamag + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp_p +
-               coeffs['r2_p'] * bp_rp_p * bp_rp_p)
-        i_p = (tic.gaiamag + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp_p +
-               coeffs['i2_p'] * bp_rp_p * bp_rp_p)
-        z_p = (tic.gaiamag + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp_p +
-               coeffs['z2_p'] * bp_rp_p * bp_rp_p)
+        bp_rp = tic.gaiabp - tic.gaiarp
+        g_blue = (tic.gaiamag + coeffs['g0_blue'] + coeffs['g1_blue'] * bp_rp +
+                  coeffs['g2_blue'] * bp_rp * bp_rp +
+                  coeffs['g3_blue'] * bp_rp * bp_rp * bp_rp)
+        r_blue = (tic.gaiamag + coeffs['r0_blue'] + coeffs['r1_blue'] * bp_rp +
+                  coeffs['r2_blue'] * bp_rp * bp_rp +
+                  coeffs['r3_blue'] * bp_rp * bp_rp * bp_rp)
+        i_blue = (tic.gaiamag + coeffs['i0_blue'] + coeffs['i1_blue'] * bp_rp +
+                  coeffs['i2_blue'] * bp_rp * bp_rp +
+                  coeffs['i3_blue'] * bp_rp * bp_rp * bp_rp)
+        z_blue = (tic.gaiamag + coeffs['z0_blue'] + coeffs['z1_blue'] * bp_rp +
+                  coeffs['z2_blue'] * bp_rp * bp_rp +
+                  coeffs['z3_blue'] * bp_rp * bp_rp * bp_rp)
 
-        # validity checks
-        valid_p = (tic.gaiamag.between(0.1, 29.9) &
-                   tic.gaiabp.between(0.1, 29.9) &
-                   tic.gaiarp.between(0.1, 29.9))
-        opt_prov = peewee.Case(None, ((valid_p, 'sdss_psfmag_from_gdr2'),), 'undefined')
-        magnitude_g = peewee.Case(None, ((valid_p, g_p),), 'NaN')
-        magnitude_r = peewee.Case(None, ((valid_p, r_p),), 'NaN')
-        magnitude_i = peewee.Case(None, ((valid_p, i_p),), 'NaN')
-        magnitude_z = peewee.Case(None, ((valid_p, z_p),), 'NaN')
+        g_red = (tic.gaiamag + coeffs['g0_red'] + coeffs['g1_red'] * bp_rp +
+                 coeffs['g2_red'] * bp_rp * bp_rp)
+        r_red = (tic.gaiamag + coeffs['r0_red'] + coeffs['r1_red'] * bp_rp +
+                 coeffs['r2_red'] * bp_rp * bp_rp)
+        i_red = (tic.gaiamag + coeffs['i0_red'] + coeffs['i1_red'] * bp_rp +
+                 coeffs['i2_red'] * bp_rp * bp_rp)
+        z_red = (tic.gaiamag + coeffs['z0_red'] + coeffs['z1_red'] * bp_rp +
+                 coeffs['z2_red'] * bp_rp * bp_rp)
+
+        # validity checks - set limits semi-manually
+        bp_rp_min = 0.0
+        bp_rp_max = 3.0
+        valid = (tic.gaiamag.between(0.1, 29.9) &
+                 tic.gaiabp.between(0.1, 29.9) &
+                 tic.gaiarp.between(0.1, 29.9) &
+                 bp_rp.between(bp_rp_min, bp_rp_max))
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
+        magnitude_g = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), g_blue),
+                                      (valid & (bp_rp > 1.8), g_red),
+                                  ), 'NaN')
+        magnitude_r = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), r_blue),
+                                      (valid & (bp_rp > 1.8), r_red),
+                                  ), 'NaN')
+        magnitude_i = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), i_blue),
+                                      (valid & (bp_rp > 1.8), i_red),
+                                  ), 'NaN')
+        magnitude_z = peewee.Case(None,
+                                  (
+                                      (valid & (bp_rp < 1.8), z_blue),
+                                      (valid & (bp_rp > 1.8), z_red),
+                                  ), 'NaN')
 
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                fn.min(tic.gaia_int).alias('gaia_source'),
-                fn.min(x.ero_detuid).alias('ero_detuid'),
-                fn.min(c.ra).alias('ra'),
-                fn.min(c.dec).alias('dec'),
+                fn.min(tic.gaia_int).alias('gaia_source'),  # extra
+                fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
+                fn.min(c.ra).alias('ra'),  # extra
+                fn.min(c.dec).alias('dec'),  # extra
                 priority.alias("priority"),
                 fn.min(value).alias('value'),
                 fn.min(cadence).alias('cadence'),
@@ -1445,7 +1613,7 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         r_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['r_psf_mag_max_for_cadence2'])
         i_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence2'])
 
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        # value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
 
         # these control matching to spectroscopy
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
@@ -1535,12 +1703,24 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         )
         # #########################################################################
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+        value = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'],
+              self.parameters.get('value', 1.0)),),
+            0.0
+        ).cast('float')
+
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
+        # add +dpriority_in_plane if target lies at |b| < in_plane_lat_cut
 
         priority_1 = peewee.Case(
             None,
@@ -1559,12 +1739,18 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
                 (sph.c.pkey.is_null(False), 1),
             ),
             0)
+        priority_4 = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'], 0),),
+            1
+        )
 
         priority = fn.max(
             self.parameters['priority_floor'] +
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
-            priority_3 * self.parameters['dpriority_has_spec']
+            priority_3 * self.parameters['dpriority_has_spec'] +
+            priority_4 * self.parameters['dpriority_in_plane']
         )
 
         # choose cadence based on psf_flux magnitude in panstarrs1 g,r,i-bands
@@ -1642,11 +1828,37 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         i_e = (i0 + coeffs['i0_e'] + coeffs['i1_e'] * r_i + coeffs['i2_e'] * r_i * r_i)
         z_e = (z0 + coeffs['z0_e'] + coeffs['z1_e'] * i_z + coeffs['z2_e'] * i_z * i_z)
 
-        # validity checks
-        valid = (g0.between(0.1, 29.9) &
-                 r0.between(0.1, 29.9) &
-                 i0.between(0.1, 29.9) &
-                 z0.between(0.1, 29.9))
+        # validity checks - set limits semi-manually
+        g_r_p_min = -0.5
+        g_r_p_max = 1.4
+        r_i_p_min = -0.5
+        r_i_p_max = 2.0
+        i_z_p_min = -0.5
+        i_z_p_max = 1.0
+        g_r_e_min = -0.5
+        g_r_e_max = 1.5
+        r_i_e_min = -0.2
+        r_i_e_max = 1.3
+        i_z_e_min = -0.3
+        i_z_e_max = 0.8
+
+        # valid = (g0.between(0.1, 29.9) &
+        #         r0.between(0.1, 29.9) &
+        #         i0.between(0.1, 29.9) &
+        #         z0.between(0.1, 29.9))
+        valid_p = (g0.between(0.1, 29.9) &
+                   r0.between(0.1, 29.9) &
+                   z0.between(0.1, 29.9) &
+                   g_r.between(g_r_p_min, g_r_p_max) &
+                   r_i.between(r_i_p_min, r_i_p_max) &
+                   i_z.between(i_z_p_min, i_z_p_max))
+
+        valid_e = (g0.between(0.1, 29.9) &
+                   r0.between(0.1, 29.9) &
+                   z0.between(0.1, 29.9) &
+                   g_r.between(g_r_e_min, g_r_e_max) &
+                   r_i.between(r_i_e_min, r_i_e_max) &
+                   i_z.between(i_z_e_min, i_z_e_max))
 
         # We want to switch between psfmags and fibertotmags depending on
         # ps.flags EXT+EXT_ALT (i.e. extended sources)
@@ -1656,36 +1868,36 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         opt_prov = peewee.Case(
             None,
             (
-                ((ps.flags.bin_and(ext_flags) == 0) & valid, 'sdss_psfmag_from_ps1dr2'),
-                ((ps.flags.bin_and(ext_flags) > 0) & valid, 'sdss_fiber2mag_from_ps1dr2'),
+                ((ps.flags.bin_and(ext_flags) == 0) & valid_p, 'sdss_psfmag_from_ps1dr2'),
+                ((ps.flags.bin_and(ext_flags) > 0) & valid_e, 'sdss_fiber2mag_from_ps1dr2'),
             ),
             'undefined')
         magnitude_g = peewee.Case(
             None,
             (
-                ((ps.flags.bin_and(ext_flags) == 0) & valid, g_p.cast('float')),
-                ((ps.flags.bin_and(ext_flags) > 0) & valid, g_e.cast('float')),
+                ((ps.flags.bin_and(ext_flags) == 0) & valid_p, g_p.cast('float')),
+                ((ps.flags.bin_and(ext_flags) > 0) & valid_e, g_e.cast('float')),
             ),
             'NaN')
         magnitude_r = peewee.Case(
             None,
             (
-                ((ps.flags.bin_and(ext_flags) == 0) & valid, r_p.cast('float')),
-                ((ps.flags.bin_and(ext_flags) > 0) & valid, r_e.cast('float')),
+                ((ps.flags.bin_and(ext_flags) == 0) & valid_p, r_p.cast('float')),
+                ((ps.flags.bin_and(ext_flags) > 0) & valid_e, r_e.cast('float')),
             ),
             'NaN')
         magnitude_i = peewee.Case(
             None,
             (
-                ((ps.flags.bin_and(ext_flags) == 0) & valid, i_p.cast('float')),
-                ((ps.flags.bin_and(ext_flags) > 0) & valid, i_e.cast('float')),
+                ((ps.flags.bin_and(ext_flags) == 0) & valid_p, i_p.cast('float')),
+                ((ps.flags.bin_and(ext_flags) > 0) & valid_e, i_e.cast('float')),
             ),
             'NaN')
         magnitude_z = peewee.Case(
             None,
             (
-                ((ps.flags.bin_and(ext_flags) == 0) & valid, z_p.cast('float')),
-                ((ps.flags.bin_and(ext_flags) > 0) & valid, z_e.cast('float')),
+                ((ps.flags.bin_and(ext_flags) == 0) & valid_p, z_p.cast('float')),
+                ((ps.flags.bin_and(ext_flags) > 0) & valid_e, z_e.cast('float')),
             ),
             'NaN')
 
@@ -1725,11 +1937,11 @@ class BhmSpidersAgnPs1dr2Carton(BaseCarton):
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                fn.min(ps.catid_objid).alias('ps1_catid_objid'),
-                fn.min(tic.gaia_int).alias('gaia_source'),
-                fn.min(x.ero_detuid).alias('ero_detuid'),
-                fn.min(c.ra).alias('ra'),
-                fn.min(c.dec).alias('dec'),
+                fn.min(ps.catid_objid).alias('ps1_catid_objid'),  # extra
+                fn.min(tic.gaia_int).alias('gaia_source'),  # extra
+                fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
+                fn.min(c.ra).alias('ra'),  # extra
+                fn.min(c.dec).alias('dec'),  # extra
                 priority.alias("priority"),
                 fn.min(value).alias('value'),
                 fn.min(cadence).alias('cadence'),
@@ -1888,7 +2100,7 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
         r_psf_mag_max_for_cadence2 = self.parameters['r_psf_mag_max_for_cadence2']
         i_psf_mag_max_for_cadence2 = self.parameters['i_psf_mag_max_for_cadence2']
 
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        # value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
 
         # these control matching to spectroscopy
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
@@ -1978,12 +2190,24 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
         )
         # #########################################################################
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+        value = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'],
+              self.parameters.get('value', 1.0)),),
+            0.0
+        ).cast('float')
+
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
+        # add +dpriority_in_plane if target lies at |b| < in_plane_lat_cut
 
         priority_1 = peewee.Case(
             None,
@@ -2002,12 +2226,18 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
                 (sph.c.pkey.is_null(False), 1),
             ),
             0)
+        priority_4 = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'], 0),),
+            1
+        )
 
         priority = fn.max(
             self.parameters['priority_floor'] +
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
-            priority_3 * self.parameters['dpriority_has_spec']
+            priority_3 * self.parameters['dpriority_has_spec'] +
+            priority_4 * self.parameters['dpriority_in_plane']
         )
 
         # choose cadence based on psf_flux magnitude in skymapper g,r,i-bands
@@ -2059,11 +2289,20 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
         i_p = (sm.i_psf + coeffs['i0_p'] + coeffs['i1_p'] * r_i + coeffs['i2_p'] * r_i * r_i)
         z_p = (sm.z_psf + coeffs['z0_p'] + coeffs['z1_p'] * i_z + coeffs['z2_p'] * i_z * i_z)
 
-        # validity checks
+        # validity checks - set limits semi-manually
+        g_r_p_min = -0.2
+        g_r_p_max = 1.2
+        r_i_p_min = -0.2
+        r_i_p_max = 2.0
+        i_z_p_min = -0.3
+        i_z_p_max = 0.8
         valid = (sm.g_psf.between(0.1, 29.9) &
                  sm.r_psf.between(0.1, 29.9) &
                  sm.i_psf.between(0.1, 29.9) &
-                 sm.z_psf.between(0.1, 29.9))
+                 sm.z_psf.between(0.1, 29.9) &
+                 g_r.between(g_r_p_min, g_r_p_max) &
+                 r_i.between(r_i_p_min, r_i_p_max) &
+                 i_z.between(i_z_p_min, i_z_p_max))
 
         # opt_prov = peewee.Value('sdss_psfmag_from_sm2')
         opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_sm2'),), 'undefined')
@@ -2075,11 +2314,11 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
-                fn.min(sm.object_id).alias('sm2_object_id'),
-                fn.min(tic.gaia_int).alias('gaia_source'),
-                fn.min(x.ero_detuid).alias('ero_detuid'),
-                fn.min(c.ra).alias('ra'),
-                fn.min(c.dec).alias('dec'),
+                fn.min(sm.object_id).alias('sm2_object_id'),  # extra
+                fn.min(tic.gaia_int).alias('gaia_source'),  # extra
+                fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
+                fn.min(c.ra).alias('ra'),  # extra
+                fn.min(c.dec).alias('dec'),  # extra
                 priority.alias("priority"),
                 fn.min(value).alias('value'),
                 fn.min(cadence).alias('cadence'),
@@ -2091,11 +2330,11 @@ class BhmSpidersAgnSkyMapperDr2Carton(BaseCarton):
                 fn.min(tic.gaiamag).alias('gaia_g'),
                 fn.min(tic.gaiabp).alias('bp'),
                 fn.min(tic.gaiarp).alias('rp'),
-                fn.min(opt_prov).alias('optical_prov'),
-                fn.min(sm.g_psf).alias('sm2_psfmag_g'),
-                fn.min(sm.r_psf).alias('sm2_psfmag_r'),
-                fn.min(sm.i_psf).alias('sm2_psfmag_i'),
-                fn.min(sm.z_psf).alias('sm2_psfmag_z'),
+                fn.min(opt_prov).alias('optical_prov'),  # extra
+                fn.min(sm.g_psf).alias('sm2_psfmag_g'),  # extra
+                fn.min(sm.r_psf).alias('sm2_psfmag_r'),  # extra
+                fn.min(sm.i_psf).alias('sm2_psfmag_i'),  # extra
+                fn.min(sm.z_psf).alias('sm2_psfmag_z'),  # extra
             )
             .join(c2sm)
             .where(
@@ -2239,7 +2478,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         r_psf_mag_max_for_cadence2 = self.parameters['r_psf_mag_max_for_cadence2']
         i_psf_mag_max_for_cadence2 = self.parameters['i_psf_mag_max_for_cadence2']
 
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        # value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
 
         # these control matching to spectroscopy
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
@@ -2329,12 +2568,24 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         )
         # #########################################################################
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+        value = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'],
+              self.parameters.get('value', 1.0)),),
+            0.0
+        ).cast('float')
+
         # priority is determined by target properties
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
-        # add +1 if target is a secondary cross-match (match_flag > 1)
-        # add +2 if target has a low value of ero_det_like
-        # add +4 if target has existing good SDSS spectroscopy
+        # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
+        # add +dpriority_det_like if target has a low value of ero_det_like
+        # add +dpriority_has_spec if target has existing good SDSS spectroscopy
+        # add +dpriority_in_plane if target lies at |b| < in_plane_lat_cut
 
         priority_1 = peewee.Case(
             None,
@@ -2353,12 +2604,18 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
                 (sph.c.pkey.is_null(False), 1),
             ),
             0)
+        priority_4 = peewee.Case(
+            None,
+            ((gal_lat > self.parameters['in_plane_lat_cut'], 0),),
+            1
+        )
 
         priority = fn.max(
             self.parameters['priority_floor'] +
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
-            priority_3 * self.parameters['dpriority_has_spec']
+            priority_3 * self.parameters['dpriority_has_spec'] +
+            priority_4 * self.parameters['dpriority_in_plane']
         )
 
         # choose cadence based on psf-like magnitude in supercosmos b,r2,i-bands
@@ -2379,25 +2636,24 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             ),
             cadence3)
 
-
         # compute transformed SDSS mags for pointlike and extended sources separately
         # transform the supercosmos B,R2,I mags into sdss psfmag griz
 
         # extract coeffs from fit logs via:
-        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_supercosmos_*/sc_scormag_to_sdss_psfmag_?_results.log  # noqa
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if(FILENAME~/extended/){pe="e"} else if (FILENAME~/pointlike/){pe="p"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_supercosmos_*/sc_scormag_to_sdss_psfmag_?_results.log  # noqa
         coeffs = {
-            "g2_p": 0.274247,
-            "g1_p": -0.257719,
-            "g0_p": 0.249223,
-            "i2_p": 0.190439,
-            "i1_p": -1.086073,
-            "i0_p": 1.163261,
-            "r2_p": -0.098811,
-            "r1_p": 0.799153,
-            "r0_p": 0.191604,
-            "z2_p": 0.460228,
-            "z1_p": -0.382180,
-            "z0_p": 0.978730,
+            "g2_e": 0.274247,
+            "g1_e": -0.257719,
+            "g0_e": 0.249223,
+            "i2_e": 0.190439,
+            "i1_e": -1.086073,
+            "i0_e": 1.163261,
+            "r2_e": -0.098811,
+            "r1_e": 0.799153,
+            "r0_e": 0.191604,
+            "z2_e": 0.460228,
+            "z1_e": -0.382180,
+            "z0_e": 0.978730,
             "g2_p": 0.180404,
             "g1_p": -0.581735,
             "g0_p": 0.150270,
@@ -2425,48 +2681,64 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         i_e = (sc.scormagr2 + coeffs['i0_e'] + coeffs['i1_e'] * r_i + coeffs['i2_e'] * r_i * r_i)
         z_e = (sc.scormagi + coeffs['z0_e'] + coeffs['z1_e'] * r_i + coeffs['z2_e'] * r_i * r_i)
 
-        # validity checks
-        valid = (sc.scormagb.between(0.1, 29.9) &
-                 sc.scormagb2.between(0.1, 29.9) &
-                 sc.scormagi.between(0.1, 29.9))
+        # validity checks - set limits semi-manually
+        b_r_p_min = -0.5
+        b_r_p_max = 2.5
+        r_i_p_min = -0.6
+        r_i_p_max = 2.0
+        b_r_e_min = -0.5
+        b_r_e_max = 2.5
+        r_i_e_min = -0.3
+        r_i_e_max = 1.2
 
-        # We want to switch between psfmags and fibertotmags depending on
-        # value of supercosmos meanclass field
-        # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
+        # validity checks
+        valid_p = (sc.scormagb.between(0.1, 29.9) &
+                   sc.scormagr2.between(0.1, 29.9) &
+                   sc.scormagi.between(0.1, 29.9) &
+                   b_r.between(b_r_p_min, b_r_p_max) &
+                   r_i.between(r_i_p_min, r_i_p_max))
+        valid_e = (sc.scormagb.between(0.1, 29.9) &
+                   sc.scormagr2.between(0.1, 29.9) &
+                   sc.scormagi.between(0.1, 29.9) &
+                   b_r.between(b_r_e_min, b_r_e_max) &
+                   r_i.between(r_i_e_min, r_i_e_max))
+
+        # We map to SDSS psfmags for both pointlike and extended taegets
+        # - this was found to be the solution with the least scatter
         opt_prov = peewee.Case(
             None,
             (
-                ((sc.meanclass == 1) & valid, 'sdss_psfmag_from_sc'),  # galaxies
-                ((sc.meanclass == 2) & valid, 'sdss_psfmag_from_sc'),  # stars
+                ((sc.meanclass == 1) & valid_e, 'sdss_psfmag_from_sc'),  # galaxies
+                ((sc.meanclass == 2) & valid_p, 'sdss_psfmag_from_sc'),  # stars
             ),
             'undefined')
 
         magnitude_g = peewee.Case(
             None,
             (
-                ((sc.meanclass == 1) & valid, g_e.cast('float')),  # galaxies
-                ((sc.meanclass == 2) & valid, g_p.cast('float')),  # stars
+                ((sc.meanclass == 1) & valid_e, g_e.cast('float')),  # galaxies
+                ((sc.meanclass == 2) & valid_p, g_p.cast('float')),  # stars
             ),
             'NaN')
         magnitude_r = peewee.Case(
             None,
             (
-                ((sc.meanclass == 1) & valid, r_e.cast('float')),  # galaxies
-                ((sc.meanclass == 2) & valid, r_p.cast('float')),  # stars
+                ((sc.meanclass == 1) & valid_e, r_e.cast('float')),  # galaxies
+                ((sc.meanclass == 2) & valid_p, r_p.cast('float')),  # stars
             ),
             'NaN')
         magnitude_i = peewee.Case(
             None,
             (
-                ((sc.meanclass == 1) & valid, i_e.cast('float')),  # galaxies
-                ((sc.meanclass == 2) & valid, i_p.cast('float')),  # stars
+                ((sc.meanclass == 1) & valid_e, i_e.cast('float')),  # galaxies
+                ((sc.meanclass == 2) & valid_p, i_p.cast('float')),  # stars
             ),
             'NaN')
         magnitude_z = peewee.Case(
             None,
             (
-                ((sc.meanclass == 1) & valid, z_e.cast('float')),  # galaxies
-                ((sc.meanclass == 2) & valid, z_p.cast('float')),  # stars
+                ((sc.meanclass == 1) & valid_e, z_e.cast('float')),  # galaxies
+                ((sc.meanclass == 2) & valid_p, z_p.cast('float')),  # stars
             ),
             'NaN')
 

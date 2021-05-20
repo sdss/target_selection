@@ -222,6 +222,8 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
     bhm_spiders_agn_sep:
       value: 1.0
       ero_version: 'em01_SEP_c946'
@@ -281,6 +283,8 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
     bhm_spiders_agn_skymapperdr2:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -317,6 +321,8 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
     bhm_spiders_agn_supercosmos:
       value: 1.0
       ero_version: 'em01_c946_201008_poscorr'
@@ -351,6 +357,8 @@
       dpriority_match_flags: 1
       dpriority_det_like: 2
       dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
     bhm_spiders_clusters_lsdr8:
       value_bcg: 5.0
       value_member: 1.0

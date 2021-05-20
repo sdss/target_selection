@@ -266,24 +266,24 @@ class BhmRmBaseCarton(BaseCarton):
         query = (
             c.select(
                 c.catalogid,
-                c.ra,
-                c.dec,
-                t.field_name.alias('rm_field_name'),
-                t.pk.alias('rm_pk'),
+                c.ra,  # extra
+                c.dec,  # extra
+                t.field_name.alias('rm_field_name'),  # extra
+                t.pk.alias('rm_pk'),  # extra
                 instrument.alias('instrument'),
                 priority.alias('priority'),
                 value.alias('value'),
                 cadence_v0p5.alias('cadence'),
-                cadence_v0.alias('cadence_v0'),
-                cadence_v0p5.alias('cadence_v0p5'),
-                cadence_v1p0.alias('cadence_v1p0'),
+                cadence_v0.alias('cadence_v0'),  # extra
+                cadence_v0p5.alias('cadence_v0p5'),  # extra
+                cadence_v1p0.alias('cadence_v1p0'),  # extra
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 opt_prov.alias('optical_prov'),
                 inertial.alias('inertial'),
-                t.optical_survey.alias('optical_survey'),
+                t.optical_survey.alias('optical_survey'),  # extra
                 c2t.best.alias("c2t_best"),  # extra
             )
             .join(c2t)
@@ -294,7 +294,7 @@ class BhmRmBaseCarton(BaseCarton):
                 c.version_id == version_id,
                 c2t.version_id == version_id,
                 # c2t.best >> True   # TODO check if this is dropping RM targets
-                                     # like it does for AQMES
+                #                    # like it does for AQMES
             )
             .where
             (

@@ -244,10 +244,14 @@ class BhmGuaBaseCarton(BaseCarton):
         z = (t.g + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp + coeffs['z2_p'] * bp_rp * bp_rp +
              coeffs['z3_p'] * bp_rp * bp_rp * bp_rp)
 
-        # validity checks
-        valid = (t.g.between(0.1, 29.9) &
-                 t.bp.between(0.1, 29.9) &
-                 t.rp.between(0.1, 29.9))
+        # validity checks - set limits semi-manually
+        bp_rp_min = 0.0
+        bp_rp_max = 1.8
+        valid = (t.gaiamag.between(0.1, 29.9) &
+                 t.gaiabp.between(0.1, 29.9) &
+                 t.gaiarp.between(0.1, 29.9) &
+                 bp_rp.between(bp_rp_min, bp_rp_max))
+
         opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
         magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')

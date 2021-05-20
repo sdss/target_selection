@@ -296,13 +296,22 @@ class BhmCscBaseCarton(BaseCarton):
         i = (i0 + coeffs['i0_p'] + coeffs['i1_p'] * r_i + coeffs['i2_p'] * r_i * r_i)
         z = (z0 + coeffs['z0_p'] + coeffs['z1_p'] * i_z + coeffs['z2_p'] * i_z * i_z)
 
-        # validity checks (only griz)
+        # validity checks (only griz) - set limits semi-manually
+        g_r_min = -0.3
+        g_r_max = 1.7
+        r_i_min = -0.5
+        r_i_max = 2.5
+        i_z_min = -0.3
+        i_z_max = 1.25
         valid = (g0.between(0.1, 29.9) &
                  r0.between(0.1, 29.9) &
                  i0.between(0.1, 29.9) &
-                 z0.between(0.1, 29.9))
+                 z0.between(0.1, 29.9) &
+                 g_r.between(g_r_min, g_r_max) &
+                 r_i.between(r_i_min, r_i_max) &
+                 i_z.between(i_z_min, i_z_max))
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_csc'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
         magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')
         magnitude_i = peewee.Case(None, ((valid, i),), 'NaN')
