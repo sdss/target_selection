@@ -183,7 +183,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
                    ~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
 
         # Assign a base priority to the remaining targets
-        (model.update({model.priority: 6085})
+        (model.update({model.priority: 6090})
             .where(model.priority.is_null())).execute()
 
 
