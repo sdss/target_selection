@@ -765,185 +765,208 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                 )
             )
         return query
-    # ############################################################################
+# ############################################################################
 
-    # ############################################################################
-    class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
 
-        """
-        Shorthand name: ops_boss_stds_ps1dr2
+# ############################################################################
+class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
 
-        Comments: Spectrophotometric standards suitable for use by BOSS in dark time,
-              selected from panstarrs1-dr2 + gaia-dr2.
+    """
+    Shorthand name: ops_boss_stds_ps1dr2
 
-        Lead contact:  Tom Dwelly
-        """
+    Comments: Spectrophotometric standards suitable for use by BOSS in dark time,
+          selected from panstarrs1-dr2 + gaia-dr2.
 
-      name = 'ops_std_boss_ps1dr2'
-      category = 'standard_boss'
-      cadence = None
-      program = 'ops_std'
-      priority = 5351
-      mapper = None
-      instrument = 'BOSS'
+    Lead contact:  Tom Dwelly
+    """
 
-      def build_query(self, version_id, query_region=None):
-          ps = Panstarrs1.alias()
-          c2ps = CatalogToPanstarrs1.alias()
-          tic = TIC_v8.alias()
-          c2tic = CatalogToTIC_v8.alias()
+    name = 'ops_std_boss_ps1dr2'
+    category = 'standard_boss'
+    cadence = None
+    program = 'ops_std'
+    priority = 5351
+    mapper = None
+    instrument = 'BOSS'
 
-          # an alias to simplify accessing the query parameters:
-          pars = self.parameters
+    def build_query(self, version_id, query_region=None):
+        ps = Panstarrs1.alias()
+        c2ps = CatalogToPanstarrs1.alias()
+        tic = TIC_v8.alias()
+        c2tic = CatalogToTIC_v8.alias()
 
-          # transform the panstarrs1-dr2 griz into sdss psfmag griz
-          # use transforms decribed here:
-          # https://wiki.sdss.org/display/OPS/All-sky+BOSS+standards#All-skyBOSSstandards-TransformingphotometryofeBOSS-likestandardsintoSDSSsystem  # noqa
-          # extract coeffs from fit logs via:
-          # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  ops_std_eboss/ps1dr2_chp_psf_to_sdss_psfmag_?_results.log  # noqa
+        # an alias to simplify accessing the query parameters:
+        pars = self.parameters
 
-          coeffs = {
-              "g2_p": 0.115563,
-              "g1_p": 0.068765,
-              "g0_p": 0.012047,
-              "i2_p": -0.385214,
-              "i1_p": 0.149677,
-              "i0_p": -0.026127,
-              "r2_p": -0.070151,
-              "r1_p": 0.070129,
-              "r0_p": -0.014197,
-              "z2_p": -2.141255,
-              "z1_p": 0.147746,
-              "z0_p": -0.034845,
-          }
+        # transform the panstarrs1-dr2 griz into sdss psfmag griz
+        # use transforms decribed here:
+        # https://wiki.sdss.org/display/OPS/All-sky+BOSS+standards#All-skyBOSSstandards-TransformingphotometryofeBOSS-likestandardsintoSDSSsystem  # noqa
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ pe=""; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  ops_std_eboss/ps1dr2_chp_psf_to_sdss_psfmag_?_results.log  # noqa
 
-          # start from ps1dr2 chp psf mags
-          g_r = ps.g_chp_psf - ps.r_chp_psf
-          r_i = ps.r_chp_psf - ps.i_chp_psf
-          i_z = ps.i_chp_psf - ps.z_chp_psf
+        coeffs = {
+            "g2": 0.115563,
+            "g1": 0.068765,
+            "g0": 0.012047,
+            "i2": -0.385214,
+            "i1": 0.149677,
+            "i0": -0.026127,
+            "r2": -0.070151,
+            "r1": 0.070129,
+            "r0": -0.014197,
+            "z2": -2.141255,
+            "z1": 0.147746,
+            "z0": -0.034845,
+        }
 
-          # compute apparent sdss psfmags
-          g = (ps.g_chp_psf + coeffs['g0'] + coeffs['g1'] * g_r + coeffs['g2'] * g_r * g_r)
-          r = (ps.r_chp_psf + coeffs['r0'] + coeffs['r1'] * g_r + coeffs['r2'] * g_r * g_r)
-          i = (ps.i_chp_psf + coeffs['i0'] + coeffs['i1'] * r_i + coeffs['i2'] * r_i * r_i)
-          z = (ps.z_chp_psf + coeffs['z0'] + coeffs['z1'] * i_z + coeffs['z2'] * i_z * i_z)
+        # start from ps1dr2 chp psf mags
+        g_r = ps.g_chp_psf - ps.r_chp_psf
+        r_i = ps.r_chp_psf - ps.i_chp_psf
+        i_z = ps.i_chp_psf - ps.z_chp_psf
 
-          # dereddining steps
+        # compute apparent sdss psfmags
+        g = (ps.g_chp_psf + coeffs['g0'] + coeffs['g1'] * g_r + coeffs['g2'] * g_r * g_r)
+        r = (ps.r_chp_psf + coeffs['r0'] + coeffs['r1'] * g_r + coeffs['r2'] * g_r * g_r)
+        i = (ps.i_chp_psf + coeffs['i0'] + coeffs['i1'] * r_i + coeffs['i2'] * r_i * r_i)
+        z = (ps.z_chp_psf + coeffs['z0'] + coeffs['z1'] * i_z + coeffs['z2'] * i_z * i_z)
 
-          # Use R_b from Schlafly & Finkbeiner 2011, Table 6
-          # https://ui.adsabs.harvard.edu/abs/2011ApJ...737..103S/abstract
-          # assume R_V = 3.1
-          # R_b = A_V / E(B-V)
-          # for Panstarrs1 grizy bands we have:
-          R_g = 3.172
-          R_r = 2.271
-          R_i = 1.682
-          R_z = 1.322
-          # R_y = 1.087
-          dust_term_g_r = R_g - R_r
-          dust_term_r_i = R_r - R_i
-          dust_term_i_z = R_i - R_z
-          # extinction terms for Gaia are hard to find - make some up for now
-          R_gaia_g = 2.5
-          R_gaia_bp = 3.2
-          R_gaia_rp = 1.5
-          dust_term_bp_rp = R_gaia_bp - R_gaia_rp
-          dust_term_bp_g = R_gaia_bp - R_gaia_g
+        # dereddining steps
 
-          # use ebv from tic_v8 match
-          g_r_dered = g_r - tic.ebv * dust_term_g_r
-          r_i_dered = r_i - tic.ebv * dust_term_r_i
-          i_z_dered = i_z - tic.ebv * dust_term_i_z
-          bp_rp_dered = tic.gaiarp - tic.gaiabp - tic.ebv * dust_term_bp_rp
-          bp_g_dered = tic.gaiarp - tic.gaiag - tic.ebv * dust_term_bp_g
+        # extinction terms for Panstarrs
+        # Use R_b from Schlafly & Finkbeiner 2011, Table 6
+        # https://ui.adsabs.harvard.edu/abs/2011ApJ...737..103S/abstract
+        # assume R_V = 3.1
+        # R_b = A_V / E(B-V)
+        # for Panstarrs1 grizy bands we have:
+        R_g = 3.172
+        R_r = 2.271
+        R_i = 1.682
+        R_z = 1.322
+        # R_y = 1.087
+        dust_term_g_r = R_g - R_r
+        dust_term_r_i = R_r - R_i
+        dust_term_i_z = R_i - R_z
 
-          g_r_dered_nominal = pars['g_r_dered_nominal']
-          r_i_dered_nominal = pars['r_i_dered_nominal']
-          i_z_dered_nominal = pars['i_z_dered_nominal']
-          bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
-          bp_g_dered_nominal = pars['bp_g_dered_nominal']
+        # extinction terms for Gaia
+        # Use table 3 from Wang & Chen 2019
+        # https://ui.adsabs.harvard.edu/abs/2019ApJ...877..116W/abstract
+        # R_G = 1.890
+        # R_BP = 2.429
+        # R_RP = 1.429
+        # These R_b are expressed with E(BP-RP) as the denominator - so need to convert to
+        # using E(B-V) as denominator instead
 
-          dered_dist = peewee.fn.sqrt(
-              (g_r_dered - g_r_dered_nominal) * (g_r_dered - g_r_dered_nominal) +
-              (r_i_dered - r_i_dered_nominal) * (r_i_dered - r_i_dered_nominal) +
-              (i_z_dered - i_z_dered_nominal) * (i_z_dered - i_z_dered_nominal) +
-              (bp_rp_dered - bp_rp_dered_nominal) * (bp_rp_dered - bp_rp_dered_nominal) +
-              (bp_g_dered - bp_g_dered_nominal) * (bp_g_dered - bp_g_dered_nominal)
-          )
+        # an email from Keivan Stassun helps with this:
+        #   Hi Jennifer, we had to work
+        #   these out for the TIC paper because we used Gaia G mags and
+        #   Bp-Rp colors for everything... you can see the details in
+        #   Section 2.3.3 of Stassun et al (2019), but here's the final
+        #   relations we adopted:
+        #   E(${G}_{\mathrm{BP}}$ − ${G}_{\mathrm{RP}}$) = 1.31 E(B − V)
+        #   AG = 2.72 E(B − V)
 
-          optical_prov = peewee.Value('sdss_psfmag_from_ps1dr2')
+        R_gaia_g = 1.890 * 1.31
+        R_gaia_bp = 2.429 * 1.31
+        R_gaia_rp = 1.429 * 1.31
+        dust_term_bp_rp = R_gaia_bp - R_gaia_rp
+        dust_term_bp_g = R_gaia_bp - R_gaia_g
 
-          ext_flags = 8388608 + 16777216
+        # use ebv from tic_v8 match
+        g_r_dered = g_r - tic.ebv * dust_term_g_r
+        r_i_dered = r_i - tic.ebv * dust_term_r_i
+        i_z_dered = i_z - tic.ebv * dust_term_i_z
+        bp_rp_dered = tic.gaiarp - tic.gaiabp - tic.ebv * dust_term_bp_rp
+        bp_g_dered = tic.gaiarp - tic.gaiamag - tic.ebv * dust_term_bp_g
 
-          query = (
-              Catalog
-              .select(Catalog.catalogid,
-                      Catalog.ra,
-                      Catalog.dec,
-                      ps.catid_objid.alias('ps1_catid_objid'),
-                      tic.gaia_int.alias('gaia_source'),
-                      ps.g_chp_psf.alias("ps1dr2_chp_psfmag_g"),
-                      ps.r_chp_psf.alias("ps1dr2_chp_psfmag_r"),
-                      ps.i_chp_psf.alias("ps1dr2_chp_psfmag_i"),
-                      ps.z_chp_psf.alias("ps1dr2_chp_psfmag_z"),
-                      g_r.alias("ps1dr2_chp_psfmag_g_r"),
-                      r_i.alias("ps1dr2_chp_psfmag_r_i"),
-                      i_z.alias("ps1dr2_chp_psfmag_i_z"),
-                      tic.ebv.alias("tic_ebv"),
-                      g_r_dered.alias("ps1dr2_chp_psfmag_g_r_dered"),
-                      r_i_dered.alias("ps1dr2_chp_psfmag_r_i_dered"),
-                      i_z_dered.alias("ps1dr2_chp_psfmag_i_z_dered"),
-                      bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
-                      bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                      dered_dist.alias("dered_dist"),
-                      g.alias("g"),
-                      r.alias("r"),
-                      i.alias("i"),
-                      z.alias("z"),
-                      tic.gaiag.alias("gaia_g"),
-                      tic.gaiabp.alias("bp"),
-                      tic.gaiarp.alias("rp"),
-                      tic.parallax,
-                      tic.parallax_error,
-                      optical_prov.alias('optical_prov'))
-              .join(c2ps,
-                    on=(Catalog.catalogid == c2ps.catalogid))
-              .join(ps,
-                    on=(c2ps.target_id == ps.ps1_catid_objid))
-              .join(c2tic,
-                    on=(Catalog.catalogid == c2tic.catalogid))
-              .join(tic,
-                    on=(c2tic.target_id == tic.id))
-              .where(
-                  c2ps.version_id == version_id,
-                  c2tic.version_id == version_id,
-                  c2ps.best >> True,
-                  c2tic.best >> True,
-                  ps.flags.bin_and(ext_flags) == 0,
-                  tic.gaiag > pars['mag_gaia_g_min'],
-                  tic.parallax < pars['parallax_max'],
-                  tic.parallax > (
-                      pars['parallax_min_at_g16'] +
-                      (tic.gaia_g - 16.0) * pars['parallax_min_slope']
-                  ),
-                  dered_dist < pars['dered_dist_max'],
-                  ps.r_chp_psf.between(pars['mag_ps_r_min'], pars['mag_ps_r_max']),
-              )
-          )
+        g_r_dered_nominal = pars['g_r_dered_nominal']
+        r_i_dered_nominal = pars['r_i_dered_nominal']
+        i_z_dered_nominal = pars['i_z_dered_nominal']
+        bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
+        bp_g_dered_nominal = pars['bp_g_dered_nominal']
 
-          # Below ra, dec and radius are in degrees
-          # query_region[0] is ra of center of the region
-          # query_region[1] is dec of center of the region
-          # query_region[2] is radius of the region
-          if query_region:
-              query = (
-                  query.where(
-                      peewee.fn.q3c_radial_query(Catalog.ra,
-                                                 Catalog.dec,
-                                                 query_region[0],
-                                                 query_region[1],
-                                                 query_region[2]),
-                  )
-              )
-          return query
-      #
+        dered_dist = peewee.fn.sqrt(
+            (g_r_dered - g_r_dered_nominal) * (g_r_dered - g_r_dered_nominal) +
+            (r_i_dered - r_i_dered_nominal) * (r_i_dered - r_i_dered_nominal) +
+            (i_z_dered - i_z_dered_nominal) * (i_z_dered - i_z_dered_nominal) +
+            (bp_rp_dered - bp_rp_dered_nominal) * (bp_rp_dered - bp_rp_dered_nominal) +
+            (bp_g_dered - bp_g_dered_nominal) * (bp_g_dered - bp_g_dered_nominal)
+        )
+
+        optical_prov = peewee.Value('sdss_psfmag_from_ps1dr2')
+
+        ext_flags = 8388608 + 16777216
+
+        query = (
+            Catalog
+            .select(Catalog.catalogid,
+                    Catalog.ra,
+                    Catalog.dec,
+                    ps.catid_objid.alias('ps1_catid_objid'),
+                    tic.gaia_int.alias('gaia_source'),
+                    ps.g_chp_psf.alias("ps1dr2_chp_psfmag_g"),
+                    ps.r_chp_psf.alias("ps1dr2_chp_psfmag_r"),
+                    ps.i_chp_psf.alias("ps1dr2_chp_psfmag_i"),
+                    ps.z_chp_psf.alias("ps1dr2_chp_psfmag_z"),
+                    g_r.alias("ps1dr2_chp_psfmag_g_r"),
+                    r_i.alias("ps1dr2_chp_psfmag_r_i"),
+                    i_z.alias("ps1dr2_chp_psfmag_i_z"),
+                    tic.ebv.alias("tic_ebv"),
+                    g_r_dered.alias("ps1dr2_chp_psfmag_g_r_dered"),
+                    r_i_dered.alias("ps1dr2_chp_psfmag_r_i_dered"),
+                    i_z_dered.alias("ps1dr2_chp_psfmag_i_z_dered"),
+                    bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
+                    bp_g_dered.alias("gdr2_mag_dered_bp_g"),
+                    dered_dist.alias("dered_dist"),
+                    g.alias("g"),
+                    r.alias("r"),
+                    i.alias("i"),
+                    z.alias("z"),
+                    tic.gaiamag.alias("gaia_g"),
+                    tic.gaiabp.alias("bp"),
+                    tic.gaiarp.alias("rp"),
+                    tic.jmag.alias("j"),
+                    tic.hmag.alias("h"),
+                    tic.kmag.alias("k"),
+                    tic.plx.alias('parallax'),
+                    tic.e_plx.alias('parallax_error'),
+                    optical_prov.alias('optical_prov'))
+            .join(c2ps,
+                  on=(Catalog.catalogid == c2ps.catalogid))
+            .join(ps,
+                  on=(c2ps.target_id == ps.catid_objid))
+            .join(c2tic,
+                  on=(Catalog.catalogid == c2tic.catalogid))
+            .join(tic,
+                  on=(c2tic.target_id == tic.id))
+            .where(
+                c2ps.version_id == version_id,
+                c2tic.version_id == version_id,
+                c2ps.best >> True,
+                c2tic.best >> True,
+                ps.flags.bin_and(ext_flags) == 0,
+                tic.gaiamag > pars['mag_gaia_g_min'],
+                tic.plx < pars['parallax_max'],
+                tic.plx > (
+                    pars['parallax_min_at_g16'] +
+                    (tic.gaiamag - 16.0) * pars['parallax_min_slope']
+                ),
+                dered_dist < pars['dered_dist_max'],
+                ps.r_chp_psf.between(pars['mag_ps_r_min'], pars['mag_ps_r_max']),
+            )
+        )
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (
+                query.where(
+                    peewee.fn.q3c_radial_query(Catalog.ra,
+                                               Catalog.dec,
+                                               query_region[0],
+                                               query_region[1],
+                                               query_region[2]),
+                )
+            )
+
+        return query
