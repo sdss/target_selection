@@ -2742,11 +2742,10 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             ),
             'NaN')
 
-
         # # We only use pseudo psfmags for SuperCosmos
         # opt_prov = peewee.Value('sc_psfmag')
         # # - transform the photographic B,R,I -> to griz
-        # # some very crude by-eye fits to SPIDERS AGN targets matched to SC and SDSSdr9 (via stilts)
+        # # some very crude by-eye fits to SPIDERS AGN targets matched to SC and SDSSdr9
         # # completely ignore differences between psfmags and total mags
         # # Check for out-of-range errors via case statements (fall back to single band
         # # estimates and typical colours when secondary mag is missing)

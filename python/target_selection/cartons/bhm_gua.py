@@ -110,7 +110,7 @@ class BhmGuaBaseCarton(BaseCarton):
         # ph = SDSSV_Plateholes.alias()
         # phm = SDSSV_Plateholes_Meta.alias()
 
-        g = Gaia_DR2.alias()
+        # g2 = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
 
         match_radius_spectro = self.parameters['spec_join_radius'] / 3600.0
@@ -247,12 +247,12 @@ class BhmGuaBaseCarton(BaseCarton):
         # validity checks - set limits semi-manually
         bp_rp_min = 0.0
         bp_rp_max = 1.8
-        valid = (t.gaiamag.between(0.1, 29.9) &
-                 t.gaiabp.between(0.1, 29.9) &
-                 t.gaiarp.between(0.1, 29.9) &
+        valid = (t.g.between(0.1, 29.9) &
+                 t.bp.between(0.1, 29.9) &
+                 t.rp.between(0.1, 29.9) &
                  bp_rp.between(bp_rp_min, bp_rp_max))
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gdr2'),), 'undefined')
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gaiadr2'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
         magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')
         magnitude_i = peewee.Case(None, ((valid, i),), 'NaN')
@@ -289,8 +289,9 @@ class BhmGuaBaseCarton(BaseCarton):
             )
             .join(c2tic)
             .join(tic)
-            .join(g)
-            .join(t, on=(g.source_id == t.gaia_sourceid))
+            # .join(g2)    # can skip this join using the gaia_int from the TIC
+            # .join(t, on=(g2.source_id == t.gaia_sourceid))
+            .join(t, on=(tic.gaia_int == t.gaia_sourceid))
             # start joining the spectroscopy
             .switch(c)
             .join(c2s16, JOIN.LEFT_OUTER)
