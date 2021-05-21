@@ -464,6 +464,19 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
             ),
             'NaN')
 
+        magnitude_gaia_g = peewee.Case(
+            None,
+            ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),),
+            'NaN')
+        magnitude_gaia_bp = peewee.Case(
+            None,
+            ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),),
+            'NaN')
+        magnitude_gaia_rp = peewee.Case(
+            None,
+            ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
+            'NaN')
+
         query = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
@@ -480,9 +493,9 @@ class BhmSpidersAgnLsdr8Carton(BaseCarton):
                 fn.min(magnitude_r).alias('r'),
                 fn.min(magnitude_i).alias('i'),
                 fn.min(magnitude_z).alias('z'),
-                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_g'),
-                fn.min(ls.gaia_phot_bp_mean_mag).alias('bp'),
-                fn.min(ls.gaia_phot_rp_mean_mag).alias('rp'),
+                fn.min(magnitude_gaia_g).alias('gaia_g'),
+                fn.min(magnitude_gaia_bp).alias('bp'),
+                fn.min(magnitude_gaia_rp).alias('rp'),
                 fn.min(g0_p).alias("ls8_mag_g"),   # extra
                 fn.min(r0_p).alias("ls8_mag_r"),  # extra
                 fn.min(z0_p).alias("ls8_mag_z"),  # extra
@@ -868,6 +881,18 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 ((ls.type != 'PSF') & valid_e, z_e.cast('float')),
             ),
             'NaN')
+        magnitude_gaia_g = peewee.Case(
+            None,
+            ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),),
+            'NaN')
+        magnitude_gaia_bp = peewee.Case(
+            None,
+            ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),),
+            'NaN')
+        magnitude_gaia_rp = peewee.Case(
+            None,
+            ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
+            'NaN')
 
         query = (
             c.select(
@@ -885,9 +910,9 @@ class BhmSpidersAgnEfedsStragglersCarton(BaseCarton):
                 fn.min(magnitude_r).alias('r'),
                 fn.min(magnitude_i).alias('i'),
                 fn.min(magnitude_z).alias('z'),
-                fn.min(ls.gaia_phot_g_mean_mag).alias('gaia_g'),
-                fn.min(ls.gaia_phot_bp_mean_mag).alias('bp'),
-                fn.min(ls.gaia_phot_rp_mean_mag).alias('rp'),
+                fn.min(magnitude_gaia_g).alias('gaia_g'),
+                fn.min(magnitude_gaia_bp).alias('bp'),
+                fn.min(magnitude_gaia_rp).alias('rp'),
                 fn.min(g0_p).alias("ls8_mag_g"),   # extra
                 fn.min(r0_p).alias("ls8_mag_r"),  # extra
                 fn.min(z0_p).alias("ls8_mag_z"),  # extra
@@ -2600,8 +2625,8 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             (
                 (s16.c.specobjid.is_null(False), 1),  # any of these can be satisfied
                 (s2020.c.pk.is_null(False), 1),
-                (sV.c.specobjid.is_null(False), 1),
-                (sph.c.pkey.is_null(False), 1),
+                # (sV.c.specobjid.is_null(False), 1),
+                # (sph.c.pkey.is_null(False), 1),
             ),
             0)
         priority_4 = peewee.Case(
@@ -2796,7 +2821,7 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
         #     ),
         #     None)
 
-        query = (
+        bquery = (
             c.select(
                 fn.min(c.catalogid).alias('catalogid'),
                 x.catwise2020_id.alias('cw2020_source_id'),  # extra
@@ -2865,22 +2890,22 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
                     (c2s2020.version_id == version_id)
                 )
             )
-            .join(
-                sV, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
-                )
-            )
-            .join(
-                sph, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
-                )
-            )
+            # .join(
+            #     sV, JOIN.LEFT_OUTER,
+            #     on=(
+            #         fn.q3c_join(sV.c.plug_ra, sV.c.plug_dec,
+            #                     c.ra, c.dec,
+            #                     match_radius_spectro)
+            #     )
+            # )
+            # .join(
+            #     sph, JOIN.LEFT_OUTER,
+            #     on=(
+            #         fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
+            #                     c.ra, c.dec,
+            #                     match_radius_spectro)
+            #     )
+            # )
             # finished joining the spectroscopy
             .where(
                 (x.ero_version == self.parameters['ero_version']),
@@ -2915,11 +2940,65 @@ class BhmSpidersAgnSuperCosmosCarton(BaseCarton):
             )
         )
 
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            bquery = (bquery
+                      .where(peewee.fn.q3c_radial_query(c.ra,
+                                                        c.dec,
+                                                        query_region[0],
+                                                        query_region[1],
+                                                        query_region[2])))
+
+        self.log.debug('Creating temporary table for base query ...')
+        bquery.create_table(self.name + '_bquery', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_bquery (ra, dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_bquery')
+
+        sph.create_table(self.name + '_sph', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_sph (target_ra, target_dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_sph')
+
+        sV.create_table(self.name + '_sv', temporary=True)
+        self.database.execute_sql(f'CREATE INDEX ON {self.name}_sv (plug_ra, plug_dec)')
+        self.database.execute_sql(f'ANALYZE {self.name}_sv')
+
+        bquery_table = peewee.Table(f'{self.name}_bquery', alias='bquery')
+        sph_table = peewee.Table(f'{self.name}_sph')
+        sV_table = peewee.Table(f'{self.name}_sv')
+
+        query = (
+            bquery_table
+            .select(peewee.SQL('bquery.*'))
+            .join(
+                sV_table, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(bquery_table.c.ra, bquery_table.c.dec,
+                                sV_table.c.plug_ra, sV_table.c.plug_dec,
+                                match_radius_spectro)
+                )
+            )
+            .join(
+                sph_table, JOIN.LEFT_OUTER,
+                on=(
+                    fn.q3c_join(bquery_table.c.ra, bquery_table.c.dec,
+                                sph_table.c.target_ra, sph_table.c.target_dec,
+                                match_radius_spectro)
+                )
+            )  # then reject any targets with existing good SDSS-V spectroscopy or a platehole
+            .where(
+                sV_table.c.specobjid.is_null(True),
+                sph_table.c.pkey.is_null(True),
+            )
+        )
+
+        # if query_region:
+        #     query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
+        #                                                    query_region[0],
+        #                                                    query_region[1],
+        #                                                    query_region[2]))
 
         return query
 #

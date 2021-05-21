@@ -313,6 +313,18 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
         magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
         magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
         magnitude_z = peewee.Case(None, ((valid, z_e),), 'NaN')
+        magnitude_gaia_g = peewee.Case(
+            None,
+            ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),),
+            'NaN')
+        magnitude_gaia_bp = peewee.Case(
+            None,
+            ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),),
+            'NaN')
+        magnitude_gaia_rp = peewee.Case(
+            None,
+            ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
+            'NaN')
 
         # # We want to switch between psfmags and fibertotmags depending on
         # # ls.type parameter (PSF or extended)
@@ -365,9 +377,9 @@ class BhmSpidersClustersLsdr8Carton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                ls.gaia_phot_g_mean_mag.alias('gaia_g'),
-                ls.gaia_phot_bp_mean_mag.alias('bp'),
-                ls.gaia_phot_rp_mean_mag.alias('rp'),
+                magnitude_gaia_g.alias('gaia_g'),
+                magnitude_gaia_bp.alias('bp'),
+                magnitude_gaia_rp.alias('rp'),
                 inertial.alias('inertial'),
                 g0_e.alias('ls8_fibermag_g'),  # extra
                 r0_e.alias('ls8_fibermag_r'),  # extra

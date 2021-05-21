@@ -335,6 +335,18 @@ class BhmGuaBaseCarton(BaseCarton):
             .distinct([t.gaia_sourceid])
         )
 
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            bquery = (bquery
+                      .where(peewee.fn.q3c_radial_query(c.ra,
+                                                        c.dec,
+                                                        query_region[0],
+                                                        query_region[1],
+                                                        query_region[2])))
+
         self.log.debug('Creating temporary table for base query ...')
         bquery.create_table(self.name + '_bquery', temporary=True)
         self.database.execute_sql(f'CREATE INDEX ON {self.name}_bquery (ra, dec)')
@@ -370,6 +382,11 @@ class BhmGuaBaseCarton(BaseCarton):
                                 sph_table.c.target_ra, sph_table.c.target_dec,
                                 match_radius_spectro)
                 )
+            )
+            # then reject any GUA targets with existing good SDSS-V spectroscopy or a platehole
+            .where(
+                sV_table.c.specobjid.is_null(True),
+                sph_table.c.pkey.is_null(True),
             )
         )
 
