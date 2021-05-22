@@ -116,13 +116,14 @@
       mag_ps_r_min: 15.95
       mag_ps_r_max: 18.05
       mag_gaia_g_min: 15.5
+      mag_gaia_g_max: 19.0
       parallax_min_at_g16: 0.2
       parallax_min_slope: -0.22
       parallax_max: 0.7
       dered_dist_max: 0.10
-      g_r_dered_nominal: 0.30
-      r_i_dered_nominal: 0.15
-      i_z_dered_nominal: 0.03
+      g_r_dered_nominal: 0.24
+      r_i_dered_nominal: 0.08
+      i_z_dered_nominal: 0.00
       bp_rp_dered_nominal: 0.66
       bp_g_dered_nominal: 0.22
     bhm_gua_dark:

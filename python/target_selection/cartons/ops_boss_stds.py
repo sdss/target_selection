@@ -20,6 +20,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 )
 
 from target_selection.cartons import BaseCarton
+from target_selection.mag_flux import AB2Jy
 
 
 # See catalog.py for the name of peewee model names corresponding
@@ -644,12 +645,13 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
         bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
         bp_g_dered_nominal = pars['bp_g_dered_nominal']
 
-        dered_dist = peewee.fn.sqrt(
+        dered_dist2 = (
             (g_r_dered - g_r_dered_nominal) * (g_r_dered - g_r_dered_nominal) +
             (r_z_dered - r_z_dered_nominal) * (r_z_dered - r_z_dered_nominal) +
             (bp_rp_dered - bp_rp_dered_nominal) * (bp_rp_dered - bp_rp_dered_nominal) +
             (bp_g_dered - bp_g_dered_nominal) * (bp_g_dered - bp_g_dered_nominal)
         )
+        dered_dist_max2 = pars['dered_dist_max'] * pars['dered_dist_max']
 
         optical_prov = peewee.Value('sdss_psfmag_from_lsdr8')
 
@@ -679,7 +681,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                     r_z_dered.alias("ls8_mag_dered_r_z"),
                     bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
                     bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                    dered_dist.alias("dered_dist"),
+                    dered_dist2.alias("dered_dist2"),
                     g.alias("g"),
                     r.alias("r"),
                     i.alias("i"),
@@ -720,7 +722,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
                 ls.flux_r > nMgy_min,
                 ls.flux_z > nMgy_min,
                 ls.maskbits == 0,
-                dered_dist < pars['dered_dist_max'],
+                dered_dist2 < dered_dist_max2,
                 r0.between(pars['mag_ls_r_min'], pars['mag_ls_r_max']),
                 #
                 # g_r.between(pars['ls_g_r_min'], pars['ls_g_r_max']),
@@ -883,7 +885,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
         bp_g_dered_nominal = pars['bp_g_dered_nominal']
 
-        dered_dist = peewee.fn.sqrt(
+        dered_dist2 = (
             (g_r_dered - g_r_dered_nominal) * (g_r_dered - g_r_dered_nominal) +
             (r_i_dered - r_i_dered_nominal) * (r_i_dered - r_i_dered_nominal) +
             (i_z_dered - i_z_dered_nominal) * (i_z_dered - i_z_dered_nominal) +
@@ -894,6 +896,11 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         optical_prov = peewee.Value('sdss_psfmag_from_ps1dr2')
 
         ext_flags = 8388608 + 16777216
+        dered_dist_max2 = pars['dered_dist_max'] * pars['dered_dist_max']
+
+        # the following are just to bracket the result to make the query run faster
+        r_stk_psf_flux_min = AB2Jy(pars['mag_ps_r_max'] + 0.2)
+        r_stk_psf_flux_max = AB2Jy(pars['mag_ps_r_min'] - 0.2)
 
         query = (
             Catalog
@@ -915,7 +922,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
                     i_z_dered.alias("ps1dr2_chp_psfmag_i_z_dered"),
                     bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
                     bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                    dered_dist.alias("dered_dist"),
+                    dered_dist2.alias("dered_dist2"),
                     g.alias("g"),
                     r.alias("r"),
                     i.alias("i"),
@@ -943,14 +950,16 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
                 c2ps.best >> True,
                 c2tic.best >> True,
                 ps.flags.bin_and(ext_flags) == 0,
-                tic.gaiamag > pars['mag_gaia_g_min'],
                 tic.plx < pars['parallax_max'],
                 tic.plx > (
                     pars['parallax_min_at_g16'] +
                     (tic.gaiamag - 16.0) * pars['parallax_min_slope']
                 ),
-                dered_dist < pars['dered_dist_max'],
+                dered_dist2 < dered_dist_max2,
                 ps.r_chp_psf.between(pars['mag_ps_r_min'], pars['mag_ps_r_max']),
+                # the following are just to bracket the result to make the query run faster
+                tic.gaiamag.between(pars['mag_gaia_g_min'], pars['mag_gaia_g_max']),
+                ps.r_stk_psf_flux.between(r_stk_psf_flux_min, r_stk_psf_flux_min),
             )
         )
 
