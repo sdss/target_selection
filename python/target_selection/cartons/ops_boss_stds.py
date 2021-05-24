@@ -8,16 +8,11 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog, CatalogToLegacy_Survey_DR8, CatalogToSDSS_DR13_PhotoObj_Primary,
-    CatalogToTIC_v8, Gaia_DR2, Legacy_Survey_DR8, TIC_v8, TwoMassPSC,
-    eBOSS_Target_v5)
-
 # additional imports required by ops_boss_stds_ps1dr2
 from sdssdb.peewee.sdss5db.catalogdb import (
-    Panstarrs1,
-    CatalogToPanstarrs1,
-)
+    Catalog, CatalogToLegacy_Survey_DR8, CatalogToPanstarrs1,
+    CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8, Gaia_DR2,
+    Legacy_Survey_DR8, Panstarrs1, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 from target_selection.mag_flux import AB2Jy
