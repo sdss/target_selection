@@ -257,7 +257,6 @@ class BhmCscBaseCarton(BaseCarton):
         else:
             priority = peewee.Value(self.parameters['priority_floor'])
 
-
         # compute transformed SDSS mags for pointlike and extended sources separately
         # transform the csc (panstarrs1-dr1) griz into sdss psfmag griz
 

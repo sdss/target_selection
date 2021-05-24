@@ -11,13 +11,12 @@
 import peewee
 from peewee import JOIN
 from peewee import fn
-# import sdssdb
 
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     CatalogToTIC_v8,
     TIC_v8,
-    Gaia_DR2,
+    # Gaia_DR2,
     # CatalogToGaia_unWISE_AGN,  # <-- this is old and does not work
     CatalogToSDSS_DR16_SpecObj,
     SDSS_DR16_SpecObj,
