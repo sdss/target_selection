@@ -320,14 +320,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'selected' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;')
 
-        if 'cadence' not in columns:
+        if 'cadence' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN cadence VARCHAR;')
 
-        if 'priority' not in columns:
+        if 'priority' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
 
-        # Only create instrument column if the instrument is not set globally
-        # for the carton, since it will then be set in post-process.
         if 'instrument' not in columns and self.instrument is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN instrument TEXT;')
 
