@@ -169,18 +169,35 @@ class BhmRmBaseCarton(BaseCarton):
             ),
             None
         )
-        # this secondary priority rule is based on whether this target was
+        # # this secondary priority rule is based on whether this target was
+        # # assigned a platehole during the SDSSV plate programme
+        # # boost the priorities of those targets that were put onto plates
+        # priority2 = peewee.Case(
+        #     None,
+        #     (
+        #         (sph.c.pkey.is_null(False), -100),
+        #         (sph.c.pkey.is_null(True), 0),
+        #     ),
+        #     None
+        # )
+
+        # this secondary priority rule boosts the priority of targets that
+        # have rm_suitability = 0 in the bhm_rm_tweaks table
+        priority2 = peewee.Case(None, ((tw.rm_suitability == 1, -100), ), 0)
+
+        # combine the two priorities
+        priority = priority1 + priority2
+
+        # this just checks if this target was
         # assigned a platehole during the SDSSV plate programme
-        # boost the priorities of those targets that were put onto plates
-        priority2 = peewee.Case(
+        # for information only - no action taken
+        in_SDSSV_plates = peewee.Case(
             None,
             (
-                (sph.c.pkey.is_null(False), -100),
-                (sph.c.pkey.is_null(True), 0),
+                (sph.c.pkey.is_null(False), True),
             ),
-            None
-        )
-        priority = priority1 + priority2
+            False
+        ).cast('bool')
 
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
         instrument = peewee.Value(self.instrument)
@@ -194,9 +211,16 @@ class BhmRmBaseCarton(BaseCarton):
                                  ),
                                  'bhm_rm_174x8')
 
+        # this gives the new names for the same cadences assumed in v0
+        cadence_v0p5 = peewee.Case(None,
+                                   (
+                                       (t.field_name.contains('S-CVZ'), 'dark_100x8'),
+                                   ),
+                                   'dark_174x8')
+
         # the following will replace old generic cadences when relevant table has been populated
         # TODO - replace when correct cadences are loaded
-        cadence_v0p5 = peewee.Case(None,
+        cadence_v1p0 = peewee.Case(None,
                                    (
                                        (t.field_name.contains('SDSS-RM'), 'bhm_rm_sdss-rm'),
                                        (t.field_name.contains('COSMOS'), 'bhm_rm_cosmos'),
@@ -205,14 +229,14 @@ class BhmRmBaseCarton(BaseCarton):
                                        (t.field_name.contains('CDFS'), 'bhm_rm_cdfs'),
                                        (t.field_name.contains('ELIAS-S1'), 'bhm_rm_elias-s1'),
                                    ),
-                                   'bhm_rm_174x8')
+                                   'dark_174x8')
 
         # Photometric precedence: DES>PS1>SDSS(>Gaia)>NSC.
         opt_prov = peewee.Case(None,
                                (
+                                   (t.sdss == 1, 'sdss_psfmag'),
                                    (t.des == 1, 'psfmag'),
                                    (t.ps1 == 1, 'ps_psfmag'),
-                                   (t.sdss == 1, 'sdss_psfmag'),
                                    (t.optical_survey == 'Gaia', 'other'),
                                    (t.nsc == 1, 'psfmag'),
                                ),
@@ -220,62 +244,66 @@ class BhmRmBaseCarton(BaseCarton):
 
         magnitude_g = peewee.Case(None,
                                   (
+                                      ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
                                       ((t.des == 1) & (t.psfmag_des[0] > 0.0), t.psfmag_des[0]),
                                       ((t.ps1 == 1) & (t.psfmag_ps1[0] > 0.0), t.psfmag_ps1[0]),
-                                      ((t.sdss == 1) & (t.psfmag_sdss[1] > 0.0), t.psfmag_sdss[1]),
                                       ((t.optical_survey == 'Gaia') & (t.mag_gaia[0] > 0.0),
                                        t.mag_gaia[0]),  # just using gaia G for now
                                       ((t.nsc == 1) & (t.mag_nsc[0] > 0.0), t.mag_nsc[0]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_r = peewee.Case(None,
                                   (
+                                      ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
                                       ((t.des == 1) & (t.psfmag_des[1] > 0.0), t.psfmag_des[1]),
                                       ((t.ps1 == 1) & (t.psfmag_ps1[1] > 0.0), t.psfmag_ps1[1]),
-                                      ((t.sdss == 1) & (t.psfmag_sdss[2] > 0.0), t.psfmag_sdss[2]),
                                       ((t.nsc == 1) & (t.mag_nsc[1] > 0.0), t.mag_nsc[1]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_i = peewee.Case(None,
                                   (
+                                      ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
                                       ((t.des == 1) & (t.psfmag_des[2] > 0.0), t.psfmag_des[2]),
                                       ((t.ps1 == 1) & (t.psfmag_ps1[2] > 0.0), t.psfmag_ps1[2]),
-                                      ((t.sdss == 1) & (t.psfmag_sdss[3] > 0.0), t.psfmag_sdss[3]),
                                       ((t.nsc == 1) & (t.mag_nsc[2] > 0.0), t.mag_nsc[2]),
                                       (t.mi > 0.0, t.mi),
                                       ((t.optical_survey == 'Gaia') & (t.mag_gaia[2] > 0.0),
                                        t.mag_gaia[2]),  # just using gaia RP for now
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
         magnitude_z = peewee.Case(None,
                                   (
+                                      ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
                                       ((t.des == 1) & (t.psfmag_des[3] > 0.0), t.psfmag_des[3]),
                                       ((t.ps1 == 1) & (t.psfmag_ps1[3] > 0.0), t.psfmag_ps1[3]),
-                                      ((t.sdss == 1) & (t.psfmag_sdss[4] > 0.0), t.psfmag_sdss[4]),
                                       ((t.nsc == 1) & (t.mag_nsc[3] > 0.0), t.mag_nsc[3]),
                                   ),
-                                  None)  # should never get here
+                                  99.9)  # should never get here
 
         query = (
             c.select(
                 c.catalogid,
-                c.ra,
-                c.dec,
-                t.field_name.alias('rm_field_name'),
-                t.pk.alias('rm_pk'),
+                c.ra,  # extra
+                c.dec,  # extra
+                t.field_name.alias('rm_field_name'),  # extra
+                t.pk.alias('rm_pk'),  # extra
                 instrument.alias('instrument'),
                 priority.alias('priority'),
                 value.alias('value'),
-                cadence_v0.alias('cadence'),
-                cadence_v0.alias('cadence_v0'),
-                cadence_v0p5.alias('cadence_v0p5'),
+                cadence_v0p5.alias('cadence'),
+                cadence_v0.alias('cadence_v0'),  # extra
+                cadence_v0p5.alias('cadence_v0p5'),  # extra
+                cadence_v1p0.alias('cadence_v1p0'),  # extra
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 opt_prov.alias('optical_prov'),
                 inertial.alias('inertial'),
-                t.optical_survey.alias('optical_survey'),
+                t.optical_survey.alias('optical_survey'),  # extra
+                c2t.best.alias("c2t_best"),  # extra
+                in_SDSSV_plates.alias('in_SDSSV_plates'),  # extra
+                tw.rm_suitability.cast('int').alias('rm_suitability'),  # extra
             )
             .join(c2t)
             # An explicit join is needed because we are using c2t for Catalog_to_BHM_RM_v0
@@ -284,7 +312,8 @@ class BhmRmBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2t.version_id == version_id,
-                c2t.best >> True
+                # c2t.best >> True   # TODO check if this is dropping RM targets
+                #                    # like it does for AQMES
             )
             .where
             (
@@ -337,7 +366,8 @@ class BhmRmBaseCarton(BaseCarton):
                     (tw.rm_suitability != 0)
                 )
             )
-            # .distinct([t.pk])   # avoid duplicates - trust the RM parent sample - not needed
+            .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
+                                # - only needed if NOT using c2t.best = True condition
         )
         query = self.append_spatial_query(query, fieldlist)
 

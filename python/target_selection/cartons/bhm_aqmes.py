@@ -202,16 +202,17 @@ class BhmAqmesBaseCarton(BaseCarton):
                 instrument.alias('instrument'),
                 cadence.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),
-                t.psfmag[1].alias('g'),
-                t.psfmag[2].alias('r'),
-                t.psfmag[3].alias('i'),
-                t.psfmag[4].alias('z'),
+                (fn.COALESCE(t.psfmag[1], 99.9)).alias('g'),
+                (fn.COALESCE(t.psfmag[2], 99.9)).alias('r'),
+                (fn.COALESCE(t.psfmag[3], 99.9)).alias('i'),
+                (fn.COALESCE(t.psfmag[4], 99.9)).alias('z'),
                 opt_prov.alias('optical_prov'),
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
                 t.fiberid.alias('dr16q_fiberid'),   # extra
                 t.ra.alias("dr16q_ra"),   # extra
                 t.dec.alias("dr16q_dec"),   # extra
+                c2s.best.alias("c2s_best"),  # extra
             )
             .join(c2s)
             .join(s)
@@ -232,8 +233,9 @@ class BhmAqmesBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
-                c2s.best >> True,   # TODO check this is working in v0.5
-                                    # - the same filter killed many AQMES targets in v0 cross-match
+                # c2s.best >> True,   # TODO check this is working in v0.5
+                #                     # - this condition killed many AQMES
+                #                     #   targets in v0 cross-match
             )
             .where
             (
@@ -242,7 +244,8 @@ class BhmAqmesBaseCarton(BaseCarton):
                 # (t.z >= self.parameters['redshift_min']), # not needed
                 # (t.z <= self.parameters['redshift_max']),
             )
-            .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            # .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            .distinct([c.catalogid])   # avoid duplicates - trust the catalog
             .cte('bquery', materialized=True)
         )
 

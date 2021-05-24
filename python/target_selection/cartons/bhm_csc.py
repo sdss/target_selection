@@ -257,12 +257,72 @@ class BhmCscBaseCarton(BaseCarton):
         else:
             priority = peewee.Value(self.parameters['priority_floor'])
 
-        # Process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros
-        magnitude_g = peewee.Case(None, ((t.mag_g <= 0.0, None),), t.mag_g).cast('float')
-        magnitude_r = peewee.Case(None, ((t.mag_r <= 0.0, None),), t.mag_r).cast('float')
-        magnitude_i = peewee.Case(None, ((t.mag_i <= 0.0, None),), t.mag_i).cast('float')
-        magnitude_z = peewee.Case(None, ((t.mag_z <= 0.0, None),), t.mag_z).cast('float')
+        # compute transformed SDSS mags for pointlike and extended sources separately
+        # transform the csc (panstarrs1-dr1) griz into sdss psfmag griz
+
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_csc_boss/ts_mag_to_sdss_psfmag_?_results.log  # noqa
+
+        coeffs = {
+            "g2_p": 0.087878,
+            "g1_p": 0.063329,
+            "g0_p": 0.021488,
+            "i2_p": -0.011220,
+            "i1_p": 0.020782,
+            "i0_p": 0.000154,
+            "r2_p": -0.093371,
+            "r1_p": 0.136032,
+            "r0_p": -0.011477,
+            "z2_p": -0.180526,
+            "z1_p": 0.007284,
+            "z0_p": -0.037933,
+        }
+        # Note that the corrections for r and i are very small,
+        # however g+z both have non-negligible colour terms
+
+        g0 = peewee.Case(None, ((t.mag_g <= 0.0, None),), t.mag_g)
+        r0 = peewee.Case(None, ((t.mag_r <= 0.0, None),), t.mag_r)
+        i0 = peewee.Case(None, ((t.mag_i <= 0.0, None),), t.mag_i)
+        z0 = peewee.Case(None, ((t.mag_z <= 0.0, None),), t.mag_z)
+        g_r = g0 - r0
+        r_i = r0 - i0
+        i_z = i0 - z0
+
+        # use single set of transforms because we do not have any info in csc parent table to
+        # differentiate between pointlike and extended sources)
+        g = (g0 + coeffs['g0_p'] + coeffs['g1_p'] * g_r + coeffs['g2_p'] * g_r * g_r)
+        r = (r0 + coeffs['r0_p'] + coeffs['r1_p'] * g_r + coeffs['r2_p'] * g_r * g_r)
+        i = (i0 + coeffs['i0_p'] + coeffs['i1_p'] * r_i + coeffs['i2_p'] * r_i * r_i)
+        z = (z0 + coeffs['z0_p'] + coeffs['z1_p'] * i_z + coeffs['z2_p'] * i_z * i_z)
+
+        # validity checks (only griz) - set limits semi-manually
+        g_r_min = -0.3
+        g_r_max = 1.7
+        r_i_min = -0.5
+        r_i_max = 2.5
+        i_z_min = -0.3
+        i_z_max = 1.25
+        valid = (g0.between(0.1, 29.9) &
+                 r0.between(0.1, 29.9) &
+                 i0.between(0.1, 29.9) &
+                 z0.between(0.1, 29.9) &
+                 g_r.between(g_r_min, g_r_max) &
+                 r_i.between(r_i_min, r_i_max) &
+                 i_z.between(i_z_min, i_z_max))
+
+        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_csc'),), 'undefined')
+        magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
+        magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')
+        magnitude_i = peewee.Case(None, ((valid, i),), 'NaN')
+        magnitude_z = peewee.Case(None, ((valid, z),), 'NaN')
         magnitude_h = peewee.Case(None, ((t.mag_h <= 0.0, None),), t.mag_h).cast('float')
+
+        # # Process the bhm_csc.[g,r,i,z,h] magnitudes to deal with zeros
+        # magnitude_g = peewee.Case(None, ((t.mag_g <= 0.0, None),), t.mag_g).cast('float')
+        # magnitude_r = peewee.Case(None, ((t.mag_r <= 0.0, None),), t.mag_r).cast('float')
+        # magnitude_i = peewee.Case(None, ((t.mag_i <= 0.0, None),), t.mag_i).cast('float')
+        # magnitude_z = peewee.Case(None, ((t.mag_z <= 0.0, None),), t.mag_z).cast('float')
+        # magnitude_h = peewee.Case(None, ((t.mag_h <= 0.0, None),), t.mag_h).cast('float')
 
         query = (
             c.select(
@@ -275,14 +335,18 @@ class BhmCscBaseCarton(BaseCarton):
                 value.alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
+                opt_prov.alias('optical_prov'),
                 magnitude_g.alias('g'),
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
                 magnitude_h.alias('h'),
-                opt_prov.alias('optical_prov'),
-                t.oir_ra.alias('csc_oir_ra'),
-                t.oir_dec.alias('csc_oir_dec'),
+                t.mag_g.alias('csc_mag_g'),   # extra
+                t.mag_r.alias('csc_mag_r'),   # extra
+                t.mag_i.alias('csc_mag_i'),   # extra
+                t.mag_z.alias('csc_mag_z'),   # extra
+                t.oir_ra.alias('csc_oir_ra'),   # extra
+                t.oir_dec.alias('csc_oir_dec'),   # extra
             )
             .join(c2t)
             .join(t)
