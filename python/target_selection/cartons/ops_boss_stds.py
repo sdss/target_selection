@@ -876,8 +876,8 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         g_r_dered = g_r - tic.ebv * dust_term_g_r
         r_i_dered = r_i - tic.ebv * dust_term_r_i
         i_z_dered = i_z - tic.ebv * dust_term_i_z
-        bp_rp_dered = tic.gaiarp - tic.gaiabp - tic.ebv * dust_term_bp_rp
-        bp_g_dered = tic.gaiarp - tic.gaiamag - tic.ebv * dust_term_bp_g
+        bp_rp_dered = tic.gaiabp - tic.gaiarp - tic.ebv * dust_term_bp_rp
+        bp_g_dered = tic.gaiabp - tic.gaiamag - tic.ebv * dust_term_bp_g
 
         g_r_dered_nominal = pars['g_r_dered_nominal']
         r_i_dered_nominal = pars['r_i_dered_nominal']
@@ -959,7 +959,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
                 ps.r_chp_psf.between(pars['mag_ps_r_min'], pars['mag_ps_r_max']),
                 # the following are just to bracket the result to make the query run faster
                 tic.gaiamag.between(pars['mag_gaia_g_min'], pars['mag_gaia_g_max']),
-                ps.r_stk_psf_flux.between(r_stk_psf_flux_min, r_stk_psf_flux_min),
+                ps.r_stk_psf_flux.between(r_stk_psf_flux_min, r_stk_psf_flux_max),
             )
         )
 
