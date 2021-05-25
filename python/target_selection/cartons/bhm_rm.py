@@ -182,8 +182,8 @@ class BhmRmBaseCarton(BaseCarton):
         # )
 
         # this secondary priority rule boosts the priority of targets that
-        # have rm_suitability = 0 in the bhm_rm_tweaks table
-        priority2 = peewee.Case(None, ((tw.rm_suitability == 1, -100), ), 0)
+        # have rm_suitability >= 1 in the bhm_rm_tweaks table
+        priority2 = peewee.Case(None, ((tw.rm_suitability >= 1, -100), ), 0)
 
         # combine the two priorities
         priority = priority1 + priority2
@@ -492,8 +492,13 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
                     (t.mi < self.parameters['mag_i_max_xmm_lss'])
                 )
             ),
-            (t.specz >= self.parameters['specz_min']),
-            (t.specz <= self.parameters['specz_max']),
+            (
+                (t.specz.between(self.parameters['specz_min'],
+                                 self.parameters['specz_max'])) |
+                (tw.rm_suitability == 1)
+                # allow this here because recently observed QSOs will
+                # not yet have specz in BHM_RM_v0_2
+            ),
         )
 
         return query
