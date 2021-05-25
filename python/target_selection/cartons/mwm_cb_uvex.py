@@ -65,6 +65,9 @@ class MWM_CB_UVEX_BaseCarton(BaseCarton):
 
     def post_process(self, model, **kwargs):
 
+        if self.cadence is not None:
+            return
+
         self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN value REAL;')
         model._meta.add_field('value', peewee.FloatField())
 
@@ -699,8 +702,8 @@ class MWM_CB_UVEX5_Carton(MWM_CB_UVEX_BaseCarton):
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
-    instrument = 'BOSS'
-    cadence = None
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
     priority = 1400
 
     def setup_transaction(self):
