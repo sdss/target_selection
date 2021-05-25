@@ -21,6 +21,15 @@ from matplotlib.patches import Ellipse
 from target_selection import log, manager
 from target_selection.exceptions import TargetSelectionUserWarning
 
+from mocpy import MOC      # TODO: add dependency on mocpy (available via pip)
+
+_known_flux_zpts = {
+    'nMgy': 22.5,
+    'Jy': 8.9,
+    'mJy': 16.4,
+    'uJy': 23.9,
+}
+
 
 def nested_regrade(pixels, nside_in, nside_out):
     r"""Returns the parent/children pixels from a given HealPix nested pixel.
@@ -107,6 +116,7 @@ def nested_regrade(pixels, nside_in, nside_out):
 
 def _process_tile(inputs, candidate_nside=None, tile_nside=None,
                   min_separation=None, mag_column=None, is_flux=False,
+                  flux_unit='nMgy',
                   mag_threshold=None, downsample=False,
                   downsample_nside=None, seed=None):
     """Processes a tile from catalogue data."""
@@ -146,16 +156,23 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
 
         if is_flux:
             mask_flux = targets[mag_column] > 0
+            try:
+                zpt = _known_flux_zpts[flux_unit]
+            except:
+                raise Exception(f"Unknown flux_unit: {flux_unit}")
+
             targets.loc[mask_flux, mag_column] = (
-                22.5 - 2.5 * numpy.log10(targets[mask_flux][mag_column]))
+                zpt - 2.5 * numpy.log10(targets[mask_flux][mag_column]))
             targets.loc[targets[mag_column] <= 0, mag_column] = numpy.nan
 
         btargets = targets[targets[mag_column] < mag_threshold]
         mask = numpy.ones(len(candidates), dtype=numpy.bool)
 
         for _, btarget in btargets.iterrows():
-            sep_corr = min_separation + numpy.sqrt((mag_threshold -
-                                                    btarget[mag_column]) / 0.2)
+            # sep_corr = min_separation + numpy.sqrt((mag_threshold -
+            #                                         btarget[mag_column]) / 0.2)
+            sep_corr = min_separation + ((mag_threshold -
+                                          btarget[mag_column]) / 0.2)
             sep_corr /= 3600.
             sep_corr_ra = sep_corr / numpy.cos(numpy.radians(btarget.dec))
             masked_out = ((candidates.ra > (btarget.ra - sep_corr_ra)) &
@@ -239,7 +256,7 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
 def get_sky_table(database, table, output, tiles=None, append=False,
                   tile_nside=32, candidate_nside=32768, min_separation=10,
                   chunk_tiles=5, ra_column='ra', dec_column='dec',
-                  mag_column=None, is_flux=False, mag_threshold=None,
+                  mag_column=None, is_flux=False, flux_unit='nMgy', mag_threshold=None,
                   downsample=False, downsample_nside=256, n_cpus=1, seed=None):
     r"""Identifies skies from a database table.
 
@@ -260,10 +277,11 @@ def get_sky_table(database, table, output, tiles=None, append=False,
       valid skies. Alternatively, if ``mag_column`` and ``mag_threshold`` are
       defined, the separations to neighbours brighter than the threshold
       magnitude is corrected using the expression
-      :math:`s^* = s + \sqrt{\dfrac{m_{thr}-m}{a}}` where
+      :math:`s^* = s + \dfrac{m_{thr}-m}{a}` where
       :math:`s` is the minimum separation, :math:`m_{thr}` is the magnitude
       threshold, :math:`a=0.2` is a factor that takes into account the average
       seeing for APO and LCO.
+      (previously in v0, the rule was :math:`s^* = s + \sqrt{\dfrac{m_{thr}-m}{a}}`)
 
     - If ``downsample`` is an integer, only that number of skies are returned
       for each tile. If so, the tile is divided in pixels of nside
@@ -317,7 +335,9 @@ def get_sky_table(database, table, output, tiles=None, append=False,
         The name of the column in ``table`` with the magnitude to be used to
         scale ``min_separation``.
     is_flux : bool
-        If `True`, assumes the ``mag_column`` values are given in nanomaggies.
+        If `True`, assumes the ``mag_column`` values are given as fluxes (units of flux_unit).
+    flux_unit : str
+        Gives the units of flux in the 'mag_column' - known values 'nMgy', 'Jy'
     mag_threshold : float
         The value below which the separation to neighbouring sources will be
         scaled.
@@ -365,6 +385,7 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                            tile_nside=tile_nside,
                            min_separation=min_separation,
                            mag_column=mag_column, is_flux=is_flux,
+                           flux_unit=flux_unit,
                            mag_threshold=mag_threshold,
                            downsample=downsample,
                            downsample_nside=downsample_nside,
@@ -574,10 +595,20 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     gaia = pandas.read_hdf('gaia_skies.h5')
     downsample_list = gaia.index.drop_duplicates().values
 
+    h5_file = 'ps1dr2_skies.h5'
+    if not os.path.exists(h5_file):
+        log.info('Procesing panstarrs1 dr2.')
+        get_sky_table(database, 'catalogdb.panstarrs1', h5_file,
+                      mag_column='r_stk_psf_flux', is_flux=True, flux_unit='Jy',
+                      mag_threshold=12,
+                      downsample=downsample_list, tiles=tiles, **kwargs)
+    else:
+        warnings.warn(f'Found file {h5_file}', TargetSelectionUserWarning)
+
     if not os.path.exists('ls8_skies.h5'):
         log.info('Procesing legacy_survey_dr8.')
         get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
-                      mag_column='flux_g', is_flux=True, mag_threshold=12,
+                      mag_column='flux_r', is_flux=True, flux_unit='nMgy', mag_threshold=12,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
         warnings.warn('Found file ls8_skies.h5', TargetSelectionUserWarning)
@@ -610,7 +641,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     skies = None
     col_order = []
 
-    for file_ in ['gaia_skies.h5', 'ls8_skies.h5', 'tmass_skies.h5',
+    for file_ in ['gaia_skies.h5', 'ps1dr2_skies.h5', 'ls8_skies.h5', 'tmass_skies.h5',
                   'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
 
         table_name = file_[0:-9]
@@ -635,3 +666,51 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
 
     skies = skies.loc[:, ['ra', 'dec', 'down_pix', 'tile_32'] + col_order]
     skies.to_hdf('skies.h5', 'data')
+
+
+def create_veto_mask(database, nside=32768, **kwargs):
+    '''
+    Generate a list of healpixels that must be avoided because they lie within the
+    near-zones of bright stars and nearby galaxies
+    '''
+    as2rad = numpy.pi / (180.0 * 3600.0)
+    hpx_order = healpy.nside2order(nside)
+    pixarea = healpy.nside2pixarea(nside)
+
+    # get the list of gaia dr2 stars brighter than G=12 from the database
+    # TODO# TODO# TODO# TODO# TODO# TODO
+    ra = [180.0, ]   # placeholder
+    dec = [+35.0, ]   # placeholder
+    mag = [12.0, ]   # placeholder
+
+    # compute coords on unit sphere
+    vector = healpy.pixelfunc.ang2vec(ra, dec, lonlat=True)
+    radius = as2rad * (10. + ((12.0 - mag) / 0.2))  # or whatever
+
+    print(f"Working on {len(vector)} stars")
+
+    ipix_list = []
+    for v, r in zip(vector, radius):
+        i = healpy.query_disc(nside,
+                              vec=v,
+                              radius=r,
+                              inclusive=True,
+                              fact=4,
+                              nest=True)
+        if len(i) > 0:
+            ipix_list.extend(list(i))
+
+    # get the list of bright extended galaxies (use 2MASS XSC as a proxy?)
+    # blah
+    # can do this in a loop as it is mainly repetition of the above.
+    # different rule for radius though
+
+    # we only one copy of each masked pixel:
+    ipix = numpy.unique(ipix_list)
+    npix = len(ipix)
+    print(f"Result: {npix} masked pixels (NSIDE={nside}), total=  {npix*pixarea:.4f} sqdeg")
+
+    outmoc = f"sky_veto_mask_nside{nside}.moc"
+    m = MOC.from_healpix_cells(ipix=ipix,
+                               depth=numpy.repeat(hpx_order, len(ipix)))
+    m.write(outmoc, format='fits', overwrite=True)
