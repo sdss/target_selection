@@ -195,8 +195,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
-            cadence = peewee.TextField(null=True)
-            priority = peewee.IntegerField()
 
             class Meta:
                 database = self.database
@@ -972,12 +970,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             # Check that not both the carton cadence and the cadence column
             # are not null.
-            if RModel.select().where(~(RModel.cadence >> None)).exists():
-                raise TargetSelectionError(
-                    'both carton cadence and target '
-                    'cadence defined. This is not '
-                    'allowed.'
-                )
+            if 'cadence' in RModel._meta.fields:
+                if RModel.select().where(~(RModel.cadence >> None)).exists():
+                    raise TargetSelectionError(
+                        'both carton cadence and target '
+                        'cadence defined. This is not '
+                        'allowed.'
+                    )
 
             cadence_pk = tdb.Cadence.get(label=self.cadence)
             select_from = select_from.select_extend(cadence_pk)
