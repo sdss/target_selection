@@ -630,7 +630,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             results_model = self.get_model()
             assert results_model.table_exists(), 'temporary table does not exist.'
 
-            write_query = results_model.select()
+            write_query = results_model.select().order_by(results_model.catalogid)
 
             colnames = [field.name for field in write_query._returning]
 
@@ -659,6 +659,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     tdb.Version.plan == self.plan,
                     tdb.Version.target_selection >> True,
                 )
+                .order_by(tdb.Target.catalogid)
             )
 
             colnames = []
