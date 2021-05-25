@@ -116,8 +116,10 @@ def nested_regrade(pixels, nside_in, nside_out):
 
 def _process_tile(inputs, candidate_nside=None, tile_nside=None,
                   min_separation=None, mag_column=None, is_flux=False,
-                  flux_unit='nMgy',
-                  mag_threshold=None, downsample=False,
+                  flux_unit='nMgy', radius_column=None,
+                  mag_threshold=None,
+                  scale_a=0.2, scale_b=1,
+                  downsample=False,
                   downsample_nside=None, seed=None):
     """Processes a tile from catalogue data."""
 
@@ -152,10 +154,14 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
     # TODO: We use a rectangular search here because doing a
     # SkyCoord.separation for each target would be very costly but there may
     # be a better way.
-    if mag_column:
+    if mag_column or radius_column:
 
-        if is_flux:
-            mask_flux = targets[mag_column] > 0
+        if radius_column is None:
+            btargets = targets
+
+        else:
+            if is_flux:
+                mask_flux = targets[mag_column] > 0
             try:
                 zpt = _known_flux_zpts[flux_unit]
             except:
@@ -165,14 +171,21 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
                 zpt - 2.5 * numpy.log10(targets[mask_flux][mag_column]))
             targets.loc[targets[mag_column] <= 0, mag_column] = numpy.nan
 
-        btargets = targets[targets[mag_column] < mag_threshold]
+            btargets = targets[targets[mag_column] < mag_threshold]
+
         mask = numpy.ones(len(candidates), dtype=numpy.bool)
 
         for _, btarget in btargets.iterrows():
             # sep_corr = min_separation + numpy.sqrt((mag_threshold -
             #                                         btarget[mag_column]) / 0.2)
-            sep_corr = min_separation + ((mag_threshold -
-                                          btarget[mag_column]) / 0.2)
+            if radius_column is not None:
+                sep_corr = max(min_separation, btarget[radius_column])
+            else:
+                sep_corr = (
+                    min_separation +
+                    (numpy.power(mag_threshold - btarget[mag_column], scale_b)
+                     / scale_a)
+                )
             sep_corr /= 3600.
             sep_corr_ra = sep_corr / numpy.cos(numpy.radians(btarget.dec))
             masked_out = ((candidates.ra > (btarget.ra - sep_corr_ra)) &
@@ -256,8 +269,13 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
 def get_sky_table(database, table, output, tiles=None, append=False,
                   tile_nside=32, candidate_nside=32768, min_separation=10,
                   chunk_tiles=5, ra_column='ra', dec_column='dec',
-                  mag_column=None, is_flux=False, flux_unit='nMgy', mag_threshold=None,
-                  downsample=False, downsample_nside=256, n_cpus=1, seed=None):
+                  mag_column=None, is_flux=False,
+                  radius_column=None, flux_unit='nMgy',
+                  scale_a=0.2, scale_b=1.0,
+                  mag_threshold=None,
+                  downsample=False, downsample_nside=256,
+                  n_cpus=1, seed=None,
+                  ):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -277,10 +295,10 @@ def get_sky_table(database, table, output, tiles=None, append=False,
       valid skies. Alternatively, if ``mag_column`` and ``mag_threshold`` are
       defined, the separations to neighbours brighter than the threshold
       magnitude is corrected using the expression
-      :math:`s^* = s + \dfrac{m_{thr}-m}{a}` where
+      :math:`s^* = s + \dfrac{(m_{thr}-m)^{\beta}}{a}` where
       :math:`s` is the minimum separation, :math:`m_{thr}` is the magnitude
-      threshold, :math:`a=0.2` is a factor that takes into account the average
-      seeing for APO and LCO.
+      threshold, :math:`a=0.2` and :math:`\beta=1.0` are factors that
+      control the relationship between the star's magnitude and the exclusion radius.
       (previously in v0, the rule was :math:`s^* = s + \sqrt{\dfrac{m_{thr}-m}{a}}`)
 
     - If ``downsample`` is an integer, only that number of skies are returned
@@ -341,6 +359,13 @@ def get_sky_table(database, table, output, tiles=None, append=False,
     mag_threshold : float
         The value below which the separation to neighbouring sources will be
         scaled.
+    radius_column: str
+         Name of the database column that provided the object radius
+         (an alternative to mag_column useful for extended sources)
+    scale_a: float
+         Value of :math:`a` in the radius vs mag relationship
+    scale_b: float
+         Value of :math:`\beta` in the radius vs mag relationship
     downsample : bool, int, or list
         The total number of skies to retrieve for each tile. If `False`,
         returns all candidate skies. ``downsample`` can also be a list of
@@ -356,6 +381,7 @@ def get_sky_table(database, table, output, tiles=None, append=False,
     seed : int
         The random state seed.
 
+
     """
 
     assert database.connected, 'database is not connected.'
@@ -365,6 +391,9 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                f'{ra_column}, {dec_column}')
     if mag_column and mag_threshold:
         columns += f', {mag_column}'
+
+    if radius_column:
+        columns += f', {radius_column}'
 
     if chunk_tiles is None:
         chunk_tiles = 1
@@ -385,7 +414,8 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                            tile_nside=tile_nside,
                            min_separation=min_separation,
                            mag_column=mag_column, is_flux=is_flux,
-                           flux_unit=flux_unit,
+                           flux_unit=flux_unit, radius_column=radius_column,
+                           scale_a=scale_a, scale_b=scale_b,
                            mag_threshold=mag_threshold,
                            downsample=downsample,
                            downsample_nside=downsample_nside,
@@ -633,8 +663,10 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     if not os.path.exists('tmass_xsc_skies.h5'):
         log.info('Procesing twomass_xsc.')
         get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
-                      dec_column='decl', mag_column='h_m_k20fe', mag_threshold=14,
-                      downsample=downsample_list, tiles=tiles, **kwargs)
+                      dec_column='decl', radius_col='r_ext',
+                      # mag_column='h_m_k20fe', mag_threshold=14,
+                      downsample=downsample_list, tiles=tiles,
+                      **kwargs)
     else:
         warnings.warn('Found file tmass_xsc_skies.h5', TargetSelectionUserWarning)
 
@@ -668,26 +700,68 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     skies.to_hdf('skies.h5', 'data')
 
 
-def create_veto_mask(database, nside=32768, **kwargs):
+# Added by TD on 25/May/2021
+def create_veto_mask(database,
+                     nside=32768,
+                     moc_filename=None,
+                     overwrite=False,
+                     debug_limit=None):
     '''
     Generate a list of healpixels that must be avoided because they lie within the
-    near-zones of bright stars and nearby galaxies
+    near-zones of bright stars (and nearby galaxies TBD).
+
+    I have a hunch that generating this list once and then testing skies against
+    it will be more efficient (and reliable) than checking candidate skies against
+    a list of stars. This avoids potential pitfalls of nearest neighbour method
+    (e.g. when second nearest neighbour is brighter than nearest neighbour).
+
+    This doesn't take too long to run, so result does not need to be preserved long term.
+    However, writing out a MOC file is a convenient way to visualise what has been done.
+
+    Parameters
+    ----------
+    database : ~sdssdb.connection.PeeweeDatabaseConnection
+        A valid database connection.
+    nside : int
+        HEALPix resolution of the resulting ipix list
+    moc_filename : str
+        Path to the MOC file to write (or None).
+    overwrite: bool
+        Whether to overwrite the moc file
+    debug_limit: int
+        Max number of stars to return in query - debug purposes only
+
     '''
+
     as2rad = numpy.pi / (180.0 * 3600.0)
     hpx_order = healpy.nside2order(nside)
     pixarea = healpy.nside2pixarea(nside)
 
     # get the list of gaia dr2 stars brighter than G=12 from the database
-    # TODO# TODO# TODO# TODO# TODO# TODO
-    ra = [180.0, ]   # placeholder
-    dec = [+35.0, ]   # placeholder
-    mag = [12.0, ]   # placeholder
+    table_name = 'gaia_dr2_source'
+    col_ra = 'ra'
+    col_dec = 'dec'
+    col_mag = 'phot_g_mean_mag'
+    mag_lim = 12.0
+    min_radius = 15.0
+    param_scale = 0.15
+    param_exponent = 1.5
+    query = (f'SELECT {col_ra},{col_dec},{col_mag} from '
+             f'{table_name} where {col_mag} < {mag_lim} ')
+    if debug_limit is not None:
+        query = query + f'limit {debug_limit} '
+
+    targets = pandas.read_sql(query, database)
+    print(f"Working on {len(targets)} bright stars ({col_mag} < {mag_lim}) from {table_name}")
 
     # compute coords on unit sphere
-    vector = healpy.pixelfunc.ang2vec(ra, dec, lonlat=True)
-    radius = as2rad * (10. + ((12.0 - mag) / 0.2))  # or whatever
+    vector = healpy.pixelfunc.ang2vec(targets[col_ra], targets[col_dec], lonlat=True)
 
-    print(f"Working on {len(vector)} stars")
+    # compute mag-dependent exclusion radii
+    radius = as2rad * (
+        min_radius +
+        (numpy.power(mag_lim - targets[col_mag], param_exponent) / param_scale)
+    )  # or whatever
 
     ipix_list = []
     for v, r in zip(vector, radius):
@@ -700,17 +774,21 @@ def create_veto_mask(database, nside=32768, **kwargs):
         if len(i) > 0:
             ipix_list.extend(list(i))
 
-    # get the list of bright extended galaxies (use 2MASS XSC as a proxy?)
-    # blah
-    # can do this in a loop as it is mainly repetition of the above.
-    # different rule for radius though
+    # NOT NEEDED # get the list of bright extended galaxies (use 2MASS XSC as a proxy?)
+    # NOT NEEDED # blah
+    # NOT NEEDED # should do this in a loop as it is mainly repetition of the above.
+    # NOT NEEDED # different rule for radius though
 
     # we only one copy of each masked pixel:
     ipix = numpy.unique(ipix_list)
     npix = len(ipix)
-    print(f"Result: {npix} masked pixels (NSIDE={nside}), total=  {npix*pixarea:.4f} sqdeg")
+    print(f"Result: {npix} masked pixels (NSIDE={nside}), area= {npix*pixarea:.4f} sqdeg")
 
-    outmoc = f"sky_veto_mask_nside{nside}.moc"
-    m = MOC.from_healpix_cells(ipix=ipix,
-                               depth=numpy.repeat(hpx_order, len(ipix)))
-    m.write(outmoc, format='fits', overwrite=True)
+    if moc_filename is not None:
+        # outmoc = f"sky_veto_mask_nside{nside}.moc"
+        m = MOC.from_healpix_cells(ipix=ipix,
+                                   depth=numpy.repeat(hpx_order, len(ipix)))
+        m.write(moc_filename,
+                format='fits', overwrite=overwrite)
+
+    return ipix
