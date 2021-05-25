@@ -113,8 +113,8 @@
       dered_dist_max: 0.07
       g_r_dered_nominal: 0.30
       r_z_dered_nominal: 0.06
-      bp_rp_dered_nominal: 0.66
-      bp_g_dered_nominal: 0.22
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
     ops_std_boss_ps1dr2:
       mag_ps_r_min: 15.95
       mag_ps_r_max: 18.05
@@ -127,8 +127,8 @@
       g_r_dered_nominal: 0.24
       r_i_dered_nominal: 0.08
       i_z_dered_nominal: 0.00
-      bp_rp_dered_nominal: 0.66
-      bp_g_dered_nominal: 0.22
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
     bhm_gua_dark:
       mag_g_min: 16.5
       mag_g_max: 21.2

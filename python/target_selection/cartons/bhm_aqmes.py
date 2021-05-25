@@ -47,6 +47,7 @@ radius_apo = 1.49  # degrees
 
 cadence_map_v0p5_to_v0 = {
     'dark_10x4': 'bhm_aqmes_medium_10x4',
+    'dark_10x4_4yr': 'bhm_aqmes_medium_10x4',
     # 'dark_3x4': 'bhm_aqmes_wide_3x4',
     'dark_2x4': 'bhm_aqmes_wide_2x4',
     'dark_1x4': 'bhm_spiders_1x4',
@@ -189,6 +190,22 @@ class BhmAqmesBaseCarton(BaseCarton):
             None
         )
         priority = priority_floor + priority_boost
+
+        magnitude_sdss_g = peewee.Case(
+            None, ((t.psfmag[1].between(0.1, 29.9), t.psfmag[1]),), 'NaN').cast('float')
+        magnitude_sdss_r = peewee.Case(
+            None, ((t.psfmag[2].between(0.1, 29.9), t.psfmag[2]),), 'NaN').cast('float')
+        magnitude_sdss_i = peewee.Case(
+            None, ((t.psfmag[3].between(0.1, 29.9), t.psfmag[3]),), 'NaN').cast('float')
+        magnitude_sdss_z = peewee.Case(
+            None, ((t.psfmag[4].between(0.1, 29.9), t.psfmag[4]),), 'NaN').cast('float')
+        magnitude_gaia_g = peewee.Case(
+            None, ((t.gaia_g_mag.between(0.1, 29.9), t.gaia_g_mag),), 'NaN').cast('float')
+        magnitude_gaia_bp = peewee.Case(
+            None, ((t.gaia_bp_mag.between(0.1, 29.9), t.gaia_bp_mag),), 'NaN').cast('float')
+        magnitude_gaia_rp = peewee.Case(
+            None, ((t.gaia_rp_mag.between(0.1, 29.9), t.gaia_rp_mag),), 'NaN').cast('float')
+
         bquery = (
             c.select(
                 c.catalogid,
@@ -202,16 +219,23 @@ class BhmAqmesBaseCarton(BaseCarton):
                 instrument.alias('instrument'),
                 cadence.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),
-                (fn.COALESCE(t.psfmag[1], 99.9)).alias('g'),
-                (fn.COALESCE(t.psfmag[2], 99.9)).alias('r'),
-                (fn.COALESCE(t.psfmag[3], 99.9)).alias('i'),
-                (fn.COALESCE(t.psfmag[4], 99.9)).alias('z'),
                 opt_prov.alias('optical_prov'),
+                magnitude_sdss_g.alias('g'),
+                magnitude_sdss_r.alias('r'),
+                magnitude_sdss_i.alias('i'),
+                magnitude_sdss_z.alias('z'),
+                magnitude_gaia_g.alias('gaia_g'),
+                magnitude_gaia_bp.alias('bp'),
+                magnitude_gaia_rp.alias('rp'),
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
                 t.fiberid.alias('dr16q_fiberid'),   # extra
                 t.ra.alias("dr16q_ra"),   # extra
                 t.dec.alias("dr16q_dec"),   # extra
+                t.gaia_ra.alias("dr16q_gaia_ra"),   # extra
+                t.gaia_dec.alias("dr16q_gaia_dec"),   # extra
+                t.sdss2gaia_sep.alias("dr16q_sdss2gaia_sep"),   # extra
+                t.z.alias("dr16q_redshift"),   # extra
                 c2s.best.alias("c2s_best"),  # extra
             )
             .join(c2s)
@@ -266,7 +290,7 @@ class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     AND   {target lies in spatial selection}
     '''
     name = 'bhm_aqmes_med'
-    cadence_v0p5 = 'dark_10x4'
+    cadence_v0p5 = 'dark_10x4_4yr'
 
     # TD's note to self:
     # add something like the following if want to add carton-specific selections
@@ -284,7 +308,7 @@ class BhmAqmesMedFaintCarton(BhmAqmesBaseCarton):
     AND   {target lies in spatial selection}
     '''
     name = 'bhm_aqmes_med_faint'
-    cadence_v0p5 = 'dark_10x4'
+    cadence_v0p5 = 'dark_10x4_4yr'
     program = 'bhm_filler'
 
 # -------AQMES medium section ----- #

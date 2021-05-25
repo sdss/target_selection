@@ -611,30 +611,46 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
         z0_dered = (22.5 - 2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
+
         g_r_dered = (-2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_g / ls.mw_transmission_g) /
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
         r_z_dered = (-2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r) /
             peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
-        bp_rp_dered = (
-            (
-                ls.gaia_phot_bp_mean_mag
-                + 2.5 * peewee.fn.log(ls.mw_transmission_g)
-            ) - (
-                ls.gaia_phot_rp_mean_mag
-                + 2.5 * peewee.fn.log(0.5 * (ls.mw_transmission_r + ls.mw_transmission_z))
-            )
-        )
-        bp_g_dered = (
-            (
-                ls.gaia_phot_bp_mean_mag
-                + 2.5 * peewee.fn.log(ls.mw_transmission_g)
-            ) - (
-                ls.gaia_phot_g_mean_mag
-                + 2.5 * peewee.fn.log(ls.mw_transmission_r)
-            )
-        )
+
+        # lsdr8 quotes ebv so we can go straight to E(G_BP-G_RP) and E(G_BP-G) directly
+        # using the Stassun et al relation:
+        # E(BP-RP) = 1.31 * E(B-V)
+        dust_term_bp_rp = 1.31
+        R_gaia_g = 1.890 * 1.31
+        R_gaia_bp = 2.429 * 1.31
+        dust_term_bp_g = R_gaia_bp - R_gaia_g     # = 0.7061
+
+        bp_rp_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_rp_mean_mag
+                       - ls.ebv * dust_term_bp_rp)
+        bp_g_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_g_mean_mag
+                      - ls.ebv * dust_term_bp_g)
+
+        # bp_rp_dered = (
+        #     (
+        #         ls.gaia_phot_bp_mean_mag
+        #         + 2.5 * peewee.fn.log(ls.mw_transmission_g)
+        #     ) - (
+        #         ls.gaia_phot_rp_mean_mag
+        #         + 2.5 * peewee.fn.log(0.5 * (ls.mw_transmission_r + ls.mw_transmission_z))
+        #     )
+        # )
+        # bp_g_dered = (
+        #     (
+        #         ls.gaia_phot_bp_mean_mag
+        #         + 2.5 * peewee.fn.log(ls.mw_transmission_g)
+        #     ) - (
+        #         ls.gaia_phot_g_mean_mag
+        #         + 2.5 * peewee.fn.log(ls.mw_transmission_r)
+        #     )
+        # )
+
         g_r_dered_nominal = pars['g_r_dered_nominal']
         r_z_dered_nominal = pars['r_z_dered_nominal']
         bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
@@ -652,48 +668,51 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 
         query = (
             Catalog
-            .select(Catalog.catalogid,
-                    Catalog.ra,
-                    Catalog.dec,
-                    ls.ls_id,
-                    # ls.flux_g,
-                    # ls.flux_r,
-                    # ls.flux_z,
-                    # ls.flux_w1,
-                    # ls.flux_ivar_g,
-                    # ls.flux_ivar_r,
-                    # ls.flux_ivar_z,
-                    # ls.flux_ivar_w1,
-                    g0.alias("ls8_mag_g"),
-                    r0.alias("ls8_mag_r"),
-                    z0.alias("ls8_mag_z"),
-                    g_r.alias("ls8_mag_g_r"),
-                    r_z.alias("ls8_mag_r_z"),
-                    g0_dered.alias("ls8_mag_dered_g"),
-                    r0_dered.alias("ls8_mag_dered_r"),
-                    z0_dered.alias("ls8_mag_dered_z"),
-                    g_r_dered.alias("ls8_mag_dered_g_r"),
-                    r_z_dered.alias("ls8_mag_dered_r_z"),
-                    bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
-                    bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                    dered_dist2.alias("dered_dist2"),
-                    g.alias("g"),
-                    r.alias("r"),
-                    i.alias("i"),
-                    z.alias("z"),
-                    ls.gaia_phot_g_mean_mag.alias("gaia_g"),
-                    ls.gaia_phot_bp_mean_mag.alias("bp"),
-                    ls.gaia_phot_rp_mean_mag.alias("rp"),
-                    ls.mw_transmission_g,
-                    ls.mw_transmission_r,
-                    ls.mw_transmission_z,
-                    ls.parallax,
-                    ls.parallax_ivar,
-                    ls.nobs_g,
-                    ls.nobs_r,
-                    ls.nobs_z,
-                    # ls.maskbits,
-                    optical_prov.alias('optical_prov'))
+            .select(
+                Catalog.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                ls.ls_id,
+                # ls.flux_g,
+                # ls.flux_r,
+                # ls.flux_z,
+                # ls.flux_w1,
+                # ls.flux_ivar_g,
+                # ls.flux_ivar_r,
+                # ls.flux_ivar_z,
+                # ls.flux_ivar_w1,
+                g0.alias("ls8_mag_g"),
+                r0.alias("ls8_mag_r"),
+                z0.alias("ls8_mag_z"),
+                g_r.alias("ls8_mag_g_r"),
+                r_z.alias("ls8_mag_r_z"),
+                g0_dered.alias("ls8_mag_dered_g"),
+                r0_dered.alias("ls8_mag_dered_r"),
+                z0_dered.alias("ls8_mag_dered_z"),
+                g_r_dered.alias("ls8_mag_dered_g_r"),
+                r_z_dered.alias("ls8_mag_dered_r_z"),
+                bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
+                bp_g_dered.alias("gdr2_mag_dered_bp_g"),
+                dered_dist2.alias("dered_dist2"),
+                optical_prov.alias('optical_prov'),
+                g.alias("g"),
+                r.alias("r"),
+                i.alias("i"),
+                z.alias("z"),
+                ls.gaia_phot_g_mean_mag.alias("gaia_g"),
+                ls.gaia_phot_bp_mean_mag.alias("bp"),
+                ls.gaia_phot_rp_mean_mag.alias("rp"),
+                ls.ebv.alias("ls8_ebv"),
+                ls.mw_transmission_g.alias("ls8_mw_transmission_g"),
+                ls.mw_transmission_r.alias("ls8_mw_transmission_r"),
+                ls.mw_transmission_z.alias("ls8_mw_transmission_z"),
+                ls.parallax,
+                ls.parallax_ivar,
+                ls.nobs_g.alias("ls8_nobs_g"),
+                ls.nobs_r.alias("ls8_nobs_r"),
+                ls.nobs_z.alias("ls8_nobs_z"),
+                # ls.maskbits,
+            )
             .join(c2ls,
                   on=(Catalog.catalogid == c2ls.catalogid))
             .join(ls,
@@ -899,38 +918,40 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
 
         query = (
             Catalog
-            .select(Catalog.catalogid,
-                    Catalog.ra,
-                    Catalog.dec,
-                    ps.catid_objid.alias('ps1_catid_objid'),
-                    tic.gaia_int.alias('gaia_source'),
-                    ps.g_chp_psf.alias("ps1dr2_chp_psfmag_g"),
-                    ps.r_chp_psf.alias("ps1dr2_chp_psfmag_r"),
-                    ps.i_chp_psf.alias("ps1dr2_chp_psfmag_i"),
-                    ps.z_chp_psf.alias("ps1dr2_chp_psfmag_z"),
-                    g_r.alias("ps1dr2_chp_psfmag_g_r"),
-                    r_i.alias("ps1dr2_chp_psfmag_r_i"),
-                    i_z.alias("ps1dr2_chp_psfmag_i_z"),
-                    tic.ebv.alias("tic_ebv"),
-                    g_r_dered.alias("ps1dr2_chp_psfmag_g_r_dered"),
-                    r_i_dered.alias("ps1dr2_chp_psfmag_r_i_dered"),
-                    i_z_dered.alias("ps1dr2_chp_psfmag_i_z_dered"),
-                    bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
-                    bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                    dered_dist2.alias("dered_dist2"),
-                    g.alias("g"),
-                    r.alias("r"),
-                    i.alias("i"),
-                    z.alias("z"),
-                    tic.gaiamag.alias("gaia_g"),
-                    tic.gaiabp.alias("bp"),
-                    tic.gaiarp.alias("rp"),
-                    tic.jmag.alias("j"),
-                    tic.hmag.alias("h"),
-                    tic.kmag.alias("k"),
-                    tic.plx.alias('parallax'),
-                    tic.e_plx.alias('parallax_error'),
-                    optical_prov.alias('optical_prov'))
+            .select(
+                Catalog.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                ps.catid_objid.alias('ps1_catid_objid'),
+                tic.gaia_int.alias('gaia_source'),
+                ps.g_chp_psf.alias("ps1dr2_chp_psfmag_g"),
+                ps.r_chp_psf.alias("ps1dr2_chp_psfmag_r"),
+                ps.i_chp_psf.alias("ps1dr2_chp_psfmag_i"),
+                ps.z_chp_psf.alias("ps1dr2_chp_psfmag_z"),
+                g_r.alias("ps1dr2_chp_psfmag_g_r"),
+                r_i.alias("ps1dr2_chp_psfmag_r_i"),
+                i_z.alias("ps1dr2_chp_psfmag_i_z"),
+                tic.ebv.alias("tic_ebv"),
+                g_r_dered.alias("ps1dr2_chp_psfmag_g_r_dered"),
+                r_i_dered.alias("ps1dr2_chp_psfmag_r_i_dered"),
+                i_z_dered.alias("ps1dr2_chp_psfmag_i_z_dered"),
+                bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
+                bp_g_dered.alias("gdr2_mag_dered_bp_g"),
+                dered_dist2.alias("dered_dist2"),
+                optical_prov.alias('optical_prov'),
+                g.alias("g"),
+                r.alias("r"),
+                i.alias("i"),
+                z.alias("z"),
+                tic.gaiamag.alias("gaia_g"),
+                tic.gaiabp.alias("bp"),
+                tic.gaiarp.alias("rp"),
+                tic.jmag.alias("j"),
+                tic.hmag.alias("h"),
+                tic.kmag.alias("k"),
+                tic.plx.alias('parallax'),
+                tic.e_plx.alias('parallax_error'),
+            )
             .join(c2ps,
                   on=(Catalog.catalogid == c2ps.catalogid))
             .join(ps,
