@@ -622,15 +622,19 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
         # lsdr8 quotes ebv so we can go straight to E(G_BP-G_RP) and E(G_BP-G) directly
         # using the Stassun et al relation:
         # E(BP-RP) = 1.31 * E(B-V)
-        dust_term_bp_rp = 1.31
-        R_gaia_g = 1.890 * 1.31
-        R_gaia_bp = 2.429 * 1.31
-        dust_term_bp_g = R_gaia_bp - R_gaia_g     # = 0.7061
+        # NO! # but we first need to recalibrate the SFD E(B-V) following Schlafly&Finkbeiner2011
+        # NO! # such that SF11 E(B-V) = SFD EB(-V) * 0.884
+        # NO! E_b_v_corr = 0.884
+        # NO! E_bp_rp = 1.31 * E_b_v_corr
+        E_bp_rp = 1.31
+        R_gaia_g = 1.890 * E_bp_rp
+        R_gaia_bp = 2.429 * E_bp_rp
+        E_bp_g = R_gaia_bp - R_gaia_g     # = 0.7061
 
         bp_rp_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_rp_mean_mag
-                       - ls.ebv * dust_term_bp_rp)
+                       - ls.ebv * E_bp_rp)
         bp_g_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_g_mean_mag
-                      - ls.ebv * dust_term_bp_g)
+                      - ls.ebv * E_bp_g)
 
         # bp_rp_dered = (
         #     (
@@ -858,9 +862,9 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         R_i = 1.682
         R_z = 1.322
         # R_y = 1.087
-        dust_term_g_r = R_g - R_r
-        dust_term_r_i = R_r - R_i
-        dust_term_i_z = R_i - R_z
+        E_g_r = R_g - R_r
+        E_r_i = R_r - R_i
+        E_i_z = R_i - R_z
 
         # extinction terms for Gaia
         # Use table 3 from Wang & Chen 2019
@@ -880,18 +884,18 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         #   E(${G}_{\mathrm{BP}}$ − ${G}_{\mathrm{RP}}$) = 1.31 E(B − V)
         #   AG = 2.72 E(B − V)
 
-        R_gaia_g = 1.890 * 1.31
-        R_gaia_bp = 2.429 * 1.31
-        R_gaia_rp = 1.429 * 1.31
-        dust_term_bp_rp = R_gaia_bp - R_gaia_rp
-        dust_term_bp_g = R_gaia_bp - R_gaia_g
+        E_bp_rp = 1.31
+        R_gaia_g = 1.890 * E_bp_rp
+        R_gaia_bp = 2.429 * E_bp_rp
+        # R_gaia_rp = 1.429 * 1.31
+        E_bp_g = R_gaia_bp - R_gaia_g    # = 0.7061
 
         # use ebv from tic_v8 match
-        g_r_dered = g_r - tic.ebv * dust_term_g_r
-        r_i_dered = r_i - tic.ebv * dust_term_r_i
-        i_z_dered = i_z - tic.ebv * dust_term_i_z
-        bp_rp_dered = tic.gaiabp - tic.gaiarp - tic.ebv * dust_term_bp_rp
-        bp_g_dered = tic.gaiabp - tic.gaiamag - tic.ebv * dust_term_bp_g
+        g_r_dered = g_r - tic.ebv * E_g_r
+        r_i_dered = r_i - tic.ebv * E_r_i
+        i_z_dered = i_z - tic.ebv * E_i_z
+        bp_rp_dered = tic.gaiabp - tic.gaiarp - tic.ebv * E_bp_rp
+        bp_g_dered = tic.gaiabp - tic.gaiamag - tic.ebv * E_bp_g
 
         g_r_dered_nominal = pars['g_r_dered_nominal']
         r_i_dered_nominal = pars['r_i_dered_nominal']
