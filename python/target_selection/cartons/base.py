@@ -195,8 +195,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
-            cadence = peewee.TextField(null=True)
-            priority = peewee.IntegerField()
 
             class Meta:
                 database = self.database
@@ -320,14 +318,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'selected' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;')
 
-        if 'cadence' not in columns:
+        if 'cadence' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN cadence VARCHAR;')
 
-        if 'priority' not in columns:
+        if 'priority' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
 
-        # Only create instrument column if the instrument is not set globally
-        # for the carton, since it will then be set in post-process.
         if 'instrument' not in columns and self.instrument is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN instrument TEXT;')
 
@@ -632,7 +628,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             results_model = self.get_model()
             assert results_model.table_exists(), 'temporary table does not exist.'
 
-            write_query = results_model.select()
+            write_query = results_model.select().order_by(results_model.catalogid)
 
             colnames = [field.name for field in write_query._returning]
 
@@ -661,6 +657,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     tdb.Version.plan == self.plan,
                     tdb.Version.target_selection >> True,
                 )
+                .order_by(tdb.Target.catalogid)
             )
 
             colnames = []
@@ -973,12 +970,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             # Check that not both the carton cadence and the cadence column
             # are not null.
-            if RModel.select().where(~(RModel.cadence >> None)).exists():
-                raise TargetSelectionError(
-                    'both carton cadence and target '
-                    'cadence defined. This is not '
-                    'allowed.'
-                )
+            if 'cadence' in RModel._meta.fields:
+                if RModel.select().where(~(RModel.cadence >> None)).exists():
+                    raise TargetSelectionError(
+                        'both carton cadence and target '
+                        'cadence defined. This is not '
+                        'allowed.'
+                    )
 
             cadence_pk = tdb.Cadence.get(label=self.cadence)
             select_from = select_from.select_extend(cadence_pk)
