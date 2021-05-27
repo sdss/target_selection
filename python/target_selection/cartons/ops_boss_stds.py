@@ -1000,6 +1000,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
 
         return query
 
+
 # ############################################################################
 class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
 
@@ -1007,7 +1008,7 @@ class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
     Shorthand name: ops_boss_stds_gdr2
 
     Comments: Spectrophotometric standards suitable for use by BOSS in dark time,
-          selected from tic+gaia-dr2.
+              selected from tic+gaia-dr2.
 
     Lead contact:  Tom Dwelly
     """
