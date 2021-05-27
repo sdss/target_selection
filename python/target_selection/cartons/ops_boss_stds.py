@@ -999,3 +999,158 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
             )
 
         return query
+
+# ############################################################################
+class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
+
+    """
+    Shorthand name: ops_boss_stds_gdr2
+
+    Comments: Spectrophotometric standards suitable for use by BOSS in dark time,
+          selected from tic+gaia-dr2.
+
+    Lead contact:  Tom Dwelly
+    """
+
+    name = 'ops_std_boss_gdr2'
+    category = 'standard_boss'
+    cadence = None
+    program = 'ops_std'
+    priority = 5352
+    mapper = None
+    instrument = 'BOSS'
+
+    def build_query(self, version_id, query_region=None):
+        tic = TIC_v8.alias()
+        c2tic = CatalogToTIC_v8.alias()
+
+        # an alias to simplify accessing the query parameters:
+        pars = self.parameters
+
+        # transform the gaia g,bp,rp into sdss psfmag griz
+        # use transforms decribed here:
+        # https://wiki.sdss.org/display/OPS/All-sky+BOSS+standards#All-skyBOSSstandards-TransformingphotometryofeBOSS-likestandardsintoSDSSsystem  # noqa
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ pe=""; printf("\"%s%d%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  ops_std_eboss/gdr2_mag_to_sdss_psfmag_?_results.log  # noqa
+
+        coeffs = {
+            "g2": 0.226514,
+            "g1": 0.373358,
+            "g0": -0.073834,
+            "i2": 0.038586,
+            "i1": -0.505039,
+            "i0": 0.216803,
+            "r2": 0.212874,
+            "r1": -0.381950,
+            "r0": 0.156923,
+            "z2": -0.246274,
+            "z1": -0.372790,
+            "z0": 0.235517,
+        }
+
+        bp_rp = tic.gaiabp - tic.gaiarp
+        # compute apparent sdss psfmags
+        g = (tic.gaiamag + coeffs['g0'] + coeffs['g1'] * bp_rp +
+             coeffs['g2'] * bp_rp * bp_rp)
+        r = (tic.gaiamag + coeffs['r0'] + coeffs['r1'] * bp_rp +
+             coeffs['r2'] * bp_rp * bp_rp)
+        i = (tic.gaiamag + coeffs['i0'] + coeffs['i1'] * bp_rp +
+             coeffs['i2'] * bp_rp * bp_rp)
+        z = (tic.gaiamag + coeffs['z0'] + coeffs['z1'] * bp_rp +
+             coeffs['z2'] * bp_rp * bp_rp)
+
+        # dereddining steps
+
+        # extinction terms for Gaia
+        # Use Stassun+19 (Ticv8) presciption
+        E_bp_rp = 1.31
+        R_gaia_g = 1.890 * E_bp_rp
+        R_gaia_bp = 2.429 * E_bp_rp
+        R_gaia_rp = 1.429 * E_bp_rp
+        E_bp_g = R_gaia_bp - R_gaia_g    # = 0.7061
+        E_g_rp = R_gaia_g - R_gaia_rp    # = 0.6039
+
+        # use ebv from tic_v8 match
+        bp_rp_dered = tic.gaiabp - tic.gaiarp - tic.ebv * E_bp_rp
+        bp_g_dered = tic.gaiabp - tic.gaiamag - tic.ebv * E_bp_g
+        g_rp_dered = tic.gaiamag - tic.gaiarp - tic.ebv * E_g_rp
+
+        bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
+        bp_g_dered_nominal = pars['bp_g_dered_nominal']
+        g_rp_dered_nominal = pars['g_rp_dered_nominal']
+
+        dered_dist2 = (
+            (bp_rp_dered - bp_rp_dered_nominal) * (bp_rp_dered - bp_rp_dered_nominal) +
+            (bp_g_dered - bp_g_dered_nominal) * (bp_g_dered - bp_g_dered_nominal) +
+            (g_rp_dered - g_rp_dered_nominal) * (g_rp_dered - g_rp_dered_nominal)
+        )
+
+        optical_prov = peewee.Value('sdss_psfmag_from_gaia')
+
+        dered_dist_max2 = pars['dered_dist_max'] * pars['dered_dist_max']
+
+        query = (
+            Catalog
+            .select(
+                Catalog.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                tic.id.alias('tic_id'),
+                tic.gaia_int.alias('gaia_source'),
+                tic.ebv.alias("tic_ebv"),
+                bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
+                bp_g_dered.alias("gdr2_mag_dered_bp_g"),
+                g_rp_dered.alias("gdr2_mag_dered_g_rp"),
+                dered_dist2.alias("dered_dist2"),
+                optical_prov.alias('optical_prov'),
+                g.alias("g"),
+                r.alias("r"),
+                i.alias("i"),
+                z.alias("z"),
+                tic.gaiamag.alias("gaia_g"),
+                tic.gaiabp.alias("bp"),
+                tic.gaiarp.alias("rp"),
+                tic.jmag.alias("j"),
+                tic.hmag.alias("h"),
+                tic.kmag.alias("k"),
+                tic.plx.alias('parallax'),
+                tic.e_plx.alias('parallax_error'),
+            )
+            .join(c2tic,
+                  on=(Catalog.catalogid == c2tic.catalogid))
+            .join(tic,
+                  on=(c2tic.target_id == tic.id))
+            .where(
+                c2tic.version_id == version_id,
+                c2tic.best >> True,
+                tic.plx < pars['parallax_max'],
+                tic.plx > (
+                    pars['parallax_min_at_g16'] +
+                    (tic.gaiamag - 16.0) * pars['parallax_min_slope']
+                ),
+                dered_dist2 < dered_dist_max2,
+                tic.gaiamag.between(pars['mag_gaia_g_min'], pars['mag_gaia_g_max']),
+                # the following are just to bracket the result to make the query run faster
+                tic.gaiabp.between(pars['mag_gaia_bp_min'], pars['mag_gaia_bp_max']),
+                tic.gaiarp.between(pars['mag_gaia_rp_min'], pars['mag_gaia_rp_max']),
+                tic.ebv < pars['ebv_max'],
+                ~(tic.gallat.between(-10., 10.0)),
+            )
+        )
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (
+                query.where(
+                    peewee.fn.q3c_radial_query(Catalog.ra,
+                                               Catalog.dec,
+                                               query_region[0],
+                                               query_region[1],
+                                               query_region[2]),
+                )
+            )
+
+        return query

@@ -4,6 +4,7 @@
     - ops_std_boss_tic
     - ops_std_boss_lsdr8
     - ops_std_boss_ps1dr2
+    - ops_std_boss_gdr2
     - ops_std_eboss
     - ops_std_boss
     - ops_std_boss_red
@@ -129,6 +130,21 @@
       i_z_dered_nominal: 0.00
       bp_rp_dered_nominal: 0.67
       bp_g_dered_nominal: 0.24
+    ops_std_boss_gdr2:
+      mag_gaia_g_min: 15.8
+      mag_gaia_g_max: 18.1
+      mag_gaia_bp_min: 15.8
+      mag_gaia_bp_max: 18.1
+      mag_gaia_rp_min: 15.8
+      mag_gaia_rp_max: 18.1
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.10
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+      g_rp_dered_nominal: 0.43
+      ebv_max: 0.20
     bhm_gua_dark:
       mag_g_min: 16.5
       mag_g_max: 21.2
