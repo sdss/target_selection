@@ -1095,13 +1095,13 @@ class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
                 Catalog.catalogid,
                 Catalog.ra,
                 Catalog.dec,
-                tic.id.alias('tic_id'),
-                tic.gaia_int.alias('gaia_source'),
-                tic.ebv.alias("tic_ebv"),
-                bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),
-                bp_g_dered.alias("gdr2_mag_dered_bp_g"),
-                g_rp_dered.alias("gdr2_mag_dered_g_rp"),
-                dered_dist2.alias("dered_dist2"),
+                tic.id.alias('tic_id'),  # extra
+                tic.gaia_int.alias('gaia_source'),  # extra
+                tic.ebv.alias("tic_ebv"),  # extra
+                bp_rp_dered.alias("gdr2_mag_dered_bp_rp"),  # extra
+                bp_g_dered.alias("gdr2_mag_dered_bp_g"),  # extra
+                g_rp_dered.alias("gdr2_mag_dered_g_rp"),  # extra
+                dered_dist2.alias("dered_dist2"),   # extra
                 optical_prov.alias('optical_prov'),
                 g.alias("g"),
                 r.alias("r"),
@@ -1113,8 +1113,10 @@ class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
                 tic.jmag.alias("j"),
                 tic.hmag.alias("h"),
                 tic.kmag.alias("k"),
-                tic.plx.alias('parallax'),
-                tic.e_plx.alias('parallax_error'),
+                tic.plx.alias('parallax'),  # extra
+                tic.e_plx.alias('parallax_error'),  # extra
+                tic.gallong.alias('tic_gal_l'),  # extra
+                tic.gallat.alias('tic_gal_b'),  # extra
             )
             .join(c2tic,
                   on=(Catalog.catalogid == c2tic.catalogid))
