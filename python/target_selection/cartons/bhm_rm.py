@@ -150,22 +150,26 @@ class BhmRmBaseCarton(BaseCarton):
             (
                 (
                     (t.mi <= priority_mag_bright),
-                    priority_floor + 0),
+                    priority_floor + 0
+                ),
                 (
                     (
                         (self.name == 'bhm_rm_known_spec') &
                         ~(t.field_name.contains('SDSS-RM')) &
                         (t.mi <= priority_mag_bright_known_spec)
                     ),
-                    priority_floor + 0),
+                    priority_floor + 0
+                ),
                 (
                     (t.mi <= priority_mag_faint),
                     priority_floor +
                     5 * (1 + peewee.fn.floor((t.mi - priority_mag_bright) /
-                                             priority_mag_step).cast('int'))),
+                                             priority_mag_step).cast('int'))
+                ),
                 (
                     (t.mi > priority_mag_faint),
-                    priority_floor + 95),
+                    priority_floor + 95
+                ),
             ),
             None
         )
@@ -182,8 +186,8 @@ class BhmRmBaseCarton(BaseCarton):
         # )
 
         # this secondary priority rule boosts the priority of targets that
-        # have rm_suitability = 0 in the bhm_rm_tweaks table
-        priority2 = peewee.Case(None, ((tw.rm_suitability == 1, -100), ), 0)
+        # have rm_suitability >= 1 in the bhm_rm_tweaks table
+        priority2 = peewee.Case(None, ((tw.rm_suitability >= 1, -100), ), 0)
 
         # combine the two priorities
         priority = priority1 + priority2
@@ -289,6 +293,8 @@ class BhmRmBaseCarton(BaseCarton):
                 t.pk.alias('rm_pk'),  # extra
                 instrument.alias('instrument'),
                 priority.alias('priority'),
+                priority1.alias('priority1'),
+                priority2.alias('priority2'),
                 value.alias('value'),
                 cadence_v0p5.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),  # extra
@@ -492,8 +498,13 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
                     (t.mi < self.parameters['mag_i_max_xmm_lss'])
                 )
             ),
-            (t.specz >= self.parameters['specz_min']),
-            (t.specz <= self.parameters['specz_max']),
+            (
+                (t.specz.between(self.parameters['specz_min'],
+                                 self.parameters['specz_max'])) |
+                (tw.rm_suitability == 1)
+                # allow this here because recently observed QSOs will
+                # not yet have specz in BHM_RM_v0_2
+            ),
         )
 
         return query
