@@ -982,8 +982,17 @@ class BaseCarton(metaclass=abc.ABCMeta):
             select_from = select_from.select_extend(cadence_pk)
 
             if not self.value:
+                # improve robustness of cadence name pattern matching slightly:
+                try:
+                    cadence_payload = [s for s in
+                                       self.cadence.split("_")
+                                       if 'x' in s][0].split('x')
+                except:
+                    raise("Uninterpretable cadence name: ", self.cadence)
+
                 self.value = float(numpy.multiply(
-                    *map(int, self.cadence.split('_')[-1].split('x'))
+                    # *map(int, self.cadence.split('_')[-1].split('x'))
+                    *map(int, cadence_payload)
                 ))
 
         else:
@@ -1036,7 +1045,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
                 values = tuple(
                     int(numpy.multiply(
-                        *map(int, cadence.split('_')[-1].split('x'))))
+                        # *map(int, cadence.split('_')[-1].split('x'))))
+                        # improve robustness of cadence name pattern matching slightly:
+                        *map(int, [s for s in
+                                   cadence.split("_")
+                                   if 'x' in s][0].split('x'))))
                     for cadence in data[:, 1]
                 )
 
