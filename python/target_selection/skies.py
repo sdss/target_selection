@@ -612,11 +612,17 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
 def create_sky_catalogue(database, tiles=None, **kwargs):
     """A script to generate a combined sky catalogue from multiple sources."""
+    default_mag_threshold = 14.0
+    default_min_separation = 5.0
+    default_param_a = 0.15
+    default_param_b = 1.5
 
     if not os.path.exists('gaia_skies.h5'):
         log.info('Procesing gaia_dr2_source.')
         get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
-                      mag_column='phot_g_mean_mag', mag_threshold=12,
+                      mag_column='phot_g_mean_mag',
+                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      param_a=default_param_a, param_b=default_param_b,
                       downsample=2000, tiles=tiles, **kwargs)
     else:
         warnings.warn('Found file gaia_skies.h5', TargetSelectionUserWarning)
@@ -630,7 +636,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing panstarrs1 dr2.')
         get_sky_table(database, 'catalogdb.panstarrs1', h5_file,
                       mag_column='r_stk_psf_flux', is_flux=True, flux_unit='Jy',
-                      mag_threshold=12,
+                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
         warnings.warn(f'Found file {h5_file}', TargetSelectionUserWarning)
@@ -638,7 +645,9 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     if not os.path.exists('ls8_skies.h5'):
         log.info('Procesing legacy_survey_dr8.')
         get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
-                      mag_column='flux_r', is_flux=True, flux_unit='nMgy', mag_threshold=12,
+                      mag_column='flux_r', is_flux=True, flux_unit='nMgy',
+                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
         warnings.warn('Found file ls8_skies.h5', TargetSelectionUserWarning)
@@ -646,7 +655,9 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     if not os.path.exists('tmass_skies.h5'):
         log.info('Procesing twomass_psc.')
         get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
-                      dec_column='decl', mag_column='h_m', mag_threshold=12,
+                      dec_column='decl', mag_column='h_m',
+                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
         warnings.warn('Found file tmass_skies.h5', TargetSelectionUserWarning)
@@ -655,7 +666,9 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing tycho2.')
         get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                       ra_column='ramdeg', dec_column='demdeg',
-                      mag_column='vtmag', mag_threshold=12,
+                      mag_column='vtmag',
+                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
         warnings.warn('Found file tycho2_skies.h5', TargetSelectionUserWarning)
@@ -663,7 +676,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     if not os.path.exists('tmass_xsc_skies.h5'):
         log.info('Procesing twomass_xsc.')
         get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
-                      dec_column='decl', radius_col='r_ext',
+                      dec_column='decl',
+                      radius_col='r_ext',
                       # mag_column='h_m_k20fe', mag_threshold=14,
                       downsample=downsample_list, tiles=tiles,
                       **kwargs)
@@ -696,19 +710,52 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
                       f'sep_neighbour_{table_name}',
                       f'mag_neighbour_{table_name}']
 
+    # Now do some masking based on healpixels that are flagged by a conservative
+    # veto_mask. This is intended to catch a few cases where the nearest neighbour
+    # star is not the one that is contributing the most flux at a candidate sky location
+
+    # Now get the list of all healpixels that are within circles around
+    # very bright stars:
+    veto_mask = create_veto_mask(databse=database, nside=32768,
+                                 moc_filename='veto_from_tycho2.moc',
+                                 table='catalogdb.tycho2',
+                                 ra_column='ramdeg', dec_column='demdeg',
+                                 mag_column='vtmag', mag_threshold=12,
+                                 min_separation=15.0, param_a=0.15,
+                                 param_b=1.5)
+
+    # now flag any skies that have a 'pix_32768' that is in the veto_mask
+    # maybe add this as an extra column?
+    # TD's pandas skills fail him here
+    #TODO TODO TODO
+    #TODO TODO TODO
+    #TODO TODO TODO
+    #TODO TODO TODO
+    #TODO TODO TODO
+
     skies = skies.loc[:, ['ra', 'dec', 'down_pix', 'tile_32'] + col_order]
     skies.to_hdf('skies.h5', 'data')
 
 
-# Added by TD on 25/May/2021
 def create_veto_mask(database,
                      nside=32768,
                      moc_filename=None,
                      overwrite=False,
-                     debug_limit=None):
+                     debug_limit=None,
+                     table='gaia_dr2_source',
+                     ra_column='ra',
+                     dec_column='dec',
+                     mag_column='phot_g_mean_mag',
+                     mag_threshold=12.0,
+                     min_separation=15.0,
+                     param_a=0.15,
+                     param_b=1.5):
+
     '''
+    # Added by TD on 25/May/2021
+
     Generate a list of healpixels that must be avoided because they lie within the
-    near-zones of bright stars (and nearby galaxies TBD).
+    near-zones of bright stars (and/or galaxies TBD).
 
     I have a hunch that generating this list once and then testing skies against
     it will be more efficient (and reliable) than checking candidate skies against
@@ -723,14 +770,30 @@ def create_veto_mask(database,
     database : ~sdssdb.connection.PeeweeDatabaseConnection
         A valid database connection.
     nside : int
-        HEALPix resolution of the resulting ipix list
+        HEALPix resolution of the returned healpix pixel list
     moc_filename : str
         Path to the MOC file to write (or None).
     overwrite: bool
-        Whether to overwrite the moc file
+        Whether to clobber the MOC file
     debug_limit: int
-        Max number of stars to return in query - debug purposes only
+        Max number of stars to return in database query - debug purposes only
+    ra_column : str
+        The name of the column in ``table`` that contains the Right Ascension
+        coordinates, in degrees.
+    dec_column : str
+        The name of the column in ``table`` that contains the Declination
+        coordinates, in degrees.
+    mag_column : str
+        The name of the column in ``table`` with the magnitude to be used to
+        scale ``min_separation``.
+    param_a: float
+        A parameter that controls the how the radius scales with magnitude
+    param_b: float
+        A parameter that controls the how the radius scales with magnitude
 
+    returns
+        A (numpy) array of healpixel indices (resolution ``nside``) that
+        fall within the mask.
     '''
 
     as2rad = numpy.pi / (180.0 * 3600.0)
@@ -738,29 +801,25 @@ def create_veto_mask(database,
     pixarea = healpy.nside2pixarea(nside)
 
     # get the list of gaia dr2 stars brighter than G=12 from the database
-    table_name = 'gaia_dr2_source'
-    col_ra = 'ra'
-    col_dec = 'dec'
-    col_mag = 'phot_g_mean_mag'
-    mag_lim = 12.0
-    min_radius = 15.0
-    param_scale = 0.15
-    param_exponent = 1.5
-    query = (f'SELECT {col_ra},{col_dec},{col_mag} from '
-             f'{table_name} where {col_mag} < {mag_lim} ')
+
+    query = (f'SELECT {ra_column},{dec_column},{mag_column} from '
+             f'{table} where {mag_column} < {mag_threshold} ')
     if debug_limit is not None:
         query = query + f'limit {debug_limit} '
 
     targets = pandas.read_sql(query, database)
-    print(f"Working on {len(targets)} bright stars ({col_mag} < {mag_lim}) from {table_name}")
+    print(f"Working on {len(targets)} bright stars ({mag_column} < {mag_threshold}) from {table}")
 
     # compute coords on unit sphere
-    vector = healpy.pixelfunc.ang2vec(targets[col_ra], targets[col_dec], lonlat=True)
+    vector = healpy.pixelfunc.ang2vec(targets[ra_column],
+                                      targets[dec_column],
+                                      lonlat=True)
 
     # compute mag-dependent exclusion radii
     radius = as2rad * (
-        min_radius +
-        (numpy.power(mag_lim - targets[col_mag], param_exponent) / param_scale)
+        min_separation +
+        (numpy.power(mag_threshold - targets[mag_column], param_b)
+         / param_a)
     )  # or whatever
 
     ipix_list = []
@@ -773,11 +832,6 @@ def create_veto_mask(database,
                               nest=True)
         if len(i) > 0:
             ipix_list.extend(list(i))
-
-    # NOT NEEDED # get the list of bright extended galaxies (use 2MASS XSC as a proxy?)
-    # NOT NEEDED # blah
-    # NOT NEEDED # should do this in a loop as it is mainly repetition of the above.
-    # NOT NEEDED # different rule for radius though
 
     # we only one copy of each masked pixel:
     ipix = numpy.unique(ipix_list)
