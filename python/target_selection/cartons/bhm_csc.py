@@ -148,7 +148,7 @@ class BhmCscBaseCarton(BaseCarton):
         value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
         instrument = peewee.Value(self.instrument)
         cadence = peewee.Value(self.this_cadence)
-        opt_prov = peewee.Value('ps1_psfmag')
+        # opt_prov = peewee.Value('ps1_psfmag')
 
         if (self.instrument == 'BOSS'):
 
@@ -324,6 +324,21 @@ class BhmCscBaseCarton(BaseCarton):
         # magnitude_z = peewee.Case(None, ((t.mag_z <= 0.0, None),), t.mag_z).cast('float')
         # magnitude_h = peewee.Case(None, ((t.mag_h <= 0.0, None),), t.mag_h).cast('float')
 
+        # Create a subquery that will calculate the minimum catalog_to_bhm_csc.distance for each
+        # csc candidate target
+        subq = (
+            c2t
+            .select(
+                c2t.target_id,
+                fn.MIN(c2t.distance).alias('min_distance'))
+            .where(
+                c2t.version_id == version_id,
+                c2t.best >> True
+            )
+            .group_by(c2t.target_id)
+            .alias('min_dist_subq')
+        )
+
         query = (
             c.select(
                 c.catalogid,
@@ -345,18 +360,31 @@ class BhmCscBaseCarton(BaseCarton):
                 t.mag_r.alias('csc_mag_r'),   # extra
                 t.mag_i.alias('csc_mag_i'),   # extra
                 t.mag_z.alias('csc_mag_z'),   # extra
-                t.oir_ra.alias('csc_oir_ra'),   # extra
-                t.oir_dec.alias('csc_oir_dec'),   # extra
+                t.oir_ra.alias('csc_ra'),   # extra
+                t.oir_dec.alias('csc_dec'),   # extra
             )
             .join(c2t)
             .join(t)
+            .join(
+                subq,
+                on=(
+                    (c2t.target_id == subq.c.target_id) &
+                    (
+                        (c2t.distance == subq.c.min_distance) |
+                        (c2t.distance.is_null() & subq.c.min_distance.is_null())
+                    )
+                ),
+            )
             .where(
                 c.version_id == version_id,
                 c2t.version_id == version_id,
                 c2t.best >> True
             )
             # .distinct([c2t.target_id])  # avoid duplicates - trust the CSC parent sample,
-            .distinct([c.catalogid])  # avoid duplicates - trust the catalogid,
+            # .distinct([c.catalogid])  # avoid duplicates - trust the catalogid,
+            # avoid duplicates - trust uniquness in both CSC name and catalogid
+            .distinct([c.catalogid])
+            # .distinct([t.cxo_name])
             .where
             (
                 t.spectrograph == self.instrument
