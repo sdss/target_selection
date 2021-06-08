@@ -590,7 +590,7 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
     bhm_csc_apogee:
-      mag_h_min: 10.0
+      mag_h_min: 7.0
       mag_h_max: 15.0
       priority_floor: 2930
       value: 1.0
