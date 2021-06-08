@@ -81,13 +81,26 @@ class BhmRmBaseCarton(BaseCarton):
         c = Catalog.alias()
         c2t = CatalogToBHM_RM_v0.alias()
         t = BHM_RM_v0_2.alias()
-        tw = BHM_RM_Tweaks.alias()
+        stw = BHM_RM_Tweaks.alias()
         self.alias_c = c
         self.alias_t = t
-        self.alias_tw = tw
 
         fieldlist = self.get_fieldlist()
 
+        tw = (
+            stw.
+            select(
+                stw.pkey.alias('pkey'),
+                stw.ra.alias('ra'),
+                stw.dec.alias('dec'),
+                stw.rm_suitability.alias('rm_suitability'),
+            ).
+            where(
+                (stw.date_set == '30-Nov-2020') |
+                (stw.date_set == '25-May-2021')
+            )
+        )
+        self.alias_tw = tw
         # #########################################################################
         # prepare the spectroscopy catalogues
 
@@ -187,7 +200,7 @@ class BhmRmBaseCarton(BaseCarton):
 
         # this secondary priority rule boosts the priority of targets that
         # have rm_suitability >= 1 in the bhm_rm_tweaks table
-        priority2 = peewee.Case(None, ((tw.rm_suitability >= 1, -100), ), 0)
+        priority2 = peewee.Case(None, ((tw.c.rm_suitability >= 1, -100), ), 0)
 
         # combine the two priorities
         priority = priority1 + priority2
@@ -309,7 +322,7 @@ class BhmRmBaseCarton(BaseCarton):
                 t.optical_survey.alias('optical_survey'),  # extra
                 c2t.best.alias("c2t_best"),  # extra
                 in_SDSSV_plates.alias('in_SDSSV_plates'),  # extra
-                tw.rm_suitability.cast('int').alias('rm_suitability'),  # extra
+                tw.c.rm_suitability.cast('int').alias('rm_suitability'),  # extra
             )
             .join(c2t)
             # An explicit join is needed because we are using c2t for Catalog_to_BHM_RM_v0
@@ -338,7 +351,7 @@ class BhmRmBaseCarton(BaseCarton):
             .join(
                 tw,
                 JOIN.LEFT_OUTER,
-                on=(fn.q3c_join(tw.ra, tw.dec,
+                on=(fn.q3c_join(tw.c.ra, tw.c.dec,
                                 c.ra, c.dec,
                                 match_radius_spectro))
             )
@@ -368,8 +381,8 @@ class BhmRmBaseCarton(BaseCarton):
                 # bhm_rm_tweaks.rm_suitability==0 means:
                 # 'target is probably unsuitable for RM, do not observe in the future'
                 (
-                    tw.pkey.is_null(True) |
-                    (tw.rm_suitability != 0)
+                    tw.c.pkey.is_null(True) |
+                    (tw.c.rm_suitability != 0)
                 )
             )
             .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
@@ -471,8 +484,8 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
             (
                 (t.spec_q == 1) |
                 (
-                    (tw.pkey.is_null(False)) &
-                    (tw.rm_suitability == 1)
+                    (tw.c.pkey.is_null(False)) &
+                    (tw.c.rm_suitability == 1)
                 )
 
             ),
@@ -501,7 +514,7 @@ class BhmRmKnownSpecCarton(BhmRmBaseCarton):
             (
                 (t.specz.between(self.parameters['specz_min'],
                                  self.parameters['specz_max'])) |
-                (tw.rm_suitability == 1)
+                (tw.c.rm_suitability == 1)
                 # allow this here because recently observed QSOs will
                 # not yet have specz in BHM_RM_v0_2
             ),
