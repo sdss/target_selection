@@ -17,11 +17,11 @@ import pandas
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
+from mocpy import MOC  # TODO: add dependency on mocpy (available via pip)
 
 from target_selection import log, manager
 from target_selection.exceptions import TargetSelectionUserWarning
 
-from mocpy import MOC      # TODO: add dependency on mocpy (available via pip)
 
 _known_flux_zpts = {
     'nMgy': 22.5,
@@ -164,7 +164,7 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
                 mask_flux = targets[mag_column] > 0
             try:
                 zpt = _known_flux_zpts[flux_unit]
-            except:
+            except BaseException:
                 raise Exception(f"Unknown flux_unit: {flux_unit}")
 
             targets.loc[mask_flux, mag_column] = (
@@ -176,8 +176,6 @@ def _process_tile(inputs, candidate_nside=None, tile_nside=None,
         mask = numpy.ones(len(candidates), dtype=numpy.bool)
 
         for _, btarget in btargets.iterrows():
-            # sep_corr = min_separation + numpy.sqrt((mag_threshold -
-            #                                         btarget[mag_column]) / 0.2)
             if radius_column is not None:
                 sep_corr = max(min_separation, btarget[radius_column])
             else:
@@ -274,8 +272,7 @@ def get_sky_table(database, table, output, tiles=None, append=False,
                   scale_a=0.2, scale_b=1.0,
                   mag_threshold=None,
                   downsample=False, downsample_nside=256,
-                  n_cpus=1, seed=None,
-                  ):
+                  n_cpus=1, seed=None):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -298,8 +295,8 @@ def get_sky_table(database, table, output, tiles=None, append=False,
       :math:`s^* = s + \dfrac{(m_{thr}-m)^{\beta}}{a}` where
       :math:`s` is the minimum separation, :math:`m_{thr}` is the magnitude
       threshold, :math:`a=0.2` and :math:`\beta=1.0` are factors that
-      control the relationship between the star's magnitude and the exclusion radius.
-      (previously in v0, the rule was :math:`s^* = s + \sqrt{\dfrac{m_{thr}-m}{a}}`)
+      control the relationship between the star's magnitude and the exclusion
+      radius.
 
     - If ``downsample`` is an integer, only that number of skies are returned
       for each tile. If so, the tile is divided in pixels of nside
@@ -353,18 +350,19 @@ def get_sky_table(database, table, output, tiles=None, append=False,
         The name of the column in ``table`` with the magnitude to be used to
         scale ``min_separation``.
     is_flux : bool
-        If `True`, assumes the ``mag_column`` values are given as fluxes (units of flux_unit).
+        If `True`, assumes the ``mag_column`` values are given as fluxes
+        (units of flux_unit).
     flux_unit : str
         Gives the units of flux in the 'mag_column' - known values 'nMgy', 'Jy'
     mag_threshold : float
         The value below which the separation to neighbouring sources will be
         scaled.
-    radius_column: str
+    radius_column : str
          Name of the database column that provided the object radius
          (an alternative to mag_column useful for extended sources)
-    scale_a: float
+    scale_a : float
          Value of :math:`a` in the radius vs mag relationship
-    scale_b: float
+    scale_b : float
          Value of :math:`\beta` in the radius vs mag relationship
     downsample : bool, int, or list
         The total number of skies to retrieve for each tile. If `False`,
@@ -612,6 +610,7 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
 def create_sky_catalogue(database, tiles=None, **kwargs):
     """A script to generate a combined sky catalogue from multiple sources."""
+
     default_mag_threshold = 14.0
     default_min_separation = 5.0
     default_param_a = 0.15
@@ -621,7 +620,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing gaia_dr2_source.')
         get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
                       mag_column='phot_g_mean_mag',
-                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      mag_threshold=default_mag_threshold,
+                      min_separation=default_min_separation,
                       param_a=default_param_a, param_b=default_param_b,
                       downsample=2000, tiles=tiles, **kwargs)
     else:
@@ -636,7 +636,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing panstarrs1 dr2.')
         get_sky_table(database, 'catalogdb.panstarrs1', h5_file,
                       mag_column='r_stk_psf_flux', is_flux=True, flux_unit='Jy',
-                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      mag_threshold=default_mag_threshold,
+                      min_separation=default_min_separation,
                       param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
@@ -646,7 +647,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing legacy_survey_dr8.')
         get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
                       mag_column='flux_r', is_flux=True, flux_unit='nMgy',
-                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      mag_threshold=default_mag_threshold,
+                      min_separation=default_min_separation,
                       param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
@@ -656,7 +658,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         log.info('Procesing twomass_psc.')
         get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
                       dec_column='decl', mag_column='h_m',
-                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      mag_threshold=default_mag_threshold,
+                      min_separation=default_min_separation,
                       param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
@@ -667,7 +670,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
                       ra_column='ramdeg', dec_column='demdeg',
                       mag_column='vtmag',
-                      mag_threshold=default_mag_threshold, min_separation=default_min_separation,
+                      mag_threshold=default_mag_threshold,
+                      min_separation=default_min_separation,
                       param_a=default_param_a, param_b=default_param_b,
                       downsample=downsample_list, tiles=tiles, **kwargs)
     else:
@@ -687,8 +691,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     skies = None
     col_order = []
 
-    for file_ in ['gaia_skies.h5', 'ps1dr2_skies.h5', 'ls8_skies.h5', 'tmass_skies.h5',
-                  'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
+    for file_ in ['gaia_skies.h5', 'ps1dr2_skies.h5', 'ls8_skies.h5',
+                  'tmass_skies.h5', 'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
 
         table_name = file_[0:-9]
 
@@ -727,11 +731,11 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     # now flag any skies that have a 'pix_32768' that is in the veto_mask
     # maybe add this as an extra column?
     # TD's pandas skills fail him here
-    #TODO TODO TODO
-    #TODO TODO TODO
-    #TODO TODO TODO
-    #TODO TODO TODO
-    #TODO TODO TODO
+    # TODO TODO TODO
+    # TODO TODO TODO
+    # TODO TODO TODO
+    # TODO TODO TODO
+    # TODO TODO TODO
 
     skies = skies.loc[:, ['ra', 'dec', 'down_pix', 'tile_32'] + col_order]
     skies.to_hdf('skies.h5', 'data')
@@ -750,20 +754,18 @@ def create_veto_mask(database,
                      min_separation=15.0,
                      param_a=0.15,
                      param_b=1.5):
+    """Generate a list of healpixels that must be avoided because
+    they lie within the near-zones of bright stars (and/or galaxies TBD).
 
-    '''
-    # Added by TD on 25/May/2021
+    I have a hunch that generating this list once and then testing skies
+    against it will be more efficient (and reliable) than checking candidate
+    skies against a list of stars. This avoids potential pitfalls of nearest
+    neighbour method (e.g. when second nearest neighbour is brighter than
+    nearest neighbour).
 
-    Generate a list of healpixels that must be avoided because they lie within the
-    near-zones of bright stars (and/or galaxies TBD).
-
-    I have a hunch that generating this list once and then testing skies against
-    it will be more efficient (and reliable) than checking candidate skies against
-    a list of stars. This avoids potential pitfalls of nearest neighbour method
-    (e.g. when second nearest neighbour is brighter than nearest neighbour).
-
-    This doesn't take too long to run, so result does not need to be preserved long term.
-    However, writing out a MOC file is a convenient way to visualise what has been done.
+    This doesn't take too long to run, so result does not need to be preserved
+    long term. However, writing out a MOC file is a convenient way to visualise
+    what has been done.
 
     Parameters
     ----------
@@ -791,10 +793,13 @@ def create_veto_mask(database,
     param_b: float
         A parameter that controls the how the radius scales with magnitude
 
-    returns
+    Returns
+    -------
+    mask : ~numpy.ndarray
         A (numpy) array of healpixel indices (resolution ``nside``) that
         fall within the mask.
-    '''
+
+    """
 
     as2rad = numpy.pi / (180.0 * 3600.0)
     hpx_order = healpy.nside2order(nside)
