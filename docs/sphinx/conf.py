@@ -36,16 +36,15 @@ from target_selection import __version__
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
               'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.mathjax',
-              'sphinx.ext.intersphinx', 'sdsstools.releases', 'sphinx_click.ext']
+              'sphinx.ext.intersphinx', 'sphinx_click.ext',
+              'sphinx_copybutton', 'myst_parser']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
 source_suffix = ['.rst', '.md']
-# source_suffix = '.rst'
 
 source_parsers = {
 }
@@ -127,39 +126,17 @@ rst_epilog = """
 .. |HDUList| replace:: :class:`~astropy.io.fits.HDUList`
 """
 
-releases_github_path = 'sdss/target_selection'
-releases_document_name = ['changelog']
-releases_unstable_prehistory = True
-
+copybutton_prompt_text = r">>> |\$ "
+copybutton_prompt_is_regexp = True
 
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = 'alabaster'
-
-html_theme_options = {
-    'logo': 'sdssv_logo.png',
-    'github_user': 'sdss',
-    'github_repo': project,
-    'github_button': True,
-    'github_type': 'star',
-    'sidebar_collapse': True,
-    'page_width': '80%'
-}
-
-html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        'relations.html',
-        'searchbox.html',
-    ]
-}
-
-html_css_files = ['pygments.css', 'custom.css']
-
+html_theme = 'furo'
+html_title = 'target_selection'
+html_logo = '_static/sdssv_logo.png'
 html_favicon = './_static/favicon_sdssv.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
