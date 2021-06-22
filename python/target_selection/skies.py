@@ -17,7 +17,7 @@ import pandas
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
-from mocpy import MOC  # TODO: add dependency on mocpy (available via pip)
+from mocpy import MOC
 
 from target_selection import log, manager
 from target_selection.exceptions import TargetSelectionUserWarning
@@ -813,7 +813,8 @@ def create_veto_mask(database,
         query = query + f'limit {debug_limit} '
 
     targets = pandas.read_sql(query, database)
-    print(f"Working on {len(targets)} bright stars ({mag_column} < {mag_threshold}) from {table}")
+    print(f"Working on {len(targets)} bright stars "
+          f"({mag_column} < {mag_threshold}) from {table}")
 
     # compute coords on unit sphere
     vector = healpy.pixelfunc.ang2vec(targets[ra_column],
@@ -841,13 +842,12 @@ def create_veto_mask(database,
     # we only one copy of each masked pixel:
     ipix = numpy.unique(ipix_list)
     npix = len(ipix)
-    print(f"Result: {npix} masked pixels (NSIDE={nside}), area= {npix*pixarea:.4f} sqdeg")
+    print(f"Result: {npix} masked pixels (NSIDE={nside}), "
+          f"area= {npix*pixarea:.4f} sqdeg")
 
     if moc_filename is not None:
-        # outmoc = f"sky_veto_mask_nside{nside}.moc"
         m = MOC.from_healpix_cells(ipix=ipix,
                                    depth=numpy.repeat(hpx_order, len(ipix)))
-        m.write(moc_filename,
-                format='fits', overwrite=overwrite)
+        m.write(moc_filename, format='fits', overwrite=overwrite)
 
     return ipix
