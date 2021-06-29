@@ -87,7 +87,6 @@ class MWM_OB_Carton(BaseCarton):
                         CatalogToTIC_v8.best >> True)
                  .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km - 0.61) / 5.)),
                         Gm < 16.,
-                        Gm > 12,
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - km - 0.25 * (Gm - km) > -0.30,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
@@ -284,8 +283,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
                  .join(TIC_v8)
                  .join(CatalogToTIC_v8)
                  .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag > 12))
+                        CatalogToTIC_v8.best >> True))
 
         if query_region:
             query = (query
