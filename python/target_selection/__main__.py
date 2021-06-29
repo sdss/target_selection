@@ -23,6 +23,7 @@ import target_selection as tsmod
 from target_selection.cartons.tools import get_file_carton
 from target_selection.exceptions import (TargetSelectionError,
                                          TargetSelectionUserWarning)
+from target_selection.skies import create_sky_catalogue
 from target_selection.xmatch import XMatchPlanner
 
 
@@ -234,6 +235,14 @@ def xmatch(xmatch_plan, file):
 
     xmatch = XMatchPlanner.read(database, xmatch_plan, config_file=file)
     xmatch.run()
+
+
+@target_selection.command()
+@click.option('--cpus', type=int, default=1, help='Number of CPUs to use.')
+def skies(cpus=1):
+    """Runs the parent sky catalogue creation routine."""
+
+    create_sky_catalogue(database, n_cpus=cpus)
 
 
 if __name__ == '__main__':
