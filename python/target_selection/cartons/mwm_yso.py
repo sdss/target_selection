@@ -1350,8 +1350,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
                         on=(Gaia_DR2.source_id == Sagitta.source_id))
                   .where(CatalogToTIC_v8.version_id == version_id,
                          CatalogToTIC_v8.best >> True,
-                         TwoMassPSC.h_m < 13,
-                         TwoMassPSC.h_m > 7))
+                         TwoMassPSC.h_m < 13))
 
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
@@ -1373,8 +1372,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
                         on=(Gaia_DR2.source_id == Zari18pms.source))
                   .where(CatalogToTIC_v8.version_id == version_id,
                          CatalogToTIC_v8.best >> True,
-                         TwoMassPSC.h_m < 13,
-                         TwoMassPSC.h_m > 7))
+                         TwoMassPSC.h_m < 13))
 
         # | is for peewee SQL union
         query = query1 | query2
@@ -1448,8 +1446,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
                         on=(Gaia_DR2.source_id == Sagitta.source_id))
                   .where(CatalogToTIC_v8.version_id == version_id,
                          CatalogToTIC_v8.best >> True,
-                         Gaia_DR2.phot_rp_mean_mag < 15.5,
-                         Gaia_DR2.phot_rp_mean_mag > 7))
+                         Gaia_DR2.phot_rp_mean_mag < 15.5))
 
         # join with Zari18pms
         query2 = (CatalogToTIC_v8
@@ -1471,8 +1468,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
                         on=(Gaia_DR2.source_id == Zari18pms.source))
                   .where(CatalogToTIC_v8.version_id == version_id,
                          CatalogToTIC_v8.best >> True,
-                         Gaia_DR2.phot_rp_mean_mag < 15.5,
-                         Gaia_DR2.phot_rp_mean_mag > 7))
+                         Gaia_DR2.phot_rp_mean_mag < 15.5))
 
         # | is for peewee SQL union
         query = query1 | query2
