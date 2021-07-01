@@ -121,7 +121,8 @@ def nested_regrade(pixels, nside_in, nside_out):
 
 
 def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
-               candidate_nside=32768, downsample_nside=256, downsample_data=None):
+               candidate_nside=32768, downsample_nside=256,
+               downsample_data=None, seed=None):
     """Downsamples valid sky positions for a tile."""
 
     df['selected'] = False
@@ -132,9 +133,13 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
                                                downsample_nside)
 
     if downsample_data is not None:
-        tile_32 = df.iloc[0][tile_column]
-        down_tile = downsample_data.loc[(downsample_data.tile_32 == tile_32) &
-                                        downsample_data.valid]
+        cond = True
+        if tile_column in df:
+            tile = df.iloc[0][tile_column]
+            cond = cond & (downsample_data[tile_column] == tile)
+        if 'valid' in df:
+            cond = cond & downsample_data.valid
+        down_tile = downsample_data.loc[cond]
         selected = df.reindex(down_tile.index).dropna()
         selected = selected.loc[selected.valid]
         df.loc[selected.index, 'selected'] = True
@@ -162,7 +167,8 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
 
     if n_valid_left > 0:
         valid_selected = df[~df.selected].groupby('down_pix').sample(n=n_skies_per_pix,
-                                                                     replace=True)
+                                                                     replace=True,
+                                                                     random_state=seed)
         valid_selected.drop_duplicates(inplace=True)
         df.loc[valid_selected.index, 'selected'] = True
 
@@ -180,11 +186,22 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
                       .groupby('down_pix')
                       .apply(lambda x: x.sort_values(['valid', 'sep_neighbour'],
                                                      ascending=False)))
-    invalid_sorted.reset_index('down_pix', drop=True, inplace=True)
+
+    if invalid_sorted.size == 0:
+        return df
+
+    if 'down_pix' in invalid_sorted.index.names:
+        invalid_sorted.reset_index('down_pix', drop=True, inplace=True)
+
     invalid_selected = (invalid_sorted
                         .groupby('down_pix')
                         .apply(lambda x: x.head(n_per_pix - n_pix_missing[x.iloc[0].down_pix])))
-    invalid_selected.reset_index('down_pix', drop=True, inplace=True)
+
+    if invalid_selected.size == 0:
+        return df
+
+    if 'down_pix' in invalid_selected.index.names:
+        invalid_selected.reset_index('down_pix', drop=True, inplace=True)
 
     df.loc[invalid_selected.index, 'selected'] = True
 
@@ -195,7 +212,8 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
                   tile_nside=None, query=None, min_separation=None,
                   is_flux=False, flux_unit='nMgy', mag_threshold=None,
                   scale_a=0.2, scale_b=1, nsample=None, downsample_data=None,
-                  downsample_nside=None, calculate_min_separation=True):
+                  downsample_nside=None, calculate_min_separation=True,
+                  seed=None):
     """Processes a tile from catalogue data."""
 
     db = peewee.PostgresqlDatabase(**database_params)
@@ -344,19 +362,20 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
                                  nsample=nsample,
                                  candidate_nside=candidate_nside,
                                  downsample_nside=downsample_nside,
-                                 downsample_data=downsample_data)
+                                 downsample_data=downsample_data,
+                                 seed=seed)
         return downsampled[downsampled.selected]
 
 
 def get_sky_table(database, table, output, tiles=None, tile_nside=32,
                   candidate_nside=32768, min_separation=10,
-                  chunk_tiles=None, ra_column='ra', dec_column='dec',
+                  ra_column='ra', dec_column='dec',
                   mag_column=None, is_flux=False,
                   radius_column=None, flux_unit='nMgy',
                   scale_a=0.2, scale_b=1.0,
                   mag_threshold=None, calculate_min_separation=True,
                   nsample=2048, downsample_data=None, downsample_nside=256,
-                  n_cpus=1):
+                  n_cpus=1, seed=None):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -370,25 +389,24 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
 
     - Each tile is subsequently divided in pixels of nside ``candidate_nside``.
       Pixels that contain a catalogue target are removed as possible sky
-      candidates. For the remaining pixels a nearest-neighbour search is done
-      using a KDTree algorithm. Those pixels with neighbours closer than
-      ``min_separation`` are rejected. The remaining pixels are considered
-      valid skies. Alternatively, if ``mag_column`` and ``mag_threshold`` are
-      defined, the separations to neighbours brighter than the threshold
-      magnitude is corrected using the expression
+      candidates. For each target with magnitude less than ``mag_threshold``
+      all pixels within a ``min_separation`` are rejected. The remaining pixels
+      are considered valid skies. Alternatively, if ``mag_column`` and
+      ``mag_threshold`` are defined, the minimum separation to valid pixels is
+      corrected using the expression
       :math:`s^* = s + \dfrac{(m_{thr}-m)^{\beta}}{a}` where
       :math:`s` is the minimum separation, :math:`m_{thr}` is the magnitude
       threshold, :math:`a=0.2` and :math:`\beta=1.0` are factors that
       control the relationship between the star's magnitude and the exclusion
       radius.
 
-    - If ``downsample`` is an integer, only that number of skies are returned
-      for each tile. If so, the tile is divided in pixels of nside
-      ``downsample_nside`` (which should be smaller than ``candidate_nside``
-      but larger than ``tile_nside``) and for each downsample pixel
-      ``int(downsample / downsample_npix) + 1`` skies are selected (or all the
-      skies, if fewer are available), where ``downsample_npix`` is the number
-      of pixels corresponding to the ``downsample_nside`` nside.
+    - If ``nsample``, only that number of skies are returned for each tile.
+      The tile is divided in pixels of nside ``downsample_nside`` (which must
+      be smaller than ``candidate_nside`` but larger than ``tile_nside``) and
+      for each downsample pixel ``int(downsample / downsample_npix) + 1`` skies
+      are selected. If not enough valid positions can be selected in this way,
+      each downsample pixel quota is completed with the invalid positions that
+      have a larger separation to their nearest neighbour.
 
     - The process can be parallelised for each tile and the results are
       compiled in a single Pandas data frame that is saved to an HDF5 file.
@@ -416,12 +434,6 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     min_separation : int
         The minimum separation, in arcsec, between skies and their closest
         neighbour in the catalogue.
-    chunk_tiles : int
-        Request the targets from this number of tiles at once, and then process
-        them one by one. Reduces the number of queries at the expense of making
-        each one return more rows and use more memory. If ``chunk_tiles=None``
-        and ``n_cpus>1``, defaults to the number of CPUs to use. Otherwise
-        defaults to 5.
     ra_column : str
         The name of the column in ``table`` that contains the Right Ascension
         coordinates, in degrees.
@@ -449,21 +461,30 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     calculate_min_separation : bool
         If `True`, calculates the separation to the nearest neighbour for
         each candidate sky position.
-    downsample : bool, int, or list
-        The total number of skies to retrieve for each tile. If `False`,
-        returns all candidate skies. ``downsample`` can also be a list of
-        pixels with nside ``candidate_nside`` in which case only pixels in
-        that list will be returned.
+    nsample : int or None
+        The total number of skies to retrieve for each tile. If `None`,
+        returns all candidate skies.
     downsample_nside : int
-        The HEALPix nside used for downsampling. If ``downsample=True``, the
+        The HEALPix nside used for downsampling. If ``nside``, the
         resulting valid skies will be grouped by HEALPix pixels of this
         resolution. For each pixel a random sample will be drawn so that the
-        total number of skies selected matches ``downsample``.
+        total number of skies selected matches ``nsample``.
+    downsample_data : pandas.DataFrame
+        A data frame with previously selected skies that will be used to
+        downsample the sky candidates. This is useful when trying to create a
+        sky catalogue from multiple tables to ensure that the selected sky
+        positions match across the various tables. If not enough valid skies
+        can be selected from the sample in the data frame, they will be
+        completed up to ``nsample``.
     n_cpus : int
         Number of CPUs to use for multiprocessing.
     seed : int
         The random state seed.
 
+    Returns
+    -------
+    skies : pandas.DataFrame
+        The list of selected skies.
 
     """
 
@@ -479,21 +500,18 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     if radius_column:
         columns += f', {radius_column} as radius'
 
-    if chunk_tiles is None:
-        if n_cpus > 1:
-            chunk_tiles = n_cpus
-        else:
-            chunk_tiles = 5
-
     if tiles is None:
         tiles = numpy.arange(healpy.nside2npix(tile_nside))
+
+    if downsample_data is not None:
+        downsample_data = downsample_data.loc[:, ['tile_32', 'valid']]
+        downsample_data = downsample_data.loc[downsample_data.valid]
 
     query = (f'SELECT {columns} FROM {table} '
              f'WHERE healpix_ang2ipix_nest('
              f'{tile_nside}, {ra_column}, {dec_column}) = {{tile}};')
 
-    pbar = enlighten.Counter(total=len(tiles), desc=output,
-                             unit='tiles')
+    pbar = enlighten.Counter(total=len(tiles), desc=output, unit='tiles')
     pbar.refresh()
 
     database_params = database.connection_params
@@ -509,12 +527,13 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
                            mag_threshold=mag_threshold,
                            nsample=nsample, downsample_data=downsample_data,
                            calculate_min_separation=calculate_min_separation,
-                           downsample_nside=downsample_nside)
+                           downsample_nside=downsample_nside,
+                           seed=seed)
 
     all_skies = None
 
     with multiprocessing.Pool(n_cpus) as pool:
-        for tile_skies in pool.imap_unordered(process_tile, tiles):
+        for tile_skies in pool.imap_unordered(process_tile, tiles, chunksize=10):
             if tile_skies is not False and len(tile_skies) > 0:
                 if all_skies is None:
                     all_skies = tile_skies
@@ -528,6 +547,8 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     all_skies.valid = all_skies.valid.astype(bool)
 
     all_skies.to_hdf(output, 'data')
+
+    return all_skies
 
 
 def plot_sky_density(file_or_data, nside, nside_plot=32, **kwargs):
