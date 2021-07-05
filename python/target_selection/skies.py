@@ -148,13 +148,10 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
 
     # Step one: get as many valid sky positions as possible in random order.
     n_selected = df.selected.sum()
-    n_selected_valid = (df.selected & df.valid).sum()
     n_valid_left = (df.valid & ~df.selected).sum()
 
     # Check if we are done.
-    if n_selected_valid >= nsample:
-        return df
-    elif n_selected >= nsample and n_valid_left == 0:
+    if n_selected >= nsample:
         return df
     elif (~df.selected).sum() == 0:
         return df
@@ -163,12 +160,15 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
     k_tile = int(numpy.log2(tile_nside))
     k_downsample = int(numpy.log2(downsample_nside))
     n_downsample_pix = 4**(k_downsample - k_tile)
-    n_skies_per_pix = (nsample - n_selected) // n_downsample_pix
+    n_skies_per_pix = nsample // n_downsample_pix
 
     if n_valid_left > 0:
-        valid_selected = df[~df.selected].groupby('down_pix').sample(n=n_skies_per_pix,
-                                                                     replace=True,
-                                                                     random_state=seed)
+        not_selected = df[(~df.selected) & df.valid]
+        weights = not_selected.sep_neighbour / not_selected.sep_neighbour.sum()
+        valid_selected = not_selected.groupby('down_pix').sample(n=n_skies_per_pix,
+                                                                 replace=True,
+                                                                 random_state=seed,
+                                                                 weights=weights**3)
         valid_selected.drop_duplicates(inplace=True)
         df.loc[valid_selected.index, 'selected'] = True
 
@@ -178,9 +178,8 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
     # Step two: complete downsample pixels without enough skies with the invalid
     # skies that have the largest separation.
 
-    n_per_pix = nsample // n_downsample_pix
-    n_per_pix_current = df[df.selected].groupby('down_pix').size()
-    n_pix_missing = n_per_pix_current[n_per_pix_current < n_per_pix]
+    assigned = df.groupby('down_pix').apply(lambda x: len(x[x.selected]))
+    n_pix_missing = assigned[assigned < n_skies_per_pix]
 
     invalid_sorted = (df.loc[df.down_pix.isin(n_pix_missing.index) & ~df.selected]
                       .groupby('down_pix')
@@ -193,9 +192,9 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
     if 'down_pix' in invalid_sorted.index.names:
         invalid_sorted.reset_index('down_pix', drop=True, inplace=True)
 
-    invalid_selected = (invalid_sorted
-                        .groupby('down_pix')
-                        .apply(lambda x: x.head(n_per_pix - n_pix_missing[x.iloc[0].down_pix])))
+    invalid_selected = (invalid_sorted .groupby('down_pix').apply(
+        lambda x: x.head(n_skies_per_pix -
+                         assigned.loc[x.iloc[0].down_pix])))
 
     if invalid_selected.size == 0:
         return df
@@ -519,7 +518,7 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     all_skies = None
 
     with multiprocessing.Pool(n_cpus) as pool:
-        for tile_skies in pool.imap_unordered(process_tile, tiles, chunksize=10):
+        for tile_skies in pool.imap_unordered(process_tile, tiles, chunksize=5):
             if tile_skies is not False and len(tile_skies) > 0:
                 if all_skies is None:
                     all_skies = tile_skies
