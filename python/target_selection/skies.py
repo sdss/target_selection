@@ -255,45 +255,31 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
     candidates['valid'] = True
 
     # If we are using the magnitudes to correct the minimum separation, we
-    # first convert the column to magnitudes if it's flux. Then select all the
-    # targets with magnitude < mag_threshold and for each one mask out all
-    # the candidate pixels that lie within the corrected separation.
-    # TODO: We use a rectangular search here because doing a
-    # SkyCoord.separation for each target would be very costly but there may
-    # be a better way.
-    if has_mag or has_radius:
+    # first convert the column to magnitudes if it's flux. Then for each pixel
+    # we mask out all the candidate pixels that lie within the corrected
+    # separation.
 
-        if has_radius:
-            btargets = targets
+    if is_flux:
+        mask_flux = targets.mag > 0
 
-        else:
-            if is_flux:
-                mask_flux = targets.mag > 0
+        try:
+            zpt = _known_flux_zpts[flux_unit]
+        except BaseException:
+            raise Exception(f"Unknown flux_unit: {flux_unit}")
 
-                try:
-                    zpt = _known_flux_zpts[flux_unit]
-                except BaseException:
-                    raise Exception(f"Unknown flux_unit: {flux_unit}")
+        targets.loc[mask_flux, 'mag'] = (
+            zpt - 2.5 * numpy.log10(targets[mask_flux].mag))
+        targets.loc[targets.mag <= 0, 'mag'] = numpy.nan
 
-                targets.loc[mask_flux, 'mag'] = (
-                    zpt - 2.5 * numpy.log10(targets[mask_flux].mag))
-                targets.loc[targets.mag <= 0, 'mag'] = numpy.nan
-
-            btargets = targets[targets.mag < mag_threshold]
-
-    else:
-
-        btargets = targets
-
-    vectors = healpy.pixelfunc.ang2vec(btargets.ra, btargets.dec, lonlat=True)
+    vectors = healpy.pixelfunc.ang2vec(targets.ra, targets.dec, lonlat=True)
 
     all_masked = []
     row = 0
-    for _, btarget in btargets.iterrows():
-        if 'radius' in targets:
-            sep_corr = max(min_separation, btarget.radius)
+    for _, target in targets.iterrows():
+        if has_radius:
+            sep_corr = max(min_separation, target.radius)
         elif has_mag and mag_threshold is not None:
-            min_sep_corr = numpy.power(mag_threshold - btarget.mag, scale_b) / scale_a
+            min_sep_corr = numpy.power(mag_threshold - target.mag, scale_b) / scale_a
             sep_corr = min_separation + min_sep_corr
         else:
             sep_corr = min_separation
