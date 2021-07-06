@@ -168,7 +168,7 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
         valid_selected = not_selected.groupby('down_pix').sample(n=n_skies_per_pix,
                                                                  replace=True,
                                                                  random_state=seed,
-                                                                 weights=weights**3)
+                                                                 weights=weights)
         valid_selected.drop_duplicates(inplace=True)
         df.loc[valid_selected.index, 'selected'] = True
 
@@ -527,9 +527,23 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
 
             pbar.update()
 
+    if all_skies is None:
+        return all_skies
+
     # Not sure why this is needed but it seems downsampling sometimes
     # converts the "valid" column to object.
     all_skies.valid = all_skies.valid.astype(bool)
+
+    # Downcast some columns
+    all_skies = all_skies.astype({f'tile_{tile_nside}': numpy.int16})
+
+    if 'sep_neighbour' in all_skies:
+        all_skies = all_skies.astype({'sep_neighbour': numpy.float32})
+    if 'mag_neighbour' in all_skies:
+        all_skies = all_skies.astype({'mag_neighbour': numpy.float32})
+
+    if downsample_nside is not None:
+        all_skies = all_skies.astype({'down_pix': numpy.int32})
 
     all_skies.to_hdf(output, 'data')
 
@@ -683,6 +697,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     default_param_b = 1.5
     nsample = 2048
 
+    tiles = range(10500, 10599)
+
     if not os.path.exists('tmass_skies.h5'):
         log.info('Procesing twomass_psc.')
         get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
@@ -763,6 +779,11 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
                   'tmass_skies.h5', 'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
 
         table_name = file_[0:-9]
+
+        if not os.path.exists(file_):
+            warnings.warn(f'File {file_} does not exists.',
+                          TargetSelectionUserWarning)
+            continue
 
         table = pandas.read_hdf(file_).drop_duplicates()
         table.rename(columns={'sep_neighbour': f'sep_neighbour_{table_name}',
