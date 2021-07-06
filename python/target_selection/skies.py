@@ -697,8 +697,6 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     default_param_b = 1.5
     nsample = 2048
 
-    tiles = range(10500, 10599)
-
     if not os.path.exists('tmass_skies.h5'):
         log.info('Procesing twomass_psc.')
         get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
