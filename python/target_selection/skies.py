@@ -536,7 +536,7 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     return all_skies
 
 
-def plot_sky_density(file_or_data, nside, nside_plot=32, **kwargs):
+def plot_sky_density(file_or_data, nside, pix_column=None, nside_plot=32, **kwargs):
     """Plots the number of skies as a HEALPix map.
 
     Parameters
@@ -547,6 +547,9 @@ def plot_sky_density(file_or_data, nside, nside_plot=32, **kwargs):
         column ``pix_X``, where ``X`` is the order corresponding to ``nside``.
     nside : int
         The HEALPix nside for the skies.
+    pix_column : str or None
+        The column that contains the HEALPix pixels. If `None`, the index of
+        the data frame will be used.
     nside_plot : int
         The HEALPix nside in which the data will be plotted.
     kwargs : dict
@@ -563,20 +566,18 @@ def plot_sky_density(file_or_data, nside, nside_plot=32, **kwargs):
     if isinstance(file_or_data, str):
         data = pandas.read_hdf(file_or_data)
     else:
-        data = file_or_data
+        data = file_or_data.copy()
 
-    k = int(numpy.log2(nside))
-    k_plot = int(numpy.log2(nside_plot))
+    if not pix_column:
+        pix_column = data.index.name
+        data.reset_index(inplace=True)
 
-    pix_plot = f'pix_{k_plot}'
-    pix = f'pix_{k}'
-
-    data[pix_plot] = nested_regrade(data[pix], nside, nside_plot)
-    count = data.groupby(pix_plot).count()
+    data[f'pix_{nside_plot}'] = nested_regrade(data[pix_column], nside, nside_plot)
+    count = data.groupby(f'pix_{nside_plot}').count()
 
     hmap = numpy.arange(healpy.nside2npix(nside_plot), dtype=numpy.float32)
     hmap[:] = healpy.UNSEEN
-    hmap[count.index] = count[pix]
+    hmap[count.index] = count[pix_column]
 
     figure = plt.figure()
     healpy.mollview(hmap, fig=figure.number, nest=True, **kwargs)
