@@ -321,7 +321,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if 'cadence' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN cadence VARCHAR;')
 
-        if 'priority' not in columns and self.cadence is None:
+        if 'priority' not in columns and self.priority is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
 
         if 'instrument' not in columns and self.instrument is None:
@@ -987,7 +987,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     cadence_payload = [s for s in
                                        self.cadence.split("_")
                                        if 'x' in s][0].split('x')
-                except:
+                except BaseException:
                     raise("Uninterpretable cadence name: ", self.cadence)
 
                 self.value = float(numpy.multiply(
