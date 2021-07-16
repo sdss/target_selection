@@ -8,8 +8,8 @@ The steps to implement a change and tag a new version/run are as follows:
 - Ensure that you are working on a pre-release version. In ``setup.cfg`` the version should be something like ``0.7.1-alpha.0``. If it's not, you'll need to bump the version in ``main``.
 - In a branch or branches, implement the changes that you want and merge them back to ``main``.
 - For testing the new cartons, see the section below.
-- Create a new target selection plan in ``config/target_selection.yml``. Refer to :ref:`target-selection` for detail on the format of the run. Make sure the run name is unique. The new run can include a full rerun of all the cartons or only the ones that you have updated.
-- Update the changelog. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
+- Create a new target selection plan in ``python/target_selection/config/target_selection.yml``. Refer to :ref:`target-selection` for detail on the format of the run. Make sure the run name is unique. The new run can include a full rerun of all the cartons or only the ones that you have updated.
+- Update the CHANGELOG.md. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
 - Bump the version in ``setup.cfg`` to the release version. For example, if you have been working as ``0.7.1-alpha.0`` you can bump to ``0.7.1`` but if you have made significant changes you'll want to do ``0.8.0`` or even ``1.0.0``. Follow the rules of semantic versioning.
 - Although it should not be required, it's best to reinstall the package with ``pip install .`` or ``pip install -e .`` to ensure the metadata is updated.
 - Tag the new version with the same name as the version in ``setup.cfg``. Push the changes to GitHub.
