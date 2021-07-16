@@ -21,3 +21,5 @@ Running test cartons
 --------------------
 
 It is convenient to be able to run and rerun cartons and ingest them to ``targetdb`` during testing. For this you can use the special ``0.0.0-test`` run. For that run the requirement that you cannot changer the tag for an existing run is not enforced. Just add your new cartons to that run definition in ``target_selection.yml`` and run ``0.0.0-test``. The test run is meant as a sanbox and it can change at any time, so nothing should be run with it that needs to be relied upon in the future.
+
+Alternatively, you can create the new run definition in the YAML file and work with it. The associated runs in ``targetdb`` will be associated with the pre-release code version. Once you have tagged, you can manually remove that version (along with its associated cartons) and execute the run again, which should then be inserted again with the correct code tag.
