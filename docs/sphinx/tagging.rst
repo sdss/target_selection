@@ -11,7 +11,7 @@ The steps to implement a change and tag a new version/run are as follows:
 - Create a new target selection plan in ``python/target_selection/config/target_selection.yml``. Refer to :ref:`target-selection` for detail on the format of the run. Make sure the run name is unique. The new run can include a full rerun of all the cartons or only the ones that you have updated.
 
 For writing the target_selection.yml entry for the new plan, you can copy and older plan and then modify it appropriately.
-For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.:: 
+For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.
 
 '0.9.1':
  xmatch_plan: 0.9.0
