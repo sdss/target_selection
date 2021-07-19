@@ -42,8 +42,10 @@ For example, below is the target_selection.yml for the case where we have modifi
 - At Utah, pull the changes, checkout the new tag, and run the new target selection run. This should create a new entry in ``targetdb.version`` that matches the run version and code tag.
 Below is the command to run target_selection for the plan 0.9.1
 cd bin
-python target_selection run 0.9.1 &
+python target_selection -u sdss run 0.9.1 &
 
+Run the below command for more information about target_selection.
+python target_selection run --help
 
 Running test cartons
 --------------------
