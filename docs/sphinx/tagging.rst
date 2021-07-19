@@ -14,6 +14,7 @@ For writing the target_selection.yml entry for the new plan, you can copy and ol
 For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.
 
 .. code-block:: 
+
 '0.9.1':
  xmatch_plan: 0.9.0
  cartons:
@@ -32,7 +33,6 @@ For example, below is the target_selection.yml for the case where we have modifi
    bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
    rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
    gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
-
 
 
 - Update the CHANGELOG.md. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
