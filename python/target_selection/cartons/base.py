@@ -135,6 +135,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.schema = schema or self.config.get('schema', None) or 'sandbox'
         self.table_name = table_name or f'temp_{self.name}'.replace('-', '_')
+        self.RModel = None
 
         if self.cadence:
             ncad = tdb.Cadence.select().where(tdb.Cadence.label == self.cadence).count()
@@ -201,7 +202,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 table_name = self.table_name
                 schema = self.schema
                 reflection_options = {'skip_foreign_keys': True,
-                                      'use_peewee_reflection': True}
+                                      'use_peewee_reflection': False}
                 use_reflection = True
 
         if not Model.table_exists():
@@ -309,6 +310,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
+        time.sleep(5)
+        self.RModel = self.get_model()
+
         log.debug('Adding columns and indexes.')
 
         columns = [
@@ -317,32 +321,33 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if 'selected' not in columns:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN selected BOOL DEFAULT TRUE;')
+            self.RModel._meta.add_field('selected', peewee.BooleanField())
 
         if 'cadence' not in columns and self.cadence is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN cadence VARCHAR;')
+            self.RModel._meta.add_field('cadence', peewee.TextField())
 
         if 'priority' not in columns and self.priority is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN priority INTEGER;')
+            self.RModel._meta.add_field('priority', peewee.IntegerField())
 
         if 'instrument' not in columns and self.instrument is None:
             execute_sql(f'ALTER TABLE {path} ADD COLUMN instrument TEXT;')
+            self.RModel._meta.add_field('instrument', peewee.TextField())
 
         execute_sql(f'ALTER TABLE {path} ADD PRIMARY KEY (catalogid);')
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
 
-        time.sleep(5)
-        ResultsModel = self.get_model()
-
-        n_rows = ResultsModel.select().count()
+        n_rows = self.RModel.select().count()
         log.debug(f'Table {path!r} contains {n_rows:,} rows.')
 
         log.debug('Running post-process.')
         with self.database.atomic():
             self.setup_transaction()
-            self.post_process(ResultsModel, **post_process_kawrgs)
+            self.post_process(self.RModel, **post_process_kawrgs)
 
-        n_selected = ResultsModel.select().where(ResultsModel.selected >> True).count()
+        n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
         log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
         log.debug('Adding optical magnitude columns.')
@@ -350,7 +355,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.has_run = True
 
-        return ResultsModel
+        return self.RModel
 
     def get_version_id(self):
         """Returns the version_id for the cross-match plan."""
@@ -360,7 +365,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     def add_optical_magnitudes(self):
         """Adds ``gri`` magnitude columns."""
 
-        Model = self.get_model()
+        Model = self.RModel
 
         magnitudes = ['g', 'r', 'i', 'z']
 
@@ -625,7 +630,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if mode == 'results':
 
-            results_model = self.get_model()
+            results_model = self.RModel
             assert results_model.table_exists(), 'temporary table does not exist.'
 
             write_query = results_model.select().order_by(results_model.catalogid)
@@ -713,7 +718,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     f'{self.plan!r}.'
                 )
 
-        RModel = self.get_model()
+        if self.RModel is None:
+            RModel = self.get_model()
+        else:
+            RModel = self.RModel
+
         if not RModel.table_exists():
             raise TargetSelectionError(
                 f'No temporary table found {self.full}. Did you call run()?'

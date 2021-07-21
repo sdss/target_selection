@@ -10,6 +10,7 @@ import importlib
 import logging
 import os
 import sys
+import time
 import warnings
 from glob import glob
 
@@ -175,6 +176,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             tsmod.log.debug('Skipping query.')
 
         if load:
+            time.sleep(3)
             carton.load(overwrite=overwrite)
         else:
             tsmod.log.info('Not loading data into targetdb.target.')
