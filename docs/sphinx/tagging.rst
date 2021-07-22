@@ -47,9 +47,7 @@ cd bin
 
 python target_selection -u sdss run 0.9.1 &
 
-If you want to overwrite the results of the previous run of the above command then run the below command.
-
-Note that some options go before the 'run' and some go after the 'run'.
+If you want to overwrite the results of the previous run of the above command then run the below command. Note that some options go before the 'run' and some go after the 'run'.
  
 python target_selection  -u sdss run --overwrite 0.9.1 &
 
