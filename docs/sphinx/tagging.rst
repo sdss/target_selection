@@ -11,26 +11,26 @@ The steps to implement a change and tag a new version/run are as follows:
 - Create a new target selection plan in ``python/target_selection/config/target_selection.yml``. Refer to :ref:`target-selection` for detail on the format of the run. Make sure the run name is unique. The new run can include a full rerun of all the cartons or only the ones that you have updated.
 
 For writing the target_selection.yml entry for the new plan, you can copy and older plan and then modify it appropriately.
-For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.
+For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.::
 
-'0.9.1':
- xmatch_plan: 0.9.0
- cartons:
-   - mwm_yso_pms_apogee
-   - mwm_yso_pms_boss
-   - mwm_ob_core
-   - mwm_ob_cepheids
-   - mwm_halo_bb_boss
-   - mwm_halo_sm_boss
- open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
- schema: sandbox
- magnitudes:
-   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
-   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
-   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
-   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
-   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
-   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+  '0.9.1':
+   xmatch_plan: 0.9.0
+   cartons:
+     - mwm_yso_pms_apogee
+     - mwm_yso_pms_boss
+     - mwm_ob_core
+     - mwm_ob_cepheids
+     - mwm_halo_bb_boss
+     - mwm_halo_sm_boss
+   open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
+   schema: sandbox
+   magnitudes:
+     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+     k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+     bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+     rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+     gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
 
 
 - Update the CHANGELOG.md. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
@@ -39,22 +39,25 @@ For example, below is the target_selection.yml for the case where we have modifi
 - Tag the new version with the same name as the version in ``setup.cfg``. Push the changes to GitHub.
 - *Immediately* after this, bump the version in ``setup.cfg`` to the next pre-release.
 - A GitHub Action should create a new GitHub release and push the new version to PyPI. Ideally, update the GitHub release with the same contents as the changelog for the new version.
-- At Utah, pull the changes, checkout the new tag, and run the new target selection run. This should create a new entry in ``targetdb.version`` that matches the run version and code tag.
-Below is the command to run target_selection for the plan 0.9.1
+- At Utah, pull the changes, checkout the new tag, and do the new target selection run as shown below. This should create a new entry in ``targetdb.version`` that matches the run version and code tag.
 
-cd bin
+Below is the command to run target_selection for the plan 0.9.1.::
 
-python target_selection -u sdss run 0.9.1 &
+  cd bin
+  python target_selection -u sdss run 0.9.1 &
 
-If you want to overwrite the results of the previous run of the above command then run the below command.
-
-Note that some options go before the 'run' and some go after the 'run'.
+If you want to overwrite the results of the previous run of the above command then run the below command. Note that some options go before the 'run' and some go after the 'run'.::
  
-python target_selection  -u sdss run --overwrite 0.5.1 &
+  python target_selection  -u sdss run --overwrite 0.9.1 &
 
-Run the below command for more information about target_selection.
+The above command runs all the cartons listed in target_selection.yml for 0.9.1. 
+If you only want to run one carton (e.g. mwm_xyz) then run the below command.::
 
-python target_selection run --help
+  python target_selection  -u sdss run --overwrite --include mwm_xyz  0.9.1 &
+
+Run the below command for more information about target_selection.::
+
+  python target_selection run --help
 
 Running test cartons
 --------------------
