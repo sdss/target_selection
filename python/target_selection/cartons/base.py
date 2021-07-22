@@ -310,7 +310,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
-        time.sleep(5)
+        time.sleep(60)
         self.RModel = self.get_model()
 
         log.debug('Adding columns and indexes.')

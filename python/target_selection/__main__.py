@@ -176,7 +176,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             tsmod.log.debug('Skipping query.')
 
         if load:
-            time.sleep(3)
+            time.sleep(60)
             carton.load(overwrite=overwrite)
         else:
             tsmod.log.info('Not loading data into targetdb.target.')
