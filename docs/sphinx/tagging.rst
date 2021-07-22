@@ -11,26 +11,26 @@ The steps to implement a change and tag a new version/run are as follows:
 - Create a new target selection plan in ``python/target_selection/config/target_selection.yml``. Refer to :ref:`target-selection` for detail on the format of the run. Make sure the run name is unique. The new run can include a full rerun of all the cartons or only the ones that you have updated.
 
 For writing the target_selection.yml entry for the new plan, you can copy and older plan and then modify it appropriately.
-For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.
+For example, below is the target_selection.yml for the case where we have modified six cartons. Note that the target_selection plan 0.9.1 and the xmatch plan 0.9.0 do not need to be the same.::
 
-'0.9.1':
- xmatch_plan: 0.9.0
- cartons:
-   - mwm_yso_pms_apogee
-   - mwm_yso_pms_boss
-   - mwm_ob_core
-   - mwm_ob_cepheids
-   - mwm_halo_bb_boss
-   - mwm_halo_sm_boss
- open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
- schema: sandbox
- magnitudes:
-   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
-   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
-   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
-   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
-   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
-   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+  '0.9.1':
+   xmatch_plan: 0.9.0
+   cartons:
+     - mwm_yso_pms_apogee
+     - mwm_yso_pms_boss
+     - mwm_ob_core
+     - mwm_ob_cepheids
+     - mwm_halo_bb_boss
+     - mwm_halo_sm_boss
+   open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
+   schema: sandbox
+   magnitudes:
+     h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+     j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+     k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+     bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+     rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+     gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
 
 
 - Update the CHANGELOG.md. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
