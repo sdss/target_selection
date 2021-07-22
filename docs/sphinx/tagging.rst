@@ -39,7 +39,8 @@ For example, below is the target_selection.yml for the case where we have modifi
 - Tag the new version with the same name as the version in ``setup.cfg``. Push the changes to GitHub.
 - *Immediately* after this, bump the version in ``setup.cfg`` to the next pre-release.
 - A GitHub Action should create a new GitHub release and push the new version to PyPI. Ideally, update the GitHub release with the same contents as the changelog for the new version.
-- At Utah, pull the changes, checkout the new tag, and run the new target selection run. This should create a new entry in ``targetdb.version`` that matches the run version and code tag.
+- At Utah, pull the changes, checkout the new tag, and do the new target selection run as shown below. This should create a new entry in ``targetdb.version`` that matches the run version and code tag.
+
 Below is the command to run target_selection for the plan 0.9.1
 
 cd bin
@@ -50,7 +51,12 @@ If you want to overwrite the results of the previous run of the above command th
 
 Note that some options go before the 'run' and some go after the 'run'.
  
-python target_selection  -u sdss run --overwrite 0.5.1 &
+python target_selection  -u sdss run --overwrite 0.9.1 &
+
+The above command runs all the cartons listed in target_selection.yml for 0.9.1. 
+If you only want to run one carton (e.g. mwm_xyz) then run the below command.
+
+python target_selection  -u sdss run --overwrite --include mwm_xyz  0.9.1 &
 
 Run the below command for more information about target_selection.
 
