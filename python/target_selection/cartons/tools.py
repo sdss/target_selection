@@ -13,9 +13,9 @@ from astropy.table import Table
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToTIC_v8, Gaia_DR2,
-                                             Legacy_Survey_DR8, Panstarrs1, TIC_v8)
+                                             Legacy_Survey_DR8, Panstarrs1,
+                                             TIC_v8)
 
-# from .base import BaseCarton
 from target_selection.cartons import BaseCarton
 
 
