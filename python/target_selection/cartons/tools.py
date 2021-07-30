@@ -28,7 +28,8 @@ def get_file_carton(
     """Returns a carton class that creates a carton based on a FITS file.
     The FITS file is located in the below location which is specified in
     python/config/target_selection.yml.
-    open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/"""
+    open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
+    """
 
     class FileCarton(BaseCarton):
         name = carton_name
