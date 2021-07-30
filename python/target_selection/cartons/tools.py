@@ -13,7 +13,7 @@ from astropy.table import Table
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToTIC_v8, Gaia_DR2,
-                                             Legacy_Survey_DR8, TIC_v8)
+                                             Legacy_Survey_DR8, Panstarrs1, TIC_v8)
 
 from .base import BaseCarton
 
@@ -59,10 +59,15 @@ def get_file_carton(
 
             self.log.debug(f'Processing file {self._file_path}.')
 
+            # The names Gaia_DR2_Source_ID etc. are from the FITS file
             gaia_ids = (self._table[self._table['Gaia_DR2_Source_ID'] > 0]
                         ['Gaia_DR2_Source_ID'].tolist())
+
             ls8_ids = (self._table[self._table['LegacySurvey_DR8_ID'] > 0]
                        ['LegacySurvey_DR8_ID'].tolist())
+
+            ps1_ids = (self._table[self._table['PanSTARRS_DR2_ID'] > 0]
+                       ['PanSTARRS_DR2_ID'].tolist())
 
             vl = peewee.ValuesList(self._table.as_array().tolist(),
                                    columns=self._table.colnames,
@@ -71,9 +76,15 @@ def get_file_carton(
             gid_case = peewee.Case(
                 None,
                 ((vl.c.Gaia_DR2_Source_ID > 0, vl.c.Gaia_DR2_Source_ID),))
+
             ls_id_case = peewee.Case(
                 None,
                 ((vl.c.LegacySurvey_DR8_ID > 0, vl.c.LegacySurvey_DR8_ID),))
+
+            ps1_id_case = peewee.Case(
+                None,
+                ((vl.c.PanSTARRS_DR2_ID > 0, vl.c.PanSTARRS_DR2_ID),))
+
             inertial_case = peewee.Case(
                 None,
                 ((vl.c.inertial.cast('boolean').is_null(), False),),
@@ -83,6 +94,7 @@ def get_file_carton(
                      .select(Catalog.catalogid,
                              gid_case.alias('gaia_source_id'),
                              ls_id_case.alias('ls_id'),
+                             ps1_id_case.alias('ps1_id'),
                              vl.c.ra.cast('double precision'),
                              vl.c.dec.cast('double precision'),
                              vl.c.delta_ra.cast('double precision'),
@@ -91,17 +103,22 @@ def get_file_carton(
                              vl.c.cadence,
                              vl.c.priority,
                              vl.c.instrument,
-                             peewee.Value(0).alias('value'))
+                             peewee.Value(0).alias('value'))  # TODO below
                      .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
                      .switch(Catalog)
                      .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
                      .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                     .switch(Catalog)
+                     .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
+                     .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
                      .join(vl, on=((vl.c.Gaia_DR2_Source_ID == Gaia_DR2.source_id) |
-                                   (vl.c.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id)))
+                                   (vl.c.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id) |
+                                   (vl.c.PanSTARRS_DR2_ID == Panstarrs1.ps1_id)))
                      .where(Gaia_DR2.source_id.in_(gaia_ids) |
-                            Legacy_Survey_DR8.ls_id.in_(ls8_ids))
+                            Legacy_Survey_DR8.ls_id.in_(ls8_ids) |
+                            Panstarrs1.ps1_id.in_(ps1_ids))
                      .where(Catalog.version_id == version_id,
                             ((CatalogToTIC_v8.best >> True) | (CatalogToTIC_v8.best.is_null())),
                             ((CatalogToLegacy_Survey_DR8.best >> True) |
