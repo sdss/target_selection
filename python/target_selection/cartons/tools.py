@@ -15,7 +15,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8, Gaia_DR2,
                                              Legacy_Survey_DR8, Panstarrs1, TIC_v8)
 
-from .base import BaseCarton
+# from .base import BaseCarton
+from target_selection.cartons import BaseCarton
 
 
 def get_file_carton(
