@@ -103,7 +103,7 @@ def get_file_carton(
                              vl.c.cadence,
                              vl.c.priority,
                              vl.c.instrument,
-                             peewee.Value(0).alias('value'))  # TODO below
+                             peewee.Value(0).alias('value'))
                      .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
                      .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
