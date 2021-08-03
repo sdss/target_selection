@@ -128,7 +128,9 @@ def get_file_carton(
                      .where(Catalog.version_id == version_id,
                             ((CatalogToTIC_v8.best >> True) | (CatalogToTIC_v8.best.is_null())),
                             ((CatalogToLegacy_Survey_DR8.best >> True) |
-                             (CatalogToLegacy_Survey_DR8.best.is_null()))))
+                             (CatalogToLegacy_Survey_DR8.best.is_null())),
+                            ((CatalogToPanstarrs1.best >> True) |
+                             (CatalogToPanstarrs1.best.is_null()))))
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(vl.c.lambda_eff.alias('lambda_eff'))
