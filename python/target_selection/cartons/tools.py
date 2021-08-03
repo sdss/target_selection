@@ -126,7 +126,8 @@ def get_file_carton(
                             Legacy_Survey_DR8.ls_id.in_(ls8_ids) |
                             Panstarrs1.ps1_id.in_(ps1_ids))
                      .where(Catalog.version_id == version_id,
-                            ((CatalogToTIC_v8.best >> True) | (CatalogToTIC_v8.best.is_null())),
+                            ((CatalogToTIC_v8.best >> True) |
+                             (CatalogToTIC_v8.best.is_null())),
                             ((CatalogToLegacy_Survey_DR8.best >> True) |
                              (CatalogToLegacy_Survey_DR8.best.is_null())),
                             ((CatalogToPanstarrs1.best >> True) |
