@@ -74,7 +74,7 @@ def get_file_carton(
 
             # column catid_objid is in table catalogdb.panstarrs1
             catid_objids = (self._table[self._table['PanSTARRS_DR2_ID'] > 0]
-                       ['PanSTARRS_DR2_ID'].tolist())
+                            ['PanSTARRS_DR2_ID'].tolist())
 
             vl = peewee.ValuesList(self._table.as_array().tolist(),
                                    columns=self._table.colnames,
