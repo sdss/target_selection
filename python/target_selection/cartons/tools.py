@@ -72,7 +72,8 @@ def get_file_carton(
             ls8_ids = (self._table[self._table['LegacySurvey_DR8_ID'] > 0]
                        ['LegacySurvey_DR8_ID'].tolist())
 
-            ps1_ids = (self._table[self._table['PanSTARRS_DR2_ID'] > 0]
+            # column catid_objid is in table catalogdb.panstarrs1
+            catid__objids = (self._table[self._table['PanSTARRS_DR2_ID'] > 0]
                        ['PanSTARRS_DR2_ID'].tolist())
 
             vl = peewee.ValuesList(self._table.as_array().tolist(),
@@ -87,7 +88,7 @@ def get_file_carton(
                 None,
                 ((vl.c.LegacySurvey_DR8_ID > 0, vl.c.LegacySurvey_DR8_ID),))
 
-            ps1_id_case = peewee.Case(
+            catid_objid_case = peewee.Case(
                 None,
                 ((vl.c.PanSTARRS_DR2_ID > 0, vl.c.PanSTARRS_DR2_ID),))
 
@@ -100,7 +101,7 @@ def get_file_carton(
                      .select(Catalog.catalogid,
                              gid_case.alias('gaia_source_id'),
                              ls_id_case.alias('ls_id'),
-                             ps1_id_case.alias('ps1_id'),
+                             catid_objid_case.alias('catid_objid'),
                              vl.c.ra.cast('double precision'),
                              vl.c.dec.cast('double precision'),
                              vl.c.delta_ra.cast('double precision'),
@@ -121,10 +122,10 @@ def get_file_carton(
                      .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
                      .join(vl, on=((vl.c.Gaia_DR2_Source_ID == Gaia_DR2.source_id) |
                                    (vl.c.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id) |
-                                   (vl.c.PanSTARRS_DR2_ID == Panstarrs1.ps1_id)))
+                                   (vl.c.PanSTARRS_DR2_ID == Panstarrs1.catid_objid)))
                      .where(Gaia_DR2.source_id.in_(gaia_ids) |
                             Legacy_Survey_DR8.ls_id.in_(ls8_ids) |
-                            Panstarrs1.ps1_id.in_(ps1_ids))
+                            Panstarrs1.catid_objid.in_(catid_objids))
                      .where(Catalog.version_id == version_id,
                             ((CatalogToTIC_v8.best >> True) |
                              (CatalogToTIC_v8.best.is_null())),
