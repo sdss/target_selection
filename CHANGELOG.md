@@ -1,21 +1,18 @@
 # Changelog
 
-## Next Release
-
-### 🔧 Fixed
-
-
 ## 0.3.2 - July 21, 2021
 
 ### 🔧 Fixed
 
 * Changes to address new columns not showing in the model of the carton temporary table.
 
+
 ## 0.3.1 - July 16, 2021
 
 ### 🚀 New
 
 * Remove lower magnitude limit for mwm_yso, mwm_ob, and mwm_halo cartons for `0.5.0`.
+
 
 ## 0.3.0 - June 22, 2021
 
