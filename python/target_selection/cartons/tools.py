@@ -16,8 +16,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToTIC_v8, Gaia_DR2,
                                              Legacy_Survey_DR8, Panstarrs1,
                                              TIC_v8)
+from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
+from target_selection.utils import vacuum_table
 
 
 def get_file_carton(
@@ -42,7 +44,7 @@ def get_file_carton(
             self._file_path = filename
 
             self._table = Table.read(self._file_path)
-            self._table.convert_bytestring_to_unicode()
+            # self._table.convert_bytestring_to_unicode()
             if self._table.masked:
                 self._table = self._table.filled()
 
@@ -50,7 +52,7 @@ def get_file_carton(
             if 'cartonname' in self._table.columns and replace_carton_name:
                 uniq_cname = numpy.unique(self._table['cartonname'])
                 if len(uniq_cname) == 1:
-                    self.name = uniq_cname[0]
+                    self.name = uniq_cname[0].lower()
 
             super().__init__(
                 targeting_plan,
@@ -65,77 +67,97 @@ def get_file_carton(
 
             self.log.debug(f'Processing file {self._file_path}.')
 
-            # The names Gaia_DR2_Source_ID etc. are from the FITS file
-            gaia_ids = (self._table[self._table['Gaia_DR2_Source_ID'] > 0]
-                        ['Gaia_DR2_Source_ID'].tolist())
+            # We need to copy the data to a temporary table so that we can
+            # join on it. We could use a Peewee ValueList but for large tables
+            # that will hit the limit of 1GB in PSQL.
 
-            ls8_ids = (self._table[self._table['LegacySurvey_DR8_ID'] > 0]
-                       ['LegacySurvey_DR8_ID'].tolist())
+            # Create model for temporary table from FITS table columns.
+            # This works fine because we know there are no arrays.
+            temp_path = self.name.lower() + '_temp'
+            temp = create_model_from_table(temp_path, self._table)
+            temp._meta.database = self.database
+            temp.create_table(temporary=True)
 
-            # column catid_objid is in table catalogdb.panstarrs1
-            catid_objids = (self._table[self._table['PanSTARRS_DR2_ID'] > 0]
-                            ['PanSTARRS_DR2_ID'].tolist())
+            # Copy data.
+            copy_data(self._table, self.database, temp_path)
 
-            vl = peewee.ValuesList(self._table.as_array().tolist(),
-                                   columns=self._table.colnames,
-                                   alias='fits')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("Gaia_DR2_Source_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("LegacySurvey_DR8_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("PanSTARRS_DR2_ID")')
+            vacuum_table(self.database, temp_path, vacuum=False, analyze=True)
 
             gid_case = peewee.Case(
                 None,
-                ((vl.c.Gaia_DR2_Source_ID > 0, vl.c.Gaia_DR2_Source_ID),))
+                ((temp.Gaia_DR2_Source_ID > 0, temp.Gaia_DR2_Source_ID),))
 
             ls_id_case = peewee.Case(
                 None,
-                ((vl.c.LegacySurvey_DR8_ID > 0, vl.c.LegacySurvey_DR8_ID),))
+                ((temp.LegacySurvey_DR8_ID > 0, temp.LegacySurvey_DR8_ID),))
 
             catid_objid_case = peewee.Case(
                 None,
-                ((vl.c.PanSTARRS_DR2_ID > 0, vl.c.PanSTARRS_DR2_ID),))
+                ((temp.PanSTARRS_DR2_ID > 0, temp.PanSTARRS_DR2_ID),))
 
             inertial_case = peewee.Case(
                 None,
-                ((vl.c.inertial.cast('boolean').is_null(), False),),
-                vl.c.inertial.cast('boolean'))
+                ((temp.inertial.cast('boolean').is_null(), False),),
+                temp.inertial.cast('boolean'))
 
             query = (Catalog
                      .select(Catalog.catalogid,
                              gid_case.alias('gaia_source_id'),
                              ls_id_case.alias('ls_id'),
                              catid_objid_case.alias('catid_objid'),
-                             vl.c.ra.cast('double precision'),
-                             vl.c.dec.cast('double precision'),
-                             vl.c.delta_ra.cast('double precision'),
-                             vl.c.delta_dec.cast('double precision'),
+                             Catalog.ra,
+                             Catalog.dec,
+                             temp.delta_ra.cast('double precision'),
+                             temp.delta_dec.cast('double precision'),
                              inertial_case.alias('inertial'),
-                             vl.c.cadence,
-                             vl.c.priority,
-                             vl.c.instrument,
+                             temp.cadence,
+                             temp.priority,
+                             temp.instrument,
                              peewee.Value(0).alias('value'))
-                     .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
-                     .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
-                     .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
-                     .switch(Catalog)
-                     .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
-                     .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
-                     .switch(Catalog)
-                     .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
-                     .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
-                     .join(vl, on=((vl.c.Gaia_DR2_Source_ID == Gaia_DR2.source_id) |
-                                   (vl.c.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id) |
-                                   (vl.c.PanSTARRS_DR2_ID == Panstarrs1.catid_objid)))
-                     .where(Gaia_DR2.source_id.in_(gaia_ids) |
-                            Legacy_Survey_DR8.ls_id.in_(ls8_ids) |
-                            Panstarrs1.catid_objid.in_(catid_objids))
-                     .where(Catalog.version_id == version_id,
-                            ((CatalogToTIC_v8.best >> True) |
-                             (CatalogToTIC_v8.best.is_null())),
-                            ((CatalogToLegacy_Survey_DR8.best >> True) |
-                             (CatalogToLegacy_Survey_DR8.best.is_null())),
-                            ((CatalogToPanstarrs1.best >> True) |
-                             (CatalogToPanstarrs1.best.is_null()))))
+                     .distinct(Catalog.catalogid))
+
+            on = False
+
+            if len(self._table[self._table['Gaia_DR2_Source_ID'] > 0]):
+                on = on | (temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id)
+                query = (query
+                         .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
+                         .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
+                         .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
+                         .switch(Catalog)
+                         .where(CatalogToTIC_v8.version_id == version_id,
+                                ((CatalogToTIC_v8.best >> True) |
+                                 (CatalogToTIC_v8.best.is_null()))))
+
+            if len(self._table[self._table['LegacySurvey_DR8_ID'] > 0]):
+                on = on | (temp.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id)
+                query = (query
+                         .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                         .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                         .switch(Catalog)
+                         .where(CatalogToLegacy_Survey_DR8.version_id == version_id,
+                                ((CatalogToLegacy_Survey_DR8.best >> True) |
+                                 (CatalogToLegacy_Survey_DR8.best.is_null()))))
+
+            if len(self._table[self._table['PanSTARRS_DR2_ID'] > 0]):
+                on = on | (temp.PanSTARRS_DR2_ID == Panstarrs1.catid_objid)
+                query = (query
+                         .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
+                         .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
+                         .switch(Catalog)
+                         .where(CatalogToPanstarrs1.version_id == version_id,
+                                ((CatalogToPanstarrs1.best >> True) |
+                                 (CatalogToPanstarrs1.best.is_null()))))
+
+            query = (query
+                     .join(temp, on=on)
+                     .where(Catalog.version_id == version_id))
 
             if 'lambda_eff' in self._table.colnames:
-                query = query.select_extend(vl.c.lambda_eff.alias('lambda_eff'))
+                query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
 
             return query
 
