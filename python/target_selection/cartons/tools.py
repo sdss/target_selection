@@ -165,7 +165,7 @@ def get_file_carton(
             if len(self._table[self._table['PanSTARRS_DR2_ID'] > 0]):
                 is_panstarrs_dr2 = True
 
-            # Consider all 8 cases
+            # We consider all 8 cases.
             if((is_gaia_dr2 is True) and
                (is_legacysurvey_dr8 is True) and
                (is_panstarrs_dr2 is True)):
