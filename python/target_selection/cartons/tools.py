@@ -158,12 +158,18 @@ def get_file_carton(
 
             if len(self._table[self._table['Gaia_DR2_Source_ID'] > 0]):
                 is_gaia_dr2 = True
+            else:
+                is_gaia_dr2 = False
 
             if len(self._table[self._table['LegacySurvey_DR8_ID'] > 0]):
                 is_legacysurvey_dr8 = True
+            else:
+                is_legacysurvey_dr8 = False
 
             if len(self._table[self._table['PanSTARRS_DR2_ID'] > 0]):
                 is_panstarrs_dr2 = True
+            else:
+                is_panstarrs_dr2 = False
 
             # We consider all 8 cases.
             if((is_gaia_dr2 is True) and
