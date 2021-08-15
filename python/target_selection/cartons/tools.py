@@ -19,6 +19,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import vacuum_table
 
 
@@ -211,10 +212,10 @@ def get_file_carton(
             elif((is_gaia_dr2 is False) and
                  (is_legacysurvey_dr8 is False) and
                  (is_panstarrs_dr2 is False)):
-                print("error in get_file_carton()")
-                print("(is_gaia_dr2 is False) and " +
-                      "(is_legacysurvey_dr8 is False) and " +
-                      "(is_panstarrs_dr2 is False)")
+                raise TargetSelectionError("error in get_file_carton():" +
+                                           "(is_gaia_dr2 is False) and " +
+                                           "(is_legacysurvey_dr8 is False) and " +
+                                           "(is_panstarrs_dr2 is False)")
                 query = None
             else:
                 # we will not get here since we have
