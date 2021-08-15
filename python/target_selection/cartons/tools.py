@@ -212,10 +212,10 @@ def get_file_carton(
             elif((is_gaia_dr2 is False) and
                  (is_legacysurvey_dr8 is False) and
                  (is_panstarrs_dr2 is False)):
-                raise TargetSelectionError("error in get_file_carton():" +
-                                           "(is_gaia_dr2 is False) and " +
-                                           "(is_legacysurvey_dr8 is False) and " +
-                                           "(is_panstarrs_dr2 is False)")
+                raise TargetSelectionError('error in get_file_carton():' +
+                                           '(is_gaia_dr2 is False) and ' +
+                                           '(is_legacysurvey_dr8 is False) and ' +
+                                           '(is_panstarrs_dr2 is False)')
                 query = None
             else:
                 # we will not get here since we have
