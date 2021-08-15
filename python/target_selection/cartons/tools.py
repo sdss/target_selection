@@ -19,6 +19,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import vacuum_table
 
 
@@ -103,58 +104,123 @@ def get_file_carton(
                 ((temp.inertial.cast('boolean').is_null(), False),),
                 temp.inertial.cast('boolean'))
 
-            query = (Catalog
-                     .select(Catalog.catalogid,
-                             gid_case.alias('gaia_source_id'),
-                             ls_id_case.alias('ls_id'),
-                             catid_objid_case.alias('catid_objid'),
-                             Catalog.ra,
-                             Catalog.dec,
-                             temp.delta_ra.cast('double precision'),
-                             temp.delta_dec.cast('double precision'),
-                             inertial_case.alias('inertial'),
-                             temp.cadence,
-                             temp.priority,
-                             temp.instrument,
-                             peewee.Value(0).alias('value'))
-                     .distinct(Catalog.catalogid))
+            query_common = (Catalog
+                            .select(Catalog.catalogid,
+                                    gid_case.alias('gaia_source_id'),
+                                    ls_id_case.alias('ls_id'),
+                                    catid_objid_case.alias('catid_objid'),
+                                    Catalog.ra,
+                                    Catalog.dec,
+                                    temp.delta_ra.cast('double precision'),
+                                    temp.delta_dec.cast('double precision'),
+                                    inertial_case.alias('inertial'),
+                                    temp.cadence,
+                                    temp.priority,
+                                    temp.instrument,
+                                    peewee.Value(0).alias('value'))
+                            .distinct(Catalog.catalogid))
 
-            on = False
+            query_gaia_dr2 = \
+                (query_common
+                 .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
+                 .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
+                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
+                 .join(temp,
+                       on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
+                 .switch(Catalog)
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        (CatalogToTIC_v8.best >> True) |
+                        CatalogToTIC_v8.best.is_null(),
+                        Catalog.version_id == version_id))
+
+            query_legacysurvey_dr8 = \
+                (query_common
+                 .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                 .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                 .join(temp,
+                       on=(temp.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id))
+                 .switch(Catalog)
+                 .where(CatalogToLegacy_Survey_DR8.version_id == version_id,
+                        (CatalogToLegacy_Survey_DR8.best >> True) |
+                        CatalogToLegacy_Survey_DR8.best.is_null(),
+                        Catalog.version_id == version_id))
+
+            query_panstarrs_dr2 = \
+                (query_common
+                 .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
+                 .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
+                 .join(temp,
+                       on=(temp.PanSTARRS_DR2_ID == Panstarrs1.catid_objid))
+                 .switch(Catalog)
+                 .where(CatalogToPanstarrs1.version_id == version_id,
+                        (CatalogToPanstarrs1.best >> True) |
+                        CatalogToPanstarrs1.best.is_null(),
+                        Catalog.version_id == version_id))
 
             if len(self._table[self._table['Gaia_DR2_Source_ID'] > 0]):
-                on = on | (temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id)
-                query = (query
-                         .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
-                         .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
-                         .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
-                         .switch(Catalog)
-                         .where(CatalogToTIC_v8.version_id == version_id,
-                                ((CatalogToTIC_v8.best >> True) |
-                                 (CatalogToTIC_v8.best.is_null()))))
+                is_gaia_dr2 = True
+            else:
+                is_gaia_dr2 = False
 
             if len(self._table[self._table['LegacySurvey_DR8_ID'] > 0]):
-                on = on | (temp.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id)
-                query = (query
-                         .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
-                         .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
-                         .switch(Catalog)
-                         .where(CatalogToLegacy_Survey_DR8.version_id == version_id,
-                                ((CatalogToLegacy_Survey_DR8.best >> True) |
-                                 (CatalogToLegacy_Survey_DR8.best.is_null()))))
+                is_legacysurvey_dr8 = True
+            else:
+                is_legacysurvey_dr8 = False
 
             if len(self._table[self._table['PanSTARRS_DR2_ID'] > 0]):
-                on = on | (temp.PanSTARRS_DR2_ID == Panstarrs1.catid_objid)
-                query = (query
-                         .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
-                         .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
-                         .switch(Catalog)
-                         .where(CatalogToPanstarrs1.version_id == version_id,
-                                ((CatalogToPanstarrs1.best >> True) |
-                                 (CatalogToPanstarrs1.best.is_null()))))
+                is_panstarrs_dr2 = True
+            else:
+                is_panstarrs_dr2 = False
 
-            query = (query
-                     .join(temp, on=on)
-                     .where(Catalog.version_id == version_id))
+            # We consider all 8 cases.
+            if((is_gaia_dr2 is True) and
+               (is_legacysurvey_dr8 is True) and
+               (is_panstarrs_dr2 is True)):
+                # query is a SQL union of the three queries on the RHS
+                query = query_gaia_dr2 | query_legacysurvey_dr8 | query_panstarrs_dr2
+
+            elif((is_gaia_dr2 is True) and
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is False)):
+                query = query_gaia_dr2 | query_legacysurvey_dr8
+
+            elif((is_gaia_dr2 is True) and
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is True)):
+                query = query_gaia_dr2 | query_panstarrs_dr2
+
+            elif((is_gaia_dr2 is True) and
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is False)):
+                query = query_gaia_dr2
+
+            elif((is_gaia_dr2 is False) and
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is True)):
+                query = query_legacysurvey_dr8 | query_panstarrs_dr2
+
+            elif((is_gaia_dr2 is False) and
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is False)):
+                query = query_legacysurvey_dr8
+
+            elif((is_gaia_dr2 is False) and
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is True)):
+                query = query_panstarrs_dr2
+
+            elif((is_gaia_dr2 is False) and
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is False)):
+                raise TargetSelectionError('error in get_file_carton():' +
+                                           '(is_gaia_dr2 is False) and ' +
+                                           '(is_legacysurvey_dr8 is False) and ' +
+                                           '(is_panstarrs_dr2 is False)')
+                query = None
+            else:
+                # we will not get here since we have
+                # considered all 8 cases above
+                query = None
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
