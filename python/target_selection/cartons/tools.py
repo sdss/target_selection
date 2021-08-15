@@ -209,7 +209,6 @@ def get_file_carton(
                 print("(is_gaia_dr2 is False) and " +
                       "(is_legacysurvey_dr8 is False) and " +
                       "(is_panstarrs_dr2 is False)")
-
             else:
                 # we will not get here since we have considered all 8 cases above
                 pass
