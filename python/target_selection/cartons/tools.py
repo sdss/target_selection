@@ -173,46 +173,46 @@ def get_file_carton(
                 query = query_gaia_dr2 | query_legacysurvey_dr8 | query_panstarrs_dr2
 
             elif((is_gaia_dr2 is True) and
-               (is_legacysurvey_dr8 is True) and
-               (is_panstarrs_dr2 is False)):
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is False)):
                 query = query_gaia_dr2 | query_legacysurvey_dr8
 
             elif((is_gaia_dr2 is True) and
-               (is_legacysurvey_dr8 is False) and
-               (is_panstarrs_dr2 is True)):
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is True)):
                 query = query_gaia_dr2 | query_panstarrs_dr2
 
             elif((is_gaia_dr2 is True) and
-               (is_legacysurvey_dr8 is False) and
-               (is_panstarrs_dr2 is False)):
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is False)):
                 query = query_gaia_dr2
 
             elif((is_gaia_dr2 is False) and
-               (is_legacysurvey_dr8 is True) and
-               (is_panstarrs_dr2 is True)):
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is True)):
                 query = query_legacysurvey_dr8 | query_panstarrs_dr2
 
             elif((is_gaia_dr2 is False) and
-               (is_legacysurvey_dr8 is True) and
-               (is_panstarrs_dr2 is False)):
+                 (is_legacysurvey_dr8 is True) and
+                 (is_panstarrs_dr2 is False)):
                 query = query_legacysurvey_dr8
 
             elif((is_gaia_dr2 is False) and
-               (is_legacysurvey_dr8 is False) and
-               (is_panstarrs_dr2 is True)):
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is True)):
                 query = query_panstarrs_dr2
 
             elif((is_gaia_dr2 is False) and
-               (is_legacysurvey_dr8 is False) and
-               (is_panstarrs_dr2 is False)):
+                 (is_legacysurvey_dr8 is False) and
+                 (is_panstarrs_dr2 is False)):
                 print("error in get_file_carton()")
                 print("(is_gaia_dr2 is False) and " +
                       "(is_legacysurvey_dr8 is False) and " +
                       "(is_panstarrs_dr2 is False)")
 
             else:
-               # we will not get here since we have considered all 8 cases above
-               pass
+                # we will not get here since we have considered all 8 cases above
+                pass
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
