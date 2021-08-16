@@ -74,8 +74,7 @@ def get_file_carton(
 
             # Create model for sandbox table from FITS table columns.
             # This works fine because we know there are no arrays.
-            temp_table = 'sandbox.' + self.name.lower() + '_temp'
-            self.database.execute_sql('drop table if exists ' + temp_table)
+            temp_table = self.name.lower() + '_temp'
             temp = create_model_from_table(temp_table, self._table)
             temp._meta.database = self.database
             temp.create_table(temporary=False)
