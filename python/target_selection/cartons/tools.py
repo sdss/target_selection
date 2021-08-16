@@ -72,20 +72,21 @@ def get_file_carton(
             # join on it. We could use a Peewee ValueList but for large tables
             # that will hit the limit of 1GB in PSQL.
 
-            # Create model for temporary table from FITS table columns.
+            # Create model for sandbox table from FITS table columns.
             # This works fine because we know there are no arrays.
-            temp_path = self.name.lower() + '_temp'
-            temp = create_model_from_table(temp_path, self._table)
+            temp_table = 'sandbox.' + self.name.lower() + '_temp'
+            self.database.execute_sql('drop table if exists ' + temp_table)
+            temp = create_model_from_table(temp_table, self._table)
             temp._meta.database = self.database
-            temp.create_table(temporary=True)
+            temp.create_table(temporary=False)
 
             # Copy data.
-            copy_data(self._table, self.database, temp_path)
+            copy_data(self._table, self.database, temp_table)
 
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("Gaia_DR2_Source_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("LegacySurvey_DR8_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("PanSTARRS_DR2_ID")')
-            vacuum_table(self.database, temp_path, vacuum=False, analyze=True)
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
+            vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
             inertial_case = peewee.Case(
                 None,
