@@ -72,13 +72,12 @@ def get_file_carton(
             # join on it. We could use a Peewee ValueList but for large tables
             # that will hit the limit of 1GB in PSQL.
 
-            # Create model for sandbox table from FITS table columns.
+            # Create model for temporary table from FITS table columns.
             # This works fine because we know there are no arrays.
-            temp_table = 'sandbox.' + self.name.lower() + '_temp'
-            self.database.execute_sql('drop table if exists ' + temp_table)
+            temp_table = self.name.lower() + '_temp'
             temp = create_model_from_table(temp_table, self._table)
             temp._meta.database = self.database
-            temp.create_table(temporary=False)
+            temp.create_table(temporary=True)
 
             # Copy data.
             copy_data(self._table, self.database, temp_table)
