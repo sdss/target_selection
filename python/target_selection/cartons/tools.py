@@ -87,18 +87,6 @@ def get_file_carton(
             self.database.execute_sql(f'CREATE INDEX ON "{temp_path}" ("PanSTARRS_DR2_ID")')
             vacuum_table(self.database, temp_path, vacuum=False, analyze=True)
 
-            gid_case = peewee.Case(
-                None,
-                ((temp.Gaia_DR2_Source_ID > 0, temp.Gaia_DR2_Source_ID),))
-
-            ls_id_case = peewee.Case(
-                None,
-                ((temp.LegacySurvey_DR8_ID > 0, temp.LegacySurvey_DR8_ID),))
-
-            catid_objid_case = peewee.Case(
-                None,
-                ((temp.PanSTARRS_DR2_ID > 0, temp.PanSTARRS_DR2_ID),))
-
             inertial_case = peewee.Case(
                 None,
                 ((temp.inertial.cast('boolean').is_null(), False),),
@@ -106,9 +94,9 @@ def get_file_carton(
 
             query_common = (Catalog
                             .select(Catalog.catalogid,
-                                    gid_case.alias('gaia_source_id'),
-                                    ls_id_case.alias('ls_id'),
-                                    catid_objid_case.alias('catid_objid'),
+                                    temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
+                                    temp.LegacySurvey_DR8_ID.alias('ls_id'),
+                                    temp.PanSTARRS_DR2_ID.alias('catid_objid'),
                                     Catalog.ra,
                                     Catalog.dec,
                                     temp.delta_ra.cast('double precision'),
