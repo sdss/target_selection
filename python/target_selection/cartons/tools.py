@@ -77,7 +77,7 @@ def get_file_carton(
             temp_table = self.name.lower() + '_temp'
             temp = create_model_from_table(temp_table, self._table)
             temp._meta.database = self.database
-            temp.create_table(temporary=False)
+            temp.create_table(temporary=True)
 
             # Copy data.
             copy_data(self._table, self.database, temp_table)
