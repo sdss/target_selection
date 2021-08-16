@@ -72,7 +72,7 @@ def get_file_carton(
             # join on it. We could use a Peewee ValueList but for large tables
             # that will hit the limit of 1GB in PSQL.
 
-            # Create model for sandbox table from FITS table columns.
+            # Create model for temporary table from FITS table columns.
             # This works fine because we know there are no arrays.
             temp_table = self.name.lower() + '_temp'
             temp = create_model_from_table(temp_table, self._table)
