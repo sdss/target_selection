@@ -110,9 +110,9 @@ def get_file_carton(
 
             query_gaia_dr2 = \
                 (query_common
-                 .join(CatalogToTIC_v8, peewee.JOIN.LEFT_OUTER)
-                 .join(TIC_v8, peewee.JOIN.LEFT_OUTER)
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER)
+                 .join(CatalogToTIC_v8)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .join(temp,
                        on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
                  .switch(Catalog)
@@ -123,8 +123,8 @@ def get_file_carton(
 
             query_legacysurvey_dr8 = \
                 (query_common
-                 .join(CatalogToLegacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
-                 .join(Legacy_Survey_DR8, peewee.JOIN.LEFT_OUTER)
+                 .join(CatalogToLegacy_Survey_DR8)
+                 .join(Legacy_Survey_DR8)
                  .join(temp,
                        on=(temp.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id))
                  .switch(Catalog)
@@ -135,8 +135,8 @@ def get_file_carton(
 
             query_panstarrs_dr2 = \
                 (query_common
-                 .join(CatalogToPanstarrs1, peewee.JOIN.LEFT_OUTER)
-                 .join(Panstarrs1, peewee.JOIN.LEFT_OUTER)
+                 .join(CatalogToPanstarrs1)
+                 .join(Panstarrs1)
                  .join(temp,
                        on=(temp.PanSTARRS_DR2_ID == Panstarrs1.catid_objid))
                  .switch(Catalog)
