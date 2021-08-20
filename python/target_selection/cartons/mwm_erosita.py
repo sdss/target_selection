@@ -14,6 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
@@ -226,9 +227,14 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                 current_cadence = 'dark_1x3'
                 current_priority = 1920
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_stars ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -462,9 +468,14 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
                 current_cadence = 'dark_1x3'
                 current_priority = 1910
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_compact_gen ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -665,9 +676,14 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
                 current_cadence = 'dark_1x3'
                 current_priority = 1900
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_compact_var ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
