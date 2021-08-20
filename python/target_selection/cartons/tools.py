@@ -145,17 +145,31 @@ def get_file_carton(
                         CatalogToPanstarrs1.best.is_null(),
                         Catalog.version_id == version_id))
 
-            if len(self._table[self._table['Gaia_DR2_Source_ID'] > 0]):
+            len_table = len(self._table)
+            len_gaia_dr2 = len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
+
+            len_legacysurvey_dr8 =\
+                len(self._table[self._table['LegacySurvey_DR8_ID'] > 0])
+
+            len_panstarrs_dr2 = len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
+
+            # There must be exactly one non-zero id per row else raise an exception.
+            if ((len_gaia_dr2 + len_legacysurvey_dr8 + len_panstarrs_dr2) != len_table):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           '(len_gaia_dr2 + len_legacysurvey_dr8 + ' +
+                                           'len_panstarrs_dr2) != len_table')
+
+            if (len_gaia_dr2 > 0):
                 is_gaia_dr2 = True
             else:
                 is_gaia_dr2 = False
 
-            if len(self._table[self._table['LegacySurvey_DR8_ID'] > 0]):
+            if (len_legacysurvey_dr8 > 0):
                 is_legacysurvey_dr8 = True
             else:
                 is_legacysurvey_dr8 = False
 
-            if len(self._table[self._table['PanSTARRS_DR2_ID'] > 0]):
+            if (len_panstarrs_dr2 > 0):
                 is_panstarrs_dr2 = True
             else:
                 is_panstarrs_dr2 = False
@@ -203,7 +217,7 @@ def get_file_carton(
                 # At least one of the three boolean variables above
                 # must be True, so we should not get here.
                 query = None
-                raise TargetSelectionError('error in get_file_carton():' +
+                raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
                                            '(is_panstarrs_dr2 is False)')
