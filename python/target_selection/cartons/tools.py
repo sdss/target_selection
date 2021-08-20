@@ -200,14 +200,17 @@ def get_file_carton(
             elif((is_gaia_dr2 is False) and
                  (is_legacysurvey_dr8 is False) and
                  (is_panstarrs_dr2 is False)):
+                # At least one of the three boolean variables above
+                # must be True, so we should not get here.
+                query = None
                 raise TargetSelectionError('error in get_file_carton():' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
                                            '(is_panstarrs_dr2 is False)')
-                query = None
+
             else:
-                # we will not get here since we have
-                # considered all 8 cases above
+                # We will not get here since we have
+                # considered all 8 cases above.
                 query = None
 
             if 'lambda_eff' in self._table.colnames:

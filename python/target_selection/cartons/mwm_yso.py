@@ -14,11 +14,13 @@ from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
                                              YSO_Clustering, Zari18pms)
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
+
 
 class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
     """YSOs - Disk APOGEE (IR excess).
@@ -236,8 +238,12 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_disk_boss ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -744,8 +750,12 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_variable_boss ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -947,8 +957,12 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_ob_boss ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -1279,8 +1293,12 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_cluster_boss ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -1494,7 +1512,8 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " + self.path)
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_pms_boss ;")
 
         output = cursor.fetchall()
 
@@ -1515,17 +1534,21 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_pms_boss ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    f" update {self.path} " +
+                    " update sandbox.temp_mwm_yso_pms_boss " +
                     " set instrument = '" + current_instrument + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    f" update {self.path} " +
+                    " update sandbox.temp_mwm_yso_pms_boss " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
