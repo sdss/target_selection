@@ -6,6 +6,9 @@
 # @Filename: tools.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import os
+import warnings
+
 import numpy
 import peewee
 from astropy.table import Table
@@ -19,7 +22,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
-from target_selection.exceptions import TargetSelectionError
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 from target_selection.utils import vacuum_table
 
 
@@ -54,6 +58,21 @@ def get_file_carton(
                 uniq_cname = numpy.unique(self._table['cartonname'])
                 if len(uniq_cname) == 1:
                     self.name = uniq_cname[0].lower()
+
+            if (self.name != carton_name.lower()):
+                warnings.warn('carton_name parameter of get_file_carton() and ' +
+                              'cartonname in FITS file do not match.',
+                              TargetSelectionUserWarning)
+
+            basename_fits = os.path.basename(filename)
+            basename_parts = os.path.splitext(basename_fits)
+            basename = basename_parts[0]
+            carton_name_from_filename = basename.lower()
+
+            if (self.name != carton_name_from_filename):
+                warnings.warn('filename parameter of get_file_carton() and ' +
+                              'cartonname in FITS file do not match.',
+                              TargetSelectionUserWarning)
 
             super().__init__(
                 targeting_plan,
