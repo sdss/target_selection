@@ -211,7 +211,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             # current_g corresponds to gaia_dr2_g which is not null
             # So we do not check if current_g is None.
             # However, current_h corresponds to twomass_psc_h_m which may be null.
-            # So we check if current_h is null.
+            # So we check if current_h is None.
             if(current_g < bright_bright_limit):
 
                 if(current_h is not None):
@@ -466,6 +466,8 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_g = output[i][1]
 
+            # current_g corresponds to gaia_dr2_g which is not null
+            # So we do not check if current_g is None.
             if((current_g < bright_bright_limit)):
                 # The settings for this case are the same
                 # same as the settings for the next case.
@@ -677,6 +679,8 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_g = output[i][1]
 
+            # current_g corresponds to gaia_dr2_g which is not null
+            # So we do not check if current_g is None.
             if((current_g < bright_bright_limit)):
                 # The settings for this case are the same
                 # same as the settings for the next case.
