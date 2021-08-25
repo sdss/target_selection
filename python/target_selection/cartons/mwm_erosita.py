@@ -215,7 +215,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             if(current_g < bright_bright_limit):
 
                 if(current_h is not None):
-                    if(current_h <= ir_faint_limit):
+                    if(current_h < ir_faint_limit):
                         current_instrument = 'APOGEE'  # This is APOGEE. Others below are BOSS.
                         current_cadence = 'bright_1x1'
                         current_priority = 2400
@@ -224,7 +224,6 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                         current_cadence = 'bright_1x1'
                         current_priority = 2400
                 else:
-                    # current_h is None
                     current_instrument = 'BOSS'
                     current_cadence = 'bright_1x1'
                     current_priority = 2400
