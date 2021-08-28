@@ -1,3 +1,19 @@
+'0.5.2':
+ xmatch_plan: 0.5.0
+ cartons:
+   - mwm_erosita_stars
+   - mwm_erosita_compact_gen
+   - mwm_erosita_compact_var
+ open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
+ schema: sandbox
+ magnitudes:
+   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+
 '0.5.1':
  xmatch_plan: 0.5.0
  cartons:

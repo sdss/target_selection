@@ -1,4 +1,11 @@
 # Changelog
+## 0.3.3 - August 27, 2021
+
+### 
+
+* Modify get_file_carton() in cartons/tools.py for open fiber cartons. 
+* Modify mwm_erosita_stars, mwm_erosita_compact_gen, and mwm_erosita_compact_var cartons for extra cases in assigning instrument, cadence, priority.
+
 
 ## 0.3.2 - July 21, 2021
 

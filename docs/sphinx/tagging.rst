@@ -35,6 +35,7 @@ For example, below is the target_selection.yml for the case where we have modifi
 
 - Update the CHANGELOG.md. You can do this while modifying ``main`` under the section ``## Next release``. When you are ready to tag, rename ``## Next release`` to ``## {tag} - {data}``.
 - Bump the version in ``setup.cfg`` to the release version. For example, if you have been working as ``0.7.1-alpha.0`` you can bump to ``0.7.1`` but if you have made significant changes you'll want to do ``0.8.0`` or even ``1.0.0``. Follow the rules of semantic versioning.
+- Commit the changes with a comment like "tag0.3.3"
 - Although it should not be required, it's best to reinstall the package with ``pip install .`` or ``pip install -e .`` to ensure the metadata is updated.
 - Tag the new version with the same name as the version in ``setup.cfg``. Push the changes to GitHub.
 - *Immediately* after this, bump the version in ``setup.cfg`` to the next pre-release.
