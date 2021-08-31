@@ -63,6 +63,9 @@ def get_file_carton(
                 warnings.warn('carton_name parameter of get_file_carton() and ' +
                               'cartonname in FITS file do not match.',
                               TargetSelectionUserWarning)
+                warnings.warn('carton_name = ' + carton_name.lower() +
+                              ' cartonname = ' + self.name,
+                              TargetSelectionUserWarning)
 
             basename_fits = os.path.basename(filename)
             basename_parts = os.path.splitext(basename_fits)
@@ -72,6 +75,9 @@ def get_file_carton(
             if (self.name != carton_name_from_filename):
                 warnings.warn('filename parameter of get_file_carton() and ' +
                               'cartonname in FITS file do not match.',
+                              TargetSelectionUserWarning)
+                warnings.warn('carton_name_from_filename = ' + carton_name_from_filename +
+                              ' cartonname = ' + self.name,
                               TargetSelectionUserWarning)
 
             super().__init__(
