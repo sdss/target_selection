@@ -144,23 +144,24 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                               TargetSelectionUserWarning)
             else:
                 open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
-                print(open_fiber_files)
-                base_open_fiber_files = [None]*len(open_fiber_files)
-
+                base_open_fiber_files = [None] * len(open_fiber_files)
                 for i in range(len(open_fiber_files)):
                     tokens = open_fiber_files[i].split('/')
                     base_open_fiber_files[i] = tokens[-1]
                     tokens = base_open_fiber_files[i].split('.')
                     base_open_fiber_files[i] = tokens[0].lower()
 
-                print(base_open_fiber_files)
-                OpenFiberCartons = [get_file_carton(fn, '', 'open_fiber', 'open_fiber')
-                                    for fn in open_fiber_files]
+                OpenFiberCartons = [None] * len(open_fiber_files)
+                for i in range(len(open_fiber_files)):
+                    OpenFiberCartons[i] = get_file_carton(open_fiber_files[i],
+                                                          base_open_fiber_files[i],
+                                                          'open_fiber', 'open_fiber')
+
                 if include:
                     OpenFiberCartons = [OFC for OFC in OpenFiberCartons
                                         if OFC.name in include]
                 Cartons += OpenFiberCartons
-                # print(Cartons)
+
                 tsmod.log.info(f'{len(OpenFiberCartons)} open fiber cartons selected.')
     else:
         tsmod.log.info('Excluding open fiber cartons.')
