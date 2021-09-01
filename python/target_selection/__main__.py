@@ -148,7 +148,19 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                 warnings.warn(f'Open fiber path {open_fiber_path} does not exist.',
                               TargetSelectionUserWarning)
             else:
-                open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
+                open_fiber_file_list_path = os.path.join(open_fiber_path,
+                                                         'open_fiber_file_list.txt')
+                print(open_fiber_file_list_path)
+                if not os.path.exists(open_fiber_file_list_path):
+                    open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
+                else:
+                    flist = open(open_fiber_file_list_path, 'r')
+                    open_fiber_files = []
+                    for fline in flist:
+                        print(fline)
+                        open_fiber_files.append(os.path.join(open_fiber_path,
+                                                fline.strip()))
+                    flist.close()
                 # We sort open_fiber_files so that the files are processed
                 # in the same order every time.
                 open_fiber_files.sort()
