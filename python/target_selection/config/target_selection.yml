@@ -1,8 +1,7 @@
 '0.5.2-test':
  xmatch_plan: 0.5.0
  cartons:
-#   - mwm_erosita_compact_gen
- open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft/draft_test/large_test
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft/
  schema: sandbox
  magnitudes:
    h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
