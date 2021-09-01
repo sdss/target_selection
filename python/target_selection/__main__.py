@@ -256,4 +256,3 @@ def xmatch(xmatch_plan, file):
 if __name__ == '__main__':
 
     target_selection()
-
