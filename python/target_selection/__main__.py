@@ -144,9 +144,9 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                               TargetSelectionUserWarning)
             else:
                 open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
-                # We sort open_fiber_files so that the files are processed in the same
-                # order every time.
-                open_fiber_files = open_fiber_files.sort()
+                # We sort open_fiber_files so that the files are processed
+                # in the same order every time.
+                open_fiber_files.sort()
                 base_open_fiber_files = [None] * len(open_fiber_files)
                 for i in range(len(open_fiber_files)):
                     tokens = open_fiber_files[i].split('/')
@@ -256,3 +256,4 @@ def xmatch(xmatch_plan, file):
 if __name__ == '__main__':
 
     target_selection()
+
