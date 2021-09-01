@@ -131,7 +131,9 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             if c not in carton_classes:
                 raise ValueError(f'Carton {c} does not exist.')
 
-    Cartons = [carton_classes[carton_name] for carton_name in carton_names]
+    Cartons = []
+    if carton_names is not None:
+        Cartons = [carton_classes[carton_name] for carton_name in carton_names]
 
     if not exclude_open_fiber:
         if 'open_fiber_path' not in config_plan:
