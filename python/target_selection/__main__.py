@@ -134,6 +134,9 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
     Cartons = []
     if carton_names is not None:
         Cartons = [carton_classes[carton_name] for carton_name in carton_names]
+    else:
+        warnings.warn('There are no regular cartons in target_selection.yml.',
+                      TargetSelectionUserWarning)
 
     if not exclude_open_fiber:
         if 'open_fiber_path' not in config_plan:
