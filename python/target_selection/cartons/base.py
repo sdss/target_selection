@@ -339,6 +339,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
 
+        time.sleep(60)
         n_rows = self.RModel.select().count()
         log.debug(f'Table {path!r} contains {n_rows:,} rows.')
 
