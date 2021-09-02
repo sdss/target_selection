@@ -165,6 +165,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                 # We sort open_fiber_files so that the files are processed
                 # in the same order every time.
                 open_fiber_files.sort()
+                print(open_fiber_files)
                 base_open_fiber_files = [None] * len(open_fiber_files)
                 for i in range(len(open_fiber_files)):
                     tokens = open_fiber_files[i].split('/')
@@ -172,6 +173,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                     tokens = base_open_fiber_files[i].split('.')
                     base_open_fiber_files[i] = tokens[0].lower()
 
+                print(base_open_fiber_files)
                 OpenFiberCartons = [None] * len(open_fiber_files)
                 for i in range(len(open_fiber_files)):
                     OpenFiberCartons[i] = get_file_carton(open_fiber_files[i],
