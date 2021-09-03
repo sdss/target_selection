@@ -310,7 +310,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
-        time.sleep(60)
         self.RModel = self.get_model()
 
         log.debug('Adding columns and indexes.')
@@ -339,9 +338,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
         execute_sql(f'CREATE INDEX ON {path} (selected);')
         execute_sql(f'ANALYZE {path};')
 
-        # sleep after ALTER TABLE
-        time.sleep(60)
-
         n_rows = self.RModel.select().count()
         log.debug(f'Table {path!r} contains {n_rows:,} rows.')
 
@@ -350,7 +346,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.setup_transaction()
             self.post_process(self.RModel, **post_process_kawrgs)
 
-        time.sleep(60)
         n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
         log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
@@ -359,8 +354,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.has_run = True
 
-        # sleep at end of run() method
-        time.sleep(60)
         return self.RModel
 
     def get_version_id(self):
@@ -397,9 +390,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
         Model._meta.add_field('optical_prov', peewee.TextField())
-
-        # sleep after ALTER TABLE
-        time.sleep(60)
 
         # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
 
@@ -1043,8 +1033,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if 'value' not in RModel._meta.columns:
                 self.database.execute_sql(f'ALTER TABLE {self.path} '
                                           'ADD COLUMN value REAL;')
-                # sleep after ALTER TABLE
-                time.sleep(60)
 
                 # We need to add the field like this and not call get_model() because
                 # at this point the temporary table is locked and reflection won't work.
