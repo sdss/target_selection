@@ -348,6 +348,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             self.setup_transaction()
             self.post_process(self.RModel, **post_process_kawrgs)
 
+        time.sleep(60)
         n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
         log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
@@ -356,6 +357,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.has_run = True
 
+        time.sleep(60)
         return self.RModel
 
     def get_version_id(self):
