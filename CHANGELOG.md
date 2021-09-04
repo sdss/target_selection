@@ -1,9 +1,17 @@
 # Changelog
+
+## Next version
+
+### 🔧 Fixed
+
+* [#101](https://github.com/sdss/target_selection/pull/101) Remove the `sleep` statements in `base.py`. This should now work fine after sdssdb PR [#99](https://github.com/sdss/sdssdb/pull/99).
+
+
 ## 0.3.3 - August 27, 2021
 
-### 
+### ✨ Improvements
 
-* Modify get_file_carton() in cartons/tools.py for open fiber cartons. 
+* Modify get_file_carton() in cartons/tools.py for open fiber cartons.
 * Modify mwm_erosita_stars, mwm_erosita_compact_gen, and mwm_erosita_compact_var cartons for extra cases in assigning instrument, cadence, priority.
 
 
