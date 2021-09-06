@@ -4,6 +4,10 @@
 
 ### 🔧 Fixed
 
+##  0.3.4 - September 6, 2021
+
+### 🔧 Fixed
+
 * [#101](https://github.com/sdss/target_selection/pull/101) Remove the `sleep` statements in `base.py`. This should now work fine after sdssdb PR [#99](https://github.com/sdss/sdssdb/pull/99).
 
 
