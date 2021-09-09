@@ -125,7 +125,7 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
 
     This is a base carton. Actual cartons are implemented as subclasses for the
     different magnitude cuts.
- 
+
     Definition: Cross-match GALEX & Gaia, taking into account proper motions.
 
     SQL:
