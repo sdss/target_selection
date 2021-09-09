@@ -123,6 +123,9 @@ class MWM_CB_300_BOSS_Carton(MWM_CB_300_Carton):
 class MWM_CB_Gaia_Galex_Carton(BaseCarton):
     """MWM Compact Binaries 300pc.
 
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
+
     Definition: Cross-match GALEX & Gaia, taking into account proper motions.
 
     SQL:
@@ -133,9 +136,6 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
         (1) H<11 to be observed with APOGEE.
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
-
-    This is a base carton. Actual cartons are implemented as subclasses for the
-    different magnitude cuts.
 
     """
 
@@ -223,6 +223,9 @@ class MWM_CB_Gaia_Galex_BOSS_Carton(MWM_CB_Gaia_Galex_Carton):
 class MWM_CB_CV_Candidates_Carton(BaseCarton):
     """MWM Compact Binaries 300pc.
 
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
+
     Definition:
         List of cataclysmic variables (+candidates)
         compiled by the AAVSO.
@@ -234,9 +237,6 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
         (1) H<11 to be observed with APOGEE.
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
-
-    This is a base carton. Actual cartons are implemented as subclasses for the
-    different magnitude cuts.
 
     """
 
