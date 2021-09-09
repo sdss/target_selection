@@ -26,7 +26,7 @@ class MWM_CB_300_Carton(BaseCarton):
     select all objects with distances less than 300pc.
 
     SQL:
-        (FUVmag - 5 * log10(r_est/10)) < 14 * (FUVmag-NUVmag) - 46 & r_est <300
+        (FUVmag - 5 * log10(r_est/10)) > 14 * (FUVmag-NUVmag) - 46 & r_est <300
 
     Cadence: This target sample will be split into
         (1) H<11 to be observed with APOGEE.
@@ -62,7 +62,7 @@ class MWM_CB_300_Carton(BaseCarton):
                             on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(GUVCat)
                  .where(GD.r_est < 300,
-                        FUV_abs < 14 * (FUV - NUV) - 46)
+                        FUV_abs > 14 * (FUV - NUV) - 46)
                  .where(CatalogToGUVCat.version_id == version_id,
                         CatalogToGUVCat.best >> True,
                         CatalogToTIC_v8.version_id == version_id,
