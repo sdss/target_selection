@@ -20,21 +20,21 @@ from target_selection.cartons import BaseCarton
 class MWM_CB_300_Carton(BaseCarton):
     """MWM Compact Binaries 300pc.
 
+    This is a base carton. Actual cartons are implemented as subclasses for the
+    different magnitude cuts.
+
     Definition: Cross-match Gaia & Bailer-Jones distances by source_id,
     cross-match with GALEX including proper motion corrections. Define a
     single linear relation in absolute FUV magnitude vs FUV - NUV,
     select all objects with distances less than 300pc.
 
     SQL:
-        (FUVmag - 5 * log10(r_est/10)) < 14 * (FUVmag-NUVmag) - 46 & r_est <300
+        (FUVmag - 5 * log10(r_est/10)) > 14 * (FUVmag-NUVmag) - 46 & r_est <300
 
     Cadence: This target sample will be split into
         (1) H<11 to be observed with APOGEE.
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
-
-    This is a base carton. Actual cartons are implemented as subclasses for the
-    different magnitude cuts.
 
     """
 
@@ -62,7 +62,7 @@ class MWM_CB_300_Carton(BaseCarton):
                             on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(GUVCat)
                  .where(GD.r_est < 300,
-                        FUV_abs < 14 * (FUV - NUV) - 46)
+                        FUV_abs > 14 * (FUV - NUV) - 46)
                  .where(CatalogToGUVCat.version_id == version_id,
                         CatalogToGUVCat.best >> True,
                         CatalogToTIC_v8.version_id == version_id,
