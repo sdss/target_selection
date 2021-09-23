@@ -29,8 +29,8 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     Owner: Kevin Covey
 
     Shorthand name:
-
     ops_gaia_brightneighbors
+
     Simplified Description of selection criteria:
     "Select all objects from gaia DR2 with G < 13"
 
@@ -168,7 +168,7 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """6.2.  Bright 2MASS (H < 7) Point Sources
-    Owner: ??
+    Owner: Kevin Covey
 
     Shorthand name:
     ops_2mass_psc_brightneighbors
@@ -230,7 +230,7 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
 
 class OPS_2MASS_XSC_Brightneighbors_Carton(BaseCarton):
     """6.3.  Bright 2MASS (H < 7) Extended Sources
-Owner: ??
+Owner: Kevin Covey
 
 Shorthand name:
 ops_2mass_xsc_brightneighbors
@@ -281,7 +281,7 @@ priority and instrument to all be Null).
                  .join(TwoMassXSC, on=(TIC_v8.twomass_psc == TwoMassXSC.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 7))
+                        TwoMassXSC.h_m_k20fe < 7))
 
         if query_region:
             query = (query
