@@ -24,8 +24,7 @@ from target_selection.cartons import BaseCarton
 
 
 class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
-    """6.1.  Bright stars for BOSS to avoid
-    6.1.1. Bright Gaia (G < 12) Stars
+    """6.1.1. Bright Gaia (G < 12) Stars
     Owner: Kevin Covey
 
     Shorthand name:
