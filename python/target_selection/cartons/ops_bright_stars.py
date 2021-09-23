@@ -9,11 +9,12 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8,
-                                             TwoMassPSC, TwoMassXSC,
-                                             Tycho2)
+                                             Gaia_DR2, TIC_v8, TwoMassPSC,
+                                             TwoMassXSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
+
+
 # from target_selection.exceptions import TargetSelectionError
 
 
