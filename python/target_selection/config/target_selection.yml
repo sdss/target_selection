@@ -17,6 +17,49 @@
    bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
    rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
    gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+  parameters:
+    bhm_aqmes_med:
+      priority: 1100
+      value: 100.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
+      mag_i_min: 16.0
+      mag_i_max: 19.1
+    bhm_aqmes_med_faint:
+      priority: 3100
+      value: 1.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_med_v0.3.1.fits
+      mag_i_min: 19.1
+      mag_i_max: 21.0
+    bhm_aqmes_wide2:
+      priority: 1210
+      value: 100.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+      mag_i_min: 16.0
+      mag_i_max: 19.1
+    bhm_aqmes_wide2_faint:
+      priority: 3210
+      value: 1.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+      mag_i_min: 19.1
+      mag_i_max: 21.0
+    bhm_aqmes_bonus_core:
+      priority: 3300
+      value: 0.2
+      fieldlist: None
+      mag_i_min: 16.0
+      mag_i_max: 19.1
+    bhm_aqmes_bonus_faint:
+      priority: 3302
+      value: 0.1
+      fieldlist: None
+      mag_i_min: 19.1
+      mag_i_max: 21.0
+    bhm_aqmes_bonus_bright:
+      priority: 4040
+      value: 0.1
+      fieldlist: None
+      mag_i_min: 14.0
+      mag_i_max: 18.0
 
 '0.5.3':
  xmatch_plan: 0.5.0
