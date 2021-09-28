@@ -4,6 +4,19 @@
 
 ### 🔧 Fixed
 
+##  0.3.5 - September 27, 2021
+
+### New
+
+* Add the below cartons to target_selection.yml so they can be rerun.
+bhm_aqmes_bonus_bright
+bhm_aqmes_bonus_core
+bhm_aqmes_bonus_faint
+bhm_aqmes_wide2
+bhm_aqmes_wide2_faint
+mwm_cb_300pc_apogee
+mwm_cb_300pc_boss
+
 ##  0.3.4 - September 6, 2021
 
 ### 🔧 Fixed
