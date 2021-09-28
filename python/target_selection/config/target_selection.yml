@@ -17,7 +17,7 @@
    bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
    rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
    gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
-  parameters:
+ parameters:
     bhm_aqmes_med:
       priority: 1100
       value: 100.0
