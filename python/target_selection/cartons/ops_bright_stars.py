@@ -54,10 +54,10 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_gaia_brightneighbors'
-    category = None
+    category = 'abc'
     instrument = None
     cadence = None
-    program = None
+    program = 'xyz'
     mapper = None
     priority = None
 
@@ -129,10 +129,10 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_tycho_brightneighbors'
-    category = None
+    category = 'abc'
     instrument = None
     cadence = None
-    program = None
+    program = 'xyz'
     mapper = None
     priority = None
 
@@ -144,7 +144,7 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
                          Tycho2.ramdeg.alias('tycho2_ra'),
                          Tycho2.demdeg.alias('tycho2_dec'),
                          Tycho2.pmra.alias('tycho2_pmra'),
-                         Tycho2.pmdec.alias('tycho2_pmdec'),
+                         Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag.alias('tycho2_vt'),
                          Tycho2.btmag.alias('tycho2_bt'))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -190,10 +190,10 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_2mass_psc_brightneighbors'
-    category = None
+    category = 'abc'
     instrument = None
     cadence = None
-    program = None
+    program = 'xyz'
     mapper = None
     priority = None
 
@@ -254,10 +254,10 @@ priority and instrument to all be Null).
     """
 
     name = 'ops_2mass_xsc_brightneighbors'
-    category = None
+    category = 'abc'
     instrument = None
     cadence = None
-    program = None
+    program = 'xyz'
     mapper = None
     priority = None
 
