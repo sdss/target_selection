@@ -149,7 +149,7 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
     # The column tycho2.designation is the primary key of the table catalogdb.tycho2.
     # Hence below we use
     # on=(CatalogToTycho2.target_id == Tycho2.designation)
-    
+
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTycho2
@@ -179,35 +179,35 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
         return query
 
     def post_process(self, model):
-            """
-            Compute new column gaia_g from tycho2 vtmag and btmag.
-            """
+        """
+        Compute new column gaia_g from tycho2 vtmag and btmag.
+        """
 
-            self.database.execute_sql(
-                "alter table sandbox.temp_ops_tycho_brightneighbors " +
-                " add column gaia_g double precision " +
-                " add optical_prov text ;")
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho_brightneighbors " +
+            " add column gaia_g double precision " +
+            " add optical_prov text ;")
 
-            cursor = self.database.execute_sql(
+        cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
             " sandbox.temp_ops_tycho_brightneighbors ;")
 
-            output = cursor.fetchall()
+        output = cursor.fetchall()
 
-            for i in range(len(output)):
-                current_catalogid = output[i][0]
-                vtmag = output[i][1]
-                btmag = output[i][2]
-                
-                current_gaia_g = (vtmag -
-                    0.02051 - 0.2706 * (btmag - vtmag) +
-                    0.03394 * (btmag - vtmag)**2 -
-                    0.05937 * (btmag - vtmag)**3)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            vtmag = output[i][1]
+            btmag = output[i][2]
 
-                    self.database.execute_sql(
-                        " update sandbox.temp_ops_tycho_brightneighbors " +
-                        " set gaia_g = '" + str(current_gaia_g) + "'"
-                        " where catalogid = " +str(current_catalogid) + ";")
+            current_gaia_g = (vtmag - 0.02051 -
+                              0.2706 * (btmag - vtmag) +
+                              0.03394 * (btmag - vtmag)**2 -
+                              0.05937 * (btmag - vtmag)**3)
+
+            self.database.execute_sql(
+                " update sandbox.temp_ops_tycho_brightneighbors " +
+                " set gaia_g = '" + str(current_gaia_g) + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
 
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
