@@ -9,6 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+                                             CatalogToTycho2,
                                              Gaia_DR2, TIC_v8, TwoMassPSC,
                                              TwoMassXSC, Tycho2)
 
@@ -61,6 +62,15 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     mapper = None
     priority = None
 
+    # target_selection propagates the following columns if they are generated
+    # during the query (with exactly the below name)
+    # g, r, i, z, h, j, k, bp, rp gaia_g, optical_prov
+    #
+    # If any g,r, i, z, optical_prov are missing, then the code will
+    # try to find them in SDSS, PS1, and Gaia.
+    #
+    # Hence, we use the names gaia_g, bp, rp below.
+
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
@@ -70,9 +80,9 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
                          Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
-                         Gaia_DR2.phot_g_mean_mag.alias('gaia_dr2_g'),
-                         Gaia_DR2.phot_bp_mean_mag.alias('gaia_dr2_bp'),
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'))
+                         Gaia_DR2.phot_g_mean_mag.alias('gaia_g'),
+                         Gaia_DR2.phot_bp_mean_mag.alias('bp'),
+                         Gaia_DR2.phot_rp_mean_mag.alias('rp'))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -138,8 +148,8 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
+        query = (CatalogToTycho2
+                 .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
                          Tycho2.ramdeg.alias('tycho2_ra'),
                          Tycho2.demdeg.alias('tycho2_dec'),
@@ -147,15 +157,14 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag.alias('tycho2_vt'),
                          Tycho2.btmag.alias('tycho2_bt'))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Tycho2, on=(TIC_v8.tycho2_tycid == Tycho2.tycid))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                 .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.tycid))
+                 .where(CatalogToTycho2.version_id == version_id,
+                        CatalogToTycho2.best >> True,
                         Tycho2.vtmag < 13))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToTycho2, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -261,6 +270,8 @@ priority and instrument to all be Null).
     mapper = None
     priority = None
 
+    # For table twomass_xsc, below use TIC_v8.twomass
+    # instead of TIC_v8.twomass_psc.
     def build_query(self, version_id, query_region=None):
 
         # We do not select pmra and pmdec below because
@@ -277,7 +288,7 @@ priority and instrument to all be Null).
                          TwoMassXSC.h_m_k20fe.alias('twomass_xsc_h_m_k20fe'),
                          TwoMassXSC.k_m_k20fe.alias('twomass_xsc_k_m_k20fe'))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassXSC, on=(TIC_v8.twomass_psc == TwoMassXSC.designation))
+                 .join(TwoMassXSC, on=(TIC_v8.twomass == TwoMassXSC.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassXSC.h_m_k20fe < 7))
