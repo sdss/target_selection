@@ -134,7 +134,7 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
             G = VT - 0.02051 - 0.2706 * (BT - VT) +
             0.03394 * (BT - VT)^2 - 0.05937 * (BT - VT)^3
     all other magnitudes can be stored as 'null',
-    and a new opt_prov entry should be used to indicate
+    and a new optical_prov entry should be used to indicate
     the source of these magnitudes (e.g., 'gaia_psfmag_tycho')
     """
 
@@ -146,17 +146,22 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
     mapper = None
     priority = None
 
+    # The column tycho2.designation is the primary key of the table catalogdb.tycho2.
+    # Hence below we use
+    # on=(CatalogToTycho2.target_id == Tycho2.designation)
+    
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
+                         Tycho2.designation,
                          Tycho2.ramdeg.alias('tycho2_ra'),
                          Tycho2.demdeg.alias('tycho2_dec'),
                          Tycho2.pmra.alias('tycho2_pmra'),
                          Tycho2.pmde.alias('tycho2_pmde'),
-                         Tycho2.vtmag.alias('tycho2_vt'),
-                         Tycho2.btmag.alias('tycho2_bt'))
+                         Tycho2.vtmag,
+                         Tycho2.btmag)
                  .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
@@ -172,6 +177,37 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model):
+            """
+            Compute new column gaia_g from tycho2 vtmag and btmag.
+            """
+
+            self.database.execute_sql(
+                "alter table sandbox.temp_ops_tycho_brightneighbors " +
+                " add column gaia_g double precision " +
+                " add optical_prov text ;")
+
+            cursor = self.database.execute_sql(
+            "select catalogid, vtmag, btmag from " +
+            " sandbox.temp_ops_tycho_brightneighbors ;")
+
+            output = cursor.fetchall()
+
+            for i in range(len(output)):
+                current_catalogid = output[i][0]
+                vtmag = output[i][1]
+                btmag = output[i][2]
+                
+                current_gaia_g = (vtmag -
+                    0.02051 - 0.2706 * (btmag - vtmag) +
+                    0.03394 * (btmag - vtmag)**2 -
+                    0.05937 * (btmag - vtmag)**3)
+
+                    self.database.execute_sql(
+                        " update sandbox.temp_ops_tycho_brightneighbors " +
+                        " set gaia_g = '" + str(current_gaia_g) + "'"
+                        " where catalogid = " +str(current_catalogid) + ";")
 
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
