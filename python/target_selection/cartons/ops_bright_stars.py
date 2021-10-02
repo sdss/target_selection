@@ -104,15 +104,15 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
         return query
 
 
-class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
-    """6.1.2. Bright Tycho (VT < 13) Stars
+class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
+    """6.1.2. Bright Tycho2 (VT < 13) Stars
     Owner: Kevin Covey
 
     Shorthand name:
-    ops_tycho_brightneighbors
+    ops_tycho2_brightneighbors
 
     Simplified Description of selection criteria:
-    "Select all objects from Tycho with VT < 13"
+    "Select all objects from Tycho2 with VT < 13"
 
     Wiki page: NA
 
@@ -120,25 +120,25 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
 
     Additional cross-matching needed:  None
 
-    Return columns: Tycho id, Tycho RA, Tycho Dec,
-    Tycho RA proper motion, Tycho Dec proper motion, VT, BT
+    Return columns: Tycho2 id, Tycho2 RA, Tycho2 Dec,
+    Tycho2 RA proper motion, Tycho2 Dec proper motion, VT, BT
 
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
     Null (since this is a veto catalog, we want cadence, value,
     priority and instrument to all be Null).
 
-    Notes:  Tycho magnitudes will be transformed to pseudo-gaia_g magnitudes
+    Notes:  Tycho2 magnitudes VT, BT will be transformed to pseudo-gaia_g magnitudes
     calculated for the targetdb.magnitudes table
     using the transforms from Evans et al. (2018):
             G = VT - 0.02051 - 0.2706 * (BT - VT) +
             0.03394 * (BT - VT)^2 - 0.05937 * (BT - VT)^3
     all other magnitudes can be stored as 'null',
     and a new optical_prov entry should be used to indicate
-    the source of these magnitudes (e.g., 'gaia_psfmag_tycho')
+    the source of these magnitudes (e.g., 'gaia_psfmag_tycho2')
     """
 
-    name = 'ops_tycho_brightneighbors'
+    name = 'ops_tycho2_brightneighbors'
     category = 'abc'
     instrument = None
     cadence = None
@@ -184,16 +184,16 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
         """
 
         self.database.execute_sql(
-            "alter table sandbox.temp_ops_tycho_brightneighbors " +
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column gaia_g double precision ;")
 
         self.database.execute_sql(
-            "alter table sandbox.temp_ops_tycho_brightneighbors " +
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column optical_prov text ;")
 
         cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
-            " sandbox.temp_ops_tycho_brightneighbors ;")
+            " sandbox.temp_ops_tycho2_brightneighbors ;")
 
         output = cursor.fetchall()
 
@@ -202,16 +202,21 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
             vtmag = output[i][1]
             btmag = output[i][2]
 
-            current_gaia_g = (vtmag - 0.02051 -
-                              0.2706 * (btmag - vtmag) +
-                              0.03394 * (btmag - vtmag)**2 -
-                              0.05937 * (btmag - vtmag)**3)
+            if (vtmag is not None) and (btmag is not None):
+                current_gaia_g = (vtmag - 0.02051 -
+                                  0.2706 * (btmag - vtmag) +
+                                  0.03394 * (btmag - vtmag)**2 -
+                                  0.05937 * (btmag - vtmag)**3)
 
-            self.database.execute_sql(
-                " update sandbox.temp_ops_tycho_brightneighbors " +
-                " set gaia_g = '" + str(current_gaia_g) + "'"
-                " where catalogid = " + str(current_catalogid) + ";")
-
+                self.database.execute_sql(
+                    " update sandbox.temp_ops_tycho2_brightneighbors " +
+                    " set gaia_g = '" + str(current_gaia_g) + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+ 
+                self.database.execute_sql(
+                    "update sandbox.temp_ops_tycho2_brightneighbors " +
+                    " set optical_prov = '" + "gaia_psfmag_tycho2" + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """6.2.  Bright 2MASS (H < 7) Point Sources
