@@ -157,7 +157,7 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag.alias('tycho2_vt'),
                          Tycho2.btmag.alias('tycho2_bt'))
-                 .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.tycid))
+                 .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
                         Tycho2.vtmag < 13))
