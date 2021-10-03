@@ -154,8 +154,6 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # optical_prov = peewee.Value('gaia_psfmag_tycho2')
-        #                         optical_prov.alias('optical_prov'))
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
@@ -213,6 +211,11 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             self.database.execute_sql(
                 " update sandbox.temp_ops_tycho2_brightneighbors " +
                 " set gaia_g = " + str(current_gaia_g) +
+                " where catalogid = " + str(current_catalogid) + ";")
+
+            self.database.execute_sql(
+                " update sandbox.temp_ops_tycho2_brightneighbors " +
+                " set optical_prov = 'gaia_psfmag_tycho2' " +
                 " where catalogid = " + str(current_catalogid) + ";")
 
 
