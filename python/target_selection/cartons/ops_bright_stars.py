@@ -150,7 +150,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     # Hence below we use
     # on=(CatalogToTycho2.target_id == Tycho2.designation)
     #
-    # Note that optical_prov must be part of the query.
+    # optical_prov must be part of the query as shown below.
     # It cannot be added later as a column in post_process().
 
     def build_query(self, version_id, query_region=None):
