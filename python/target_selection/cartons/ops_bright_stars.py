@@ -207,16 +207,18 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                                   0.2706 * (btmag - vtmag) +
                                   0.03394 * (btmag - vtmag)**2 -
                                   0.05937 * (btmag - vtmag)**3)
+            else:
+                current_gaia_g = "null"
 
-                self.database.execute_sql(
-                    " update sandbox.temp_ops_tycho2_brightneighbors " +
-                    " set gaia_g = '" + str(current_gaia_g) + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
- 
-                self.database.execute_sql(
-                    "update sandbox.temp_ops_tycho2_brightneighbors " +
-                    " set optical_prov = '" + "gaia_psfmag_tycho2" + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+            self.database.execute_sql(
+                " update sandbox.temp_ops_tycho2_brightneighbors " +
+                " set gaia_g = " + str(current_gaia_g) +
+                " where catalogid = " + str(current_catalogid) + ";")
+
+            self.database.execute_sql(
+                "update sandbox.temp_ops_tycho2_brightneighbors " +
+                " set optical_prov = '" + "gaia_psfmag_tycho2" + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """6.2.  Bright 2MASS (H < 7) Point Sources
