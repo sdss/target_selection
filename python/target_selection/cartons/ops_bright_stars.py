@@ -9,9 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             CatalogToTycho2,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC,
-                                             TwoMassXSC, Tycho2)
+                                             CatalogToTycho2, Gaia_DR2, TIC_v8,
+                                             TwoMassPSC, TwoMassXSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
 
@@ -155,7 +154,8 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        optical_prov = peewee.Value('gaia_psfmag_tycho2')
+        # optical_prov = peewee.Value('gaia_psfmag_tycho2')
+        #                         optical_prov.alias('optical_prov'))
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
@@ -165,8 +165,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmra.alias('tycho2_pmra'),
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag,
-                         Tycho2.btmag,
-                         optical_prov.alias('optical_prov'))
+                         Tycho2.btmag)
                  .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
