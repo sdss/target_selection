@@ -192,10 +192,6 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column gaia_g double precision ;")
 
-#        self.database.execute_sql(
-#            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
-#            " add column optical_prov text ;")
-
         cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
             " sandbox.temp_ops_tycho2_brightneighbors ;")
@@ -220,10 +216,6 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                 " set gaia_g = " + str(current_gaia_g) +
                 " where catalogid = " + str(current_catalogid) + ";")
 
-#            self.database.execute_sql(
-#                "update sandbox.temp_ops_tycho2_brightneighbors " +
-#                " set optical_prov = '" + "gaia_psfmag_tycho2" + "'"
-#                " where catalogid = " + str(current_catalogid) + ";")
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """6.2.  Bright 2MASS (H < 7) Point Sources
