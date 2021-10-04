@@ -9,8 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC,
-                                             TwoMassXSC, Tycho2)
+                                             CatalogToTycho2, Gaia_DR2, TIC_v8,
+                                             TwoMassPSC, TwoMassXSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
 
@@ -61,6 +61,15 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     mapper = None
     priority = None
 
+    # target_selection propagates the following columns if they are generated
+    # during the query (with exactly the below name)
+    # g, r, i, z, h, j, k, bp, rp gaia_g, optical_prov
+    #
+    # If any g,r, i, z, optical_prov are missing, then the code will
+    # try to find them in SDSS, PS1, and Gaia.
+    #
+    # Hence, we use the names gaia_g, bp, rp below.
+
     def build_query(self, version_id, query_region=None):
 
         query = (CatalogToTIC_v8
@@ -70,9 +79,9 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
                          Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
-                         Gaia_DR2.phot_g_mean_mag.alias('gaia_dr2_g'),
-                         Gaia_DR2.phot_bp_mean_mag.alias('gaia_dr2_bp'),
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'))
+                         Gaia_DR2.phot_g_mean_mag.alias('gaia_g'),
+                         Gaia_DR2.phot_bp_mean_mag.alias('bp'),
+                         Gaia_DR2.phot_rp_mean_mag.alias('rp'))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -94,15 +103,15 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
         return query
 
 
-class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
-    """6.1.2. Bright Tycho (VT < 13) Stars
+class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
+    """6.1.2. Bright Tycho2 (VT < 13) Stars
     Owner: Kevin Covey
 
     Shorthand name:
-    ops_tycho_brightneighbors
+    ops_tycho2_brightneighbors
 
     Simplified Description of selection criteria:
-    "Select all objects from Tycho with VT < 13"
+    "Select all objects from Tycho2 with VT < 13"
 
     Wiki page: NA
 
@@ -110,25 +119,25 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
 
     Additional cross-matching needed:  None
 
-    Return columns: Tycho id, Tycho RA, Tycho Dec,
-    Tycho RA proper motion, Tycho Dec proper motion, VT, BT
+    Return columns: Tycho2 id, Tycho2 RA, Tycho2 Dec,
+    Tycho2 RA proper motion, Tycho2 Dec proper motion, VT, BT
 
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
     Null (since this is a veto catalog, we want cadence, value,
     priority and instrument to all be Null).
 
-    Notes:  Tycho magnitudes will be transformed to pseudo-gaia_g magnitudes
+    Notes:  Tycho2 magnitudes VT, BT will be transformed to pseudo-gaia_g magnitudes
     calculated for the targetdb.magnitudes table
     using the transforms from Evans et al. (2018):
             G = VT - 0.02051 - 0.2706 * (BT - VT) +
             0.03394 * (BT - VT)^2 - 0.05937 * (BT - VT)^3
     all other magnitudes can be stored as 'null',
-    and a new opt_prov entry should be used to indicate
-    the source of these magnitudes (e.g., 'gaia_psfmag_tycho')
+    and a new optical_prov entry should be used to indicate
+    the source of these magnitudes (e.g., 'gaia_psfmag_tycho2')
     """
 
-    name = 'ops_tycho_brightneighbors'
+    name = 'ops_tycho2_brightneighbors'
     category = 'abc'
     instrument = None
     cadence = None
@@ -136,26 +145,35 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
     mapper = None
     priority = None
 
+    # The column tycho2.designation is the primary key of the table catalogdb.tycho2.
+    # Hence below we use
+    # on=(CatalogToTycho2.target_id == Tycho2.designation)
+    #
+    # optical_prov must be part of the query as shown below.
+    # It cannot be added later as a column in post_process().
+
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
+        optical_prov = peewee.Value('gaia_psfmag_tycho2')
+        query = (CatalogToTycho2
+                 .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
+                         Tycho2.designation,
                          Tycho2.ramdeg.alias('tycho2_ra'),
                          Tycho2.demdeg.alias('tycho2_dec'),
                          Tycho2.pmra.alias('tycho2_pmra'),
                          Tycho2.pmde.alias('tycho2_pmde'),
-                         Tycho2.vtmag.alias('tycho2_vt'),
-                         Tycho2.btmag.alias('tycho2_bt'))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Tycho2, on=(TIC_v8.tycho2_tycid == Tycho2.tycid))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                         Tycho2.vtmag,
+                         Tycho2.btmag,
+                         optical_prov.alias('optical_prov'))
+                 .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
+                 .where(CatalogToTycho2.version_id == version_id,
+                        CatalogToTycho2.best >> True,
                         Tycho2.vtmag < 13))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToTycho2, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -163,6 +181,48 @@ class OPS_Tycho_Brightneighbors_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model):
+        """
+        Compute new column gaia_g from tycho2 vtmag and btmag.
+        """
+
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column gaia_g double precision ;")
+
+        # self.database.execute_sql(
+        #    "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+        #    " add column optical_prov text ;")
+
+        cursor = self.database.execute_sql(
+            "select catalogid, vtmag, btmag from " +
+            " sandbox.temp_ops_tycho2_brightneighbors ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            vtmag = output[i][1]
+            btmag = output[i][2]
+
+            if (vtmag is not None) and (btmag is not None):
+                current_gaia_g = (vtmag - 0.02051 -
+                                  0.2706 * (btmag - vtmag) +
+                                  0.03394 * (btmag - vtmag)**2 -
+                                  0.05937 * (btmag - vtmag)**3)
+            else:
+                current_gaia_g = "null"
+
+            self.database.execute_sql(
+                " update sandbox.temp_ops_tycho2_brightneighbors " +
+                " set gaia_g = " + str(current_gaia_g) +
+                " where catalogid = " + str(current_catalogid) + ";")
+
+            # self.database.execute_sql(
+            #    " update sandbox.temp_ops_tycho2_brightneighbors " +
+            #    " set optical_prov = 'gaia_psfmag_tycho2' " +
+            #    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
@@ -261,6 +321,8 @@ priority and instrument to all be Null).
     mapper = None
     priority = None
 
+    # For table twomass_xsc, below use TIC_v8.twomass
+    # instead of TIC_v8.twomass_psc.
     def build_query(self, version_id, query_region=None):
 
         # We do not select pmra and pmdec below because
@@ -277,7 +339,7 @@ priority and instrument to all be Null).
                          TwoMassXSC.h_m_k20fe.alias('twomass_xsc_h_m_k20fe'),
                          TwoMassXSC.k_m_k20fe.alias('twomass_xsc_k_m_k20fe'))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassXSC, on=(TIC_v8.twomass_psc == TwoMassXSC.designation))
+                 .join(TwoMassXSC, on=(TIC_v8.twomass == TwoMassXSC.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassXSC.h_m_k20fe < 7))
