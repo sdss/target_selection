@@ -154,6 +154,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        optical_prov = peewee.Value('gaia_psfmag_tycho2')
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
@@ -163,7 +164,8 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmra.alias('tycho2_pmra'),
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag,
-                         Tycho2.btmag)
+                         Tycho2.btmag,
+                         optical_prov.alias('optical_prov'))
                  .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
@@ -189,9 +191,9 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column gaia_g double precision ;")
 
-        self.database.execute_sql(
-            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
-            " add column optical_prov text ;")
+        #self.database.execute_sql(
+        #    "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+        #    " add column optical_prov text ;")
 
         cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
@@ -217,10 +219,10 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                 " set gaia_g = " + str(current_gaia_g) +
                 " where catalogid = " + str(current_catalogid) + ";")
 
-            self.database.execute_sql(
-                " update sandbox.temp_ops_tycho2_brightneighbors " +
-                " set optical_prov = 'gaia_psfmag_tycho2' " +
-                " where catalogid = " + str(current_catalogid) + ";")
+            # self.database.execute_sql(
+            #    " update sandbox.temp_ops_tycho2_brightneighbors " +
+            #    " set optical_prov = 'gaia_psfmag_tycho2' " +
+            #    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
