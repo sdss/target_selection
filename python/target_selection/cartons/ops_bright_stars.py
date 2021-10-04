@@ -329,15 +329,13 @@ priority and instrument to all be Null).
     mapper = None
     priority = None
 
-    # For table twomass_xsc, below use TIC_v8.twomass
-    # instead of TIC_v8.twomass_psc.
+
     def build_query(self, version_id, query_region=None):
 
         # We do not select pmra and pmdec below because
         # twomass_xsc table does not have pmra and pmdec.
-        # TODO check that TwoMassPSC.designation is same as TwoMassXSC.designation
-        # hence below we use
-        # TIC_v8.twomass_psc == TwoMassXSC.designation
+        # For table twomass_xsc, below use TIC_v8.twomass
+        # instead of TIC_v8.twomass_psc.
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
                          TwoMassXSC.designation.alias('twomass_xsc_designation'),
