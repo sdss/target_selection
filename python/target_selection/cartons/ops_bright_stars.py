@@ -13,10 +13,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              TwoMassPSC, TwoMassXSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
-
-# from target_selection.exceptions import TargetSelectionError
+from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
