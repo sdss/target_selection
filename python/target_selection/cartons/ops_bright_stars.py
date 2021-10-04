@@ -13,7 +13,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              TwoMassPSC, TwoMassXSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
-
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 
 # from target_selection.exceptions import TargetSelectionError
 
@@ -206,13 +207,21 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             vtmag = output[i][1]
             btmag = output[i][2]
 
-            if (vtmag is not None) and (btmag is not None):
-                current_gaia_g = (vtmag - 0.02051 -
-                                  0.2706 * (btmag - vtmag) +
-                                  0.03394 * (btmag - vtmag)**2 -
-                                  0.05937 * (btmag - vtmag)**3)
+            if (vtmag is not None):
+                if(btmag is not None):
+                    current_gaia_g = (vtmag - 0.02051 -
+                                      0.2706 * (btmag - vtmag) +
+                                      0.03394 * (btmag - vtmag)**2 -
+                                      0.05937 * (btmag - vtmag)**3)
+                else:
+                    # Since btmag is None, we cannot use the above equation.
+                    # Below equation sets gaia_g to a bright value
+                    current_gaia_g = vtmag - 1
             else:
-                current_gaia_g = "null"
+                raise TargetSelectionError(
+                      'error: ' +
+                      'ops_tycho2_brightneighbors post_process(): ' +
+                      'vtmag is None')
 
             self.database.execute_sql(
                 " update sandbox.temp_ops_tycho2_brightneighbors " +
