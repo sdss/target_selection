@@ -191,7 +191,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column gaia_g double precision ;")
 
-        #self.database.execute_sql(
+        # self.database.execute_sql(
         #    "alter table sandbox.temp_ops_tycho2_brightneighbors " +
         #    " add column optical_prov text ;")
 
