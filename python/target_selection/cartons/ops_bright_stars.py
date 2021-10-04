@@ -210,10 +210,12 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                                       0.2706 * (btmag - vtmag) +
                                       0.03394 * (btmag - vtmag)**2 -
                                       0.05937 * (btmag - vtmag)**3)
+                    current_optical_prov= 'gaia_psfmag_tycho2a'
                 else:
                     # Since btmag is None, we cannot use the above equation.
                     # Below equation sets gaia_g to a bright value
                     current_gaia_g = vtmag - 1
+                    current_optical_prov= 'gaia_psfmag_tycho2b'
             else:
                 raise TargetSelectionError(
                       'error: ' +
@@ -227,7 +229,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
             # self.database.execute_sql(
             #    " update sandbox.temp_ops_tycho2_brightneighbors " +
-            #    " set optical_prov = 'gaia_psfmag_tycho2' " +
+            #    " set optical_prov = '" + current_optical_prov + "'" +
             #    " where catalogid = " + str(current_catalogid) + ";")
 
 
