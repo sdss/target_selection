@@ -52,7 +52,7 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_gaia_brightneighbors'
-    category = 'veto_location'
+    category = 'veto_location_boss'
     instrument = None
     cadence = None
     program = 'ops'
@@ -136,7 +136,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_tycho2_brightneighbors'
-    category = 'veto_location'
+    category = 'veto_location_boss'
     instrument = None
     cadence = None
     program = 'ops'
@@ -258,7 +258,7 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_2mass_psc_brightneighbors'
-    category = 'veto_location'
+    category = 'veto_location_apogee'
     instrument = None
     cadence = None
     program = 'ops'
@@ -322,7 +322,7 @@ priority and instrument to all be Null).
     """
 
     name = 'ops_2mass_xsc_brightneighbors'
-    category = 'veto_location'
+    category = 'veto_location_apogee'
     instrument = None
     cadence = None
     program = 'ops'
