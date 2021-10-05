@@ -249,7 +249,7 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
 
     Additional cross-matching needed:  None
 
-    Return columns:  2MASS ID, 2MASS RA, 2MASS Dec, (proper motions?), J, H, K
+    Return columns:  2MASS ID, 2MASS RA, 2MASS Dec, J, H, K
 
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
@@ -311,7 +311,7 @@ Additional source catalogs needed: None
 
 Additional cross-matching needed:  None
 
-Return columns: 2MASS ID, 2MASS RA, 2MASS Dec, (proper motions?),
+Return columns: 2MASS ID, 2MASS RA, 2MASS Dec,
 j_m_k20fe, h_m_k20fe, k_m_k20fe
 
 cadence options for these targets
