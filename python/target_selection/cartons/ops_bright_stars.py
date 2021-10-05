@@ -52,10 +52,10 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_gaia_brightneighbors'
-    category = 'abc'
+    category = 'veto_location'
     instrument = None
     cadence = None
-    program = 'xyz'
+    program = 'ops'
     mapper = None
     priority = None
 
@@ -136,10 +136,10 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_tycho2_brightneighbors'
-    category = 'abc'
+    category = 'veto_location'
     instrument = None
     cadence = None
-    program = 'xyz'
+    program = 'ops'
     mapper = None
     priority = None
 
@@ -258,10 +258,10 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     """
 
     name = 'ops_2mass_psc_brightneighbors'
-    category = 'abc'
+    category = 'veto_location'
     instrument = None
     cadence = None
-    program = 'xyz'
+    program = 'ops'
     mapper = None
     priority = None
 
@@ -322,10 +322,10 @@ priority and instrument to all be Null).
     """
 
     name = 'ops_2mass_xsc_brightneighbors'
-    category = 'abc'
+    category = 'veto_location'
     instrument = None
     cadence = None
-    program = 'xyz'
+    program = 'ops'
     mapper = None
     priority = None
 
