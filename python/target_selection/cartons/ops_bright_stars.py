@@ -329,7 +329,6 @@ priority and instrument to all be Null).
     mapper = None
     priority = None
 
-
     def build_query(self, version_id, query_region=None):
 
         # We do not select pmra and pmdec below because
