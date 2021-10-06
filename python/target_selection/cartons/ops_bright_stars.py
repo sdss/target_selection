@@ -152,7 +152,6 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        optical_prov = peewee.Value('gaia_psfmag_tycho2')
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
@@ -162,8 +161,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmra.alias('tycho2_pmra'),
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag,
-                         Tycho2.btmag,
-                         optical_prov.alias('optical_prov'))
+                         Tycho2.btmag)
                  .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
