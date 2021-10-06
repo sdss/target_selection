@@ -189,8 +189,9 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
         # However, we create these columns here.
         # This is because if these columns exist then add_optical_magnitudes()
         # will return right away.
-        # So it will not create the g, r, i, z, and optical_prov columns.
-        
+        # So it will not create the g, r, i, z, and optical_prov columns
+        # and it will not run queries to get g, r, i, z.
+
         self.database.execute_sql(
             "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column g double precision ;")
