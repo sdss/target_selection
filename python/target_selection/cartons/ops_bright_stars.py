@@ -185,13 +185,37 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
         Compute new column gaia_g from tycho2 vtmag and btmag.
         """
 
+        # We will not fill the g, r, i, z columns.
+        # However, we create these columns here.
+        # This is because if these columns exist then add_optical_magnitudes()
+        # will return right away.
+        # So it will not create the g, r, i, z, and optical_prov columns.
+        
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column g double precision ;")
+
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column r double precision ;")
+
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column i double precision ;")
+
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column z double precision ;")
+
+        # We create the gaia_g and optical_prov columns here
+        # and we will fill them.
         self.database.execute_sql(
             "alter table sandbox.temp_ops_tycho2_brightneighbors " +
             " add column gaia_g double precision ;")
 
-        # self.database.execute_sql(
-        #    "alter table sandbox.temp_ops_tycho2_brightneighbors " +
-        #    " add column optical_prov text ;")
+        self.database.execute_sql(
+            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
+            " add column optical_prov text ;")
 
         cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
