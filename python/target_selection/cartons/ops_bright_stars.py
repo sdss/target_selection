@@ -10,7 +10,7 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              CatalogToTycho2, Gaia_DR2, TIC_v8,
-                                             TwoMassPSC, TwoMassXSC, Tycho2)
+                                             TwoMassPSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
@@ -147,12 +147,27 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     # Hence below we use
     # on=(CatalogToTycho2.target_id == Tycho2.designation)
     #
-    # optical_prov must be part of the query as shown below.
-    # It cannot be added later as a column in post_process().
+    # We will not fill the g, r, i, z columns.
+    # However, we will create these columns in the query here.
+    # This is because if these columns exist then add_optical_magnitudes()
+    # will return right away.
+    # So it will not create the g, r, i, z, and optical_prov columns
+    # and it will not run queries to get g, r, i, z.
+    #
+    # We will fill the gaia_g and optical_prov columns in post_process().
+    #
+    # These columns must be part of the query as shown below.
+    # They cannot be added later in post_process().
 
     def build_query(self, version_id, query_region=None):
 
-        optical_prov = peewee.Value('gaia_psfmag_tycho2')
+        optical_prov = peewee.Value('sdss_psfmag_tycho2')
+        g = peewee.Value(None)
+        r = peewee.Value(None)
+        i = peewee.Value(None)
+        z = peewee.Value(None)
+        gaia_g = peewee.Value(None)
+
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
                          Tycho2.tycid,
@@ -163,7 +178,12 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
                          Tycho2.pmde.alias('tycho2_pmde'),
                          Tycho2.vtmag,
                          Tycho2.btmag,
-                         optical_prov.alias('optical_prov'))
+                         optical_prov.alias('optical_prov'),
+                         g.alias('g'),
+                         r.alias('r'),
+                         i.alias('i'),
+                         z.alias('z'),
+                         gaia_g.alias('gaia_g'))
                  .join(Tycho2, on=(CatalogToTycho2.target_id == Tycho2.designation))
                  .where(CatalogToTycho2.version_id == version_id,
                         CatalogToTycho2.best >> True,
@@ -184,14 +204,6 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
         """
         Compute new column gaia_g from tycho2 vtmag and btmag.
         """
-
-        self.database.execute_sql(
-            "alter table sandbox.temp_ops_tycho2_brightneighbors " +
-            " add column gaia_g double precision ;")
-
-        # self.database.execute_sql(
-        #    "alter table sandbox.temp_ops_tycho2_brightneighbors " +
-        #    " add column optical_prov text ;")
 
         cursor = self.database.execute_sql(
             "select catalogid, vtmag, btmag from " +
@@ -249,7 +261,7 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
 
     Additional cross-matching needed:  None
 
-    Return columns:  2MASS ID, 2MASS RA, 2MASS Dec, (proper motions?), J, H, K
+    Return columns:  2MASS ID, 2MASS RA, 2MASS Dec, J, H, K
 
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
@@ -282,72 +294,6 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m < 7))
-
-        if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
-
-        return query
-
-
-class OPS_2MASS_XSC_Brightneighbors_Carton(BaseCarton):
-    """6.3.  Bright 2MASS (H < 7) Extended Sources
-Owner: Kevin Covey
-
-Shorthand name:
-ops_2mass_xsc_brightneighbors
-
-Simplified Description of selection criteria:
-"Select all objects from the 2MASS Extended Source Catalog with h_m_k20fe < 7"
-
-Wiki page: NA
-
-Additional source catalogs needed: None
-
-Additional cross-matching needed:  None
-
-Return columns: 2MASS ID, 2MASS RA, 2MASS Dec, (proper motions?),
-j_m_k20fe, h_m_k20fe, k_m_k20fe
-
-cadence options for these targets
-(list all options, even though no single target will receive more than one):
-Null (since this is a veto catalog, we want cadence, value,
-priority and instrument to all be Null).
-
-    """
-
-    name = 'ops_2mass_xsc_brightneighbors'
-    category = 'veto_location_apogee'
-    instrument = None
-    cadence = None
-    program = 'ops'
-    mapper = None
-    priority = None
-
-    def build_query(self, version_id, query_region=None):
-
-        # We do not select pmra and pmdec below because
-        # twomass_xsc table does not have pmra and pmdec.
-        # For table twomass_xsc, below use TIC_v8.twomass
-        # instead of TIC_v8.twomass_psc.
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         TwoMassXSC.designation.alias('twomass_xsc_designation'),
-                         TwoMassXSC.ra.alias('twomass_xsc_ra'),
-                         TwoMassXSC.decl.alias('twomass_xsc_dec'),
-                         TwoMassXSC.j_m_k20fe.alias('twomass_xsc_j_m_k20fe'),
-                         TwoMassXSC.h_m_k20fe.alias('twomass_xsc_h_m_k20fe'),
-                         TwoMassXSC.k_m_k20fe.alias('twomass_xsc_k_m_k20fe'))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassXSC, on=(TIC_v8.twomass == TwoMassXSC.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassXSC.h_m_k20fe < 7))
 
         if query_region:
             query = (query
