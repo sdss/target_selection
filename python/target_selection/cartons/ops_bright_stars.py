@@ -132,7 +132,14 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             0.03394 * (BT - VT)^2 - 0.05937 * (BT - VT)^3
     all other magnitudes can be stored as 'null',
     and a new optical_prov entry should be used to indicate
-    the source of these magnitudes (e.g., 'gaia_psfmag_tycho2')
+    the source of these magnitudes.
+    For the rows with the above transform, optical_prov = 'gaia_psfmag_tycho2a'.
+
+    If VT is not null and BT is null then the Tycho2 VT magnitude will be
+    transformed to pseudo gaia_g magnitudes calculated for
+    the targetdb.magnitudes table using the ad-hoc transform:
+                  G = VT - 1
+     For the rows with the ad-hoc transform, optical_prov = 'gaia_psfmag_tycho2b'.
     """
 
     name = 'ops_tycho2_brightneighbors'
@@ -151,8 +158,9 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     # However, we will create these columns in the query here.
     # This is because if these columns exist then add_optical_magnitudes()
     # will return right away.
-    # So it will not create the g, r, i, z, and optical_prov columns
-    # and it will not run queries to get g, r, i, z.
+    # So add_optical_magnitudes() will not create the g, r, i, z, and
+    # optical_prov columns and
+    # it will not run queries to get g, r, i, z.
     #
     # We will fill the gaia_g and optical_prov columns in post_process().
     #
