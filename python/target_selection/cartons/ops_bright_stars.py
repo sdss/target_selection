@@ -161,12 +161,12 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        optical_prov = peewee.Value('sdss_psfmag_tycho2')
-        g = peewee.Value(None)
-        r = peewee.Value(None)
-        i = peewee.Value(None)
-        z = peewee.Value(None)
-        gaia_g = peewee.Value(None)
+        optical_prov = peewee.Value('sdss_psfmag_tycho2').cast('text')
+        g = peewee.Value(None).cast('real')
+        r = peewee.Value(None).cast('real')
+        i = peewee.Value(None).cast('real')
+        z = peewee.Value(None).cast('real')
+        gaia_g = peewee.Value(None).cast('real')
 
         query = (CatalogToTycho2
                  .select(CatalogToTycho2.catalogid,
