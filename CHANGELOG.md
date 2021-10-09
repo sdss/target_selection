@@ -2,7 +2,16 @@
 
 ## Next version
 
-### 🔧 Fixed
+### Fixed
+
+##  0.3.6 - October 8, 2021
+
+### New
+
+* Add the below new cartons.
+ops_tycho2_brightneighbors
+ops_2mass_psc_brightneighbors
+ops_gaia_brightneighbors
 
 ##  0.3.5 - September 27, 2021
 
