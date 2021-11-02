@@ -18,8 +18,8 @@
       cadence: 'dark_1x1'
       fibermag_r_min: 16.0
       fibermag_z_min: 16.0
-      dered_mag_z_min: 19.0
-      dered_fibermag_z_min: 20.0
+      dered_mag_z_max: 19.0
+      dered_fibermag_z_max: 20.0
       gaia_g_mag_limit: 16.0
       gaia_rp_mag_limit: 15.5
 

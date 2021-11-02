@@ -145,7 +145,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
             .join(c2ls)
             .join(ls)
             .where(
-                ls._type != 'PSF',
+                ls.type != 'PSF',
                 ls.parallax == 0.0,
                 ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
                 ls.fiberflux_z > dered_fiberflux_z_min * ls.mw_transmission_z,
