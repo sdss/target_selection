@@ -145,6 +145,8 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
             .join(c2ls)
             .join(ls)
             .where(
+                c.version_id == version_id,
+                c2ls.version_id == version_id,
                 ls.type != 'PSF',
                 ls.parallax == 0.0,
                 ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
@@ -155,6 +157,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
             )
+            .distinct(c.catalogid)
         )
 
         # query_region[0] is ra of center of the region, degrees
