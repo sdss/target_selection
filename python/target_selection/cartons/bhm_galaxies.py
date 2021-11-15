@@ -7,29 +7,30 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
-from peewee import JOIN
-from peewee import fn
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToLegacy_Survey_DR8,
-    Legacy_Survey_DR8,
-)
+
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             CatalogToLegacy_Survey_DR8,
+                                             Legacy_Survey_DR8)
+
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy
 
-# Details: Start here
-# https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
-#
-# This module provides the following BHM cartons:
-# bhm_colr_galaxies_lsdr8
-#
 
 '''
+Details: Start here
+https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
+
+This module provides the following BHM cartons:
+bhm_colr_galaxies_lsdr8
+  see particularly: https://wiki.sdss.org/display/BHM/BHM+Cartons+of+Last+Resort
+
 '''
 
 
 class BhmColrGalaxiesLsdr8Carton(BaseCarton):
     '''
+    A sample of bright galaxies selected from legacysurvey/dr8
+    photometry+astrometry+morphology
     '''
 
     name = 'bhm_colr_galaxies_lsdr8'
@@ -50,7 +51,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         value = peewee.Value(self.parameters.get('value', 0.0)).cast('float')
         inertial = peewee.Value(True)
         instrument = peewee.Value(self.instrument)
-        #cadence = peewee.Value(self.parameters.get('cadence', self.cadence))
+        # cadence = peewee.Value(self.parameters.get('cadence', self.cadence))
 
         dered_flux_z_min = AB2nMgy(self.parameters['dered_mag_z_max'])
         dered_fiberflux_z_min = AB2nMgy(self.parameters['dered_fibermag_z_max'])
@@ -63,6 +64,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
 
         # compute transformed SDSS mags uniformly
         # transform the legacysurvey grz into sdss fiber2mag griz
+        # https://wiki.sdss.org/display/BHM/BHM+magnitude+transformations+for+v0.5
 
         # extract coeffs from fit logs via:
         # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_clusters_lsdr8/lsdr8_fibermag_to_sdss_fiber2mag_?_results.log   # noqa
