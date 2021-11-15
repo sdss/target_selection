@@ -15,11 +15,16 @@
     bhm_colr_galaxies_lsdr8:
       priority: 4100
       value: 0.0
-      cadence: 'dark_1x1'
+      cadence1: 'bright_1x1'
+      cadence2: 'dark_1x1'
+      cadence3: 'dark_1x4'
+      fibermag_z_for_cadence1: 17.0
+      fibermag_z_for_cadence2: 18.0
       fibermag_r_min: 16.0
       fibermag_z_min: 16.0
       dered_mag_z_max: 19.0
-      dered_fibermag_z_max: 20.0
+      dered_fibermag_z_max: 19.5
+      fibermag_z_max: 20.0
       gaia_g_mag_limit: 16.0
       gaia_rp_mag_limit: 15.5
 

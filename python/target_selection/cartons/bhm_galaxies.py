@@ -50,12 +50,16 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         value = peewee.Value(self.parameters.get('value', 0.0)).cast('float')
         inertial = peewee.Value(True)
         instrument = peewee.Value(self.instrument)
-        cadence = peewee.Value(self.parameters.get('cadence', self.cadence))
+        #cadence = peewee.Value(self.parameters.get('cadence', self.cadence))
 
         dered_flux_z_min = AB2nMgy(self.parameters['dered_mag_z_max'])
         dered_fiberflux_z_min = AB2nMgy(self.parameters['dered_fibermag_z_max'])
+        fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
         fiberflux_z_max = AB2nMgy(self.parameters['fibermag_z_min'])
         fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
+
+        fiberflux_z_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_z_for_cadence1'])
+        fiberflux_z_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_z_for_cadence2'])
 
         # compute transformed SDSS mags uniformly
         # transform the legacysurvey grz into sdss fiber2mag griz
@@ -117,6 +121,13 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
 
         opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
 
+        cadence = peewee.Case(
+            None,
+            (
+                (ls.fiberflux_z > fiberflux_z_min_for_cadence1, self.parameters['cadence1']),
+                (ls.fiberflux_z > fiberflux_z_min_for_cadence2, self.parameters['cadence2']),
+            ),
+            self.parameters['cadence3'])
 
         query = (
             c.select(
@@ -140,7 +151,11 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 g0_e.alias('ls8_fibermag_g'),  # extra
                 r0_e.alias('ls8_fibermag_r'),  # extra
                 z0_e.alias('ls8_fibermag_z'),  # extra
+                ls.flux_g.alias('ls8_flux_g'),  # extra
+                ls.flux_r.alias('ls8_flux_r'),  # extra
+                ls.flux_z.alias('ls8_flux_z'),  # extra
                 ls.ebv.alias('ls8_ebv'),  # extra
+                ls.mw_transmission_z.alias('ls8_mw_transmission_z'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -150,6 +165,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 ls.type != 'PSF',
                 ls.parallax == 0.0,
                 ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
+                ls.fiberflux_z > fiberflux_z_min,
                 ls.fiberflux_z > dered_fiberflux_z_min * ls.mw_transmission_z,
                 ls.fiberflux_r < fiberflux_r_max,
                 ls.fiberflux_z < fiberflux_z_max,
