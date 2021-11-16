@@ -9,9 +9,9 @@
 import peewee
 from peewee import fn
 
-from target_selection.cartons.base import BaseCarton
-
 from sdssdb.peewee.sdss5db.catalogdb import CatalogToSkies_v2, Skies_v2
+
+from target_selection.cartons.base import BaseCarton
 
 
 class OPS_Sky_Boss_Best_Carton(BaseCarton):
