@@ -18,6 +18,8 @@
       max_sep_ps1dr2: 60.0
       min_sep_ls8: 5.0
       min_sep_ps1dr2: 5.0
+    ops_sky_boss_fallback:
+      min_sep_gaia: 5.0
 
 '0.5.6':
  xmatch_plan: 0.5.0
