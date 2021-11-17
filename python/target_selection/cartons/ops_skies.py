@@ -146,3 +146,68 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+# class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
+#    """Unconstrained skies for the BOSS spectrograph.
+#       Use these skies when there are not enough OPS_Sky_Boss_Best_Carton,
+#       or OPS_Sky_Boss_Good_Carton skies available
+#
+#    Definition:
+#        Select tile_32 locations that have few best/good skies available
+#        Take all sky locations in those pixels
+#
+#    """
+#
+#    name = 'ops_sky_boss_fallback'
+#    cadence = None
+#    category = 'ops_sky'
+#    program = 'SKY'
+#    mapper = None
+#    instrument = 'BOSS'
+#    inertial = True
+#    priority = 5002
+#
+#    load_magnitudes = False
+
+    '''
+    Here is the SQL to generate the sort of query I want -
+       However I have no idea how to implement this in peewee
+       within the BaseCarton framework
+
+# Algorithm:
+# 1) First find all nside=32 pixels with fewer than 1000 skies/pix in ops_sky_boss_good
+#    Here I use the temp table, but would be better to read carton from targetdb or
+#    just to re-issue the ops_sky_boss_good query
+#    There are 12288 healpixels in NSIDE=32, and so we do the
+#    generate_series(0,12287) step to make sure we catch them all
+#
+# 2) Now select sky candidates (from skies_v2) that land in those pixels,
+#    and filter them with some less rigorous criteria than used for good+best cartons
+
+DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;
+
+SELECT p.tile_32,COALESCE(b.nsky,0) as nsky
+INTO sandbox.temp_ops_sky_boss_good_missing_pix
+FROM (SELECT generate_series(0,12287) AS tile_32) AS p
+     LEFT OUTER JOIN
+     (SELECT tile_32,count(*) AS nsky FROM sandbox.temp_ops_sky_boss_good GROUP BY tile_32) AS b
+     ON p.tile_32 = b.tile_32
+     WHERE COALESCE(b.nsky,0) < 1000 ;
+
+CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix (tile_32);
+ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;
+DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;
+
+SELECT p.nsky,s.*
+INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies
+FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p
+JOIN skies_v2 AS s
+ON p.tile_32 = s.tile_32
+WHERE selected_gaia is true
+  AND COALESCE(sep_neighbour_gaia,1e30) > 3.0
+  AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0
+  AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0
+  AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;
+
+    '''
