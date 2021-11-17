@@ -2,7 +2,7 @@
  xmatch_plan: 0.5.0
  cartons:
    - ops_sky_boss_best
-   - ops_sky_boss_fallback
+   - ops_sky_boss_good
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
  magnitudes:
@@ -18,7 +18,7 @@
       max_sep_ps1dr2: 60.0
       min_sep_ls8: 5.0
       min_sep_ps1dr2: 5.0
-    ops_sky_boss_fallback:
+    ops_sky_boss_good:
       min_sep_gaia: 5.0
 
 '0.5.6':
