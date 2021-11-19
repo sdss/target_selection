@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# @Author: José Sánchez-Gallego (gallegoj@uw.edu), Updated Nov 2021 by Tom Dwelly
+# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
+# Updated Nov 2021 by Tom Dwelly and Felipe Santana
 # @Date: 2020-07-26
 # @Filename: ops_skies.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
@@ -212,3 +213,91 @@ WHERE selected_gaia is true
   AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;
 
     '''
+
+
+class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
+    """First option of skies for the APOGEE spectrograph.
+
+    Definition:
+        Select sky positions from catalogdb.skies_v2 that don't have a
+        nearby Gaia, Tycho2, 2MASS or 2MASS_XSC source.
+
+    """
+
+    name = 'ops_sky_apogee_best'
+    cadence = None
+    category = 'ops_sky'
+    program = 'SKY'
+    mapper = None
+    instrument = 'APOGEE'
+    interial = True
+    priority = 5200
+
+    load_magnitudes = False
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (Skies_v2
+                 .select(CatalogToSkies_v2.catalogid,
+                         Skies_v2.ra, Skies_v2.dec,
+                         Skies_v2.pix_32768, Skies_v2.tile_32)
+                 .join(CatalogToSkies_v2)
+                 .where(CatalogToSkies_v2.version_id == version_id,
+                        CatalogToSkies_v2.best >> True)
+                 .where(Skies_v2.valid_gaia >> True,
+                        Skies_v2.valid_tmass >> True,
+                        Skies_v2.valid_tycho2 >> True,
+                        Skies_v2.valid_tmass_xsc >> True))
+
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
+                                                       Skies_v2.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
+    """Last resource skies for the APOGEE spectrograph to be used when carton 1 is not available.
+
+    Definition:
+        Select sky positions from catalogdb.skies_v2 that
+        are invalid in 2MASS but selected.
+
+    """
+
+    name = 'ops_sky_apogee_good'
+    cadence = None
+    category = 'ops_sky'
+    program = 'SKY'
+    mapper = None
+    instrument = 'APOGEE'
+    inertial = True
+    priority = 5201
+
+    load_magnitudes = False
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (Skies_v2
+                 .select(CatalogToSkies_v2.catalogid,
+                         Skies_v2.ra, Skies_v2.dec,
+                         Skies_v2.pix_32768, Skies_v2.tile_32)
+                 .join(CatalogToSkies_v2)
+                 .where(CatalogToSkies_v2.version_id == version_id,
+                        CatalogToSkies_v2.best >> True)
+                 .where(Skies_v2.selected_tmass >> True,
+                        Skies_v2.valid_tmass >> False)
+                 .where(Skies_v2.mag_neighbour_tmass > 10.0))
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
+                                                       Skies_v2.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
