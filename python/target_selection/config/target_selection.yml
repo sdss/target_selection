@@ -3,6 +3,8 @@
  cartons:
    - ops_sky_boss_best
    - ops_sky_boss_good
+   - ops_sky_apogee_best
+   - ops_sky_apogee_good
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
  magnitudes:
