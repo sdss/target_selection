@@ -230,7 +230,7 @@ class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
     program = 'SKY'
     mapper = None
     instrument = 'APOGEE'
-    interial = True
+    inertial = True
     priority = 5200
 
     load_magnitudes = False
