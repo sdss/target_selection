@@ -1,3 +1,28 @@
+'0.5.8':
+ xmatch_plan: 0.5.0
+ cartons:
+   - ops_sky_boss_best
+   - ops_sky_boss_good
+   - ops_sky_apogee_best
+   - ops_sky_apogee_good
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
+ schema: sandbox
+ magnitudes:
+   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+ parameters:
+    ops_sky_boss_best:
+      max_sep_ls8: 60.0
+      max_sep_ps1dr2: 60.0
+      min_sep_ls8: 5.0
+      min_sep_ps1dr2: 5.0
+    ops_sky_boss_good:
+      min_sep_gaia: 5.0
+
 '0.5.7':
  xmatch_plan: 0.5.0
  cartons:

@@ -4,6 +4,16 @@
 
 ### Fixed
 
+##  0.3.8 - November 20, 2021
+
+### Fixed
+
+* Change category of the below cartons.
+ops_sky_apogee_best
+ops_sky_apogee_good
+ops_sky_boss_best
+ops_sky_boss_good
+
 ##  0.3.7 - November 19, 2021
 
 ### New

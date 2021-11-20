@@ -40,7 +40,7 @@ class OPS_Sky_Boss_Best_Carton(BaseCarton):
 
     name = 'ops_sky_boss_best'
     cadence = None
-    category = 'ops_sky'
+    category = 'sky_boss'
     program = 'SKY'
     mapper = None
     instrument = 'BOSS'
@@ -108,7 +108,7 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
 
     name = 'ops_sky_boss_good'
     cadence = None
-    category = 'ops_sky'
+    category = 'sky_boss'
     program = 'SKY'
     mapper = None
     instrument = 'BOSS'
@@ -163,7 +163,7 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
 #
 #    name = 'ops_sky_boss_fallback'
 #    cadence = None
-#    category = 'ops_sky'
+#    category = 'sky_boss'
 #    program = 'SKY'
 #    mapper = None
 #    instrument = 'BOSS'
@@ -226,11 +226,11 @@ class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
 
     name = 'ops_sky_apogee_best'
     cadence = None
-    category = 'ops_sky'
+    category = 'sky_apogee'
     program = 'SKY'
     mapper = None
     instrument = 'APOGEE'
-    interial = True
+    inertial = True
     priority = 5200
 
     load_magnitudes = False
@@ -271,7 +271,7 @@ class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
 
     name = 'ops_sky_apogee_good'
     cadence = None
-    category = 'ops_sky'
+    category = 'sky_apogee'
     program = 'SKY'
     mapper = None
     instrument = 'APOGEE'
