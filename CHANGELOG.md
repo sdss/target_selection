@@ -4,7 +4,7 @@
 
 ### Fixed
 
-##  0.3.7 - November 18, 2021
+##  0.3.7 - November 19, 2021
 
 ### New
 
