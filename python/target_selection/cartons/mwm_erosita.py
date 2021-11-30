@@ -14,6 +14,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
@@ -207,28 +208,47 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             current_g = output[i][1]
             current_h = output[i][2]
 
-            if((current_g < bright_bright_limit) and
-               (current_h is not None) and
-               (current_h < ir_faint_limit)):
-                current_instrument = 'APOGEE'  # This is APOGEE. Others below are BOSS.
-                current_cadence = 'bright_1x1'
-                current_priority = 2400
-            elif((bright_bright_limit < current_g) and (current_g < 17)):
+            # current_g corresponds to gaia_dr2_g which is not null
+            # So we do not check if current_g is None.
+            # However, current_h corresponds to twomass_psc_h_m which may be null.
+            # So we check if current_h is None.
+            if(current_g < bright_bright_limit):
+
+                if(current_h is not None):
+                    if(current_h < ir_faint_limit):
+                        current_instrument = 'APOGEE'  # This is APOGEE. Others below are BOSS.
+                        current_cadence = 'bright_1x1'
+                        current_priority = 2400
+                    else:
+                        current_instrument = 'BOSS'
+                        current_cadence = 'bright_1x1'
+                        current_priority = 2400
+                else:
+                    current_instrument = 'BOSS'
+                    current_cadence = 'bright_1x1'
+                    current_priority = 2400
+
+            elif((bright_bright_limit <= current_g) and (current_g < 17)):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and (current_g < 19)):
+            elif((17 <= current_g) and (current_g < 19)):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x2'
                 current_priority = 1920
-            elif(19 < current_g):
+            elif(19 <= current_g):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x3'
                 current_priority = 1920
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_stars ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -445,26 +465,36 @@ class MWM_EROSITA_Compact_Gen_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_g = output[i][1]
 
+            # current_g corresponds to gaia_dr2_g which is not null
+            # So we do not check if current_g is None.
             if((current_g < bright_bright_limit)):
-                current_instrument = None
-                current_cadence = None
-                current_priority = None
-            elif((bright_bright_limit < current_g) and (current_g < 17)):
+                # The settings for this case are the same
+                # same as the settings for the next case.
+                # We do this case separately for historical reasons.
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and (current_g < 19)):
+            elif((bright_bright_limit <= current_g) and (current_g < 17)):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_1x1'
+                current_priority = 2400
+            elif((17 <= current_g) and (current_g < 19)):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x2'
                 current_priority = 1910
-            elif(19 < current_g):
+            elif(19 <= current_g):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x3'
                 current_priority = 1910
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_compact_gen ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
@@ -648,26 +678,36 @@ class MWM_EROSITA_Compact_Var_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_g = output[i][1]
 
+            # current_g corresponds to gaia_dr2_g which is not null
+            # So we do not check if current_g is None.
             if((current_g < bright_bright_limit)):
-                current_instrument = None
-                current_cadence = None
-                current_priority = None
-            elif((bright_bright_limit < current_g) and (current_g < 17)):
+                # The settings for this case are the same
+                # same as the settings for the next case.
+                # We do this case separately for historical reasons.
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_1x1'
                 current_priority = 2400
-            elif((17 < current_g) and (current_g < 19)):
+            elif((bright_bright_limit <= current_g) and (current_g < 17)):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_1x1'
+                current_priority = 2400
+            elif((17 <= current_g) and (current_g < 19)):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x2'
                 current_priority = 1900
-            elif(19 < current_g):
+            elif(19 <= current_g):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x3'
                 current_priority = 1900
             else:
+                # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
                 current_priority = None
+                raise TargetSelectionError('error in mwm_erosita_compact_var ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None, ' +
+                                           'priority = None')
 
             if current_instrument is not None:
                 self.database.execute_sql(

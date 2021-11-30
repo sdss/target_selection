@@ -1,5 +1,90 @@
 # Changelog
 
+## Next version
+
+### Fixed
+
+##  0.3.8 - November 23, 2021
+
+### Fixed
+
+* Change program of the below cartons.
+ops_sky_apogee_best
+ops_sky_apogee_good
+ops_sky_boss_best
+ops_sky_boss_good
+
+##  0.3.8 - November 20, 2021
+
+### Fixed
+
+* Change category of the below cartons.
+ops_sky_apogee_best
+ops_sky_apogee_good
+ops_sky_boss_best
+ops_sky_boss_good
+
+##  0.3.7 - November 19, 2021
+
+### New
+
+* Add the below new cartons.
+ops_sky_apogee_best
+ops_sky_apogee_good
+ops_sky_boss_best
+ops_sky_boss_good
+
+##  0.3.6 - October 8, 2021
+
+### New
+
+* Add the below new cartons.
+ops_tycho2_brightneighbors
+ops_2mass_psc_brightneighbors
+ops_gaia_brightneighbors
+
+##  0.3.5 - September 27, 2021
+
+### New
+
+* Add the below cartons to target_selection.yml so they can be rerun.
+bhm_aqmes_bonus_bright
+bhm_aqmes_bonus_core
+bhm_aqmes_bonus_faint
+bhm_aqmes_wide2
+bhm_aqmes_wide2_faint
+mwm_cb_300pc_apogee
+mwm_cb_300pc_boss
+
+##  0.3.4 - September 6, 2021
+
+### 🔧 Fixed
+
+* [#101](https://github.com/sdss/target_selection/pull/101) Remove the `sleep` statements in `base.py`. This should now work fine after sdssdb PR [#99](https://github.com/sdss/sdssdb/pull/99).
+
+
+## 0.3.3 - August 27, 2021
+
+### ✨ Improvements
+
+* Modify get_file_carton() in cartons/tools.py for open fiber cartons.
+* Modify mwm_erosita_stars, mwm_erosita_compact_gen, and mwm_erosita_compact_var cartons for extra cases in assigning instrument, cadence, priority.
+
+
+## 0.3.2 - July 21, 2021
+
+### 🔧 Fixed
+
+* Changes to address new columns not showing in the model of the carton temporary table.
+
+
+## 0.3.1 - July 16, 2021
+
+### 🚀 New
+
+* Remove lower magnitude limit for mwm_yso, mwm_ob, and mwm_halo cartons for `0.5.0`.
+
+
 ## 0.3.0 - June 22, 2021
 
 ### 🚀 New

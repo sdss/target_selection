@@ -10,6 +10,7 @@ import importlib
 import logging
 import os
 import sys
+import time
 import warnings
 from glob import glob
 
@@ -131,7 +132,12 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             if c not in carton_classes:
                 raise ValueError(f'Carton {c} does not exist.')
 
-    Cartons = [carton_classes[carton_name] for carton_name in carton_names]
+    Cartons = []
+    if carton_names is not None:
+        Cartons = [carton_classes[carton_name] for carton_name in carton_names]
+    else:
+        warnings.warn('There are no regular cartons in target_selection.yml.',
+                      TargetSelectionUserWarning)
 
     if not exclude_open_fiber:
         if 'open_fiber_path' not in config_plan:
@@ -143,13 +149,42 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                 warnings.warn(f'Open fiber path {open_fiber_path} does not exist.',
                               TargetSelectionUserWarning)
             else:
-                open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
-                OpenFiberCartons = [get_file_carton(fn, '', 'open_fiber', 'open_fiber')
-                                    for fn in open_fiber_files]
+                open_fiber_file_list_path = os.path.join(open_fiber_path,
+                                                         'open_fiber_file_list.txt')
+                if not os.path.exists(open_fiber_file_list_path):
+                    tsmod.log.info('open_fiber_path = ' + open_fiber_path)
+                    open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
+                else:
+                    tsmod.log.info('open_fiber file_list_path = ' +
+                                   open_fiber_file_list_path)
+                    flist = open(open_fiber_file_list_path, 'r')
+                    open_fiber_files = []
+                    for fline in flist:
+                        open_fiber_files.append(os.path.join(open_fiber_path,
+                                                fline.strip()))
+                    flist.close()
+                # We sort open_fiber_files so that the files are processed
+                # in the same order every time.
+                open_fiber_files.sort()
+
+                base_open_fiber_files = [None] * len(open_fiber_files)
+                for i in range(len(open_fiber_files)):
+                    tokens = open_fiber_files[i].split('/')
+                    base_open_fiber_files[i] = tokens[-1]
+                    tokens = base_open_fiber_files[i].split('.')
+                    base_open_fiber_files[i] = tokens[0].lower()
+
+                OpenFiberCartons = [None] * len(open_fiber_files)
+                for i in range(len(open_fiber_files)):
+                    OpenFiberCartons[i] = get_file_carton(open_fiber_files[i],
+                                                          base_open_fiber_files[i],
+                                                          'open_fiber', 'open_fiber')
+
                 if include:
                     OpenFiberCartons = [OFC for OFC in OpenFiberCartons
                                         if OFC.name in include]
                 Cartons += OpenFiberCartons
+
                 tsmod.log.info(f'{len(OpenFiberCartons)} open fiber cartons selected.')
     else:
         tsmod.log.info('Excluding open fiber cartons.')
@@ -176,6 +211,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
             tsmod.log.debug('Skipping query.')
 
         if load:
+            time.sleep(60)
             carton.load(overwrite=overwrite)
         else:
             tsmod.log.info('Not loading data into targetdb.target.')

@@ -79,24 +79,6 @@ class MWM_Halo_Best_Brightest_Base_Carton(BaseCarton):
         return query
 
 
-class MWM_Halo_Best_Brightest_APOGEE_Carton(MWM_Halo_Best_Brightest_Base_Carton):
-    """MWM Halo B&B targets for APOGEE."""
-
-    name = 'mwm_halo_bb_apogee'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_filler'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
-    priority = 6050
-
-    def build_query(self, version_id, query_region=None):
-
-        query = super().build_query(version_id, query_region=query_region)
-
-        return query.where(Gaia_DR2.phot_g_mean_mag < 13)
-
-
 class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
     """MWM Halo B&B targets for BOSS."""
 
@@ -112,7 +94,7 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
 
         query = super().build_query(version_id, query_region=query_region)
 
-        return query.where(Gaia_DR2.phot_g_mean_mag >= 13)
+        return query
 
     def post_process(self, model, **kwargs):
 
@@ -225,24 +207,6 @@ class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
         return query
 
 
-class MWM_Halo_SkyMapper_APOGEE_Carton(MWM_Halo_SkyMapper_Base_Carton):
-    """MWM Halo SkyMapper APOGEE targets."""
-
-    name = 'mwm_halo_sm_apogee'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_filler'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
-    priority = 6055
-
-    def build_query(self, version_id, **kwargs):
-
-        query = super().build_query(version_id, **kwargs)
-
-        return query.where(Gaia_DR2.phot_g_mean_mag < 13)
-
-
 class MWM_Halo_SkyMapper_BOSS_Carton(MWM_Halo_SkyMapper_Base_Carton):
     """MWM Halo SkyMapper BOSS targets."""
 
@@ -258,7 +222,7 @@ class MWM_Halo_SkyMapper_BOSS_Carton(MWM_Halo_SkyMapper_Base_Carton):
 
         query = super().build_query(version_id, **kwargs)
 
-        return query.where(Gaia_DR2.phot_g_mean_mag >= 13)
+        return query
 
     def post_process(self, model, **kwargs):
 

@@ -20,6 +20,7 @@ Contents
   database
   cross-match
   target-selection
+  tagging
 
 .. toctree::
   :maxdepth: 2
