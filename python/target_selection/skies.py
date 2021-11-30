@@ -286,8 +286,8 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
         if has_radius:
             sep_corr = max(min_separation, target.radius)
         elif has_mag and mag_threshold is not None:
-            min_sep_corr = numpy.power(mag_threshold - target.mag, scale_b) \
-                                       / scale_a
+            min_sep_corr = numpy.power(mag_threshold -
+                                       target.mag, scale_b) / scale_a
             sep_corr = min_separation + min_sep_corr
         else:
             sep_corr = min_separation
