@@ -11,9 +11,6 @@ import os
 import warnings
 from functools import partial
 
-from target_selection import log
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
 import enlighten
 import healpy
 import numpy
@@ -23,6 +20,10 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from mocpy import MOC
+
+from target_selection import log
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 
 
 warnings.filterwarnings('ignore', '.*invalid value encountered in power.*')
