@@ -237,7 +237,11 @@ def get_file_carton(filename):
 
             len_panstarrs_dr2 = len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
 
-            len_twomass_psc = len(self._table[self._table['TwoMASS_ID'] > 0])
+            # TwoMass_ID corresponds to the designation column of the table 
+            # catalogdb.twomass_psc. Since the designation column is a text column,
+            # below we are comparing to the string 'NA' and not the integer 0.
+            #
+            len_twomass_psc = len(self._table[self._table['TwoMASS_ID'] != 'NA'])
 
             # There must be exactly one non-zero id per row else raise an exception.
             if ((len_gaia_dr2 + len_legacysurvey_dr8 +

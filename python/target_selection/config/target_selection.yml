@@ -1400,8 +1400,9 @@
 '0.0.0-test':
   xmatch_plan: 0.5.0
   cartons:
-    - ops_std_boss_tic
+    # - ops_std_boss_tic
     # - ops_std_boss_lsdr8
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft/
   schema: sandbox
   parameters:
     ops_std_boss_lsdr8:
