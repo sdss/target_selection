@@ -150,7 +150,7 @@ def get_file_carton(filename):
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_PSC_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_ID")')
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
             inertial_case = peewee.Case(
@@ -163,7 +163,7 @@ def get_file_carton(filename):
                                     temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
                                     temp.LegacySurvey_DR8_ID.alias('ls_id'),
                                     temp.PanSTARRS_DR2_ID.alias('catid_objid'),
-                                    temp.TwoMASS_PSC_ID.alias('designation'),
+                                    temp.TwoMASS_ID.alias('designation'),
                                     Catalog.ra,
                                     Catalog.dec,
                                     temp.delta_ra.cast('double precision'),
@@ -221,7 +221,7 @@ def get_file_carton(filename):
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(temp,
-                       on=(temp.TwoMASS_PSC_ID == TwoMassPSC.designation))
+                       on=(temp.TwoMASS_ID == TwoMassPSC.designation))
                  .switch(Catalog)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         (CatalogToTIC_v8.best >> True) |
@@ -237,7 +237,7 @@ def get_file_carton(filename):
 
             len_panstarrs_dr2 = len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
 
-            len_twomass_psc = len(self._table[self._table['TwoMASS_PSC_ID'] > 0])
+            len_twomass_psc = len(self._table[self._table['TwoMASS_ID'] > 0])
 
             # There must be exactly one non-zero id per row else raise an exception.
             if ((len_gaia_dr2 + len_legacysurvey_dr8 +
