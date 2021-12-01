@@ -1402,7 +1402,7 @@
   cartons:
     # - ops_std_boss_tic
     # - ops_std_boss_lsdr8
-  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft/
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft2/
   schema: sandbox
   parameters:
     ops_std_boss_lsdr8:
