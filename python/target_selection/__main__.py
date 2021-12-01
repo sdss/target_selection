@@ -167,18 +167,17 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                 # in the same order every time.
                 open_fiber_files.sort()
 
-                base_open_fiber_files = [None] * len(open_fiber_files)
-                for i in range(len(open_fiber_files)):
-                    tokens = open_fiber_files[i].split('/')
-                    base_open_fiber_files[i] = tokens[-1]
-                    tokens = base_open_fiber_files[i].split('.')
-                    base_open_fiber_files[i] = tokens[0].lower()
+                # historical code
+                # base_open_fiber_files = [None] * len(open_fiber_files)
+                # for i in range(len(open_fiber_files)):
+                #    tokens = open_fiber_files[i].split('/')
+                #    base_open_fiber_files[i] = tokens[-1]
+                #    tokens = base_open_fiber_files[i].split('.')
+                #    base_open_fiber_files[i] = tokens[0].lower()
 
                 OpenFiberCartons = [None] * len(open_fiber_files)
                 for i in range(len(open_fiber_files)):
-                    OpenFiberCartons[i] = get_file_carton(open_fiber_files[i],
-                                                          base_open_fiber_files[i],
-                                                          'open_fiber', 'open_fiber')
+                    OpenFiberCartons[i] = get_file_carton(open_fiber_files[i])
 
                 if include:
                     OpenFiberCartons = [OFC for OFC in OpenFiberCartons

@@ -18,7 +18,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToPanstarrs1,
                                              CatalogToTIC_v8, Gaia_DR2,
                                              Legacy_Survey_DR8, Panstarrs1,
-                                             TIC_v8)
+                                             TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
@@ -27,45 +27,61 @@ from target_selection.exceptions import (TargetSelectionError,
 from target_selection.utils import vacuum_table
 
 
-def get_file_carton(
-        filename,
-        carton_name,
-        carton_category,
-        carton_program,
-        replace_carton_name=True):
+def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
-    The FITS file is located in the below location which is specified in
+    The FITS file is located in the open_fiber_path which is specified in
     python/config/target_selection.yml.
-    open_fiber_path: $CATALOGDB_DIR/../open_fiber/0.5.0/
+    The list of FITS files to be loaded is specified in the
+    file open_fiber_file_list.txt which is in the directory open_fiber_path.
     """
 
     class FileCarton(BaseCarton):
-        name = carton_name
-        category = carton_category
-        program = carton_program
+        # historical
+        # name = carton_name
+        # category = carton_category
+        # program = carton_program
 
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
             self._file_path = filename
 
             self._table = Table.read(self._file_path)
+            # historical
             # self._table.convert_bytestring_to_unicode()
             if self._table.masked:
                 self._table = self._table.filled()
 
-            # Replace name of carton from file column.
-            if 'cartonname' in self._table.columns and replace_carton_name:
-                uniq_cname = numpy.unique(self._table['cartonname'])
-                if len(uniq_cname) == 1:
-                    self.name = uniq_cname[0].lower()
+            unique_cartonname = numpy.unique(self._table['cartonname'])
+            if len(unique_cartonname) == 1:
+                self.name = unique_cartonname[0].lower()
+            else:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           'contains more than one cartonname')
 
-            if (self.name != carton_name.lower()):
-                warnings.warn('carton_name parameter of get_file_carton() and ' +
-                              'cartonname in FITS file do not match.',
-                              TargetSelectionUserWarning)
-                warnings.warn('carton_name = ' + carton_name.lower() +
-                              ' cartonname = ' + self.name,
-                              TargetSelectionUserWarning)
+            unique_category = numpy.unique(self._table['category'])
+            if len(unique_category) == 1:
+                self.category = unique_category[0].lower()
+            else:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           'contains more than one category')
+
+            unique_program = numpy.unique(self._table['program'])
+            if len(unique_program) == 1:
+                self.program = unique_program[0].lower()
+            else:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           'contains more than one program')
+
+            unique_mapper = numpy.unique(self._table['mapper'])
+            if len(unique_mapper) == 1:
+                self.mapper = unique_mapper[0].lower()
+            else:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           'contains more than one mapper')
 
             basename_fits = os.path.basename(filename)
             basename_parts = os.path.splitext(basename_fits)
@@ -110,6 +126,7 @@ def get_file_carton(
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_PSC_ID")')
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
             inertial_case = peewee.Case(
@@ -122,6 +139,7 @@ def get_file_carton(
                                     temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
                                     temp.LegacySurvey_DR8_ID.alias('ls_id'),
                                     temp.PanSTARRS_DR2_ID.alias('catid_objid'),
+                                    temp.TwoMASS_PSC_ID.alias('designation'),
                                     Catalog.ra,
                                     Catalog.dec,
                                     temp.delta_ra.cast('double precision'),
@@ -170,7 +188,24 @@ def get_file_carton(
                         CatalogToPanstarrs1.best.is_null(),
                         Catalog.version_id == version_id))
 
+            query_twomass_psc = \
+                (query_common
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(TwoMassPSC,
+                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join(temp,
+                       on=(temp.TwoMASS_PSC_ID == TwoMassPSC.designation))
+                 .switch(Catalog)
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        (CatalogToTIC_v8.best >> True) |
+                        CatalogToTIC_v8.best.is_null(),
+                        Catalog.version_id == version_id))
+
             len_table = len(self._table)
+
             len_gaia_dr2 = len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
 
             len_legacysurvey_dr8 =\
@@ -178,11 +213,14 @@ def get_file_carton(
 
             len_panstarrs_dr2 = len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
 
+            len_twomass_psc = len(self._table[self._table['TwoMASS_PSC_ID'] > 0])
+
             # There must be exactly one non-zero id per row else raise an exception.
-            if ((len_gaia_dr2 + len_legacysurvey_dr8 + len_panstarrs_dr2) != len_table):
+            if ((len_gaia_dr2 + len_legacysurvey_dr8 +
+                 len_panstarrs_dr2 + len_twomass_psc) != len_table):
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(len_gaia_dr2 + len_legacysurvey_dr8 + ' +
-                                           'len_panstarrs_dr2) != len_table')
+                                           'len_panstarrs_dr2 + len_twomass_psc) != len_table')
 
             if (len_gaia_dr2 > 0):
                 is_gaia_dr2 = True
@@ -198,6 +236,11 @@ def get_file_carton(
                 is_panstarrs_dr2 = True
             else:
                 is_panstarrs_dr2 = False
+
+            if (len_twomass_psc > 0):
+                is_twomass_psc = True
+            else:
+                is_twomass_psc = False
 
             # We consider all 8 cases.
             if((is_gaia_dr2 is True) and
