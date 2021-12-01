@@ -36,10 +36,6 @@ def get_file_carton(filename):
     """
 
     class FileCarton(BaseCarton):
-        # historical
-        # name = carton_name
-        # category = carton_category
-        # program = carton_program
 
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
