@@ -268,9 +268,9 @@ def get_file_carton(filename):
                 else:
                     query = query | query_twomass_psc
 
-            # At least one of the four boolean variables above
-            # must be True, so we should not get here.
             if(query is None):
+                # At least one of the four boolean variables above
+                # must be True, so we should not get here.
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
