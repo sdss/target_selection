@@ -55,14 +55,50 @@ def get_file_carton(filename):
                                            filename +
                                            'contains more than one cartonname')
 
+            # The valid_program list is from the output of the below command.
+            # select distinct(program) from targetdb.carton order by program;
+            valid_program = [
+                'bhm_aqmes',
+                'bhm_csc',
+                'bhm_filler',
+                'bhm_rm',
+                'bhm_spiders',
+                'commissioning',
+                'mwm_cb',
+                'mwm_dust',
+                'mwm_erosita',
+                'mwm_filler',
+                'mwm_galactic',
+                'mwm_gg',
+                'mwm_halo',
+                'mwm_legacy',
+                'mwm_ob',
+                'mwm_planet',
+                'mwm_rv',
+                'mwm_snc',
+                'mwm_tess_ob',
+                'mwm_tessrgb',
+                'mwm_wd',
+                'mwm_yso',
+                'open_fiber',
+                'ops',
+                'ops_sky',
+                'ops_std',
+                'SKY']
+
+            # The valid_category list is from CartonImportTable.pdf
+            valid_category = ['science', 'standard_apogee',
+                              'standard_boss', 'guide',
+                              'sky_boss', 'sky_apogee', 'standard',
+                              'sky', 'veto location boss',
+                              'veto_location_apogee']
+
+            # The valid_category list is from CartonImportTable.pdf
+            valid_mapper = ['', 'MWM', 'BHM']
+
             unique_category = numpy.unique(self._table['category'])
             if len(unique_category) == 1:
                 self.category = unique_category[0].lower()
-                valid_category = ['science', 'standard_apogee',
-                                  'standard_boss', 'guide',
-                                  'sky_boss', 'sky_apogee', 'standard',
-                                  'sky', 'veto location boss',
-                                  'veto_location_apogee']
                 if (self.category not in valid_category):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
@@ -76,11 +112,11 @@ def get_file_carton(filename):
             unique_program = numpy.unique(self._table['program'])
             if len(unique_program) == 1:
                 self.program = unique_program[0].lower()
-                if (self.program not in ['open_fiber', 'commissioning']):
+                if (self.program not in valid_program):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
                                                'contains invalid program = ' +
-                                               self.mapper)
+                                               self.program)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
@@ -91,7 +127,7 @@ def get_file_carton(filename):
                 # We do not use lower() for mapper because
                 # allowed values for mapper are '' or 'MWM' or 'BHM'.
                 self.mapper = unique_mapper[0]
-                if (self.mapper not in ['', 'MWM', 'BHM']):
+                if (self.mapper not in valid_mapper):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
                                                'contains invalid mapper = ' +
