@@ -242,58 +242,40 @@ def get_file_carton(filename):
             else:
                 is_twomass_psc = False
 
-            # We consider all 8 cases.
-            if((is_gaia_dr2 is True) and
-               (is_legacysurvey_dr8 is True) and
-               (is_panstarrs_dr2 is True)):
-                # query is a SQL union of the three queries on the RHS
-                query = query_gaia_dr2 | query_legacysurvey_dr8 | query_panstarrs_dr2
+            query = None
 
-            elif((is_gaia_dr2 is True) and
-                 (is_legacysurvey_dr8 is True) and
-                 (is_panstarrs_dr2 is False)):
-                query = query_gaia_dr2 | query_legacysurvey_dr8
+            if(is_gaia_dr2 is True):
+                if(query is None):
+                    query = query_gaia_dr2
+                else:
+                    query = query | query_gaia_dr2
 
-            elif((is_gaia_dr2 is True) and
-                 (is_legacysurvey_dr8 is False) and
-                 (is_panstarrs_dr2 is True)):
-                query = query_gaia_dr2 | query_panstarrs_dr2
+            if(is_legacysurvey_dr8 is True):
+                if(query is None):
+                    query = query_legacysurvey_dr8
+                else:
+                    query = query | query_legacysurvey_dr8
 
-            elif((is_gaia_dr2 is True) and
-                 (is_legacysurvey_dr8 is False) and
-                 (is_panstarrs_dr2 is False)):
-                query = query_gaia_dr2
+            if(is_panstarrs_dr2 is True):
+                if(query is None):
+                    query = query_panstarrs_dr2
+                else:
+                    query = query | query_panstarrs_dr2
 
-            elif((is_gaia_dr2 is False) and
-                 (is_legacysurvey_dr8 is True) and
-                 (is_panstarrs_dr2 is True)):
-                query = query_legacysurvey_dr8 | query_panstarrs_dr2
+            if(is_twomass_psc is True):
+                if(query is None):
+                    query = query_twomass_psc
+                else:
+                    query = query | query_twomass_psc
 
-            elif((is_gaia_dr2 is False) and
-                 (is_legacysurvey_dr8 is True) and
-                 (is_panstarrs_dr2 is False)):
-                query = query_legacysurvey_dr8
-
-            elif((is_gaia_dr2 is False) and
-                 (is_legacysurvey_dr8 is False) and
-                 (is_panstarrs_dr2 is True)):
-                query = query_panstarrs_dr2
-
-            elif((is_gaia_dr2 is False) and
-                 (is_legacysurvey_dr8 is False) and
-                 (is_panstarrs_dr2 is False)):
-                # At least one of the three boolean variables above
-                # must be True, so we should not get here.
-                query = None
+            # At least one of the four boolean variables above
+            # must be True, so we should not get here.
+            if(query is None):
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
-                                           '(is_panstarrs_dr2 is False)')
-
-            else:
-                # We will not get here since we have
-                # considered all 8 cases above.
-                query = None
+                                           '(is_panstarrs_dr2 is False) and ' +
+                                           '(is_twomass_psc is False)')
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
