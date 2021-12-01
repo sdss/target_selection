@@ -76,7 +76,7 @@ def get_file_carton(filename):
                 'mwm_planet',
                 'mwm_rv',
                 'mwm_snc',
-                'mwm_tess_ob',
+                'mwm_tessob',
                 'mwm_tessrgb',
                 'mwm_wd',
                 'mwm_yso',

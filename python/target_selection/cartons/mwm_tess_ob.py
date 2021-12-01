@@ -83,7 +83,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
     category = 'science'
     instrument = None  # assigned in query
     cadence = None  # assigned in query
-    program = 'mwm_tess_ob'
+    program = 'mwm_tessob'
     mapper = 'MWM'
     priority = 2200  # from the table in the V0.5 carton wiki page
 
