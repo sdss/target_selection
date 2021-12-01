@@ -36,10 +36,6 @@ def get_file_carton(filename):
     """
 
     class FileCarton(BaseCarton):
-        # historical
-        # name = carton_name
-        # category = carton_category
-        # program = carton_program
 
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
@@ -150,7 +146,7 @@ def get_file_carton(filename):
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_PSC_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_ID")')
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
             inertial_case = peewee.Case(
@@ -163,7 +159,7 @@ def get_file_carton(filename):
                                     temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
                                     temp.LegacySurvey_DR8_ID.alias('ls_id'),
                                     temp.PanSTARRS_DR2_ID.alias('catid_objid'),
-                                    temp.TwoMASS_PSC_ID.alias('designation'),
+                                    temp.TwoMASS_ID.alias('designation'),
                                     Catalog.ra,
                                     Catalog.dec,
                                     temp.delta_ra.cast('double precision'),
@@ -221,7 +217,7 @@ def get_file_carton(filename):
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(temp,
-                       on=(temp.TwoMASS_PSC_ID == TwoMassPSC.designation))
+                       on=(temp.TwoMASS_ID == TwoMassPSC.designation))
                  .switch(Catalog)
                  .where(CatalogToTIC_v8.version_id == version_id,
                         (CatalogToTIC_v8.best >> True) |
@@ -230,21 +226,30 @@ def get_file_carton(filename):
 
             len_table = len(self._table)
 
-            len_gaia_dr2 = len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
+            len_gaia_dr2 =\
+                len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
 
             len_legacysurvey_dr8 =\
                 len(self._table[self._table['LegacySurvey_DR8_ID'] > 0])
 
-            len_panstarrs_dr2 = len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
+            len_panstarrs_dr2 =\
+                len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
 
-            len_twomass_psc = len(self._table[self._table['TwoMASS_PSC_ID'] > 0])
+            # TwoMass_ID corresponds to the designation column of
+            # the table catalogdb.twomass_psc.
+            # Since the designation column is a text column, below
+            # we are comparing it to the string 'NA' and not the integer 0.
+            #
+            len_twomass_psc =\
+                len(self._table[self._table['TwoMASS_ID'] != 'NA'])
 
             # There must be exactly one non-zero id per row else raise an exception.
             if ((len_gaia_dr2 + len_legacysurvey_dr8 +
                  len_panstarrs_dr2 + len_twomass_psc) != len_table):
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(len_gaia_dr2 + len_legacysurvey_dr8 + ' +
-                                           'len_panstarrs_dr2 + len_twomass_psc) != len_table')
+                                           'len_panstarrs_dr2 + len_twomass_psc) != ' +
+                                           'len_table')
 
             if (len_gaia_dr2 > 0):
                 is_gaia_dr2 = True
