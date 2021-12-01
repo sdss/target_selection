@@ -62,6 +62,16 @@ def get_file_carton(filename):
             unique_category = numpy.unique(self._table['category'])
             if len(unique_category) == 1:
                 self.category = unique_category[0].lower()
+                valid_category = ['science', 'standard_apogee',
+                                  'standard_boss', 'guide',
+                                  'sky_boss', 'sky_apogee', 'standard',
+                                  'sky', 'veto location boss',
+                                  'veto_location_apogee']
+                if (self.category not in valid_category):
+                    raise TargetSelectionError('error in get_file_carton(): ' +
+                                               filename +
+                                               'contains invalid category = ' +
+                                               self.category)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
@@ -70,6 +80,11 @@ def get_file_carton(filename):
             unique_program = numpy.unique(self._table['program'])
             if len(unique_program) == 1:
                 self.program = unique_program[0].lower()
+                if (self.program not in ['open_fiber', 'commissioning']):
+                    raise TargetSelectionError('error in get_file_carton(): ' +
+                                               filename +
+                                               'contains invalid program = ' +
+                                               self.mapper)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
@@ -77,7 +92,16 @@ def get_file_carton(filename):
 
             unique_mapper = numpy.unique(self._table['mapper'])
             if len(unique_mapper) == 1:
-                self.mapper = unique_mapper[0].lower()
+                # We do not use lower() for mapper because
+                # allowed values for mapper are '' or 'MWM' or 'BHM'.
+                self.mapper = unique_mapper[0]
+                if (self.mapper not in ['', 'MWM', 'BHM']):
+                    raise TargetSelectionError('error in get_file_carton(): ' +
+                                               filename +
+                                               'contains invalid mapper = ' +
+                                               self.mapper)
+                if(self.mapper == ''):
+                    self.mapper = None
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
