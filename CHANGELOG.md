@@ -4,7 +4,14 @@
 
 ### Fixed
 
-##  0.3.8 - November 23, 2021
+##  0.3.10 - December 6, 2021
+
+### Fixed
+
+* Update target_selection.yml for the below carton.
+mwm_tess_ob
+
+##  0.3.9 - November 23, 2021
 
 ### Fixed
 
