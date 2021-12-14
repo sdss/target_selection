@@ -10,6 +10,8 @@
 import peewee
 from peewee import Model, fn
 
+from sdssdb.peewee.sdss5db import database
+
 from sdssdb.peewee.sdss5db.catalogdb import CatalogToSkies_v2, Skies_v2
 
 from target_selection.cartons.base import BaseCarton
@@ -227,7 +229,7 @@ WHERE selected_gaia is true
 
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
-        
+
         # Above comment uses the name sandbox.temp_ops_sky_boss_good.
         # However, sandbox.temp_ops_sky_boss_good is produced by the
         # ops_sky_boss_good carton.
@@ -247,14 +249,14 @@ WHERE selected_gaia is true
             "sk.valid_gaia = true and " +
             "sk.valid_tmass = true and " +
             "sk.valid_tycho2 = true and " +
-            "sk.valid_tmass_xsc = true;"
+            "sk.valid_tmass_xsc = true ;")
 
         cursor = self.database.execute_sql(
             "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
             "INTO sandbox.temp_ops_sky_boss_good_missing_pix " +
             "FROM (SELECT generate_series(0,12287) AS tile_32) AS p " +
             "LEFT OUTER JOIN " +
-            "(SELECT tile_32,count(*) AS nsky " + "
+            "(SELECT tile_32,count(*) AS nsky " +
             "FROM sandbox.temp_ops_sky_boss_good2 GROUP BY tile_32) AS b " +
             "ON p.tile_32 = b.tile_32 " +
             "WHERE COALESCE(b.nsky,0) < 1000 ;")
@@ -265,7 +267,7 @@ WHERE selected_gaia is true
         cursor = self.database.execute_sql(
             "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;")
 
-        cursor = self.database.execute_sql(
+        cursor = self.database.execute_sql(  # noqa: F841
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;")
 
 # Below SQL query is implemented as a peewee query after this comment.
@@ -296,10 +298,10 @@ WHERE selected_gaia is true
             .join(TempTableFallbackCarton,
                   on=(Skies_v2.tile_32 == TempTableFallbackCarton.tile_32))
             .where(Skies_v2.selected_gaia >> True,
-                   fn.coalesce(sep_neighbour_gaia,1e30) > 3.0,
-                   fn.coalesce(sep_neighbour_ps1dr2,1e30) > 3.0,
-                   fn.coalesce(sep_neighbour_tycho2,1e30) > 15.0,
-                   fn.coealesce(sep_neighbour_tmass,1e30) > 5.0)
+                   fn.coalesce(Skies_v2.sep_neighbour_gaia, 1e30) > 3.0,
+                   fn.coalesce(Skies_v2.sep_neighbour_ps1dr2, 1e30) > 3.0,
+                   fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
+                   fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0)
             .where(CatalogToSkies_v2.version_id == version_id,
                    CatalogToSkies_v2.best >> True)
             .where(Skies_v2.valid_gaia >> True,
