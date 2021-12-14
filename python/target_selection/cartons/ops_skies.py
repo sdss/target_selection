@@ -215,8 +215,30 @@ WHERE selected_gaia is true
     '''
     def build_query(self, version_id, query_region=None):
 
+        pars = self.parameters
+
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
+        
+        # Above comment uses the name sandbox.temp_ops_sky_boss_good.
+        # However, sandbox.temp_ops_sky_boss_good is produced by the
+        # ops_sky_boss_good carton.
+        # Hence, below select we are using the name sandbox.temp_ops_sky_boss_good2.
+        cursor = self.database.execute_sql(
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good2 ;")
+
+        cursor = self.database.execute_sql(
+            "select ct.catalogid, " +
+            "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
+            "into sandbox.temp_ops_sky_boss_good2 " +
+            "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct " +
+            "where sk.sep_neighbour_gaia > " + str(pars['min_sep_gaia']) + " and " +
+            "ct.version_id = " + str(version_id) + " and " +
+            "ct.best = true and " +
+            "sk.valid_gaia = true and " +
+            "sk.valid_tmass = true and " +
+            "sk.valid_tycho2 = true and " +
+            "sk.valid_tmass_xsc = true;"
 
         cursor = self.database.execute_sql(
             "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
@@ -224,7 +246,7 @@ WHERE selected_gaia is true
             "FROM (SELECT generate_series(0,12287) AS tile_32) AS p " +
             "LEFT OUTER JOIN " +
             "(SELECT tile_32,count(*) AS nsky " + "
-            "FROM sandbox.temp_ops_sky_boss_good GROUP BY tile_32) AS b " +
+            "FROM sandbox.temp_ops_sky_boss_good2 GROUP BY tile_32) AS b " +
             "ON p.tile_32 = b.tile_32 " +
             "WHERE COALESCE(b.nsky,0) < 1000 ;")
 
