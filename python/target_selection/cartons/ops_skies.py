@@ -152,7 +152,7 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
 
 
 class TempTableFallbackCarton(Model):
-    """ The peewee model class TempTableFallbackCartonis used below in the
+    """ The peewee model class TempTableFallbackCarton is used below in the
         carton class OPS_Sky_Boss_Fallback_Carton.
     """
 
@@ -316,6 +316,8 @@ WHERE selected_gaia is true
                    fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
                    fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0)
         )
+
+        print(query.sql())
 
         if query_region:
             query = (query
