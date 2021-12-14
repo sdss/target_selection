@@ -286,7 +286,17 @@ WHERE selected_gaia is true
 #            "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
 
         # The peewee model TempTableFallbackCarton corresponds to
-        # the table sandbox.temp_ops_sky_boss_good_missing_pix
+        # the table sandbox.temp_ops_sky_boss_good_missing_pix.
+        #
+        # The below conditions are already applied above in the query used to make
+        # sandbox.temp_ops_sky_boss_good2. Hence, we do not apply them to the
+        # peewee query below.
+        #             .where(CatalogToSkies_v2.version_id == version_id,
+        #                    CatalogToSkies_v2.best >> True)
+        #             .where(Skies_v2.valid_gaia >> True,
+        #                    Skies_v2.valid_tmass >> True,
+        #                    Skies_v2.valid_tycho2 >> True,
+        #                    Skies_v2.valid_tmass_xsc >> True)
 
         query = (
             Skies_v2
@@ -304,12 +314,6 @@ WHERE selected_gaia is true
                    fn.coalesce(Skies_v2.sep_neighbour_ps1dr2, 1e30) > 3.0,
                    fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
                    fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0)
-            .where(CatalogToSkies_v2.version_id == version_id,
-                   CatalogToSkies_v2.best >> True)
-            .where(Skies_v2.valid_gaia >> True,
-                   Skies_v2.valid_tmass >> True,
-                   Skies_v2.valid_tycho2 >> True,
-                   Skies_v2.valid_tmass_xsc >> True)
         )
 
         if query_region:
