@@ -150,27 +150,27 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
         return query
 
 
-# class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
-#    """Unconstrained skies for the BOSS spectrograph.
-#       Use these skies when there are not enough OPS_Sky_Boss_Best_Carton,
-#       or OPS_Sky_Boss_Good_Carton skies available
-#
-#    Definition:
-#        Select tile_32 locations that have few best/good skies available
-#        Take all sky locations in those pixels
-#
-#    """
-#
-#    name = 'ops_sky_boss_fallback'
-#    cadence = None
-#    category = 'sky_boss'
-#    program = 'ops_sky'
-#    mapper = None
-#    instrument = 'BOSS'
-#    inertial = True
-#    priority = 5002
-#
-#    load_magnitudes = False
+class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
+    """Unconstrained skies for the BOSS spectrograph.
+       Use these skies when there are not enough OPS_Sky_Boss_Best_Carton,
+       or OPS_Sky_Boss_Good_Carton skies available
+
+    Definition:
+       Select tile_32 locations that have few best/good skies available
+       Take all sky locations in those pixels
+
+   """
+
+    name = 'ops_sky_boss_fallback'
+    cadence = None
+    category = 'sky_boss'
+    program = 'ops_sky'
+    mapper = None
+    instrument = 'BOSS'
+    inertial = True
+    priority = 5002
+
+    load_magnitudes = False
 
     '''
     Here is the SQL to generate the sort of query I want -
@@ -213,6 +213,70 @@ WHERE selected_gaia is true
   AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;
 
     '''
+    def build_query(self, version_id, query_region=None):
+
+        cursor = self.database.execute_sql(
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
+
+        cursor = self.database.execute_sql(
+            "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
+            "INTO sandbox.temp_ops_sky_boss_good_missing_pix " +
+            "FROM (SELECT generate_series(0,12287) AS tile_32) AS p " +
+            "LEFT OUTER JOIN " +
+            "(SELECT tile_32,count(*) AS nsky " + "
+            "FROM sandbox.temp_ops_sky_boss_good GROUP BY tile_32) AS b " +
+            "ON p.tile_32 = b.tile_32 " +
+            "WHERE COALESCE(b.nsky,0) < 1000 ;")
+
+        cursor = self.database.execute_sql(
+            "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix (tile_32);")
+
+        cursor = self.database.execute_sql(
+            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;")
+
+        cursor = self.database.execute_sql(
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;")
+
+       cursor = self.database.execute_sql(
+           "SELECT p.nsky,s.*" +
+           "INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies " +
+           "FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p " +
+           "JOIN skies_v2 AS s " +
+           "ON p.tile_32 = s.tile_32 " +
+           "WHERE selected_gaia is true " +
+           "AND COALESCE(sep_neighbour_gaia,1e30) > 3.0 " +
+           "AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0 " +
+           "AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0 " +
+           "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
+
+        query = (
+            Skies_v2
+            .select(
+                CatalogToSkies_v2.catalogid,
+                Skies_v2.ra,
+                Skies_v2.dec,
+                Skies_v2.pix_32768,
+                Skies_v2.tile_32,
+            )
+            .join(CatalogToSkies_v2)
+            .where(Skies_v2.sep_neighbour_gaia > pars['min_sep_gaia'])
+            .where(CatalogToSkies_v2.version_id == version_id,
+                   CatalogToSkies_v2.best >> True)
+            .where(Skies_v2.valid_gaia >> True,
+                   Skies_v2.valid_tmass >> True,
+                   Skies_v2.valid_tycho2 >> True,
+                   Skies_v2.valid_tmass_xsc >> True)
+        )
+
+        if query_region:
+            query = (query
+                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
+                                                       Skies_v2.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
 
 
 class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
