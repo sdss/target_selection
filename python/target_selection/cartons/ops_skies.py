@@ -11,7 +11,6 @@ import peewee
 from peewee import Model, fn
 
 from sdssdb.peewee.sdss5db import database
-
 from sdssdb.peewee.sdss5db.catalogdb import CatalogToSkies_v2, Skies_v2
 
 from target_selection.cartons.base import BaseCarton
@@ -153,6 +152,9 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
 
 
 class TempTableFallbackCarton(Model):
+    """ The peewee model class TempTableFallbackCartonis used below in the
+        carton class OPS_Sky_Boss_Fallback_Carton.
+    """
 
     class Meta:
         schema = 'sandbox'
