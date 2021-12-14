@@ -317,8 +317,6 @@ WHERE selected_gaia is true
                    fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0)
         )
 
-        print(query.sql())
-
         if query_region:
             query = (query
                      .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
