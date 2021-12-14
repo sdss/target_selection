@@ -8,7 +8,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
-from peewee import fn
+from peewee import Model, fn
 
 from sdssdb.peewee.sdss5db.catalogdb import CatalogToSkies_v2, Skies_v2
 
@@ -150,6 +150,14 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
         return query
 
 
+class TempTableFallbackCarton(Model):
+
+    class Meta:
+        schema = 'sandbox'
+        database = database
+        table_name = 'temp_ops_sky_boss_good_missing_pix'
+
+
 class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
     """Unconstrained skies for the BOSS spectrograph.
        Use these skies when there are not enough OPS_Sky_Boss_Best_Carton,
@@ -227,6 +235,7 @@ WHERE selected_gaia is true
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good2 ;")
 
+        # This query is from the ops_sky_boss_good carton.
         cursor = self.database.execute_sql(
             "select ct.catalogid, " +
             "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
@@ -259,29 +268,38 @@ WHERE selected_gaia is true
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;")
 
-       cursor = self.database.execute_sql(
-           "SELECT p.nsky,s.*" +
-           "INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies " +
-           "FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p " +
-           "JOIN skies_v2 AS s " +
-           "ON p.tile_32 = s.tile_32 " +
-           "WHERE selected_gaia is true " +
-           "AND COALESCE(sep_neighbour_gaia,1e30) > 3.0 " +
-           "AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0 " +
-           "AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0 " +
-           "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
+# Below SQL query is implemented as a peewee query after this comment.
+#        cursor = self.database.execute_sql(
+#            "SELECT p.nsky,s.*" +
+#            "INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies " +
+#            "FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p " +
+#            "JOIN skies_v2 AS s " +
+#            "ON p.tile_32 = s.tile_32 " +
+#            "WHERE selected_gaia is true " +
+#            "AND COALESCE(sep_neighbour_gaia,1e30) > 3.0 " +
+#            "AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0 " +
+#            "AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0 " +
+#            "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
+
+        # The peewee model TempTableFallbackCarton corresponds to
+        # the table sandbox.temp_ops_sky_boss_good_missing_pix
 
         query = (
             Skies_v2
             .select(
-                CatalogToSkies_v2.catalogid,
+                TempTableFallbackCarton.nsky,
                 Skies_v2.ra,
                 Skies_v2.dec,
                 Skies_v2.pix_32768,
                 Skies_v2.tile_32,
             )
-            .join(CatalogToSkies_v2)
-            .where(Skies_v2.sep_neighbour_gaia > pars['min_sep_gaia'])
+            .join(TempTableFallbackCarton,
+                  on=(Skies_v2.tile_32 == TempTableFallbackCarton.tile_32))
+            .where(Skies_v2.selected_gaia >> True,
+                   fn.coalesce(sep_neighbour_gaia,1e30) > 3.0,
+                   fn.coalesce(sep_neighbour_ps1dr2,1e30) > 3.0,
+                   fn.coalesce(sep_neighbour_tycho2,1e30) > 15.0,
+                   fn.coealesce(sep_neighbour_tmass,1e30) > 5.0)
             .where(CatalogToSkies_v2.version_id == version_id,
                    CatalogToSkies_v2.best >> True)
             .where(Skies_v2.valid_gaia >> True,
