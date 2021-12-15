@@ -228,6 +228,10 @@ WHERE selected_gaia is true
     def build_query(self, version_id, query_region=None):
 
         pars = self.parameters
+        
+        # ensure that input parameters for SQL query are the proper types
+        local_min_sep_gaia = float(pars['min_sep_gaia'])
+        local_version_id = int(version_id)
 
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
@@ -245,8 +249,8 @@ WHERE selected_gaia is true
             "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
             "into sandbox.temp_ops_sky_boss_good2 " +
             "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct " +
-            "where sk.sep_neighbour_gaia > " + str(pars['min_sep_gaia']) + " and " +
-            "ct.version_id = " + str(version_id) + " and " +
+            "where sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
+            "ct.version_id = " + str(local_version_id) + " and " +
             "ct.best = true and " +
             "sk.valid_gaia = true and " +
             "sk.valid_tmass = true and " +
