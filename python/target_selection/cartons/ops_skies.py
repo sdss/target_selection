@@ -245,7 +245,7 @@ WHERE selected_gaia is true
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good2 ;")
 
-        # This query from the ops_sky_boss_good carton.
+        # This query is from the ops_sky_boss_good carton.
         cursor = self.database.execute_sql(
             "select ct.catalogid, " +
             "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
