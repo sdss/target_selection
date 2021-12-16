@@ -250,7 +250,7 @@ WHERE selected_gaia is true
             "into sandbox.temp_ops_sky_boss_good2 " +
             "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct " +
             "where sk.tile_32 = ct.tile_32 and " +
-            "where sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
+            "sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
             "ct.version_id = " + str(local_version_id) + " and " +
             "ct.best = true and " +
             "sk.valid_gaia = true and " +
