@@ -255,6 +255,7 @@ WHERE selected_gaia is true
             "sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
             "ct.version_id = " + str(local_version_id) + " and " +
             "ct.best = true and " +
+            "sk.valid_gaia = true and " +
             "sk.valid_tmass = true and " +
             "sk.valid_tycho2 = true and " +
             "sk.valid_tmass_xsc = true ;")
