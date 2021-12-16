@@ -155,6 +155,8 @@ class TempTableFallbackCarton(Model):
     """ The peewee model class TempTableFallbackCarton is used below in the
         carton class OPS_Sky_Boss_Fallback_Carton.
     """
+    tile_32 = IntegerField()
+    nsky = BigIntegerField()
 
     class Meta:
         schema = 'sandbox'
