@@ -155,8 +155,8 @@ class TempTableFallbackCarton(Model):
     """ The peewee model class TempTableFallbackCarton is used below in the
         carton class OPS_Sky_Boss_Fallback_Carton.
     """
-    tile_32 = IntegerField()
-    nsky = BigIntegerField()
+    tile_32 = peewee.IntegerField()
+    nsky = peewee.BigIntegerField()
 
     class Meta:
         schema = 'sandbox'
@@ -230,7 +230,7 @@ WHERE selected_gaia is true
     def build_query(self, version_id, query_region=None):
 
         pars = self.parameters
-        
+
         # ensure that input parameters for SQL query are the proper types
         local_min_sep_gaia = float(pars['min_sep_gaia'])
         local_version_id = int(version_id)
