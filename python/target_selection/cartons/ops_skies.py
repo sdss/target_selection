@@ -310,7 +310,6 @@ WHERE selected_gaia is true
                   on=(CatalogToSkies_v2.target_id == Skies_v2.pix_32768))
             .join(TempTableFallbackCarton,
                   on=(Skies_v2.tile_32 == TempTableFallbackCarton.tile_32))
-            .where(Skies_v2.sep_neighbour_gaia > pars['min_sep_gaia'])
             .where(CatalogToSkies_v2.version_id == version_id,
                    CatalogToSkies_v2.best >> True)
             .where(Skies_v2.selected_gaia >> True,
