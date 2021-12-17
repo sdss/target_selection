@@ -313,8 +313,7 @@ WHERE selected_gaia is true
             .where(Skies_v2.sep_neighbour_gaia > pars['min_sep_gaia'])
             .where(CatalogToSkies_v2.version_id == version_id,
                    CatalogToSkies_v2.best >> True)
-            .where(Skies_v2.valid_gaia >> True,
-                   Skies_v2.selected_gaia >> True,
+            .where(Skies_v2.selected_gaia >> True,
                    fn.coalesce(Skies_v2.sep_neighbour_gaia, 1e30) > 3.0,
                    fn.coalesce(Skies_v2.sep_neighbour_ps1dr2, 1e30) > 3.0,
                    fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
