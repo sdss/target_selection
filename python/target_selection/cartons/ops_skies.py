@@ -231,9 +231,14 @@ WHERE selected_gaia is true
 
         pars = self.parameters
 
-        # ensure that input parameters for SQL query are the proper types
+        # The below lines ensure that the
+        # input parameters for SQL query are the proper types.
         local_min_sep_gaia = float(pars['min_sep_gaia'])
         local_version_id = int(version_id)
+
+        # We have put commit() after the 'drop table' and 'select into' commands
+        # to ensure that the previous command is committed
+        # before the next command starts.
 
         # Above comment uses the name sandbox.temp_ops_sky_boss_good_missing_pix.
         # However, below we are using the name
