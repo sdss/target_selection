@@ -16,16 +16,6 @@ from sdssdb.peewee.sdss5db.catalogdb import CatalogToSkies_v2, Skies_v2
 from target_selection.cartons.base import BaseCarton
 
 
-# ############################################
-# ############################################
-# ############################################
-# ############################################
-# This module provides the following cartons in v0.5:
-#  *  ops_sky_boss_best
-#  *  ops_sky_boss_good
-#  *  #### ops_sky_boss_fallback   <- not sure how to implement this
-
-
 class OPS_Sky_Boss_Best_Carton(BaseCarton):
     """Top quality skies for the BOSS spectrograph.
 
@@ -187,9 +177,7 @@ class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
     load_magnitudes = False
 
     '''
-    Here is the SQL to generate the sort of query I want -
-       However I have no idea how to implement this in peewee
-       within the BaseCarton framework
+    Here is the SQL to generate the query.
 
 # Algorithm:
 # 1) First find all nside=32 pixels with fewer than 1000 skies/pix in ops_sky_boss_good
@@ -232,7 +220,7 @@ WHERE selected_gaia is true
         pars = self.parameters
 
         # The below lines ensure that the
-        # input parameters for SQL query are the proper types.
+        # input parameters for the SQL query have the proper types.
         local_min_sep_gaia = float(pars['min_sep_gaia'])
         local_version_id = int(version_id)
 
