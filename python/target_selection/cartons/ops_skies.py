@@ -161,7 +161,7 @@ class TempTableFallbackCarton(Model):
     class Meta:
         schema = 'sandbox'
         database = database
-        table_name = 'temp_ops_sky_boss_good_missing_pix'
+        table_name = 'temp_ops_sky_boss_good_missing_pix_xyz'
 
 
 class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
@@ -235,22 +235,25 @@ WHERE selected_gaia is true
         local_min_sep_gaia = float(pars['min_sep_gaia'])
         local_version_id = int(version_id)
 
+        # Above comment uses the name sandbox.temp_ops_sky_boss_good_missing_pix.
+        # However, below we are using the name
+        # sandbox.temp_ops_sky_boss_good_missing_pix_xyz.
         cursor = self.database.execute_sql(
-            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_xyz ;")
 
         # Above comment uses the name sandbox.temp_ops_sky_boss_good.
         # However, sandbox.temp_ops_sky_boss_good is produced by the
         # ops_sky_boss_good carton.
-        # Hence, below we are using the name sandbox.temp_ops_sky_boss_good2.
+        # Hence, below we are using the name sandbox.temp_ops_sky_boss_good_xyz.
         cursor = self.database.execute_sql(
-            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good2 ;")
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_xyz ;")
         self.database.commit()
 
         # This query is from the ops_sky_boss_good carton.
         cursor = self.database.execute_sql(
             "select ct.catalogid, " +
             "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
-            "into sandbox.temp_ops_sky_boss_good2 " +
+            "into sandbox.temp_ops_sky_boss_good_xyz " +
             "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct " +
             "where sk.pix_32768 = ct.target_id and " +
             "sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
@@ -264,19 +267,19 @@ WHERE selected_gaia is true
 
         cursor = self.database.execute_sql(
             "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
-            "INTO sandbox.temp_ops_sky_boss_good_missing_pix " +
+            "INTO sandbox.temp_ops_sky_boss_good_missing_pix_xyz " +
             "FROM (SELECT generate_series(0,12287) AS tile_32) AS p " +
             "LEFT OUTER JOIN " +
             "(SELECT tile_32,count(*) AS nsky " +
-            "FROM sandbox.temp_ops_sky_boss_good2 GROUP BY tile_32) AS b " +
+            "FROM sandbox.temp_ops_sky_boss_good_xyz GROUP BY tile_32) AS b " +
             "ON p.tile_32 = b.tile_32 " +
             "WHERE COALESCE(b.nsky,0) < 1000 ;")
 
         cursor = self.database.execute_sql(
-            "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix (tile_32);")
+            "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix_xyz (tile_32);")
 
         cursor = self.database.execute_sql(  # noqa: F841
-            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;")
+            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix_xyz;")
         self.database.commit()
 
 # We do not use the table
@@ -298,7 +301,7 @@ WHERE selected_gaia is true
 #            "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
 
         # The peewee model TempTableFallbackCarton corresponds to
-        # the table sandbox.temp_ops_sky_boss_good_missing_pix.
+        # the table sandbox.temp_ops_sky_boss_good_missing_pix_xyz.
         #
 
         query = (
