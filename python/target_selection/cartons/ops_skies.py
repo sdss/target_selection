@@ -237,15 +237,14 @@ WHERE selected_gaia is true
 
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix ;")
-        cursor.commit()
 
         # Above comment uses the name sandbox.temp_ops_sky_boss_good.
         # However, sandbox.temp_ops_sky_boss_good is produced by the
         # ops_sky_boss_good carton.
-        # Hence, below select we are using the name sandbox.temp_ops_sky_boss_good2.
+        # Hence, below we are using the name sandbox.temp_ops_sky_boss_good2.
         cursor = self.database.execute_sql(
             "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good2 ;")
-        cursor.commit()
+        self.database.commit()
 
         # This query is from the ops_sky_boss_good carton.
         cursor = self.database.execute_sql(
@@ -261,7 +260,7 @@ WHERE selected_gaia is true
             "sk.valid_tmass = true and " +
             "sk.valid_tycho2 = true and " +
             "sk.valid_tmass_xsc = true ;")
-        cursor.commit()
+        self.database.commit()
 
         cursor = self.database.execute_sql(
             "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
@@ -272,17 +271,19 @@ WHERE selected_gaia is true
             "FROM sandbox.temp_ops_sky_boss_good2 GROUP BY tile_32) AS b " +
             "ON p.tile_32 = b.tile_32 " +
             "WHERE COALESCE(b.nsky,0) < 1000 ;")
-        cursor.commit()
 
         cursor = self.database.execute_sql(
             "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix (tile_32);")
-        cursor.commit()
-        cursor = self.database.execute_sql(
-            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;")
-        cursor.commit()
+
         cursor = self.database.execute_sql(  # noqa: F841
-            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;")
-        cursor.commit()
+            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix;")
+        self.database.commit()
+
+# We do not use the table
+# sandbox.temp_ops_sky_boss_good_missing_pix_skies in this carton.
+# Hence, we do not issue the below drop table from the example SQL code above
+#           DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;
+#
 # Below SQL query is implemented as a peewee query after this comment.
 #        cursor = self.database.execute_sql(
 #            "SELECT p.nsky,s.*" +
