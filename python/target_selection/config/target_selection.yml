@@ -16,7 +16,7 @@
     ops_sky_boss_fallback:
       min_sep_gaia: 5.0
     bhm_colr_galaxies_lsdr8:
-      priority: 4100
+      priority: 7100
       value: 0.0
       cadence1: 'bright_1x1'
       cadence2: 'dark_1x1'
