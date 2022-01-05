@@ -38,7 +38,9 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
     mapper = 'BHM'
     program = 'bhm_filler'
     tile = False
-    cadence = 'dark_1x1'
+    # we do not set cadence here since
+    # cadence is set later below
+    # cadence = 'dark_1x1'
     instrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
