@@ -4,6 +4,16 @@
 
 ### Fixed
 
+##  0.3.11 - January 5, 2022
+
+### New
+
+* Add the below new carton.
+ops_sky_boss_fallback
+
+* Update the priority variable in target_selection.yml for the below carton.
+bhm_colr_galaxies_lsdr8
+
 ##  0.3.10 - December 6, 2021
 
 ### Fixed
@@ -15,7 +25,7 @@ mwm_tess_ob
 
 ### Fixed
 
-* Change program of the below cartons.
+* Change program variable of the below cartons.
 ops_sky_apogee_best
 ops_sky_apogee_good
 ops_sky_boss_best
@@ -25,7 +35,7 @@ ops_sky_boss_good
 
 ### Fixed
 
-* Change category of the below cartons.
+* Change category variable of the below cartons.
 ops_sky_apogee_best
 ops_sky_apogee_good
 ops_sky_boss_best
