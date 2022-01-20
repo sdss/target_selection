@@ -4,6 +4,12 @@
 
 ### Fixed
 
+##  0.3.12 - January 20, 2022
+
+### New
+
+* New open fiber cartons FITS format.
+
 ##  0.3.11 - January 5, 2022
 
 ### New
