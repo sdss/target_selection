@@ -1,3 +1,53 @@
+'0.5.13':
+ xmatch_plan: 0.5.0
+ cartons:
+   - bhm_csc_boss_dark
+   - bhm_csc_boss_bright
+   - bhm_csc_apogee
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
+ schema: sandbox
+ magnitudes:
+   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+ parameters:
+    bhm_csc_boss_dark:
+      mag_i_min: 16.0
+      mag_i_max: 22.0
+      priority_floor: 1920
+      dpriority_has_spec: 1
+      value: 1.0
+      spec_join_radius: 1.0
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+    bhm_csc_boss_bright:
+      g_psf_mag_min: 13.5
+      r_psf_mag_min: 13.5
+      i_psf_mag_min: 13.5
+      z_psf_mag_min: 13.5
+      g_psf_mag_max: 17.0
+      r_psf_mag_max: 17.5
+      i_psf_mag_max: 18.0
+      z_psf_mag_max: 18.0
+      gaia_g_mag_min: 13.0
+      gaia_g_mag_max: 17.5
+      gaia_rp_mag_min: 13.0
+      gaia_rp_mag_max: 19.0
+      priority_floor: 2920
+      dpriority_has_spec: 1
+      value: 1.0
+      spec_join_radius: 1.0
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+    bhm_csc_apogee:
+      mag_h_min: 7.0
+      mag_h_max: 15.0
+      priority_floor: 2930
+      value: 1.0
+
 '0.5.12':
  xmatch_plan: 0.5.0
  cartons:
