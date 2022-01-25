@@ -6,36 +6,22 @@
 # @Filename: bhm_csc.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-# ## flake8: noqa
-# isort: skip_file
-
 import peewee
-from peewee import JOIN
-from peewee import fn
-from sdssdb.peewee.sdss5db.catalogdb import (
-    # Catalog,
-    BHM_CSC_v2,
-    Panstarrs1,
-    CatalogToPanstarrs1,
-    CatalogToTIC_v8,
-    TIC_v8
-)
+from peewee import JOIN, fn
 
-# imports of existing spectro catalogues
-from sdssdb.peewee.sdss5db.catalogdb import (
-    CatalogToSDSS_DR16_SpecObj,
-    SDSS_DR16_SpecObj,
-    CatalogToBHM_eFEDS_Veto,
-    BHM_eFEDS_Veto,
-    SDSSV_BOSS_SPALL,
-    SDSSV_BOSS_Conflist,
-    SDSSV_Plateholes,
-    SDSSV_Plateholes_Meta,
-)
-
-from target_selection.mag_flux import AB2Jy
+from sdssdb.peewee.sdss5db.catalogdb import (SDSSV_BOSS_SPALL,
+                                             BHM_CSC_v2, BHM_eFEDS_Veto,
+                                             CatalogToBHM_eFEDS_Veto,
+                                             CatalogToPanstarrs1,
+                                             CatalogToSDSS_DR16_SpecObj,
+                                             CatalogToTIC_v8, Panstarrs1,
+                                             SDSS_DR16_SpecObj,
+                                             SDSSV_BOSS_Conflist,
+                                             SDSSV_Plateholes,
+                                             SDSSV_Plateholes_Meta, TIC_v8)
 
 from target_selection.cartons.base import BaseCarton
+from target_selection.mag_flux import AB2Jy
 
 
 # Details: Start here
