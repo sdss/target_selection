@@ -9,8 +9,8 @@
 import peewee
 from peewee import JOIN, fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (SDSSV_BOSS_SPALL,
-                                             BHM_CSC_v2, BHM_eFEDS_Veto,
+from sdssdb.peewee.sdss5db.catalogdb import (SDSSV_BOSS_SPALL, BHM_CSC_v2,
+                                             BHM_eFEDS_Veto,
                                              CatalogToBHM_eFEDS_Veto,
                                              CatalogToPanstarrs1,
                                              CatalogToSDSS_DR16_SpecObj,
