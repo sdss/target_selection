@@ -83,7 +83,7 @@ class BhmCscBossCarton(BaseCarton):
         i_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence2'])
         gaia_g_mag_max_for_cadence2 = self.parameters['gaia_g_mag_max_for_cadence2']
 
-        value = peewee.Value(self.parameters['value'])
+        value = peewee.Value(self.parameters['value']).cast('real')
 
         cadence1 = self.parameters['cadence1']
         cadence2 = self.parameters['cadence2']
@@ -325,7 +325,7 @@ class BhmCscApogeeCarton(BaseCarton):
 
         hmag_max_for_cadence1 = self.parameters['hmag_max_for_cadence1']
 
-        value = peewee.Value(self.parameters['value'])
+        value = peewee.Value(self.parameters['value']).cast('real')
 
         cadence = peewee.Case(
             None,
