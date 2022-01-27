@@ -252,7 +252,7 @@ class BhmCscBossCarton(BaseCarton):
                     (tic.gaiarp > gaia_rp_mag_min)
                 )
             )
-            .distinct(fn.coalesce(c2ps.catalogid, c2tic.catalogid))
+            .distinct(x.cxoid)
         )
 
         # Append the spectro query
@@ -358,7 +358,7 @@ class BhmCscApogeeCarton(BaseCarton):
                 x.hmag < self.parameters['hmag_max'],
                 x.hmag != 'NaN',
             )
-            .distinct(c2tic.catalogid)
+            .distinct(x.cxoid)
         )
 
         if query_region:
