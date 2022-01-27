@@ -211,19 +211,19 @@ class BhmCscBossCarton(BaseCarton):
 
         query = (
             x.select(
-                fn.coalesce(c2ps.catalogid, c2tic.catalogid).alias('catalogid'),
-                x.cxoid.alias('csc_cxoid'),
-                x.ora.alias('csc_ora'),
-                x.odec.alias('csc_odec'),
-                x.omag.alias('csc_omag'),
-                x.ocat.alias('csc_ocat'),
-                x.idps.alias('csc_idps'),
-                x.idg2.alias('csc_idg2'),
-                ps.i_stk_psf_flux.alias('ps_i_stk_psf_flux'),
-                tic.gaiamag.alias("tic_gaiamag"),
-                priority.alias('priority'),
-                cadence.alias('cadence'),
-                value.alias('value'),
+                fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2tic.catalogid)).alias('catalogid'),
+                fn.max(x.cxoid).alias('csc_cxoid'),
+                fn.max(x.ora).alias('csc_ora'),
+                fn.max(x.odec).alias('csc_odec'),
+                fn.max(x.omag).alias('csc_omag'),
+                fn.max(x.ocat).alias('csc_ocat'),
+                fn.max(x.idps).alias('csc_idps'),
+                fn.max(x.idg2).alias('csc_idg2'),
+                fn.max(ps.i_stk_psf_flux).alias('ps_i_stk_psf_flux'),
+                fn.max(tic.gaiamag).alias("tic_gaiamag"),
+                fn.max(priority).alias('priority'),
+                fn.max(cadence).alias('cadence'),
+                fn.max(value).alias('value'),
             )
             .join(ps, join_type=JOIN.LEFT_OUTER,
                   on=(x.idps == ps.extid_hi_lo))
@@ -252,7 +252,8 @@ class BhmCscBossCarton(BaseCarton):
                     (tic.gaiarp > gaia_rp_mag_min)
                 )
             )
-            .distinct(fn.coalesce(c2ps.catalogid, c2tic.catalogid))
+            .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2tic.catalogid)))
+            .group_by(x.cxoid)
         )
 
         # Append the spectro query
@@ -358,7 +359,7 @@ class BhmCscApogeeCarton(BaseCarton):
                 x.hmag < self.parameters['hmag_max'],
                 x.hmag != 'NaN',
             )
-            .distinct(c2tic.catalogid)
+            .distinct(x.cxoid)
         )
 
         if query_region:

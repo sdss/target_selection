@@ -169,6 +169,10 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # In the below code,
+        # in cast('text'), 'text' refers to the PostgreSQL column type 'text'
+        # and
+        # in cast('real'), 'real' refers to the PostgreSQL column type 'real'
         optical_prov = peewee.Value('sdss_psfmag_tycho2').cast('text')
         g = peewee.Value(None).cast('real')
         r = peewee.Value(None).cast('real')
