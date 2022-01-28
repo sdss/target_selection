@@ -59,30 +59,34 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         dered_fiberflux_z_min = AB2nMgy(self.parameters['dered_fibermag_z_max'])
         fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
         fiberflux_z_max = AB2nMgy(self.parameters['fibermag_z_min'])
+        fiberflux_r_min = AB2nMgy(self.parameters['fibermag_r_max'])
         fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
+        fiberflux_g_min = AB2nMgy(self.parameters['fibermag_g_max'])
+        fiberflux_g_max = AB2nMgy(self.parameters['fibermag_g_min'])
 
-        fiberflux_z_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_z_for_cadence1'])
-        fiberflux_z_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_z_for_cadence2'])
+        fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_for_cadence1'])
+        fiberflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_r_for_cadence2'])
 
         # compute transformed SDSS mags uniformly
         # transform the legacysurvey grz into sdss fiber2mag griz
         # https://wiki.sdss.org/display/BHM/BHM+magnitude+transformations+for+v0.5
 
         # extract coeffs from fit logs via:
-        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_clusters_lsdr8/lsdr8_fibermag_to_sdss_fiber2mag_?_results.log   # noqa
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_colr_galaxies_lsdr8/lsdr8_fibermag_to_sdss_fiber2mag_?_results.log   # noqa
+
         coeffs = {
-            "g2_e": -0.897719,
-            "g1_e": 2.298300,
-            "g0_e": -1.019299,
-            "i2_e": -0.950114,
-            "i1_e": 0.981972,
-            "i0_e": -0.261645,
-            "r2_e": -0.201741,
-            "r1_e": 0.697128,
-            "r0_e": -0.120926,
-            "z2_e": -1.424312,
-            "z1_e": 2.415301,
-            "z0_e": -0.677163,
+            "g2_e": -0.611168,
+            "g1_e": 1.637641,
+            "g0_e": -0.684489,
+            "i2_e": -1.821603,
+            "i1_e": 2.410118,
+            "i0_e": -0.895875,
+            "r2_e": -0.337699,
+            "r1_e": 1.038298,
+            "r0_e": -0.371602,
+            "z2_e": -1.609400,
+            "z1_e": 2.678952,
+            "z0_e": -0.821672,
         }
 
         nMgy_min = 1e-3  # equiv to AB=30
@@ -100,10 +104,22 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
         z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
 
-        # validity checks
+        valid_colour_min_g_r = 0.0
+        valid_colour_max_g_r = 2.0
+        valid_colour_min_r_z = 0.2
+        valid_colour_max_r_z = 1.2
+
+        # select_flux_ratio_min_g_r = 10**(-0.4 * self.parameters['select_max_g_r'])
+        # select_flux_ratio_max_g_r = 10**(-0.4 * self.parameters['select_min_g_r'])
+        # select_flux_ratio_min_r_z = 10**(-0.4 * self.parameters['select_max_r_z'])
+        # select_flux_ratio_max_r_z = 10**(-0.4 * self.parameters['select_min_r_z'])
+
+        # magnitude validity checks
         valid = (g0_e.between(0.1, 29.9) &
                  r0_e.between(0.1, 29.9) &
-                 z0_e.between(0.1, 29.9))
+                 z0_e.between(0.1, 29.9) &
+                 g_r_e.between(valid_colour_min_g_r, valid_colour_max_g_r) &
+                 r_z_e.between(valid_colour_min_r_z, valid_colour_max_r_z))
 
         opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
@@ -128,8 +144,8 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         cadence = peewee.Case(
             None,
             (
-                (ls.fiberflux_z > fiberflux_z_min_for_cadence1, self.parameters['cadence1']),
-                (ls.fiberflux_z > fiberflux_z_min_for_cadence2, self.parameters['cadence2']),
+                (ls.fiberflux_r > fiberflux_r_min_for_cadence1, self.parameters['cadence1']),
+                (ls.fiberflux_r > fiberflux_r_min_for_cadence2, self.parameters['cadence2']),
             ),
             self.parameters['cadence3'])
 
@@ -140,21 +156,23 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 c.ra.alias('ra'),  # extra
                 c.dec.alias('dec'),  # extra
                 priority.alias('priority'),
-                value.alias('value'),
+                value.cast('real').alias('value'),
                 cadence.alias('cadence'),
                 instrument.alias('instrument'),
                 opt_prov.alias('optical_prov'),
-                magnitude_g.alias('g'),
-                magnitude_r.alias('r'),
-                magnitude_i.alias('i'),
-                magnitude_z.alias('z'),
+                magnitude_g.cast('real').alias('g'),
+                magnitude_r.cast('real').alias('r'),
+                magnitude_i.cast('real').alias('i'),
+                magnitude_z.cast('real').alias('z'),
                 magnitude_gaia_g.alias('gaia_g'),
                 magnitude_gaia_bp.alias('bp'),
                 magnitude_gaia_rp.alias('rp'),
                 inertial.alias('inertial'),
-                g0_e.alias('ls8_fibermag_g'),  # extra
-                r0_e.alias('ls8_fibermag_r'),  # extra
-                z0_e.alias('ls8_fibermag_z'),  # extra
+                g0_e.cast('real').alias('ls8_fibermag_g'),  # extra
+                r0_e.cast('real').alias('ls8_fibermag_r'),  # extra
+                z0_e.cast('real').alias('ls8_fibermag_z'),  # extra
+                g_r_e.cast('real').alias('ls8_g_r_e'),  # extra
+                r_z_e.cast('real').alias('ls8_r_z_e'),  # extra
                 ls.flux_g.alias('ls8_flux_g'),  # extra
                 ls.flux_r.alias('ls8_flux_r'),  # extra
                 ls.flux_z.alias('ls8_flux_z'),  # extra
@@ -169,8 +187,11 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 ls.type != 'PSF',
                 ls.parallax == 0.0,
                 ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
+                ls.fiberflux_g > fiberflux_g_min,
+                ls.fiberflux_r > fiberflux_r_min,
                 ls.fiberflux_z > fiberflux_z_min,
                 ls.fiberflux_z > dered_fiberflux_z_min * ls.mw_transmission_z,
+                ls.fiberflux_g < fiberflux_g_max,
                 ls.fiberflux_r < fiberflux_r_max,
                 ls.fiberflux_z < fiberflux_z_max,
                 # gaia safety checks to avoid bad ls photometry
