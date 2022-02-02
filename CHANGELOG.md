@@ -4,6 +4,21 @@
 
 ### Fixed
 
+#  0.3.16 - February 2, 2022
+
+### Fixed
+
+* Update priority to 2705 for the below cartons.
+mwm_yso_cluster_apogee
+mwm_yso_cluster_boss
+mwm_yso_cmz_apogee
+mwm_yso_disk_apogee
+mwm_yso_disk_boss
+mwm_yso_embedded_apogee
+mwm_yso_nebula_apogee
+mwm_yso_variable_apogee
+mwm_yso_variable_boss
+
 #  0.3.15 - January 31, 2022
 
 ### Fixed
