@@ -61,7 +61,7 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     def build_query(self, version_id, query_region=None):
 
@@ -157,7 +157,7 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
     cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     def build_query(self, version_id, query_region=None):
 
@@ -305,7 +305,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     def build_query(self, version_id, query_region=None):
 
@@ -394,7 +394,7 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     # Above implementation has below clause
     # and (b>-5 or l>180) and b<-5
@@ -513,7 +513,7 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     def build_query(self, version_id, query_region=None):
 
@@ -647,7 +647,7 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
     cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     def build_query(self, version_id, query_region=None):
 
@@ -1047,7 +1047,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     # mipsgal is a subset of 2MASS
     # mipsgal can be joined to twomass_psc via
@@ -1140,7 +1140,7 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     # yso_clustering is a subset of gaia and
     # can be joined to gaia_dr2_source via source_id.
@@ -1220,7 +1220,7 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
     cadence = None  # cadence is set in post_process()
     program = 'mwm_yso'
     mapper = 'MWM'
-    priority = 2700
+    priority = 2705
 
     # yso_clustering is a subset of gaia and
     # can be joined to gaia_dr2_source via source_id.
