@@ -4,6 +4,14 @@
 
 ### Fixed
 
+#  0.3.17 - February 4, 2022
+
+### Fixed
+
+* Update priority for the below cartons.
+mwm_rv_long_fps  
+mwm_rv_short_fps  
+
 #  0.3.16 - February 2, 2022
 
 ### Fixed
