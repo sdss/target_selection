@@ -158,7 +158,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     cadence = None  # cadence is set in post_process()
     program = 'mwm_rv'
     mapper = 'MWM'
-    priority = 2500
+    priority = 2540  # default priority. Others are set in post_process().
 
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
@@ -175,7 +175,9 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                          SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
                          SDSS_APOGEE_AllStarMerge_r13.h,
                          SDSS_APOGEE_AllStarMerge_r13.baseline,
-                         SDSS_APOGEE_AllStarMerge_r13.fields)
+                         SDSS_APOGEE_AllStarMerge_r13.fields,
+                         SDSS_APOGEE_AllStarMerge_r13.teff,
+                         SDSS_APOGEE_AllStarMerge_r13.logg)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
@@ -204,7 +206,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         return query
 
     def post_process(self, model):
-        """
+        """ TODO priority
         If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
         where <nn> = 3*ceiling((18-nvisits)/3)
         if <nn> is less than 6 then
@@ -348,7 +350,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     cadence = 'bright_18x1'
     program = 'mwm_rv'
     mapper = 'MWM'
-    priority = 2510
+    priority = 2545  # default priority. Others are set in post_process().
 
     def build_query(self, version_id, query_region=None):
 
@@ -358,7 +360,9 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
                          Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
                          Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
-                         TwoMassPSC.h_m.alias('twomass_h_m'))
+                         TwoMassPSC.h_m.alias('twomass_h_m'),
+                         TIC_v8.teff,
+                         TIC_v8.logg)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -383,3 +387,37 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
                                                        query_region[1],
                                                        query_region[2])))
         return query
+
+    def post_process(self, model):
+        """  TODO priority
+        If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
+        where <nn> = 3*ceiling((18-nvisits)/3)
+        if <nn> is less than 6 then
+            set <nn> = 6
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, nvisits, h from " +
+            " sandbox.temp_mwm_rv_long_fps ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_nvisits = output[i][1]
+            current_h = output[i][2]
+
+            nn = 3 * math.ceil((18 - current_nvisits) / 3)
+            if(nn < 6):
+                nn = 6
+
+            if(current_h > 10.8):
+                current_cadence = 'bright_' + str(nn) + 'x2'
+            else:
+                current_cadence = 'bright_' + str(nn) + 'x1'
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
