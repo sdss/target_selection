@@ -206,15 +206,22 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         return query
 
     def post_process(self, model):
-        """ TODO priority
+        """
+        For cadence:
         If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
         where <nn> = 3*ceiling((18-nvisits)/3)
         if <nn> is less than 6 then
             set <nn> = 6
+
+        For priority:
+        IF Teff < 4500 AND logg > 4.0 THEN priority = 2510
+        ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2520
+        ELSE IF  logg < 3.5 THEN priority  = 2530
+        ELSE priority = 2540
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, nvisits, h from " +
+            "select catalogid, nvisits, h, teff, logg from " +
             " sandbox.temp_mwm_rv_long_fps ;")
 
         output = cursor.fetchall()
@@ -223,6 +230,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_nvisits = output[i][1]
             current_h = output[i][2]
+            current_teff = output[i][3]
+            current_logg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
             if(nn < 6):
@@ -237,6 +246,21 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_rv_long_fps " +
                     " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if((current_teff < 4500) and (current_logg > 4.0)):
+                current_priority = 2510
+            elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                current_priority = 2520
+            elif(current_logg < 3.5):
+                current_priority = 2530
+            else:
+                current_priority = 2540
+
+            if current_priority is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " set priority = '" + current_priority + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
@@ -389,35 +413,36 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
         return query
 
     def post_process(self, model):
-        """  TODO priority
-        If H>10.8 then use bright_<nn>x2, otherwise use bright_<nn>x1,
-        where <nn> = 3*ceiling((18-nvisits)/3)
-        if <nn> is less than 6 then
-            set <nn> = 6
+        """
+        For priority:
+        IF Teff < 4500 AND logg > 4.0 THEN priority = 2515
+        ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2525
+        ELSE IF  logg < 3.5 THEN priority  = 2535
+        ELSE priority = 2545
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, nvisits, h from " +
-            " sandbox.temp_mwm_rv_long_fps ;")
+            "select catalogid, teff, logg from " +
+            " sandbox.temp_mwm_rv_short_fps ;")
 
         output = cursor.fetchall()
 
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_nvisits = output[i][1]
-            current_h = output[i][2]
+            current_teff = output[i][1]
+            current_logg = output[i][2]
 
-            nn = 3 * math.ceil((18 - current_nvisits) / 3)
-            if(nn < 6):
-                nn = 6
-
-            if(current_h > 10.8):
-                current_cadence = 'bright_' + str(nn) + 'x2'
+            if((current_teff < 4500) and (current_logg > 4.0)):
+                current_priority = 2515
+            elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                current_priority = 2525
+            elif(current_logg < 3.5):
+                current_priority = 2535
             else:
-                current_cadence = 'bright_' + str(nn) + 'x1'
+                current_priority = 2545
 
-            if current_cadence is not None:
+            if current_priority is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_rv_long_fps " +
-                    " set cadence = '" + current_cadence + "'"
+                    " update sandbox.temp_mwm_rv_short_fps " +
+                    " set priority = '" + current_priority + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
