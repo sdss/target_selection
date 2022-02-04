@@ -216,7 +216,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         For priority:
         IF Teff < 4500 AND logg > 4.0 THEN priority = 2510
         ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2520
-        ELSE IF  logg < 3.5 THEN priority  = 2530
+        ELSE IF logg < 3.5 THEN priority = 2530
         ELSE priority = 2540
         """
 
@@ -417,7 +417,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
         For priority:
         IF Teff < 4500 AND logg > 4.0 THEN priority = 2515
         ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2525
-        ELSE IF  logg < 3.5 THEN priority  = 2535
+        ELSE IF logg < 3.5 THEN priority = 2535
         ELSE priority = 2545
         """
 
