@@ -268,7 +268,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_rv_long_fps " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
@@ -460,5 +460,5 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_rv_short_fps " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
