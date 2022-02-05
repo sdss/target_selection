@@ -152,13 +152,14 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
+
     name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
     program = 'mwm_rv'
     mapper = 'MWM'
-    priority = 2540  # default priority. Others are set in post_process().
+    priority = None  # priority is set in post_process()
 
     # peewee Model name ---> postgres table name
     # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
@@ -220,6 +221,9 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         ELSE priority = 2540
         """
 
+        default_priority = 2540
+
+        # teff and logg are from SDSS_APOGEE_AllStarMerge_r13
         cursor = self.database.execute_sql(
             "select catalogid, nvisits, h, teff, logg from " +
             " sandbox.temp_mwm_rv_long_fps ;")
@@ -248,14 +252,18 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
-            if((current_teff < 4500) and (current_logg > 4.0)):
-                current_priority = 2510
-            elif((3.5 <= current_logg) and (current_logg <= 4.0)):
-                current_priority = 2520
-            elif(current_logg < 3.5):
-                current_priority = 2530
+            if(current_logg is not None):
+                if((current_teff is not None) and (current_teff < 4500) and
+                   (current_logg > 4.0)):
+                    current_priority = 2510
+                elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                    current_priority = 2520
+                elif(current_logg < 3.5):
+                    current_priority = 2530
+                else:
+                    current_priority = default_priority
             else:
-                current_priority = 2540
+                current_priority = default_priority
 
             if current_priority is not None:
                 self.database.execute_sql(
@@ -368,13 +376,14 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
 
     Target selection final for v0?: No
     """
+
     name = 'mwm_rv_short_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_18x1'
     program = 'mwm_rv'
     mapper = 'MWM'
-    priority = 2545  # default priority. Others are set in post_process().
+    priority = None  # priority is set in post_process()
 
     def build_query(self, version_id, query_region=None):
 
@@ -421,6 +430,9 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
         ELSE priority = 2545
         """
 
+        default_priority = 2545
+
+        # teff and logg are from TIC_v8
         cursor = self.database.execute_sql(
             "select catalogid, teff, logg from " +
             " sandbox.temp_mwm_rv_short_fps ;")
@@ -432,14 +444,18 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
             current_teff = output[i][1]
             current_logg = output[i][2]
 
-            if((current_teff < 4500) and (current_logg > 4.0)):
-                current_priority = 2515
-            elif((3.5 <= current_logg) and (current_logg <= 4.0)):
-                current_priority = 2525
-            elif(current_logg < 3.5):
-                current_priority = 2535
+            if(current_logg is not None):
+                if((current_teff is not None) and (current_teff < 4500) and
+                   (current_logg > 4.0)):
+                    current_priority = 2515
+                elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                    current_priority = 2525
+                elif(current_logg < 3.5):
+                    current_priority = 2535
+                else:
+                    current_priority = default_priority
             else:
-                current_priority = 2545
+                current_priority = default_priority
 
             if current_priority is not None:
                 self.database.execute_sql(
