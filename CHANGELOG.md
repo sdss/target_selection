@@ -4,7 +4,7 @@
 
 ### Fixed
 
-#  0.3.17 - February 4, 2022
+#  0.3.17 - February 8, 2022
 
 ### Fixed
 
