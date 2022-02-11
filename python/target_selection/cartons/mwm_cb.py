@@ -62,6 +62,7 @@ class MWM_CB_300_Carton(BaseCarton):
                             on=(CatalogToGUVCat.catalogid == CatalogToTIC_v8.catalogid))
                  .join(GUVCat)
                  .where(GD.r_est < 300,
+                        FUV > -999.,
                         FUV_abs > 14 * (FUV - NUV) - 46)
                  .where(CatalogToGUVCat.version_id == version_id,
                         CatalogToGUVCat.best >> True,
