@@ -40,6 +40,7 @@ class MWM_CB_300_Carton(BaseCarton):
         where FUV = GUVCat.fuv_mag.
         In mwm_cb_uvex.py, we use fuv_mag > -100.
         This difference is for historical reasons.
+
     """
 
     def build_query(self, version_id, query_region=None):
@@ -146,6 +147,7 @@ class MWM_CB_Gaia_Galex_Carton(BaseCarton):
         where FUV = GUVCat.fuv_mag.
         In mwm_cb_uvex.py, we use fuv_mag > -100.
         This difference is for historical reasons.
+
     """
 
     def build_query(self, version_id, query_region=None):
@@ -246,6 +248,7 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
         (1) H<11 to be observed with APOGEE.
         (2) phot_g_mean_mag < 16 to be observed with BOSS in bright time.
         (3) phot_g_mean_mag > 16 to be observed with BOSS in dark time.
+
     """
 
     def build_query(self, version_id, query_region=None):
