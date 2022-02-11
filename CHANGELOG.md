@@ -4,6 +4,17 @@
 
 ### Fixed
 
+#  0.3.18 - February 11, 2022
+
+### Fixed
+
+* mwm_cb.py: MWM_CB_300_Carton: add condition FUV > -999  
+* The above change affects the below cartons.  
+mwm_cb_300pc_apogee  
+mwm_cb_300pc_boss  
+
+### Fixed
+
 #  0.3.17 - February 8, 2022
 
 ### Fixed
