@@ -78,6 +78,7 @@ def get_file_carton(filename):
                 'mwm_snc',
                 'mwm_tessob',
                 'mwm_tessrgb',
+                'mwm_validation',
                 'mwm_wd',
                 'mwm_yso',
                 'open_fiber',
