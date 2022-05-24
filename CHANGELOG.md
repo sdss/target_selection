@@ -4,6 +4,12 @@
 
 ### Fixed
 
+#  0.3.19 - May 24, 2022
+
+### Fixed
+
+* tools.py: valid_program: add mwm_validation
+
 #  0.3.18 - February 11, 2022
 
 ### Fixed
