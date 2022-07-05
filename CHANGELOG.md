@@ -4,9 +4,13 @@
 
 ### Fixed
 
-#  0.3.19 - May 24, 2022
+#  0.3.20 - July 5, 2022
+
+* ops_std_apogee: remove thecondition (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.5
 
 ### Fixed
+
+#  0.3.19 - May 24, 2022
 
 * tools.py: valid_program: add mwm_validation
 
