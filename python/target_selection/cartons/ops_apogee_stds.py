@@ -9,7 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             TIC_v8, TwoMassPSC)
+                                             Gaia_DR2, TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
@@ -34,7 +34,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     Shorthand name: ops_apogee_stds
 
     Simplified Description of selection criteria:
-    parent catalog is 2MASS point source catalog, after restricting to:
+    parent cataloga ew 2MASS point source catalog and GAIA-DR2,
+    after restricting to:
 
     7 < H < 11,
     -0.25 < J - K < 0.3,
@@ -45,7 +46,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     prox > 6.0
     cc_flg = 000 (zero in all three (JHK) bands)
     ext_key = null (no match in extended source catalog)
-    Once 2MASS has been limited to sources meeting the above criteria,
+    GAIA PM<100, GAIA Palarrax<10
+    Once it has been limited to sources meeting the above criteria,
     the sky is then divided into an nside = 128 HEALPIX skymap.
     The 5 bluest sources (i.e. 5 smallest J-K) in each healpix are then
     selected and saved for the output carton.
@@ -94,6 +96,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join(Gaia_DR2,
+                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         TwoMassPSC.h_m > 7,
@@ -121,7 +125,10 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
                         TwoMassPSC.gal_contam == 0,
                         TwoMassPSC.prox > 6.0,
                         TwoMassPSC.cc_flg == '000',
-                        TwoMassPSC.ext_key.is_null()))
+                        TwoMassPSC.ext_key.is_null(),
+                        peewee.fn.sqrt(peewee.fn.pow(Gaia_DR2.pmra, 2) +
+                                       peewee.fn.pow(Gaia_DR2.pmdec, 2)) < 100,
+                        Gaia_DR2.parallax < 10))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
