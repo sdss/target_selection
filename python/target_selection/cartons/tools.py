@@ -30,10 +30,6 @@ from target_selection.utils import vacuum_table
 
 # import warnings
 
-
-
-
-
 def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
     The FITS file is located in the open_fiber_path which is specified in
