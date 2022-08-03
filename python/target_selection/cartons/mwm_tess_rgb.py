@@ -31,7 +31,7 @@ def h2exp(hmag, sn=100, exptime=15.0):
     # Set Nan's to nan
     nexp[numpy.isnan(hmag)] = numpy.nan
 
-    return(nexp)
+    return (nexp)
 
 
 class MWM_TESS_RGB_Carton(BaseCarton):

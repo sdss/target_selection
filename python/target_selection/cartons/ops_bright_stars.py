@@ -229,7 +229,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
             btmag = output[i][2]
 
             if (vtmag is not None):
-                if(btmag is not None):
+                if (btmag is not None):
                     current_gaia_g = (vtmag - 0.02051 -
                                       0.2706 * (btmag - vtmag) +
                                       0.03394 * (btmag - vtmag)**2 -
