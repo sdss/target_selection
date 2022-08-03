@@ -7,7 +7,6 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import os
-# import warnings
 
 import numpy
 import peewee
@@ -17,7 +16,7 @@ from astropy.table import Table
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
-                                             CatalogToTIC_v8, Gaia_DR2,  # Gaia_DR3,
+                                             CatalogToTIC_v8, Gaia_DR2,
                                              Legacy_Survey_DR8, Panstarrs1,
                                              TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
@@ -27,6 +26,12 @@ from target_selection.exceptions import TargetSelectionError
 # from target_selection.exceptions import (TargetSelectionError,
 #                                          TargetSelectionUserWarning)
 from target_selection.utils import vacuum_table
+
+
+# import warnings
+
+
+
 
 
 def get_file_carton(filename):
