@@ -36,7 +36,7 @@ class MWM_TESS_OB_Carton(BaseCarton):
     Simplified Description of selection criteria:
     a random subsample of TIC targets in both TESS CVZs,
     selected according to type of their variability
-    (i.e., if(var_type = eclipsing_binary .and. var_type = pulsator
+    (i.e., if (var_type = eclipsing_binary .and. var_type = pulsator
      .and. coord = TESS_CVZ) select )
 
     Wiki page:

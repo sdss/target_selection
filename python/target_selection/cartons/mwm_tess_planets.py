@@ -28,7 +28,7 @@ def h2exp(hmag, sn=100, exptime=15.0):
     nexp[(nexp == 0)] = 1
     # Set Nan's to nan
     nexp[numpy.isnan(hmag)] = numpy.nan
-    return(nexp)
+    return (nexp)
 
 
 class MWM_TESS_Planets_Carton(BaseCarton):
@@ -96,11 +96,11 @@ class MWM_TESS_Planets_Carton(BaseCarton):
             current_hmag = output[i][1]
             current_tess_target_type = str(output[i][2]).strip()
 
-            if(current_tess_target_type == 'exo_TOI'):
+            if (current_tess_target_type == 'exo_TOI'):
                 current_priority = 2600
-            elif(current_tess_target_type == 'exo_CTOI'):
+            elif (current_tess_target_type == 'exo_CTOI'):
                 current_priority = 2605
-            elif(current_tess_target_type == '2min'):
+            elif (current_tess_target_type == '2min'):
                 current_priority = 2610
             else:
                 current_priority = None

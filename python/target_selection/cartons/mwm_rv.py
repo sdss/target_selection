@@ -238,10 +238,10 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             current_logg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
-            if(nn < 6):
+            if (nn < 6):
                 nn = 6
 
-            if(current_h > 10.8):
+            if (current_h > 10.8):
                 current_cadence = 'bright_' + str(nn) + 'x2'
             else:
                 current_cadence = 'bright_' + str(nn) + 'x1'
@@ -252,13 +252,13 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
-            if(current_logg is not None):
-                if((current_teff is not None) and (current_teff < 4500) and
+            if (current_logg is not None):
+                if ((current_teff is not None) and (current_teff < 4500) and
                    (current_logg > 4.0)):
                     current_priority = 2510
-                elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                elif ((3.5 <= current_logg) and (current_logg <= 4.0)):
                     current_priority = 2520
-                elif(current_logg < 3.5):
+                elif (current_logg < 3.5):
                     current_priority = 2530
                 else:
                     current_priority = default_priority
@@ -444,13 +444,13 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
             current_teff = output[i][1]
             current_logg = output[i][2]
 
-            if(current_logg is not None):
-                if((current_teff is not None) and (current_teff < 4500) and
+            if (current_logg is not None):
+                if ((current_teff is not None) and (current_teff < 4500) and
                    (current_logg > 4.0)):
                     current_priority = 2515
-                elif((3.5 <= current_logg) and (current_logg <= 4.0)):
+                elif ((3.5 <= current_logg) and (current_logg <= 4.0)):
                     current_priority = 2525
-                elif(current_logg < 3.5):
+                elif (current_logg < 3.5):
                     current_priority = 2535
                 else:
                     current_priority = default_priority

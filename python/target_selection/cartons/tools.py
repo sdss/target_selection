@@ -138,7 +138,7 @@ def get_file_carton(filename):
                                                filename +
                                                'contains invalid mapper = ' +
                                                self.mapper)
-                if(self.mapper == ''):
+                if (self.mapper == ''):
                     self.mapper = None
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
@@ -287,7 +287,7 @@ def get_file_carton(filename):
                 len(self._table[self._table['Gaia_DR3_Source_ID'] > 0])
 
             # TODO remove below check after gaia_dr3 cross match table is ready
-            if(len_gaia_dr3 > 0):
+            if (len_gaia_dr3 > 0):
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            'len_gaia_dr3 > 0')
 
@@ -344,37 +344,37 @@ def get_file_carton(filename):
 
             query = None
 
-            if(is_gaia_dr3 is True):
-                if(query is None):
+            if (is_gaia_dr3 is True):
+                if (query is None):
                     query = query_gaia_dr3
                 else:
                     query = query | query_gaia_dr3
 
-            if(is_gaia_dr2 is True):
-                if(query is None):
+            if (is_gaia_dr2 is True):
+                if (query is None):
                     query = query_gaia_dr2
                 else:
                     query = query | query_gaia_dr2
 
-            if(is_legacysurvey_dr8 is True):
-                if(query is None):
+            if (is_legacysurvey_dr8 is True):
+                if (query is None):
                     query = query_legacysurvey_dr8
                 else:
                     query = query | query_legacysurvey_dr8
 
-            if(is_panstarrs_dr2 is True):
-                if(query is None):
+            if (is_panstarrs_dr2 is True):
+                if (query is None):
                     query = query_panstarrs_dr2
                 else:
                     query = query | query_panstarrs_dr2
 
-            if(is_twomass_psc is True):
-                if(query is None):
+            if (is_twomass_psc is True):
+                if (query is None):
                     query = query_twomass_psc
                 else:
                     query = query | query_twomass_psc
 
-            if(query is None):
+            if (query is None):
                 # At least one of the four boolean variables above
                 # must be True, so we should not get here.
                 raise TargetSelectionError('error in get_file_carton(): ' +

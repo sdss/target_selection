@@ -225,16 +225,16 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if(current_rp < 14.76):
+            if (current_rp < 14.76):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_3x1'
-            elif(current_rp < 15.075):
+            elif (current_rp < 15.075):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_4x1'
-            elif(current_rp < 15.29):
+            elif (current_rp < 15.29):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_5x1'
-            elif(current_rp < 15.5):
+            elif (current_rp < 15.5):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
@@ -737,16 +737,16 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if(current_rp < 14.76):
+            if (current_rp < 14.76):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_3x1'
-            elif(current_rp < 15.075):
+            elif (current_rp < 15.075):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_4x1'
-            elif(current_rp < 15.29):
+            elif (current_rp < 15.29):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_5x1'
-            elif(current_rp < 15.5):
+            elif (current_rp < 15.5):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
@@ -944,16 +944,16 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if(current_rp < 14.76):
+            if (current_rp < 14.76):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_3x1'
-            elif(current_rp < 15.075):
+            elif (current_rp < 15.075):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_4x1'
-            elif(current_rp < 15.29):
+            elif (current_rp < 15.29):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_5x1'
-            elif(current_rp < 15.5):
+            elif (current_rp < 15.5):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
@@ -1280,16 +1280,16 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if(current_rp < 14.76):
+            if (current_rp < 14.76):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_3x1'
-            elif(current_rp < 15.075):
+            elif (current_rp < 15.075):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_4x1'
-            elif(current_rp < 15.29):
+            elif (current_rp < 15.29):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_5x1'
-            elif(current_rp < 15.5):
+            elif (current_rp < 15.5):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
@@ -1521,16 +1521,16 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if(current_rp < 14.76):
+            if (current_rp < 14.76):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_3x1'
-            elif(current_rp < 15.075):
+            elif (current_rp < 15.075):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_4x1'
-            elif(current_rp < 15.29):
+            elif (current_rp < 15.29):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_5x1'
-            elif(current_rp < 15.5):
+            elif (current_rp < 15.5):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_6x1'
             else:
