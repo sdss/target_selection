@@ -7,12 +7,12 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import os
-import warnings
 
 import numpy
 import peewee
 from astropy.table import Table
 
+# TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
@@ -22,10 +22,13 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import TargetSelectionError
+# from target_selection.exceptions import (TargetSelectionError,
+#                                          TargetSelectionUserWarning)
 from target_selection.utils import vacuum_table
 
+
+# import warnings
 
 def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
@@ -57,6 +60,8 @@ def get_file_carton(filename):
 
             # The valid_program list is from the output of the below command.
             # select distinct(program) from targetdb.carton order by program;
+            #
+            # mwm_bin is for future mwm binary star cartons
             valid_program = [
                 'bhm_aqmes',
                 'bhm_csc',
@@ -64,6 +69,7 @@ def get_file_carton(filename):
                 'bhm_rm',
                 'bhm_spiders',
                 'commissioning',
+                'mwm_bin',
                 'mwm_cb',
                 'mwm_dust',
                 'mwm_erosita',
@@ -133,7 +139,7 @@ def get_file_carton(filename):
                                                filename +
                                                'contains invalid mapper = ' +
                                                self.mapper)
-                if(self.mapper == ''):
+                if (self.mapper == ''):
                     self.mapper = None
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
@@ -145,13 +151,21 @@ def get_file_carton(filename):
             basename = basename_parts[0]
             carton_name_from_filename = basename.lower()
 
+# TODO remove below warnings since I have replaced it with TargetSelectionError
+#            if (self.name != carton_name_from_filename):
+#                 warnings.warn('filename parameter of get_file_carton() and ' +
+#                               'cartonname in FITS file do not match.',
+#                               TargetSelectionUserWarning)
+#                 warnings.warn('carton_name_from_filename = ' + carton_name_from_filename +
+#                               ' cartonname = ' + self.name,
+#                               TargetSelectionUserWarning)
+
             if (self.name != carton_name_from_filename):
-                warnings.warn('filename parameter of get_file_carton() and ' +
-                              'cartonname in FITS file do not match.',
-                              TargetSelectionUserWarning)
-                warnings.warn('carton_name_from_filename = ' + carton_name_from_filename +
-                              ' cartonname = ' + self.name,
-                              TargetSelectionUserWarning)
+                raise TargetSelectionError('filename parameter of get_file_carton() and ' +
+                                           'cartonname in FITS file do not match.' + '\n' +
+                                           'carton_name_from_filename = ' +
+                                           carton_name_from_filename +
+                                           ' cartonname = ' + self.name)
 
             super().__init__(
                 targeting_plan,
@@ -180,6 +194,7 @@ def get_file_carton(filename):
             # Copy data.
             copy_data(self._table, self.database, temp_table)
 
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
@@ -193,6 +208,7 @@ def get_file_carton(filename):
 
             query_common = (Catalog
                             .select(Catalog.catalogid,
+                                    temp.Gaia_DR3_Source_ID.alias('gaia_dr3_source_id'),
                                     temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
                                     temp.LegacySurvey_DR8_ID.alias('ls_id'),
                                     temp.PanSTARRS_DR2_ID.alias('catid_objid'),
@@ -207,6 +223,11 @@ def get_file_carton(filename):
                                     temp.instrument,
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
+
+            # TODO
+            # put the query here after gaia_dr3 crossmatch table
+            # like catalog_to_gaia_dr3 is ready
+            query_gaia_dr3 = None
 
             query_gaia_dr2 = \
                 (query_common
@@ -263,6 +284,14 @@ def get_file_carton(filename):
 
             len_table = len(self._table)
 
+            len_gaia_dr3 =\
+                len(self._table[self._table['Gaia_DR3_Source_ID'] > 0])
+
+            # TODO remove below check after gaia_dr3 cross match table is ready
+            if (len_gaia_dr3 > 0):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           'len_gaia_dr3 > 0')
+
             len_gaia_dr2 =\
                 len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
 
@@ -281,12 +310,18 @@ def get_file_carton(filename):
                 len(self._table[self._table['TwoMASS_ID'] != 'NA'])
 
             # There must be exactly one non-zero id per row else raise an exception.
-            if ((len_gaia_dr2 + len_legacysurvey_dr8 +
+            if ((len_gaia_dr3 + len_gaia_dr2 + len_legacysurvey_dr8 +
                  len_panstarrs_dr2 + len_twomass_psc) != len_table):
                 raise TargetSelectionError('error in get_file_carton(): ' +
-                                           '(len_gaia_dr2 + len_legacysurvey_dr8 + ' +
+                                           '(len_gaia_dr3 + len_gaia_dr2 + ' +
+                                           'len_legacysurvey_dr8 + ' +
                                            'len_panstarrs_dr2 + len_twomass_psc) != ' +
                                            'len_table')
+
+            if (len_gaia_dr3 > 0):
+                is_gaia_dr3 = True
+            else:
+                is_gaia_dr3 = False
 
             if (len_gaia_dr2 > 0):
                 is_gaia_dr2 = True
@@ -310,34 +345,41 @@ def get_file_carton(filename):
 
             query = None
 
-            if(is_gaia_dr2 is True):
-                if(query is None):
+            if (is_gaia_dr3 is True):
+                if (query is None):
+                    query = query_gaia_dr3
+                else:
+                    query = query | query_gaia_dr3
+
+            if (is_gaia_dr2 is True):
+                if (query is None):
                     query = query_gaia_dr2
                 else:
                     query = query | query_gaia_dr2
 
-            if(is_legacysurvey_dr8 is True):
-                if(query is None):
+            if (is_legacysurvey_dr8 is True):
+                if (query is None):
                     query = query_legacysurvey_dr8
                 else:
                     query = query | query_legacysurvey_dr8
 
-            if(is_panstarrs_dr2 is True):
-                if(query is None):
+            if (is_panstarrs_dr2 is True):
+                if (query is None):
                     query = query_panstarrs_dr2
                 else:
                     query = query | query_panstarrs_dr2
 
-            if(is_twomass_psc is True):
-                if(query is None):
+            if (is_twomass_psc is True):
+                if (query is None):
                     query = query_twomass_psc
                 else:
                     query = query | query_twomass_psc
 
-            if(query is None):
+            if (query is None):
                 # At least one of the four boolean variables above
                 # must be True, so we should not get here.
                 raise TargetSelectionError('error in get_file_carton(): ' +
+                                           '(is_gaia_dr3 is False) and ' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
                                            '(is_panstarrs_dr2 is False) and ' +

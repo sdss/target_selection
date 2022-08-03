@@ -995,7 +995,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                                        self.cadence.split("_")
                                        if 'x' in s][0].split('x')
                 except BaseException:
-                    raise("Uninterpretable cadence name: ", self.cadence)
+                    raise ("Uninterpretable cadence name: ", self.cadence)
 
                 self.value = float(numpy.multiply(
                     # *map(int, self.cadence.split('_')[-1].split('x'))
