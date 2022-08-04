@@ -4,13 +4,21 @@
 
 ### Fixed
 
-#  0.3.20 - July 5, 2022
-
-* ops_std_apogee: remove thecondition (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.5
+#  0.3.21 - August 4, 2022
 
 ### Fixed
 
+* ops_std_apogee: add Gaia proper motion and parallax cut 
+
+#  0.3.20 - July 5, 2022
+
+### Fixed
+
+* ops_std_apogee: remove the condition (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.5
+
 #  0.3.19 - May 24, 2022
+
+### Fixed
 
 * tools.py: valid_program: add mwm_validation
 
