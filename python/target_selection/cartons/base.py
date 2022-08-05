@@ -851,7 +851,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info(f'Inserted {n_inserted:,} new rows into targetdb.target.')
+        log.info(f'Inserted new rows into targetdb.target.')
 
         return
 
@@ -939,7 +939,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
 
-        log.info(f'Inserted {n_inserted:,} new rows into targetdb.magnitude.')
+        log.info(f'Inserted new rows into targetdb.magnitude.')
 
     def _load_carton_to_target(self, RModel):
         """Populate targetdb.carton_to_target."""
@@ -1126,7 +1126,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info(f'Inserted {n_inserted:,} rows into targetdb.carton_to_target.')
+        log.info(f'Inserted rows into targetdb.carton_to_target.')
 
     def drop_carton(self):
         """Drops the entry in ``targetdb.carton``."""
