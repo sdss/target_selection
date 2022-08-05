@@ -817,7 +817,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug('loading data into targetdb.target.')
 
-        n_inserted = (
+        n_inserted = (  # noqa: 841
             tdb.Target.insert_from(
                 cdb.Catalog.select(
                     cdb.Catalog.catalogid,
@@ -851,7 +851,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info(f'Inserted new rows into targetdb.target.')
+        log.info('Inserted new rows into targetdb.target.')
 
         return
 
@@ -937,9 +937,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         select_from = select_from.select_extend(RModel._meta.columns['optical_prov'])
         fields.append(Magnitude.optical_prov)
 
-        n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()
+        n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()  # noqa: 841
 
-        log.info(f'Inserted new rows into targetdb.magnitude.')
+        log.info('Inserted new rows into targetdb.magnitude.')
 
     def _load_carton_to_target(self, RModel):
         """Populate targetdb.carton_to_target."""
@@ -1106,7 +1106,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 .where(tdb.Instrument.label == instrument))
 
         # Now do the insert
-        n_inserted = (
+        n_inserted = (  # noqa: 841
             CartonToTarget.insert_from(
                 select_from,
                 [
@@ -1126,7 +1126,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info(f'Inserted rows into targetdb.carton_to_target.')
+        log.info('Inserted rows into targetdb.carton_to_target.')
 
     def drop_carton(self):
         """Drops the entry in ``targetdb.carton``."""
