@@ -4,6 +4,12 @@
 
 ### Fixed
 
+#  0.3.22 - August 6, 2022
+
+### Fixed
+
+* tools.py: add Gaia_DR3_Source_ID for manual/openfiber FITS file.
+
 #  0.3.21 - August 4, 2022
 
 ### Fixed
