@@ -22,8 +22,10 @@ from sdsstools import read_yaml_file
 from sdsstools._vendor.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import (
+    TargetSelectionError,
+    TargetSelectionUserWarning
+)
 from target_selection.utils import Timer
 
 
