@@ -13,17 +13,12 @@ import peewee
 from astropy.table import Table
 
 # TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToLegacy_Survey_DR8,
-    CatalogToPanstarrs1,
-    CatalogToTIC_v8,
-    Gaia_DR2,
-    Legacy_Survey_DR8,
-    Panstarrs1,
-    TIC_v8,
-    TwoMassPSC
-)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             CatalogToLegacy_Survey_DR8,
+                                             CatalogToPanstarrs1,
+                                             CatalogToTIC_v8, Gaia_DR2,
+                                             Legacy_Survey_DR8, Panstarrs1,
+                                             TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton

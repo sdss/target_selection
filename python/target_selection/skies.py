@@ -22,7 +22,8 @@ from matplotlib.patches import Ellipse
 from mocpy import MOC
 
 from target_selection import log
-from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 
 
 warnings.filterwarnings('ignore', '.*invalid value encountered in power.*')
