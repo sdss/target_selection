@@ -46,8 +46,6 @@ def get_file_carton(filename):
             self._file_path = filename
 
             self._table = Table.read(self._file_path)
-            # historical
-            # self._table.convert_bytestring_to_unicode()
             if self._table.masked:
                 self._table = self._table.filled()
 
@@ -379,6 +377,11 @@ def get_file_carton(filename):
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
+
+            # Early files may not have the can_offset column. If the table has it, extend
+            # the select. Otherwise the column will be filled with the default value.
+            if 'can_offset' in self._table:
+                query = query.select_extend(temp.can_offset.alias('can_offset'))
 
             return query
 
