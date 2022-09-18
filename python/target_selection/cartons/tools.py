@@ -13,22 +13,23 @@ import peewee
 from astropy.table import Table
 
 # TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToLegacy_Survey_DR8,
-                                             CatalogToPanstarrs1,
-                                             CatalogToTIC_v8, Gaia_DR2,
-                                             Legacy_Survey_DR8, Panstarrs1,
-                                             TIC_v8, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToLegacy_Survey_DR8,
+    CatalogToPanstarrs1,
+    CatalogToTIC_v8,
+    Gaia_DR2,
+    Legacy_Survey_DR8,
+    Panstarrs1,
+    TIC_v8,
+    TwoMassPSC
+)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
-# from target_selection.exceptions import (TargetSelectionError,
-#                                          TargetSelectionUserWarning)
 from target_selection.utils import vacuum_table
 
-
-# import warnings
 
 def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
@@ -150,15 +151,6 @@ def get_file_carton(filename):
             basename_parts = os.path.splitext(basename_fits)
             basename = basename_parts[0]
             carton_name_from_filename = basename.lower()
-
-# TODO remove below warnings since I have replaced it with TargetSelectionError
-#            if (self.name != carton_name_from_filename):
-#                 warnings.warn('filename parameter of get_file_carton() and ' +
-#                               'cartonname in FITS file do not match.',
-#                               TargetSelectionUserWarning)
-#                 warnings.warn('carton_name_from_filename = ' + carton_name_from_filename +
-#                               ' cartonname = ' + self.name,
-#                               TargetSelectionUserWarning)
 
             if (self.name != carton_name_from_filename):
                 raise TargetSelectionError('filename parameter of get_file_carton() and ' +
