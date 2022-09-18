@@ -2,165 +2,183 @@
 
 ## Next version
 
-### Fixed
+### ✨ Improved
 
-#  0.3.22 - August 6, 2022
+* Added handling of `can_offset` column for file cartons.
 
-### Fixed
+
+## 0.3.22 - August 6, 2022
+
+### 🔧 Fixed
 
 * tools.py: add Gaia_DR3_Source_ID for manual/openfiber FITS file.
 
-#  0.3.21 - August 4, 2022
 
-### Fixed
+## 0.3.21 - August 4, 2022
 
-* ops_std_apogee: add Gaia proper motion and parallax cut 
+### 🔧 Fixed
 
-#  0.3.20 - July 5, 2022
+* ops_std_apogee: add Gaia proper motion and parallax cut
 
-### Fixed
+
+## 0.3.20 - July 5, 2022
+
+### 🔧 Fixed
 
 * ops_std_apogee: remove the condition (TwoMassPSC.j_m - TwoMassPSC.k_m) < 0.5
 
-#  0.3.19 - May 24, 2022
 
-### Fixed
+## 0.3.19 - May 24, 2022
+
+### 🔧 Fixed
 
 * tools.py: valid_program: add mwm_validation
 
-#  0.3.18 - February 11, 2022
 
-### Fixed
+## 0.3.18 - February 11, 2022
 
-* mwm_cb.py: MWM_CB_300_Carton: add condition FUV > -999  
-* The above change affects the below cartons.  
-mwm_cb_300pc_apogee  
-mwm_cb_300pc_boss  
+### 🔧 Fixed
 
-### Fixed
+* mwm_cb.py: MWM_CB_300_Carton: add condition FUV > -999
+* The above change affects the below cartons.
+  * mwm_cb_300pc_apogee
+  * mwm_cb_300pc_boss
 
-#  0.3.17 - February 8, 2022
 
-### Fixed
+## 0.3.17 - February 8, 2022
+
+### 🔧 Fixed
 
 * Update priority for the below cartons.
-mwm_rv_long_fps  
-mwm_rv_short_fps  
+  * mwm_rv_long_fps
+  * mwm_rv_short_fps
 
-#  0.3.16 - February 2, 2022
 
-### Fixed
+## 0.3.16 - February 2, 2022
+
+### 🔧 Fixed
 
 * Update priority to 2705 for the below cartons.
-mwm_yso_cluster_apogee  
-mwm_yso_cluster_boss  
-mwm_yso_cmz_apogee  
-mwm_yso_disk_apogee  
-mwm_yso_disk_boss  
-mwm_yso_embedded_apogee  
-mwm_yso_nebula_apogee  
-mwm_yso_variable_apogee  
-mwm_yso_variable_boss  
+  * mwm_yso_cluster_apogee
+  * mwm_yso_cluster_boss
+  * mwm_yso_cmz_apogee
+  * mwm_yso_disk_apogee
+  * mwm_yso_disk_boss
+  * mwm_yso_embedded_apogee
+  * mwm_yso_nebula_apogee
+  * mwm_yso_variable_apogee
+  * mwm_yso_variable_boss
 
-#  0.3.15 - January 31, 2022
 
-### Fixed
+## 0.3.15 - January 31, 2022
+
+### 🔧 Fixed
 
 * Update below carton.
-bhm_colr_galaxies_lsdr8
+  * bhm_colr_galaxies_lsdr8
 
-#  0.3.14 - January 27, 2022
 
-### Fixed
+## 0.3.14 - January 27, 2022
 
-* Update below cartons.
-bhm_csc_boss
-bhm_csc_apogee
-
-##  0.3.13 - January 25, 2022
-
-### New
+### 🔧 Fixed
 
 * Update below cartons.
-bhm_csc_boss
-bhm_csc_apogee
+  * bhm_csc_boss
+  * bhm_csc_apogee
 
-##  0.3.12 - January 20, 2022
 
-### New
+## 0.3.13 - January 25, 2022
+
+### 🚀 New
+
+* Update below cartons.
+  * bhm_csc_boss
+  * bhm_csc_apogee
+
+
+## 0.3.12 - January 20, 2022
+
+### 🚀 New
 
 * New open fiber cartons FITS format.
 
-##  0.3.11 - January 5, 2022
 
-### New
+## 0.3.11 - January 5, 2022
+
+### 🚀 New
 
 * Add the below new carton.
-ops_sky_boss_fallback
-
+  * ops_sky_boss_fallback
 * Update the priority variable in target_selection.yml for the below carton.
-bhm_colr_galaxies_lsdr8
+  * bhm_colr_galaxies_lsdr8
 
-##  0.3.10 - December 6, 2021
 
-### Fixed
+## 0.3.10 - December 6, 2021
+
+### 🔧 Fixed
 
 * Update target_selection.yml for the below carton.
-mwm_tess_ob
+  * mwm_tess_ob
 
-##  0.3.9 - November 23, 2021
 
-### Fixed
+## 0.3.9 - November 23, 2021
+
+### 🔧 Fixed
 
 * Change program variable of the below cartons.
-ops_sky_apogee_best
-ops_sky_apogee_good
-ops_sky_boss_best
-ops_sky_boss_good
+  * ops_sky_apogee_best
+  * ops_sky_apogee_good
+  * ops_sky_boss_best
+  * ops_sky_boss_good
 
-##  0.3.8 - November 20, 2021
 
-### Fixed
+## 0.3.8 - November 20, 2021
+
+### 🔧 Fixed
 
 * Change category variable of the below cartons.
-ops_sky_apogee_best
-ops_sky_apogee_good
-ops_sky_boss_best
-ops_sky_boss_good
+  * ops_sky_apogee_best
+  * ops_sky_apogee_good
+  * ops_sky_boss_best
+  * ops_sky_boss_good
 
-##  0.3.7 - November 19, 2021
 
-### New
+## 0.3.7 - November 19, 2021
 
-* Add the below new cartons.
-ops_sky_apogee_best
-ops_sky_apogee_good
-ops_sky_boss_best
-ops_sky_boss_good
-
-##  0.3.6 - October 8, 2021
-
-### New
+### 🚀 New
 
 * Add the below new cartons.
-ops_tycho2_brightneighbors
-ops_2mass_psc_brightneighbors
-ops_gaia_brightneighbors
+  * ops_sky_apogee_best
+  * ops_sky_apogee_good
+  * ops_sky_boss_best
+  * ops_sky_boss_good
 
-##  0.3.5 - September 27, 2021
 
-### New
+## 0.3.6 - October 8, 2021
+
+### 🚀 New
+
+* Add the below new cartons.
+  * ops_tycho2_brightneighbors
+  * ops_2mass_psc_brightneighbors
+  * ops_gaia_brightneighbors
+
+
+## 0.3.5 - September 27, 2021
+
+### 🚀 New
 
 * Add the below cartons to target_selection.yml so they can be rerun.
-bhm_aqmes_bonus_bright
-bhm_aqmes_bonus_core
-bhm_aqmes_bonus_faint
-bhm_aqmes_wide2
-bhm_aqmes_wide2_faint
-mwm_cb_300pc_apogee
-mwm_cb_300pc_boss
+  * bhm_aqmes_bonus_bright
+  * bhm_aqmes_bonus_core
+  * bhm_aqmes_bonus_faint
+  * bhm_aqmes_wide2
+  * bhm_aqmes_wide2_faint
+  * mwm_cb_300pc_apogee
+  * mwm_cb_300pc_boss
 
-##  0.3.4 - September 6, 2021
+
+## 0.3.4 - September 6, 2021
 
 ### 🔧 Fixed
 
