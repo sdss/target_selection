@@ -23,12 +23,8 @@ from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
-# from target_selection.exceptions import (TargetSelectionError,
-#                                          TargetSelectionUserWarning)
 from target_selection.utils import vacuum_table
 
-
-# import warnings
 
 def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
@@ -45,8 +41,6 @@ def get_file_carton(filename):
             self._file_path = filename
 
             self._table = Table.read(self._file_path)
-            # historical
-            # self._table.convert_bytestring_to_unicode()
             if self._table.masked:
                 self._table = self._table.filled()
 
@@ -150,15 +144,6 @@ def get_file_carton(filename):
             basename_parts = os.path.splitext(basename_fits)
             basename = basename_parts[0]
             carton_name_from_filename = basename.lower()
-
-# TODO remove below warnings since I have replaced it with TargetSelectionError
-#            if (self.name != carton_name_from_filename):
-#                 warnings.warn('filename parameter of get_file_carton() and ' +
-#                               'cartonname in FITS file do not match.',
-#                               TargetSelectionUserWarning)
-#                 warnings.warn('carton_name_from_filename = ' + carton_name_from_filename +
-#                               ' cartonname = ' + self.name,
-#                               TargetSelectionUserWarning)
 
             if (self.name != carton_name_from_filename):
                 raise TargetSelectionError('filename parameter of get_file_carton() and ' +
@@ -387,6 +372,11 @@ def get_file_carton(filename):
 
             if 'lambda_eff' in self._table.colnames:
                 query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
+
+            # Early files may not have the can_offset column. If the table has it, extend
+            # the select. Otherwise the column will be filled with the default value.
+            if 'can_offset' in self._table:
+                query = query.select_extend(temp.can_offset.alias('can_offset'))
 
             return query
 
