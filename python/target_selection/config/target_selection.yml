@@ -1,13 +1,15 @@
 '1.0.1':
  xmatch_plan: 1.0.0
  cartons:
-   - bhm_aqmes_med
-   - bhm_aqmes_med_faint
-   - bhm_aqmes_bonus_bright
-   - bhm_aqmes_bonus_core
-   - bhm_aqmes_bonus_faint
-   - bhm_aqmes_wide2
-   - bhm_aqmes_wide2_faint
+    - bhm_aqmes_med
+    - bhm_aqmes_med_faint
+    - bhm_aqmes_bonus_bright
+    - bhm_aqmes_bonus_core
+    - bhm_aqmes_bonus_faint
+    - bhm_aqmes_wide2
+    - bhm_aqmes_wide2_faint
+    - bhm_gua_dark
+    - bhm_gua_bright
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
  magnitudes:
@@ -60,6 +62,30 @@
       fieldlist: None
       mag_i_min: 14.0
       mag_i_max: 18.0
+    bhm_gua_dark:
+      mag_g_min: 16.5
+      mag_g_max: 21.2
+      mag_rp_min: 16.5
+      mag_rp_max: 21.0
+      prob_rf_min: 0.80
+      spec_join_radius: 1.0
+      spec_sn_thresh: 2.0
+      spec_z_err_thresh: 0.01
+      priority: 3400
+      value: 0.5
+      cadence: 'dark_1x4'
+    bhm_gua_bright:
+      mag_g_min: 13.0
+      mag_g_max: 18.5
+      mag_rp_min: 13.5
+      mag_rp_max: 18.5
+      prob_rf_min: 0.80
+      spec_join_radius: 1.0
+      spec_sn_thresh: 2.0
+      spec_z_err_thresh: 0.01
+      priority: 4040
+      value: 0.5
+      cadence: 'bright_2x1'
 
 '0.5.23':
  xmatch_plan: 0.5.0
