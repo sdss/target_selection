@@ -188,6 +188,35 @@
       dpriority_match_method: 4
       in_plane_lat_cut: 0.0
       dpriority_in_plane: 0
+    bhm_spiders_clusters_lsdr10:
+      value_bcg: 5.0
+      value_member: 1.0
+      ero_version: 'eRASS4_020'
+      xmatch_method: 'EROMAPPER_LS_DR10'
+      xmatch_version: 'lsdr10a_grz_z_v'
+      opt_cat: 'lsdr10'
+      det_like_min: 8.0
+      xmatch_metric_min: 0.25
+      fibertotmag_r_min: 13.5
+      fibertotmag_r_max: 21.0
+      fibertotmag_z_min: 13.5
+      fibertotmag_z_max: 20.0
+      fibertotmag_r_for_cadence1: 16.5
+      fibertotmag_z_for_cadence1: 16.5
+      fibertotmag_r_for_cadence2: 18.5
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      spec_join_radius: 1.0
+      spec_sn_thresh: 2.00
+      spec_z_err_thresh: 0.01
+      priority_floor_bcg: 1501
+      priority_floor_member: 1630
+      priority_levels: 31
 
 '0.5.23':
  xmatch_plan: 0.5.0
