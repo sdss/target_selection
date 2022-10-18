@@ -86,6 +86,25 @@
       priority: 4040
       value: 0.5
       cadence: 'bright_2x1'
+    bhm_colr_galaxies_lsdr10:
+      priority: 7100
+      value: 0.0
+      cadence1: 'bright_1x1'
+      cadence2: 'dark_1x1'
+      cadence3: 'dark_1x4'
+      fibermag_r_for_cadence1: 17.0
+      fibermag_r_for_cadence2: 18.0
+      fibermag_r_min: 16.0
+      fibermag_g_min: 16.0
+      fibermag_z_min: 16.0
+      dered_mag_z_max: 19.0
+      dered_fibermag_z_max: 19.5
+      fibermag_g_max: 22.5
+      fibermag_r_max: 21.5
+      fibermag_z_max: 20.0
+      gaia_g_mag_limit: 15.0
+      gaia_rp_mag_limit: 15.0
+      shape_r_min: 1.0
 
 '0.5.23':
  xmatch_plan: 0.5.0
