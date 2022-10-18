@@ -40,14 +40,14 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     Gaia_DR3,
 )
 
-## additional imports required by bhm_spiders_agn_ps1dr2
-#from sdssdb.peewee.sdss5db.catalogdb import (
-#    Panstarrs1,
-#    CatalogToPanstarrs1,
-#)
+# # additional imports required by bhm_spiders_agn_ps1dr2
+# from sdssdb.peewee.sdss5db.catalogdb import (
+#     Panstarrs1,
+#     CatalogToPanstarrs1,
+# )
 
-from target_selection.mag_flux import AB2nMgy, AB2Jy
-
+from target_selection.mag_flux import AB2nMgy
+# from target_selection.mag_flux import AB2Jy
 
 # used by cartons that need to compute Galactic latitude:
 north_gal_pole_ra = 192.85948   # deg, J2000
@@ -407,7 +407,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 fn.min(c.catalogid).alias('catalogid'),
                 fn.min(ls.ls_id).alias('ls_id'),  # extra
                 fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
-                fn.min(s19.c.s19_pk).alias('sdss_dr19p_speclite_pk'), # extra
+                fn.min(s19.c.s19_pk).alias('sdss_dr19p_speclite_pk'),  # extra
                 fn.min(c.ra).alias('ra'),   # extra
                 fn.min(c.dec).alias('dec'),   # extra
                 priority.alias('priority'),
@@ -1077,7 +1077,7 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
                 fn.min(c.catalogid).alias('catalogid'),
                 fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
                 fn.min(g3.source_id).alias('gaia_dr3_source_id'),  # extra
-                fn.min(s19.c.s19_pk).alias('sdss_dr19p_speclite_pk'), # extra
+                fn.min(s19.c.s19_pk).alias('sdss_dr19p_speclite_pk'),  # extra
                 fn.min(c.ra).alias('ra'),  # extra
                 fn.min(c.dec).alias('dec'),  # extra
                 priority.alias("priority"),
