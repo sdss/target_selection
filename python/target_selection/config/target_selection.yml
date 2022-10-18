@@ -10,6 +10,11 @@
     - bhm_aqmes_wide2_faint
     - bhm_gua_dark
     - bhm_gua_bright
+    - bhm_colr_galaxies_lsdr10
+    - bhm_spiders_agn_lsdr10
+    - bhm_spiders_agn_gdr3
+    - bhm_spiders_agn_sep
+
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
  magnitudes:
@@ -68,7 +73,6 @@
       mag_rp_min: 16.5
       mag_rp_max: 21.0
       prob_rf_min: 0.80
-      spec_join_radius: 1.0
       spec_sn_thresh: 2.0
       spec_z_err_thresh: 0.01
       priority: 3400
@@ -80,7 +84,6 @@
       mag_rp_min: 13.5
       mag_rp_max: 18.5
       prob_rf_min: 0.80
-      spec_join_radius: 1.0
       spec_sn_thresh: 2.0
       spec_z_err_thresh: 0.01
       priority: 4040
@@ -105,6 +108,86 @@
       gaia_g_mag_limit: 15.0
       gaia_rp_mag_limit: 15.0
       shape_r_min: 1.0
+    bhm_spiders_agn_lsdr10:
+      value: 1.0
+      ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
+      xmatch_method: 'XPS/NWAY'
+      xmatch_version: 'JWMS_06Oct22'
+      opt_cat: 'lsdr10'
+      fibertotmag_r_min: 13.5
+      fibertotmag_r_max: 22.5
+      fibertotmag_z_min: 13.5
+      fibertotmag_z_max: 21.0
+      fibertotmag_r_for_cadence1: 16.5
+      fibertotmag_r_for_cadence2: 18.5
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      det_like_min: 6.0
+      det_like_for_priority: 7.0
+      p_any_min: 0.1
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+      priority_floor: 1520
+      dpriority_match_flags: 1
+      dpriority_det_like: 2
+      dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
+    bhm_spiders_agn_gaiadr3:
+      value: 1.0
+      ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
+      xmatch_method: 'XPS/NWAY'
+      xmatch_version: 'JWMS_06Oct22'
+      opt_cat: 'gaiadr3'
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_max_for_cadence2: 19.0
+      gaia_rp_max_for_cadence2: 19.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      det_like_min: 6.0
+      det_like_for_priority: 7.0
+      p_any_min: 0.1
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+      priority_floor: 1540
+      dpriority_match_flags: 1
+      dpriority_det_like: 2
+      dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_in_plane: 2000
+    bhm_spiders_agn_sep:
+      value: 1.0
+      ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
+      xmatch_method: 'XPS/NWAY'
+      xmatch_version: 'JWMS_06Oct22'
+      opt_cat: 'gaiadr3'
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_max_for_cadence2: 19.0
+      gaia_rp_max_for_cadence2: 19.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      det_like_min: 6.0
+      det_like_for_priority: 8.0
+      p_any_min: 0.1
+      priority_floor: 1510
+      dpriority_match_flags: 1
+      dpriority_det_like: 2
+      dpriority_match_method: 4
+      in_plane_lat_cut: 0.0
+      dpriority_in_plane: 0
 
 '0.5.23':
  xmatch_plan: 0.5.0
