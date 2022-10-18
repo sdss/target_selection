@@ -17,9 +17,9 @@ import pkg_resources
 
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
-    SDSS_DR19p_SpecLite,
+    SDSS_DR19p_Speclite,
     SDSS_DR16_QSO,
-    CatalogToSDSS_DR19p_SpecLite,
+    CatalogToSDSS_DR19p_Speclite,
 )
 
 
@@ -129,8 +129,8 @@ class BhmAqmesBaseCarton(BaseCarton):
     # main query
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2s = CatalogToSDSS_DR19p_SpecLite.alias()
-        s = SDSS_DR19p_SpecLite.alias()
+        c2s = CatalogToSDSS_DR19p_Speclite.alias()
+        s = SDSS_DR19p_Speclite.alias()
         t = SDSS_DR16_QSO.alias()
         self.alias_c = c
         self.alias_t = t

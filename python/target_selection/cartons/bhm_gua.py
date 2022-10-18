@@ -16,8 +16,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     CatalogToGaia_DR2,
     # Gaia_DR2,
-    CatalogToSDSS_DR19p_SpecLite,
-    SDSS_DR19p_SpecLite,
+    CatalogToSDSS_DR19p_Speclite,
+    SDSS_DR19p_Speclite,
     Gaia_unWISE_AGN,
 )
 from target_selection.cartons.base import BaseCarton
@@ -103,9 +103,23 @@ class BhmGuaBaseCarton(BaseCarton):
         # #########################################################################
         # prepare the spectroscopy catalogue
 
-        # SDSS DR16
-        c2s19 = CatalogToSDSS_DR19p_SpecLite.alias()
-        s19 = SDSS_DR19p_SpecLite.alias()
+        # SDSS DR19p
+        # downslect only 'good' spectra
+        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        ss19 = SDSS_DR19p_Speclite.alias()
+        s19 = (
+            ss19.select(
+                ss19.pk.alias('s19_pk'),
+            )
+            .where(
+                ss19.snmedian >= spec_sn_thresh,
+                ss19.zwarning == 0,
+                ss19.zerr <= spec_z_err_thresh,
+                ss19.zerr > 0.0,
+                ss19.scienceprimary > 0,
+            )
+            .alias('s19')
+        )
 
         # set the Carton priority+values here - read from yaml
         priority = peewee.Value(int(self.parameters.get('priority', 10000)))
@@ -170,7 +184,7 @@ class BhmGuaBaseCarton(BaseCarton):
                 c.catalogid,
                 c.ra,   # extra
                 c.dec,   # extra
-                t.gaia_sourceid,   # extra
+                t.gaia_sourceid.aliad('gaia_dr2_source_id'),   # extra
                 t.unwise_objid,   # extra
                 priority.alias('priority'),
                 value.alias('value'),
@@ -197,11 +211,12 @@ class BhmGuaBaseCarton(BaseCarton):
             # joining to spectroscopy
             .switch(c)
             .join(c2s19, JOIN.LEFT_OUTER)
-            .join(s19, JOIN.LEFT_OUTER)
+            .join(s19, JOIN.LEFT_OUTER,
+                  on=(s19.c.s19_pk == c2s19.target_id))
             .where(
                 c.version_id == version_id,
                 c2g2.version_id == version_id,
-                c2s19.version_id == version_id,
+                fn.coalesce(c2s19.version_id, version_id) == version_id,
                 c2g2.best >> True,
             )
             .where(
@@ -214,16 +229,18 @@ class BhmGuaBaseCarton(BaseCarton):
                 ),
             )
             # then reject any GUA targets with existing good DR19p spectroscopy
-            .where(
-                s19.pk.is_null(True) |
-                ~(
-                    (s19.snmedian >= spec_sn_thresh) &
-                    (s19.zwarning == 0) &
-                    (s19.zerr <= spec_z_err_thresh) &
-                    (s19.zerr > 0.0) &
-                    (s19.scienceprimary > 0)
-                )
-            )
+            .where(s19.c.s19_pk.is_null(True))
+            # .where(
+            #     s19.pk.is_null(True) |
+            #     (s19.scienceprimary == 0) |
+            #     ~(
+            #         (s19.snmedian >= spec_sn_thresh) &
+            #         (s19.zwarning == 0) &
+            #         (s19.zerr <= spec_z_err_thresh) &
+            #         (s19.zerr > 0.0) &
+            #         (s19.scienceprimary > 0)
+            #     )
+            # )
             # avoid duplicates - trust the gaia ids in the GUA parent sample
             .distinct([t.gaia_sourceid])
         )
