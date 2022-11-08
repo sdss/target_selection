@@ -5,7 +5,6 @@
 # @Date: 2020-04-06
 # @Filename: xmatch.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
-
 import hashlib
 import inspect
 import os
@@ -13,14 +12,12 @@ import re
 import types
 import uuid
 import warnings
-
 import networkx
 import numpy
 import peewee
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, Case, Model, fn
-
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
@@ -34,8 +31,7 @@ from target_selection.utils import (Timer, get_configuration_values,
                                     get_epoch, is_view, sql_apply_pm,
                                     vacuum_outputs, vacuum_table)
 
-
-EPOCH = 2015.5
+EPOCH = 2016.0
 QUERY_RADIUS = 1.
 
 #: Reserve last 11 bits for the run id.
@@ -372,6 +368,17 @@ class XMatchPlanner(object):
         (``ra``, ``dec``, ``radius``) of the region to which to limit the
         cross-match. All values must be in degrees. It can also be a list
         of tuples, in which case the union of all the regions will be sampled.
+    path_mode : str
+        The mode to look for join paths to link tables to output catalog.
+        ``original`` mode uses a scorched earth algorithm that iteratively
+        looks the shortest path and removes the first node trasspased and
+        starts again until no shortest paths are available. ``full`` mode
+        retrieves all the paths that are not a subsample of another path.
+        ``config_list`` mode takes the list of paths from ``join_paths``
+        parameter in the .yml configuration file.
+    join_paths : list
+        When using path_mode=``config_list`` is the list of paths to link
+        tables to output catalog table in phase_1.
     database_options : dict
         A dictionary of database configuration parameters to be set locally
         during each phase transaction, temporarily overriding the default
@@ -395,7 +402,7 @@ class XMatchPlanner(object):
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{plan}.log',
                  debug=False, show_sql=False, sample_region=None,
-                 database_options=None):
+                 database_options=None, path_mode='full', join_paths=None):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -430,7 +437,7 @@ class XMatchPlanner(object):
         self.log.info(f'plan = {self.plan!r}; '
                       f'run_id = {self.run_id}; '
                       f'tag = {self.tag!r}.')
-
+        self.log.info(f'Reference Epoch = {epoch}')
         self.models = {model._meta.table_name: model for model in models}
         self.extra_nodes = {model._meta.table_name: model for model in extra_nodes}
         self._check_models()
@@ -440,6 +447,9 @@ class XMatchPlanner(object):
                          'sample_region': sample_region,
                          'epoch': epoch,
                          'database_options': database_options or None}
+
+        qrd = self._options['query_radius']
+        self.log.info(f'Query radius = {qrd}')
 
         if self._options['sample_region']:
             sample_region = self._options['sample_region']
@@ -455,6 +465,11 @@ class XMatchPlanner(object):
 
         self._version_id = None
         self._max_cid = self.run_id << RUN_ID_BIT_SHIFT
+        self.path_mode = path_mode
+        if path_mode == 'config_list':
+            join_paths_warning = 'join_paths needed in config for path_mode=config_list'
+            assert join_paths is not None, join_paths_warning
+            self.join_paths = join_paths
 
     @classmethod
     def read(cls, in_models, plan, config_file=None, **kwargs):
@@ -557,10 +572,8 @@ class XMatchPlanner(object):
                            '/config/xmatch.yml')
 
         config = XMatchPlanner._read_config(config_file, plan)
-
         table_config = config.pop('tables', {}) or {}
         exclude_nodes = config.pop('exclude_nodes', []) or []
-
         assert 'schema' in config, 'schema is required in configuration.'
         schema = config['schema']
 
@@ -805,16 +818,19 @@ class XMatchPlanner(object):
 
         return ordered_tables
 
-    def get_join_paths(self, source, return_models=False):
+    def get_join_paths(self, source, return_models=False, mode='full'):
         """Determines all possible join path between two tables.
 
-        Instead of returning all possible simple paths between the ``source``
-        and output table, this algorithm follows a "scorched earth" approach
+        Mode ``original``  follows a scorched earth approach
         in which once an edge has been used for a join it cannot be used again.
-        This produces only distinct joins between the two nodes. Paths that
-        include only the source and destination through their relational table
-        are ignored, as are paths in which the last node before the output
-        table has not yet been processed.
+        This produces only distinct joins between the two nodes.
+        Mode ``full`` includes all possible paths that are not a subsample
+        of another path.
+        In both modes paths that include only the source and destination
+        through their relational table are ignored, as are paths in which
+        the last node before the output table has not yet been processed.
+        Finally mode "config_list" is used to take the paths from a list
+        indicated in the configuration file.
 
         Weights can be defined by setting the ``join_weight`` value in
         `.XMatchModel`. The weight for each edge is the average of the the
@@ -829,6 +845,9 @@ class XMatchPlanner(object):
         return_models : bool
             If `True`, returns each path as a list of models. Otherwise returns
             the table names.
+        mode : str
+            The method used to obtain the paths. Possible values are
+            ``original``, ``full``, and ``config_list``
 
         Returns
         -------
@@ -840,25 +859,58 @@ class XMatchPlanner(object):
         """
 
         graph = self.model_graph.copy()
-
-        dest = self._temp_table
         porder = self.process_order
-
-        rel_table_name = self._temp_table + '_to_' + source
-        if rel_table_name in graph:
-            graph.remove_node(rel_table_name)
-
         paths = []
 
-        while True:
-            try:
-                spath = shortest_path(graph, source, dest, weight='join_weight')
-                if (spath[-3] in porder and
-                        porder.index(spath[-3]) < porder.index(source)):
-                    paths.append(spath)
-                graph.remove_node(spath[1])
-            except networkx.NetworkXNoPath:
-                break
+        if mode == 'original':
+            dest = self._temp_table
+            rel_table_name = self._temp_table + '_to_' + source
+            if rel_table_name in graph:
+                graph.remove_node(rel_table_name)
+
+            while True:
+                try:
+                    spath = shortest_path(graph, source, dest, weight='join_weight')
+                    if (spath[-3] in porder and
+                            porder.index(spath[-3]) < porder.index(source)):
+                        paths.append(spath)
+                    graph.remove_node(spath[1])
+                except networkx.NetworkXNoPath:
+                    break
+
+        if mode == 'full':
+            ind = porder.index(source)
+            for dest in porder[:ind]:
+                paths1 = list(networkx.all_simple_paths(graph, source, dest, cutoff=1))
+                if len(paths1) > 0:
+                    paths += paths1
+                    graph.remove_node(paths1[0][1])  # Only 1 possible straight path
+            for dest in porder[:ind]:
+                paths2orless = list(networkx.all_simple_paths(graph, source,
+                                                              dest, cutoff=2))
+                paths2 = [el for el in paths2orless if len(el) == 3]
+                if len(paths2) > 0:
+                    paths += paths2
+                    used2_edges = [(el[1], el[2]) for el in paths2]
+                    graph.remove_edges_from(used2_edges)
+            for dest in porder[:ind]:
+                forb_couples = [set(el[1:]) for el in paths if len(el) == 3]
+                paths3orless = list(networkx.all_simple_paths(graph, source,
+                                                              dest, cutoff=3))
+                paths3 = [el for el in paths3orless if len(el) == 4
+                          and {el[1], el[3]} not in forb_couples]
+                if len(paths3) > 0:
+                    paths += paths3
+
+            full_paths = []
+            for path in paths:
+                full_path = path + ["catalog_to_"+path[-1], self._temp_table]
+                full_paths.append(full_path)
+            paths = full_paths
+
+        if mode == 'config_list':
+            all_paths = self.join_paths
+            paths = [path for path in all_paths if path[0] == source]
 
         if len(paths) == 0:
             return []
@@ -1033,7 +1085,6 @@ class XMatchPlanner(object):
                     continue
                 model = self.models[table_name]
                 self.process_model(model)
-
             self._load_output_table(keep_temp=keep_temp)
 
         self.log.info(f'Cross-matching completed in {timer.interval:.3f} s.')
@@ -1095,22 +1146,30 @@ class XMatchPlanner(object):
 
             pmra_field = fields[xmatch.pmra_column]
             pmdec_field = fields[xmatch.pmdec_column]
-            delta_years = to_epoch - get_epoch(model)
+            delta_years2000 = to_epoch - get_epoch(model)
+            delta_years2015p5 = to_epoch - 2015.5
 
-            racorr_field, deccorr_field = sql_apply_pm(ra_field, dec_field,
-                                                       pmra_field, pmdec_field,
-                                                       delta_years,
-                                                       xmatch.is_pmra_cos)
+            racorr2000_field, deccorr2000_field = sql_apply_pm(ra_field, dec_field,
+                                                               pmra_field, pmdec_field,
+                                                               delta_years2000,
+                                                               xmatch.is_pmra_cos)
+
+            racorr2015p5_field, deccorr2015p5_field = sql_apply_pm(model.ra_orig,
+                                                                   model.dec_orig,
+                                                                   pmra_field,
+                                                                   pmdec_field,
+                                                                   delta_years2015p5,
+                                                                   xmatch.is_pmra_cos)
 
             ra_field = Case(
                 None,
-                [(model.posflag == 'gaia2', model.ra_orig)],
-                racorr_field
+                [(model.posflag == 'gaia2', racorr2015p5_field)],
+                racorr2000_field
             )
             dec_field = Case(
                 None,
-                [(model.posflag == 'gaia2', model.dec_orig)],
-                deccorr_field
+                [(model.posflag == 'gaia2', deccorr2015p5_field)],
+                deccorr2000_field
             )
 
             model_fields.extend([ra_field.alias('ra'),
@@ -1233,6 +1292,10 @@ class XMatchPlanner(object):
                 query = query.join(
                     TempCatalog,
                     on=(TempCatalog.catalogid == path[inode - 1].catalogid))
+            elif path[inode]._meta.table_name == 'gaia_dr2_neighbourhood':
+                query = (query.join(path[inode])
+                         .where(path[inode].angular_distance < 200)  # To force the 1-1
+                         .distinct(path[inode].dr2_source_id))  # Just to be sure.
             else:
                 query = query.join(path[inode])
 
@@ -1251,8 +1314,8 @@ class XMatchPlanner(object):
         if 1 in model._meta.xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
             return
-
-        join_paths = self.get_join_paths(table_name)
+        path_mode = self.path_mode
+        join_paths = self.get_join_paths(table_name, mode=path_mode)
 
         if len(join_paths) == 0:
             self.log.debug(f'No paths found between {table_name} and '
@@ -1299,12 +1362,17 @@ class XMatchPlanner(object):
                          .where(rel_model.version_id == self._version_id,
                                 ((rel_model.target_id == model_pk) |
                                  (rel_model.catalogid == join_rel_model.catalogid)))))
-                     # In case we have duplicates in the catalogue.
-                     .distinct(model_pk))
+                     # To avoid breaking the unique contraint in relational tables
+                     .distinct(model_pk, join_rel_model.catalogid))
 
             # Deal with duplicates in LS8
             if table_name == 'legacy_survey_dr8':
                 query = query.where(self._get_ls8_where(model))
+
+            # Remove Duplicates and non-primary entries from LS10
+            if table_name == 'legacy_survey_dr10':
+                query = query.where(model.survey_primary >> True,
+                                    fn.coalesce(model.ref_cat, '') != 'T2')
 
             # In query we do not include a Q3C where for the sample region
             # because TempCatalog for this plan should already be sample
@@ -1322,7 +1390,6 @@ class XMatchPlanner(object):
                     self.log.debug(f'Selecting linked targets into temporary '
                                    f'table {temp_table!r} with join path '
                                    f'{path}{self._get_sql(query)}')
-
                     query.create_table(temp_table, temporary=True)
 
                     self.log.debug(f'Copying data into relational model '
@@ -1435,6 +1502,9 @@ class XMatchPlanner(object):
 
         if table_name == 'legacy_survey_dr8':
             xmatched = xmatched.where(self._get_ls8_where(model))
+        if table_name == 'legacy_survey_dr10':
+            xmatched = xmatched.where(model.survey_primary >> True,
+                                      fn.coalesce(model.ref_cat, '') != 'T2')
 
         # This may break the use of the index but I think it's needed if
         # the model is the second table in q3c_join and has empty RA/Dec.
@@ -1558,6 +1628,13 @@ class XMatchPlanner(object):
 
         if table_name == 'legacy_survey_dr8':
             unmatched = unmatched.where(self._get_ls8_where(model))
+
+        if table_name == 'legacy_survey_dr10a':
+            unmatched = unmatched.where(model.ref_cat != 'T2')
+
+        if table_name == 'legacy_survey_dr10':
+            unmatched = unmatched.where(model.survey_primary >> True,
+                                        fn.coalesce(model.ref_cat, '') != 'T2')
 
         with Timer() as timer:
             with self.database.atomic():
@@ -1693,7 +1770,7 @@ class XMatchPlanner(object):
             query_str = query_str % tuple(query_params)
 
         if self._options['show_sql']:
-            return f': {color_text(query_str, "darkgrey")}'
+            return f': {color_text(query_str, "blue")}'
         else:
             return '.'
 
@@ -1761,12 +1838,12 @@ class XMatchPlanner(object):
         the paths starting from the first model to be processed are ignored.
 
         """
-
         if len(self.process_order) == 1:
             return
 
+        mode = self.path_mode
         for table in self.process_order[1:]:
-            paths = self.get_join_paths(table)
+            paths = self.get_join_paths(table, mode=mode)
             if paths:
                 for path in paths:
                     print(path)
