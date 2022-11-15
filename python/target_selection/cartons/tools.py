@@ -50,7 +50,23 @@ def get_file_carton(filename):
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one cartonname')
+                                           ' contains more than one cartonname')
+
+            unique_can_offset = numpy.unique(self._table['can_offset'])
+            if len(unique_can_offset) > 1:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' contains more than one' +
+                                           ' value of can_offset:' +
+                                           ' can_offset values must be ' +
+                                           ' all 0 or all 1')
+
+            if (unique_can_offset[0] != 1) and (unique_can_offset[0] != 0):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' can_offset can only be 0 or 1.' +
+                                           ' can_offset is ' +
+                                           str(unique_can_offset[0]))
 
             # The valid_program list is from the output of the below command.
             # select distinct(program) from targetdb.carton order by program;
@@ -103,12 +119,12 @@ def get_file_carton(filename):
                 if (self.category not in valid_category):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid category = ' +
+                                               ' contains invalid category = ' +
                                                self.category)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one category')
+                                           ' contains more than one category')
 
             unique_program = numpy.unique(self._table['program'])
             if len(unique_program) == 1:
@@ -116,12 +132,12 @@ def get_file_carton(filename):
                 if (self.program not in valid_program):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid program = ' +
+                                               ' contains invalid program = ' +
                                                self.program)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one program')
+                                           ' contains more than one program')
 
             unique_mapper = numpy.unique(self._table['mapper'])
             if len(unique_mapper) == 1:
@@ -131,14 +147,14 @@ def get_file_carton(filename):
                 if (self.mapper not in valid_mapper):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid mapper = ' +
+                                               ' contains invalid mapper = ' +
                                                self.mapper)
                 if (self.mapper == ''):
                     self.mapper = None
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one mapper')
+                                           ' contains more than one mapper')
 
             basename_fits = os.path.basename(filename)
             basename_parts = os.path.splitext(basename_fits)
