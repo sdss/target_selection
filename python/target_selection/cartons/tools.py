@@ -68,6 +68,32 @@ def get_file_carton(filename):
                                            ' can_offset is ' +
                                            str(unique_can_offset[0]))
 
+            unique_inertial = numpy.unique(self._table['inertial'])
+            if len(unique_inertial) > 2:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' contains more than two' +
+                                           ' values of inertial:' +
+                                           ' inertial values must be ' +
+                                           ' 0 or 1')
+
+            if (unique_inertial[0] != 1) and (unique_inertial[0] != 0):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' inertial can only be 0 or 1.' +
+                                           ' inertial is ' +
+                                           str(unique_inertial[0]))
+
+            # If there is only one inertial value then the above statement
+            # is enough. Otherwise, we need to run the below check.
+            if len(unique_inertial) == 2:
+                if (unique_inertial[1] != 1) and (unique_inertial[1] != 0):
+                    raise TargetSelectionError('error in get_file_carton(): ' +
+                                               filename +
+                                               ' inertial can only be 0 or 1.' +
+                                               ' inertial is ' +
+                                               str(unique_inertial[1]))
+
             # The valid_program list is from the output of the below command.
             # select distinct(program) from targetdb.carton order by program;
             #
@@ -227,8 +253,19 @@ def get_file_carton(filename):
 
             # TODO
             # put the query here after gaia_dr3 crossmatch table
-            # like catalog_to_gaia_dr3 is ready
+            # with name like catalog_to_gaia_dr3 is ready
             query_gaia_dr3 = None
+#            query_gaia_dr3 = \
+#               (query_common
+#                .join(CatalogToGaia_DR3)
+#                .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+#                .join(temp,
+#                      on=(temp.Gaia_DR3_Source_ID == Gaia_DR3.source_id))
+#                .switch(Catalog)
+#                .where(CatalogToGaia_DR3.version_id == version_id,
+#                       (CatalogToGaia_DR3.best >> True) |
+#                       CatalogToGaia_DR3.best.is_null(),
+#                       Catalog.version_id == version_id))
 
             query_gaia_dr2 = \
                 (query_common
