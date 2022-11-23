@@ -58,9 +58,3 @@ with open(outfilehtml, "wt") as of:
         of.write(str_out)
 
     of.close()
-
-
-
-# Then do this auto conversion to latex:
-#
-# pandoc --from=html --to=latex --output=bhm_target_cartons.tex carton_descriptions.html
