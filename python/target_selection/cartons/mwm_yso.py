@@ -812,6 +812,7 @@ class MWM_YSO_OB_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -893,6 +894,7 @@ class MWM_YSO_OB_BOSS_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -1054,6 +1056,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     # mipsgal is a subset of 2MASS
     # mipsgal can be joined to twomass_psc via
@@ -1353,6 +1356,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -1449,6 +1453,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2700
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
