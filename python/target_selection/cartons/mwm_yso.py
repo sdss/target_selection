@@ -62,6 +62,7 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -158,6 +159,7 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -306,6 +308,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -395,6 +398,7 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     # Above implementation has below clause
     # and (b>-5 or l>180) and b<-5
@@ -514,6 +518,7 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -648,6 +653,7 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -1141,6 +1147,7 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     # yso_clustering is a subset of gaia and
     # can be joined to gaia_dr2_source via source_id.
@@ -1221,6 +1228,7 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
     program = 'mwm_yso'
     mapper = 'MWM'
     priority = 2705
+    can_offset = True
 
     # yso_clustering is a subset of gaia and
     # can be joined to gaia_dr2_source via source_id.
