@@ -45,6 +45,7 @@ class MWM_Galactic_Core_Carton(BaseCarton):
     priority = 2710
     program = 'mwm_galactic'
     mapper = 'MWM'
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
