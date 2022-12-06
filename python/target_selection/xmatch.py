@@ -66,6 +66,17 @@ class Catalog(peewee.Model):
     version_id = peewee.IntegerField(null=False, index=True)
 
 
+class Intermediate(peewee.Model):
+    """Model for the output table."""
+
+    catalogid = peewee.BigIntegerField(index=True, null=False)
+    ra = peewee.DoubleField(null=False)
+    dec = peewee.DoubleField(null=False)
+    pmra = peewee.FloatField(null=True)
+    pmdec = peewee.FloatField(null=True)
+    parallax = peewee.FloatField(null=True)
+
+
 class TempCatalog(Catalog):
     """Temporary output table."""
 
@@ -1675,15 +1686,38 @@ class XMatchPlanner(object):
                 # 1. Run link query and create temporary table with results.
 
                 self._setup_transaction(model, phase=3)
+                inter_name = 'phase3_content_'+table_name
+                model_pk_class = model_pk.__class__
 
-                temp_model = self._get_relational_model(model, temp=True)
-                temp_table = temp_model._meta.table_name
+                class Intermediate(peewee.Model):
+                    """Model for the intermediate results of phase_3."""
+
+                    catalogid = peewee.BigIntegerField(index=True, null=False)
+                    target_id = model_pk_class(null=False, index=True)
+                    version_id = peewee.SmallIntegerField(null=False, index=True)
+                    best = peewee.BooleanField(null=False)
+                    distance = peewee.DoubleField(null=True)
+
+                    class Meta:
+                        database = self.database
+                        schema = self.schema
+                        table_name = inter_name
+                        primary_key = False
+
+                unmatched_query_str = self._get_sql(unmatched, return_string=True)
 
                 self.log.debug(f'Selecting unique targets '
-                               f'into temporary table '
-                               f'{temp_table!r}{self._get_sql(unmatched)}')
+                               f'into table '
+                               f'{self.schema}.{inter_name!r}'
+                               f' in PSLQ: {self._get_sql(unmatched)}')
 
-                unmatched.create_table(temp_table, temporary=True)
+                sql_file = open('phase3_query.sql', 'w')
+                sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name};')
+                sql_file.write(f'CREATE TABLE {self.schema}.{inter_name} AS (')
+                sql_file.write(unmatched_query_str+');')
+                sql_file.close()
+
+                os.system('psql -U sdss -d sdss5db -a -f phase3_query.sql')
 
                 # Analyze the temporary table to gather stats.
                 # self.log.debug('Running ANALYZE on temporary table.')
@@ -1692,14 +1726,14 @@ class XMatchPlanner(object):
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
 
-                fields = [temp_model.catalogid, temp_model.target_id,
-                          temp_model.version_id, temp_model.best]
+                fields = [Intermediate.catalogid, Intermediate.target_id,
+                          Intermediate.version_id, Intermediate.best]
 
                 rel_insert_query = rel_model.insert_from(
-                    temp_model.select(temp_model.catalogid,
-                                      temp_model.target_id,
-                                      self._version_id,
-                                      peewee.SQL('true')), fields).returning()
+                    Intermediate.select(Intermediate.catalogid,
+                                        Intermediate.target_id,
+                                        self._version_id,
+                                        peewee.SQL('true')), fields).returning()
 
                 self.log.debug(f'Copying data into relational model '
                                f'{rel_table_name!r}'
@@ -1714,7 +1748,7 @@ class XMatchPlanner(object):
                 # 3. Fill out the temporary catalog table with the information
                 #    from the unique targets.
 
-                temp_table = peewee.Table(temp_table)
+                temp_table = peewee.Table(inter_name)
 
                 fields = [TempCatalog.catalogid,
                           TempCatalog.lead,
@@ -1795,15 +1829,21 @@ class XMatchPlanner(object):
         vacuum_table(self.database, f'{self.schema}.{self.output_table}',
                      vacuum=True, analyze=True)
 
-    def _get_sql(self, query):
+    def _get_sql(self, query, return_string=False):
         """Returns coulourised SQL text for logging."""
 
         query_str, query_params = query.sql()
 
         if query_params:
+            for ind in range(len(query_params)):
+                if type(query_params[ind]) == str:
+                    query_params[ind] = '\'' + query_params[ind] + '\''
+
             query_str = query_str % tuple(query_params)
 
-        if self._options['show_sql']:
+        if return_string:
+            return query_str
+        elif self._options['show_sql']:
             return f': {color_text(query_str, "blue")}'
         else:
             return '.'
