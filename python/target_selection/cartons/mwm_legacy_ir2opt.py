@@ -42,7 +42,8 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;    apogee_id
+# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
+#    apogee_id
 # ------------------
 #  19140272-1554055
 #  19155129-1617591
