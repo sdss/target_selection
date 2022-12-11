@@ -9,8 +9,9 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
-                                             CatalogToTIC_v8, Gaia_DR2,
-                                             Sagitta, TIC_v8, TwoMassPSC,
+                                             CatalogToGaia_DR3,
+                                             CatalogToTIC_v8, Gaia_DR2, Gaia_DR3,
+                                             Sagitta, Sagitta_EDR3, TIC_v8, TwoMassPSC,
                                              YSO_Clustering, Zari18pms)
 
 from target_selection.cartons import BaseCarton
@@ -273,9 +274,10 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     without gaia detection,
     colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
      relates (W3-W4)>(W1-W2)*0.5+1.1
-    (should have ~11.6K sources)
+     (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1
     Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
+    https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
     Additional source catalogs needed: 2mass+allwise, gaia
     (allow sources that lack gaia xmatch)
     Additional cross-matching needed:
@@ -298,7 +300,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     and w2mpro-w3mpro>1
     and w3mpro-w4mpro>1.5
     and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
-
+    and (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1
     """
 
     name = 'mwm_yso_embedded_apogee'
@@ -313,42 +315,40 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     def build_query(self, version_id, query_region=None):
 
         query = (AllWise
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
+                         Gaia_DR3.parallax)
                  .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(CatalogToTIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                 .switch(CatalogToGaia_DR3,
+                         on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 13,
-                        (Gaia_DR2.phot_g_mean_mag > 18.5) |
-                        (Gaia_DR2.phot_g_mean_mag >> None),
+                        (Gaia_DR3.phot_g_mean_mag > 18.5) |
+                        (Gaia_DR3.phot_g_mean_mag >> None),
                         (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
                         (AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.50,
                         (AllWise.w2mpro - AllWise.w3mpro) > 1.00,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         (AllWise.w3mpro - AllWise.w4mpro) >
-                        (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1))
+                        ((AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1),
+                        (AllWise.h_m_2mass - AllWise.k_m_2mass) >
+                        (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
