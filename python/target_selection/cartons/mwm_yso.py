@@ -1328,17 +1328,19 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
     Shorthand name: mwm_yso_pms_apogee
-    Comments: New
+    Comments: For v1.0, we use sagitta_edr3 instead of sagitta.
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
     pre-main sequence stars
-    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
-    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
+    Additional source catalogs needed: catalogdb.sagitta_edr3, catalogdb.zari18pms
     Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
     apogee_bright_3x1 (for 7 < H < 13)
-    Implementation: (in sagitta | in zari18pms) & h<13
+    Implementation: (in sagitta_edr3 | in zari18pms) & h<13
     lead contact:Marina Kounkel
     """
 
@@ -1346,7 +1348,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
     # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
-    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
     name = 'mwm_yso_pms_apogee'
@@ -1376,8 +1378,8 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
                   .switch(TIC_v8)
                   .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                   .switch(Gaia_DR2)
-                  .join(Sagitta,
-                        on=(Gaia_DR2.source_id == Sagitta.source_id))
+                  .join(Sagitta_EDR3,
+                        on=(Gaia_DR2.source_id == Sagitta_EDR3.source_id))
                   .where(CatalogToTIC_v8.version_id == version_id,
                          CatalogToTIC_v8.best >> True,
                          TwoMassPSC.h_m < 13))
@@ -1423,19 +1425,21 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, BOSS
     Shorthand name: mwm_yso_pms_boss
-    Comments: New, Split from PMS
+    Comments: For v1.0, we use sagitta_edr3 instead of sagitta.
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
     pre-main sequence stars
-    Wiki page: https://wiki.sdss.org/display/MWM/YSO+selection+function
-    Additional source catalogs needed: catalogdb.sagitta, catalogdb.zari18pms
+    Wiki page: 
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
+    Additional source catalogs needed: catalogdb.sagitta_edr3, catalogdb.zari18pms
     Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
     cadence options for these targets:
     boss_bright_3x1 if RP<14.76 |
     boss_bright_4x1 if RP<15.075 |
     boss_bright_5x1 if RP<15.29 |
     boss_bright_6x1 if RP<15.5
-    Implementation: (in sagitta | in zari18pms) & rp<15.5
+    Implementation: (in sagitta_edr3 | in zari18pms) & rp<15.5
     lead contact:Marina Kounkel
     """
 
@@ -1443,7 +1447,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
     # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
-    # Sagitta(CatalogdbModel)--->'catalogdb.sagitta'
+    # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
     name = 'mwm_yso_pms_boss'
