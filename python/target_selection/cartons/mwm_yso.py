@@ -1346,6 +1346,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
     # peewee Model name ---> postgres table name
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Gaia_DR3(CatalogdbModel)--->'gaia_dr3_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
     # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
@@ -1362,37 +1363,41 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Sagitta_EDR3
-        query1 = (CatalogToTIC_v8
-                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
+        # Note from mk:
+        # We assume that Gaia DR2 and Gaia DR3 ids are the same since
+        # they differ for only ~450 sources, of which ~200 are in Sagitta,
+        # and ~130 are in other yso cartons, leaving only 77 stars unaccounted.
+        # Hence, query1 uses Gaia_DR3 and query2 uses Gaia_DR2.
+
+        # join with Sagitta_EDR3 (we use Gaia_DR3 for query1)
+        query1 = (CatalogToGaia_DR3
+                  .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                          Gaia_DR3.ra.alias('gaia_dr2_or_dr3_ra'),
+                          Gaia_DR3.dec.alias('gaia_dr2_or_dr3_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
-                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                          Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                          Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
-                          TwoMassPSC.k_m, Gaia_DR2.parallax)
-                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                          TwoMassPSC.k_m, Gaia_DR3.parallax)
                   .switch(TIC_v8)
                   .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                  .switch(Gaia_DR2)
+                  .switch(Gaia_DR3)
                   .join(Sagitta_EDR3,
-                        on=(Gaia_DR2.source_id == Sagitta_EDR3.source_id))
-                  .where(CatalogToTIC_v8.version_id == version_id,
-                         CatalogToTIC_v8.best >> True,
+                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
+                  .where(CatalogToGaia_DR3.version_id == version_id,
+                         CatalogToGaia_DR3.best >> True,
                          TwoMassPSC.h_m < 13))
 
-        # join with Zari18pms
+        # join with Zari18pms (we use Gaia_DR2 for query2)
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                          Gaia_DR2.ra.alias('gaia_dr2_or_dr3_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_or_dr3_dec'),
                           TwoMassPSC.pts_key,
                           TwoMassPSC.designation.alias('twomass_psc_designation'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
                           TwoMassPSC.j_m, TwoMassPSC.h_m,
                           TwoMassPSC.k_m, Gaia_DR2.parallax)
                   .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
@@ -1411,7 +1416,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -1429,7 +1434,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
     pre-main sequence stars
-    Wiki page: 
+    Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
     https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
     Additional source catalogs needed: catalogdb.sagitta_edr3, catalogdb.zari18pms
@@ -1445,6 +1450,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
     # peewee Model name ---> postgres table name
     # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Gaia_DR3(CatalogdbModel)--->'gaia_dr3_source'
     # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
     # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
@@ -1461,39 +1467,35 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Sagitta_EDR3
-        query1 = (CatalogToTIC_v8
-                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                          TwoMassPSC.pts_key,
-                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                          TwoMassPSC.j_m, TwoMassPSC.h_m,
-                          TwoMassPSC.k_m, Gaia_DR2.parallax)
-                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                  .switch(TIC_v8)
-                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                  .switch(Gaia_DR2)
-                  .join(Sagitta,
-                        on=(Gaia_DR2.source_id == Sagitta.source_id))
-                  .where(CatalogToTIC_v8.version_id == version_id,
-                         CatalogToTIC_v8.best >> True,
-                         Gaia_DR2.phot_rp_mean_mag < 15.5))
+        # Note from mk:
+        # We assume that Gaia DR2 and Gaia DR3 ids are the same since
+        # they differ for only ~450 sources, of which ~200 are in Sagitta,
+        # and ~130 are in other yso cartons, leaving only 77 stars unaccounted.
+        # Hence, query1 uses Gaia_DR3 and query2 uses Gaia_DR2.
 
-        # join with Zari18pms
+        # join with Sagitta_EDR3 (we use Gaia_DR3 for query1)
+        query1 = (CatalogToGaia_DR3
+                  .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                          Gaia_DR3.ra.alias('gaia_dr2_or_dr3_ra'),
+                          Gaia_DR3.dec.alias('gaia_dr2_or_dr3_dec'),
+                          Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                          Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
+                          Gaia_DR3.parallax)
+                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                  .join(Sagitta,
+                        on=(Gaia_DR3.source_id == Sagitta.source_id))
+                  .where(CatalogToGaia_DR3.version_id == version_id,
+                         CatalogToGaia_DR3.best >> True,
+                         Gaia_DR3.phot_rp_mean_mag < 15.5))
+
+        # join with Zari18pms (we use Gaia_DR2 for query2)
         query2 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                          TwoMassPSC.pts_key,
-                          TwoMassPSC.designation.alias('twomass_psc_designation'),
+                          Gaia_DR2.ra.alias('gaia_dr2_or_dr3_ra'),
+                          Gaia_DR2.dec.alias('gaia_dr2_or_dr3_dec'),
                           Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                          TwoMassPSC.j_m, TwoMassPSC.h_m,
-                          TwoMassPSC.k_m, Gaia_DR2.parallax)
+                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
+                          Gaia_DR2.parallax)
                   .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                   .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
                   .switch(TIC_v8)
@@ -1510,7 +1512,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
