@@ -42,7 +42,7 @@ class MWM_TESS_2min_Carton(BaseCarton):
     contains duplicates on ticid.
     """
 
-    name = 'mwm_tess_2min'  #  old name 'mwm_tess_planet'
+    name = 'mwm_tess_2min'  # old name 'mwm_tess_planet'
     program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
