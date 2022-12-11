@@ -1,28 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Date: 2020-06-05
+# @Author: Pramod Gupta (psgupta@uw.edu)
+# @Date: 2022-12-11
 # @Filename: mwm_wd.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2_WD, TIC_v8)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             WD_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
 
 
-class MWM_WD_Carton(BaseCarton):
+class MWM_WD_PWD_Carton(BaseCarton):
     """MWM White Dwarfs.
 
-    Definition: all targets from Gentile Fusillo et al. 2019 (table
-    gaia_dr2_wd) where Pwd > 0.5 and Gmag <= 20.
+    Definition:
+
+    Reference: Gentile Fusillo et al. 2021
+    A catalogue of white dwarfs in Gaia EDR3.
+
+    select all targets from table wd_gaia_d3
+    where Pwd > 0.5 and Gmag <= 20.
+
+    (above Gmag means gmag_vega)
 
     """
 
-    name = 'mwm_wd_core'
+    name = 'mwm_wd_pwd'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
@@ -32,21 +39,20 @@ class MWM_WD_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (Gaia_DR2_WD
-                 .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2_WD.source_id,
-                         Gaia_DR2_WD.pwd,
-                         Gaia_DR2_WD.gmag)
-                 .join(TIC_v8, on=(TIC_v8.gaia_int == Gaia_DR2_WD.source_id))
-                 .join(CatalogToTIC_v8)
-                 .where(Gaia_DR2_WD.pwd > self.parameters['pwd'],
-                        Gaia_DR2_WD.g_gaia_mag <= self.parameters['gaia_mag'],
-                        CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True))
+        query = (WD_gaia_dr3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         WD_gaia_dr3.source_id,
+                         WD_gaia_dr3.pwd,
+                         WD_gaia_dr3.gmag_vega)
+                 .join(CatalogToGaia_DR3)
+                 .where(WD_gaia_dr3.pwd > 0.5,
+                        WD_gaia_dr3.gmag_vega <= 20.0,
+                        CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
