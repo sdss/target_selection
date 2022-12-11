@@ -1362,7 +1362,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Sagitta
+        # join with Sagitta_EDR3
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                           Gaia_DR2.ra.alias('gaia_dr2_ra'),
@@ -1461,7 +1461,7 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Sagitta
+        # join with Sagitta_EDR3
         query1 = (CatalogToTIC_v8
                   .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                           Gaia_DR2.ra.alias('gaia_dr2_ra'),
