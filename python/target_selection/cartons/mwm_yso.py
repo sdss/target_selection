@@ -10,9 +10,10 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
                                              CatalogToGaia_DR3,
-                                             CatalogToTIC_v8, Gaia_DR2, Gaia_DR3,
-                                             Sagitta, Sagitta_EDR3, TIC_v8, TwoMassPSC,
-                                             YSO_Clustering, Zari18pms)
+                                             CatalogToTIC_v8, Gaia_DR2,
+                                             Gaia_DR3, Sagitta_EDR3, TIC_v8,
+                                             TwoMassPSC, YSO_Clustering,
+                                             Zari18pms)
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
@@ -1482,8 +1483,8 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
                           Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
                           Gaia_DR3.parallax)
                   .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                  .join(Sagitta,
-                        on=(Gaia_DR3.source_id == Sagitta.source_id))
+                  .join(Sagitta_EDR3,
+                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
                   .where(CatalogToGaia_DR3.version_id == version_id,
                          CatalogToGaia_DR3.best >> True,
                          Gaia_DR3.phot_rp_mean_mag < 15.5))
