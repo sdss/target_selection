@@ -9,20 +9,20 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             WD_gaia_dr3, TIC_v8)
+                                             Gaia_DR2_WD, TIC_v8)
 
 from target_selection.cartons import BaseCarton
 
 
-class MWM_WD_PWD_Carton(BaseCarton):
+class MWM_WD_Carton(BaseCarton):
     """MWM White Dwarfs.
 
     Definition: all targets from Gentile Fusillo et al. 2019 (table
-    wd_gaia_dr3) where Pwd > 0.5 and Gmag <= 20.
+    gaia_dr2_wd) where Pwd > 0.5 and Gmag <= 20.
 
     """
 
-    name = 'mwm_wd_pwd'
+    name = 'mwm_wd_core'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
@@ -32,8 +32,8 @@ class MWM_WD_PWD_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (WD_gaia_dr3
-                 .select(CatalogToGaia_DR3.catalogid,
+        query = (Gaia_DR2_WD
+                 .select(CatalogToTIC_v8.catalogid,
                          Gaia_DR2_WD.source_id,
                          Gaia_DR2_WD.pwd,
                          Gaia_DR2_WD.gmag)
@@ -46,7 +46,7 @@ class MWM_WD_PWD_Carton(BaseCarton):
 
         if query_region:
             query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
+                     .join_from(CatalogToTIC_v8, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
