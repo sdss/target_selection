@@ -1325,10 +1325,10 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
-class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
+class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
-    Shorthand name: mwm_yso_pms_apogee
+    Shorthand name: mwm_yso_pms_apogee_sagitta_edr3
     Comments: For v1.0, we use sagitta_edr3 instead of sagitta.
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
@@ -1336,12 +1336,12 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
     https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
-    Additional source catalogs needed: catalogdb.sagitta_edr3, catalogdb.zari18pms
+    Additional source catalogs needed: catalogdb.sagitta_edr3
     Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
     apogee_bright_3x1 (for 7 < H < 13)
-    Implementation: (in sagitta_edr3 | in zari18pms) & h<13
+    Implementation: (in sagitta_edr3) & h<13
     lead contact:Marina Kounkel
     """
 
@@ -1353,7 +1353,7 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_apogee'
+    name = 'mwm_yso_pms_apogee_sagitta_edr3'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_3x1'
@@ -1364,56 +1364,25 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # Note from mk:
-        # We assume that Gaia DR2 and Gaia DR3 ids are the same since
-        # they differ for only ~450 sources, of which ~200 are in Sagitta,
-        # and ~130 are in other yso cartons, leaving only 77 stars unaccounted.
-        # Hence, query1 uses Gaia_DR3 and query2 uses Gaia_DR2.
-
-        # join with Sagitta_EDR3 (we use Gaia_DR3 for query1)
-        query1 = (CatalogToGaia_DR3
-                  .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                          Gaia_DR3.ra.alias('gaia_dr2_or_dr3_ra'),
-                          Gaia_DR3.dec.alias('gaia_dr2_or_dr3_dec'),
-                          TwoMassPSC.pts_key,
-                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                          Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                          Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
-                          TwoMassPSC.j_m, TwoMassPSC.h_m,
-                          TwoMassPSC.k_m, Gaia_DR3.parallax)
-                  .switch(TIC_v8)
-                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                  .switch(Gaia_DR3)
-                  .join(Sagitta_EDR3,
-                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
-                  .where(CatalogToGaia_DR3.version_id == version_id,
-                         CatalogToGaia_DR3.best >> True,
-                         TwoMassPSC.h_m < 13))
-
-        # join with Zari18pms (we use Gaia_DR2 for query2)
-        query2 = (CatalogToTIC_v8
-                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_or_dr3_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_or_dr3_dec'),
-                          TwoMassPSC.pts_key,
-                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
-                          TwoMassPSC.j_m, TwoMassPSC.h_m,
-                          TwoMassPSC.k_m, Gaia_DR2.parallax)
-                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                  .switch(TIC_v8)
-                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                  .switch(Gaia_DR2)
-                  .join(Zari18pms,
-                        on=(Gaia_DR2.source_id == Zari18pms.source))
-                  .where(CatalogToTIC_v8.version_id == version_id,
-                         CatalogToTIC_v8.best >> True,
-                         TwoMassPSC.h_m < 13))
-
-        # | is for peewee SQL union
-        query = query1 | query2
+        # join with Sagitta_EDR3 (we use Gaia_DR3 for query)
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR3.parallax)
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR3)
+                 .join(Sagitta_EDR3,
+                       on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        TwoMassPSC.h_m < 13))
 
         if query_region:
             query = (query
@@ -1427,25 +1396,23 @@ class MWM_YSO_PMS_APOGEE_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
+class MWM_YSO_PMS_APOGEE_Carton_zari18pms(BaseCarton):
     """
-    YSOs - Pre-main sequence, BOSS
-    Shorthand name: mwm_yso_pms_boss
-    Comments: For v1.0, we use sagitta_edr3 instead of sagitta.
+    YSOs - Pre-main sequence, APOGEE
+    Shorthand name: mwm_yso_pms_apogee_zari18pms
+    Comments: NA
     Simplified Description of selection criteria:
     Selecting the clustered sources from the catalog of vetted
     pre-main sequence stars
     Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
     https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
-    Additional source catalogs needed: catalogdb.sagitta_edr3, catalogdb.zari18pms
+    Additional source catalogs needed: catalogdb.zari18pms
     Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
-    cadence options for these targets:
-    boss_bright_3x1 if RP<14.76 |
-    boss_bright_4x1 if RP<15.075 |
-    boss_bright_5x1 if RP<15.29 |
-    boss_bright_6x1 if RP<15.5
-    Implementation: (in sagitta_edr3 | in zari18pms) & rp<15.5
+    cadence options for these targets
+    (list all options, even though no single target will receive more than one):
+    apogee_bright_3x1 (for 7 < H < 13)
+    Implementation: (in zari18pms) & h<13
     lead contact:Marina Kounkel
     """
 
@@ -1457,7 +1424,82 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_boss'
+    name = 'mwm_yso_pms_apogee_zari18pms'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_3x1'
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        # join with Zari18pms (we use Gaia_DR2 for query)
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation.alias('twomass_psc_designation'),
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         TwoMassPSC.j_m, TwoMassPSC.h_m,
+                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR2)
+                 .join(Zari18pms,
+                       on=(Gaia_DR2.source_id == Zari18pms.source))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        TwoMassPSC.h_m < 13))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
+    """
+    YSOs - Pre-main sequence, BOSS
+    Shorthand name: mwm_yso_pms_boss_sagitta_edr3
+    Comments: For v1.0, we use sagitta_edr3 instead of sagitta.
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
+    Additional source catalogs needed: catalogdb.sagitta_edr3
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets:
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Implementation: (in sagitta_edr3) & rp<15.5
+    lead contact:Marina Kounkel
+    """
+
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Gaia_DR3(CatalogdbModel)--->'gaia_dr3_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
+
+    name = 'mwm_yso_pms_boss_sagitta_edr3'
     category = 'science'
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
@@ -1468,48 +1510,20 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # Note from mk:
-        # We assume that Gaia DR2 and Gaia DR3 ids are the same since
-        # they differ for only ~450 sources, of which ~200 are in Sagitta,
-        # and ~130 are in other yso cartons, leaving only 77 stars unaccounted.
-        # Hence, query1 uses Gaia_DR3 and query2 uses Gaia_DR2.
-
-        # join with Sagitta_EDR3 (we use Gaia_DR3 for query1)
-        query1 = (CatalogToGaia_DR3
-                  .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                          Gaia_DR3.ra.alias('gaia_dr2_or_dr3_ra'),
-                          Gaia_DR3.dec.alias('gaia_dr2_or_dr3_dec'),
-                          Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                          Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
-                          Gaia_DR3.parallax)
-                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                  .join(Sagitta_EDR3,
-                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
-                  .where(CatalogToGaia_DR3.version_id == version_id,
-                         CatalogToGaia_DR3.best >> True,
-                         Gaia_DR3.phot_rp_mean_mag < 15.5))
-
-        # join with Zari18pms (we use Gaia_DR2 for query2)
-        query2 = (CatalogToTIC_v8
-                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                          Gaia_DR2.ra.alias('gaia_dr2_or_dr3_ra'),
-                          Gaia_DR2.dec.alias('gaia_dr2_or_dr3_dec'),
-                          Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                          Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_or_dr3_rp'),
-                          Gaia_DR2.parallax)
-                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                  .switch(TIC_v8)
-                  .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                  .switch(Gaia_DR2)
-                  .join(Zari18pms,
-                        on=(Gaia_DR2.source_id == Zari18pms.source))
-                  .where(CatalogToTIC_v8.version_id == version_id,
-                         CatalogToTIC_v8.best >> True,
-                         Gaia_DR2.phot_rp_mean_mag < 15.5))
-
-        # | is for peewee SQL union
-        query = query1 | query2
+        # join with Sagitta_EDR3 (we use Gaia_DR3 for query)
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
+                         Gaia_DR3.parallax)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .join(Sagitta_EDR3,
+                       on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_rp_mean_mag < 15.5))
 
         if query_region:
             query = (query
@@ -1532,8 +1546,8 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_pms_boss ;")
+            "select catalogid, gaia_dr3_rp from " +
+            " sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 ;")
 
         output = cursor.fetchall()
 
@@ -1557,18 +1571,141 @@ class MWM_YSO_PMS_BOSS_Carton(BaseCarton):
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_pms_boss ' +
+                raise TargetSelectionError('error in mwm_yso_pms_boss_sagitta_edr3 ' +
                                            'post_process(): ' +
                                            'instrument = None, cadence= None')
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss " +
+                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 " +
                     " set instrument = '" + current_instrument + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss " +
+                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 " +
+                    " set cadence = '" + current_cadence + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_YSO_PMS_BOSS_Carton_zari18pms(BaseCarton):
+    """
+    YSOs - Pre-main sequence, BOSS
+    Shorthand name: mwm_yso_pms_boss_zari18pms
+    Comments: NA
+    Simplified Description of selection criteria:
+    Selecting the clustered sources from the catalog of vetted
+    pre-main sequence stars
+    Wiki page:
+    https://wiki.sdss.org/display/MWM/YSO+selection+function
+    https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
+    Additional source catalogs needed: catalogdb.zari18pms
+    Return columns: Gaia id, 2mass id, G, BP, RP, J, H, K, parallax
+    cadence options for these targets:
+    boss_bright_3x1 if RP<14.76 |
+    boss_bright_4x1 if RP<15.075 |
+    boss_bright_5x1 if RP<15.29 |
+    boss_bright_6x1 if RP<15.5
+    Implementation: (in zari18pms) & rp<15.5
+    lead contact:Marina Kounkel
+    """
+
+    # peewee Model name ---> postgres table name
+    # Gaia_DR2(CatalogdbModel)--->'gaia_dr2_source'
+    # Gaia_DR3(CatalogdbModel)--->'gaia_dr3_source'
+    # Zari18pms(CatalogdbModel)--->'catalogdb.zari18pms'
+    # Zari18ums(CatalogdbModel)--->'catalogdb.zari18ums'
+    # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
+    # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
+
+    name = 'mwm_yso_pms_boss_zari18pms'
+    category = 'science'
+    instrument = None  # instrument is set in post_process()
+    cadence = None  # cadence is set in post_process()
+    program = 'mwm_yso'
+    mapper = 'MWM'
+    priority = 2700
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        # join with Zari18pms (we use Gaia_DR2 for query)
+        query = (CatalogToTIC_v8
+                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
+                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
+                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         Gaia_DR2.parallax)
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .switch(TIC_v8)
+                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Gaia_DR2)
+                 .join(Zari18pms,
+                       on=(Gaia_DR2.source_id == Zari18pms.source))
+                 .where(CatalogToTIC_v8.version_id == version_id,
+                        CatalogToTIC_v8.best >> True,
+                        Gaia_DR2.phot_rp_mean_mag < 15.5))
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToTIC_v8, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+    def post_process(self, model):
+        """
+        cadence options for these targets:
+        boss_bright_3x1 if RP<14.76 |
+        boss_bright_4x1 if RP<15.075 |
+        boss_bright_5x1 if RP<15.29 |
+        boss_bright_6x1 if RP<15.5
+        """
+
+        cursor = self.database.execute_sql(
+            "select catalogid, gaia_dr2_rp from " +
+            " sandbox.temp_mwm_yso_pms_boss_zari18pms ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_rp = output[i][1]
+
+            if (current_rp < 14.76):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_3x1'
+            elif (current_rp < 15.075):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_4x1'
+            elif (current_rp < 15.29):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_5x1'
+            elif (current_rp < 15.5):
+                current_instrument = 'BOSS'
+                current_cadence = 'bright_6x1'
+            else:
+                # All cases should be covered above so we should not get here.
+                current_instrument = None
+                current_cadence = None
+                raise TargetSelectionError('error in mwm_yso_pms_boss_zari18pms ' +
+                                           'post_process(): ' +
+                                           'instrument = None, cadence= None')
+
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if current_cadence is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
