@@ -14,6 +14,7 @@
     - bhm_spiders_agn_lsdr10
     - bhm_spiders_agn_gdr3
     - bhm_spiders_agn_sep
+    - ops_std_boss_lsdr10
 
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
@@ -112,7 +113,7 @@
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method: 'XPS/NWAY'
-      xmatch_version: 'JWMS_06Oct22'
+      xmatch_version: 'JWMS_21Oct22'
       opt_cat: 'lsdr10'
       fibertotmag_r_min: 13.5
       fibertotmag_r_max: 22.5
@@ -143,7 +144,7 @@
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method: 'XPS/NWAY'
       xmatch_version: 'JWMS_06Oct22'
-      opt_cat: 'gaiadr3'
+      opt_cat: 'gedr3'
       gaia_g_max_for_cadence1: 16.0
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_max_for_cadence2: 19.0
@@ -168,8 +169,8 @@
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method: 'XPS/NWAY'
-      xmatch_version: 'JWMS_06Oct22'
-      opt_cat: 'gaiadr3'
+      xmatch_version: 'JWTL_Oct22'
+      opt_cat: 'gedr3'
       gaia_g_max_for_cadence1: 16.0
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_max_for_cadence2: 19.0
@@ -217,6 +218,21 @@
       priority_floor_bcg: 1501
       priority_floor_member: 1630
       priority_levels: 31
+    ops_std_boss_lsdr10:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      gaia_bp_rp_min: 0.619
+      gaia_bp_rp_max: 0.863
+      ls_g_r_min: 0.254
+      ls_g_r_max: 0.448
+      ls_r_z_min: 0.024
+      ls_r_z_max: 0.190
+      gaia_g_ls_r_min: 0.0
+      gaia_g_ls_r_max: 0.1
 
 '0.5.23':
  xmatch_plan: 0.5.0
