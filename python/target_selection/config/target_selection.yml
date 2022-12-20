@@ -19,6 +19,8 @@
     - bhm_rm_known_spec
     - bhm_rm_var
     - bhm_rm_ancillary
+    - mwm_erosita_stars
+    - mwm_erosita_compact_gen
 
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
