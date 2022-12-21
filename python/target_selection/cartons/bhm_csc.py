@@ -10,21 +10,21 @@ import peewee
 from peewee import JOIN, fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (
-    BHM_CSC_v2,
+    BHM_CSC_v3,
     CatalogToPanstarrs1,
     CatalogToSDSS_DR19p_Speclite,
-    CatalogToGaia_DR2,
+    CatalogToGaia_DR3,
+    CatalogToLegacy_Survey_DR10,
     Panstarrs1,
     SDSS_DR19p_Speclite,
-    Gaia_DR2,
+    Gaia_DR3,
+    Legacy_Survey_DR10,
     TwoMassPSC,
     CatalogToTwoMassPSC,
-#    TIC_v8,
-#    CatalogToTIC_v8,
 )
 
 from target_selection.cartons.base import BaseCarton
-from target_selection.mag_flux import AB2Jy
+from target_selection.mag_flux import AB2Jy, AB2nMgy
 
 
 # Details: Start here
@@ -65,25 +65,34 @@ class BhmCscBossCarton(BaseCarton):
     program = 'bhm_csc'
     instrument = 'BOSS'
     tile = False
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
-        x = BHM_CSC_v2.alias()
+        x = BHM_CSC_v3.alias()
         ps = Panstarrs1.alias()
         c2ps = CatalogToPanstarrs1.alias()
-        g2 = Gaia_DR2.alias()
-        c2g2 = CatalogToGaia_DR2.alias()
+        g3 = Gaia_DR3.alias()
+        c2g3 = CatalogToGaia_DR3.alias()
+        ls = Legacy_Survey_DR10.alias()
+        c2ls = CatalogToLegacy_Survey_DR10.alias()
 
         g_psf_flux_max = AB2Jy(self.parameters['g_psf_mag_min'])
         r_psf_flux_max = AB2Jy(self.parameters['r_psf_mag_min'])
         i_psf_flux_max = AB2Jy(self.parameters['i_psf_mag_min'])
         z_psf_flux_max = AB2Jy(self.parameters['z_psf_mag_min'])
+        fiberflux_g_max = AB2nMgy(self.parameters['fibermag_g_min'])
+        fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
+        fiberflux_i_max = AB2nMgy(self.parameters['fibermag_i_min'])
+        fiberflux_z_max = AB2nMgy(self.parameters['fibermag_z_min'])
 
         gaia_g_mag_min = self.parameters['gaia_g_mag_min']
         gaia_rp_mag_min = self.parameters['gaia_rp_mag_min']
 
         i_psf_flux_min_for_cadence1 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence1'])
+        fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_max_for_cadence1'])
         gaia_g_mag_max_for_cadence1 = self.parameters['gaia_g_mag_max_for_cadence1']
         i_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence2'])
+        fiberflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_r_max_for_cadence2'])
         gaia_g_mag_max_for_cadence2 = self.parameters['gaia_g_mag_max_for_cadence2']
 
         value = peewee.Value(self.parameters['value']).cast('real')
@@ -95,10 +104,12 @@ class BhmCscBossCarton(BaseCarton):
             None,
             (
                 (((ps.i_stk_psf_flux > i_psf_flux_min_for_cadence1) |
-                  (g2.phot_g_mean_mag < gaia_g_mag_max_for_cadence1)),
+                  (ls.fiberflux_r > fiberflux_r_min_for_cadence1) |
+                  (g3.phot_g_mean_mag < gaia_g_mag_max_for_cadence1)),
                  cadence1),
                 (((ps.i_stk_psf_flux > i_psf_flux_min_for_cadence2) |
-                  (g2.phot_g_mean_mag < gaia_g_mag_max_for_cadence2)),
+                  (ls.fiberflux_r > fiberflux_r_min_for_cadence2) |
+                  (g3.phot_g_mean_mag < gaia_g_mag_max_for_cadence2)),
                  cadence2),
             ),
             cadence3)
@@ -142,62 +153,82 @@ class BhmCscBossCarton(BaseCarton):
             None,
             (
                 (((ps.i_stk_psf_flux > i_psf_flux_min_for_cadence1) |
-                  (g2.phot_g_mean_mag < gaia_g_mag_max_for_cadence1)),
-                 priority_floor_bright + (priority_1 * dpriority_has_spec) + x.pri - 1),
+                  (g3.phot_g_mean_mag < gaia_g_mag_max_for_cadence1)),
+                 priority_floor_bright + (priority_1 * dpriority_has_spec) + x.priority - 1),
             ),
-            priority_floor_dark + (priority_1 * dpriority_has_spec) + x.pri - 1)
+            priority_floor_dark + (priority_1 * dpriority_has_spec) + x.priority - 1)
 
         query = (
             x.select(
-                fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g2.catalogid)).alias('catalogid'),
-                fn.max(x.cxoid).alias('csc_cxoid'),
-                fn.max(x.ora).alias('csc_ora'),
-                fn.max(x.odec).alias('csc_odec'),
-                fn.max(x.omag).alias('csc_omag'),
-                fn.max(x.ocat).alias('csc_ocat'),
-                fn.max(x.idps).alias('csc_idps'),
-                fn.max(x.idg2).alias('csc_idg2'),
+                fn.coalesce(fn.max(c2g3.catalogid),
+                            fn.max(c2ls.catalogid),
+                            fn.max(c2ps.catalogid)).alias('catalogid'),
+                fn.max(x.csc21p_id).alias('csc_csc21p_id'),
+                fn.max(x.ra).alias('csc_opt_ra'),
+                fn.max(x.dec).alias('csc_opt_dec'),
+                fn.max(x.best_mag).alias('csc_best_mag'),
+                fn.max(x.mag_type).alias('csc_mag_type'),
+                fn.max(x.best_oir_cat).alias('csc_best_oir_cat'),
+                fn.max(x.gaia_dr3_srcid).alias('csc_gaia_dr3_srcid'),
+                fn.max(x.ls_dr10_lsid).alias('csc_ls_dr10_lsid'),
+                fn.max(x.ps21p_ippobjid).alias('csc_ps21p_ippobjid'),
+                fn.max(g3.phot_g_mean_mag).alias("g3_g_mag"),
+                fn.max(ls.fiberflux_r).alias('ls_fiberflux_r'),
                 fn.max(ps.i_stk_psf_flux).alias('ps_i_stk_psf_flux'),
-                fn.max(g2.phot_g_mean_mag).alias("g2_g_mag"),
                 fn.max(priority).alias('priority'),
                 fn.max(cadence).alias('cadence'),
                 fn.max(value).alias('value'),
             )
+            .join(g3, join_type=JOIN.LEFT_OUTER,
+                  on=(x.gaia_dr3_srcid == g3.source_id))
+            .join(ls, join_type=JOIN.LEFT_OUTER,
+                  on=(x.ls_dr10_lsid == ls.ls_id))
             .join(ps, join_type=JOIN.LEFT_OUTER,
-                  on=(x.idps == ps.extid_hi_lo))
-            .join(g2, join_type=JOIN.LEFT_OUTER,
-                  on=(x.idg2 == g2.source_id))
+                  on=(x.idps == ps.ps21p_ippobjid))
             .join(c2ps, join_type=JOIN.LEFT_OUTER,
                   on=(ps.catid_objid == c2ps.target_id))
-            .join(c2g2, join_type=JOIN.LEFT_OUTER,
-                  on=(g2.source_id == c2g2.target_id))
+            .join(c2ls, join_type=JOIN.LEFT_OUTER,
+                  on=(ls.ls_id == c2ls.target_id))
+            .join(c2g3, join_type=JOIN.LEFT_OUTER,
+                  on=(g3.source_id == c2g3.target_id))
             .join(c2s19, join_type=JOIN.LEFT_OUTER,
-                  on=(fn.coalesce(fn.max(c2ps.catalogid),
-                                  fn.max(c2g2.catalogid)) == c2s19.catalogid))
+                  on=(fn.coalesce(fn.max(c2g3.catalogid),
+                                  fn.max(c2ls.catalogid),
+                                  fn.max(c2ps.catalogid)) == c2s19.catalogid))
             .join(s19, join_type=JOIN.LEFT_OUTER,
                   on=(s19.c.s19_pk == c2s19.target_id))
             .where(
-                fn.coalesce(c2ps.version_id, c2g2.version_id) == version_id,
+                fn.coalesce(c2g3.version_id, c2ls.version_id, c2ps.version_id) == version_id,
                 fn.coalesce(c2s19.version_id, version_id) == version_id,
-                fn.coalesce(c2ps.best, c2g2.best) >> True,
+                fn.coalesce(c2ps.best, c2g3.best) >> True,
             )
             .where(
+                (x.best_oir_cat == 'gdr3' | x.best_oir_cat == 'lsdr10' | x.best_oir_cat == 'ps1dr2'),
                 (
-                    (x.ocat == 'P') &
+                    (x.best_oir_cat == 'gdr3') &
+                    (g3.phot_g_mean_mag > gaia_g_mag_min) &
+                    (g3.phot_rp_mean_mag > gaia_rp_mag_min)
+                ) |
+                (
+                    (x.best_oir_cat == 'lsdr10') &
+                    (ls.fiberflux_g < fiberflux_g_max) &
+                    (ls.fiberflux_r < fiberflux_r_max) &
+                    (ls.fiberflux_i < fiberflux_i_max) &
+                    (ls.fiberflux_z < fiberflux_z_max) &
+                    (ls.fiberflux_g > 0.0 | ls.fiberflux_r > 0.0 | ls.fiberflux_z > 0.0)
+                    # TODO check logic
+                ) |
+                (
+                    (x.best_oir_cat == 'ps1dr2') &
                     (ps.g_stk_psf_flux < g_psf_flux_max) &
                     (ps.r_stk_psf_flux < r_psf_flux_max) &
                     (ps.i_stk_psf_flux < i_psf_flux_max) &
                     (ps.z_stk_psf_flux < z_psf_flux_max) &
                     (ps.i_stk_psf_flux != 'NaN')
-                ) |
-                (
-                    (x.ocat == 'G') &
-                    (g2.phot_g_mean_mag > gaia_g_mag_min) &
-                    (g2.phot_rp_mean_mag > gaia_rp_mag_min)
                 )
             )
-            .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g2.catalogid)))
-            .group_by(x.cxoid)
+            .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g3.catalogid)))
+            .group_by(x.csc21p_id)
         )
 
         if query_region:
@@ -223,9 +254,10 @@ class BhmCscApogeeCarton(BaseCarton):
     this_cadence = 'bright_3x1'  # TODO Check this is still a valid choice
     instrument = 'APOGEE'
     tile = False
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
-        x = BHM_CSC_v2.alias()
+        x = BHM_CSC_v3.alias()
         # tic = TIC_v8.alias()
         # c2tic = CatalogToTIC_v8.alias()
         # change to now rely directly on twomass_psc table instead of TIC_v8
@@ -244,17 +276,19 @@ class BhmCscApogeeCarton(BaseCarton):
             self.parameters['cadence2'])
 
         # Compute net priority
-        priority = peewee.Value(self.parameters['priority_floor']) + x.pri - 1
+        priority = peewee.Value(self.parameters['priority_floor']) + x.priority - 1
 
         query = (
             x.select(
                 # c2tic.catalogid.alias('catalogid'),
                 c2tm.catalogid.alias('catalogid'),
-                x.cxoid.alias('csc_cxoid'),
-                x.ra2m.alias('csc_ra2m'),
-                x.dec2m.alias('csc_dec2m'),
-                x.hmag.alias('csc_hmag'),
-                x.designation2m.alias('csc_designation2m'),
+                x.csc21p_id.alias('csc_csc21p_id'),
+                x.best_oir_cat.alias('csc_best_oir_cat'),
+                x.ra.alias('csc_oir_ra'),
+                x.dec.alias('csc_oir_dec'),
+                x.best_mag.alias('csc_best_mag'),
+                x.mag_type.alias('csc_mag_type'),
+                x.tmass_designation.alias('csc_tmass_designation'),
                 priority.alias('priority'),
                 cadence.alias('cadence'),
                 value.alias('value'),
@@ -266,13 +300,15 @@ class BhmCscApogeeCarton(BaseCarton):
             .where(
                 c2tm.version_id == version_id,
                 c2tm.best >> True,
+                x.best_oir_cat == '2mass',
                 # c2tic.version_id == version_id,
                 #  c2tic.best >> True,
-                x.hmag >= self.parameters['hmag_min'],
-                x.hmag < self.parameters['hmag_max'],
-                x.hmag != 'NaN',
+                x.best_mag >= self.parameters['hmag_min'],
+                x.best_mag < self.parameters['hmag_max'],
+                # x.best_mag != 'NaN',
             )
-            .distinct(x.cxoid)
+            # .distinct(x.csc21p_id)
+            .distinct(c2tm.catalogid)
         )
 
         if query_region:

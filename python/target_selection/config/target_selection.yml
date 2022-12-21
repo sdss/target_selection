@@ -21,6 +21,8 @@
     - bhm_rm_ancillary
     - mwm_erosita_stars
     - mwm_erosita_compact_gen
+    - bhm_csc_boss
+    - bhm_csc_apogee
 
  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/0.5.0/draft_Sept6/
  schema: sandbox
@@ -278,6 +280,40 @@
       mag_i_max: 21.5
       mag_g_min_cvz_s: 16.0
       mag_g_max_cvz_s: 21.7
+    bhm_csc_boss:
+      g_psf_mag_min: 13.5
+      r_psf_mag_min: 13.5
+      i_psf_mag_min: 13.5
+      z_psf_mag_min: 13.5
+      fibermag_g_min: 14.0
+      fibermag_r_min: 14.0
+      fibermag_i_min: 14.0
+      fibermag_z_min: 14.0
+      gaia_g_mag_min: 13.0
+      gaia_rp_mag_min: 13.0
+      i_psf_mag_max_for_cadence1: 17.0
+      fibermag_r_max_for_cadence1: 17.5
+      gaia_g_mag_max_for_cadence1: 16.5
+      i_psf_mag_max_for_cadence2: 18.0
+      fibermag_r_max_for_cadence2: 18.5
+      gaia_g_mag_max_for_cadence2: 17.5
+      cadence1: bright_1x1
+      cadence2: dark_1x2
+      cadence3: dark_1x4
+      priority_floor_dark: 1920
+      priority_floor_bright: 2920
+      dpriority_has_spec: 10
+      value: 1.0
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+    bhm_csc_apogee:
+      hmag_min: 7.0
+      hmag_max: 14.0
+      hmag_max_for_cadence1: 12.0
+      cadence1: bright_1x1
+      cadence2: bright_3x1
+      priority_floor: 2930
+      value: 1.0
 
 '0.5.23':
  xmatch_plan: 0.5.0
