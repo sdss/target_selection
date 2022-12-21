@@ -52,7 +52,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     Halpha emission although EW are expected to be around 1 Angstrom or less.
 
     Simplified Description of selection criteria:
-    "Select all objects with xmatch_metric>0.5 and
+    "Select all objects with xmatch_metric>0.0 and
     xmatch_method = 'HamStar' and xmatch_version = 'v1.1.1'
     from catalogdb.erosita_superset_v1_stars that are
     in a magnitude range amenable for SDSS-V BOSS spectroscopy
@@ -85,7 +85,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
      (c2g3.best is true) AND /* and enforce unique-ish crossmatch */
      estars.xmatch_method = 'HamStar' AND
      estars.xmatch_version = 'v1.1.1' AND
-     estars.xmatch_metric > 0.5 AND
+     estars.xmatch_metric > 0.0 AND
      g3.source_phot_g_mean_mag BETWEEN 13.0 and 22.0
     ;
 
@@ -93,7 +93,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
     xmatch_metric now spans the range [0.2:1.0]
 
-    In the query below we use xmatch_metric > 0.5
+    In the query below we use xmatch_metric > 0.0 - i.e. no cut on this param
     """
 
     name = 'mwm_erosita_stars'
@@ -134,7 +134,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                         CatalogToGaia_DR3.best >> True,
                         EROSITASupersetv1Stars.xmatch_method == 'HamStar',
                         EROSITASupersetv1Stars.xmatch_version == 'v1.1.1',
-                        EROSITASupersetv1Stars.xmatch_metric > 0.5))
+                        EROSITASupersetv1Stars.xmatch_metric > 0.0))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -170,10 +170,10 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
                  cadence = bright_boss_1x1          &&    priority = 2400
 
-        - if 17 < gaia.phot_g_mean_mag < 19:
+        - if 17 < gaia.phot_g_mean_mag < 18:
                   cadence = dark_boss_1x2           &&    priority = 1920
 
-        - if 19 < gaia.phot_g_mean_mag:
+        - if 18 < gaia.phot_g_mean_mag:
                   cadence = dark_boss_1x3          &&    priority = 1920
         """
 
@@ -203,7 +203,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x2'
                 current_priority = 1920
-            elif (19 <= current_g):
+            elif (18 <= current_g):
                 current_instrument = 'BOSS'
                  current_cadence = 'dark_1x3'
                 current_priority = 1920
@@ -403,10 +403,10 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
         - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
                cadence = bright_boss_1x1   &&   priority = 2400
 
-        - if 17 < gaia.phot_g_mean_mag < 19:
+        - if 17 < gaia.phot_g_mean_mag < 18:
                cadence = dark_boss_1x2     &&   priority = 1910
 
-        - if 19 < gaia.phot_g_mean_mag:
+        - if 18 < gaia.phot_g_mean_mag:
         cadence = dark_boss_1x3     &&   priority = 1910
 
         Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
@@ -440,11 +440,11 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
                 current_instrument = 'BOSS'
                 current_cadence = 'bright_1x1'
                 current_priority = 2400
-            elif ((17 <= current_g) and (current_g < 19)):
+            elif ((17 <= current_g) and (current_g < 18)):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x2'
                 current_priority = 1910
-            elif (19 <= current_g):
+            elif (18 <= current_g):
                 current_instrument = 'BOSS'
                 current_cadence = 'dark_1x3'
                 current_priority = 1910
