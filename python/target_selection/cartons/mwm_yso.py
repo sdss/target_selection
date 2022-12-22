@@ -10,7 +10,8 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
                                              CatalogToGaia_DR3,
-                                             CatalogToTIC_v8, Gaia_DR2,
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC, Gaia_DR2,
                                              Gaia_DR3, Sagitta_EDR3, TIC_v8,
                                              TwoMassPSC, YSO_Clustering,
                                              Zari18pms)
@@ -68,43 +69,47 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
+                         Gaia_DR3.parallax)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 13,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3))
+                        Gaia_DR3.parallax > 0.3))
 
-        # Gaia_DR2 pweewee model class corresponds to
-        # table catalogdb.gaia_dr2_source.
+        # Gaia_DR3 peewee model class corresponds to
+        # table catalogdb.gaia_dr3_source.
         #
         # All values of TIC_v8.plx (for non-null entries) are not the same as
-        # values of Gaia_DR2.parallax.
+        # values of Gaia_DR3.parallax.
         # Hence, in the above query, we cannot use TIC_v8.plx instead
-        # of Gaia_DR2.parallax.
+        # of Gaia_DR3.parallax.
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
