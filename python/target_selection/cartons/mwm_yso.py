@@ -561,7 +561,7 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogTogaia_DR3.best >> True,
+                        CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
                         Gaia_DR3.parallax > 0.3,
@@ -703,7 +703,7 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogTogaia_DR3.best >> True,
+                        CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_rp_mean_mag < 15.5,
                         Gaia_DR3.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
