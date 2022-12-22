@@ -10,10 +10,10 @@ import math
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog, CatalogToTIC_v8,
-                                             Gaia_DR3,
+from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
                                              CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC,
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
                                              SDSS_DR17_APOGEE_Allstarmerge,
                                              TIC_v8, TwoMassPSC)
 
