@@ -224,6 +224,8 @@ class MWM_bin_rv_long_Carton(BaseCarton):
         if <nn> is less than 6 then
             set <nn> = 6
 
+        Teff means teff_avg of SDSS_DR17_APOGEE_Allstarmerge.
+        logg measn logg_avg of SDSS_DR17_APOGEE_Allstarmerge.
         For priority:
         IF Teff < 4500 AND logg > 4.0 THEN priority = 2510
         ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2520
@@ -233,9 +235,10 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 
         default_priority = 2540
 
-        # teff and logg are from SDSS_DR17_APOGEE_Allstarmerge
+        # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
+        # old name was teff, logg
         cursor = self.database.execute_sql(
-            "select catalogid, nvisits, h, teff, logg from " +
+            "select catalogid, nvisits, h, teff_avg, logg_avg from " +
             " sandbox.temp_mwm_bin_rv_long ;")
 
         output = cursor.fetchall()
@@ -244,8 +247,8 @@ class MWM_bin_rv_long_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_nvisits = output[i][1]
             current_h = output[i][2]
-            current_teff = output[i][3]
-            current_logg = output[i][4]
+            current_teff_avg = output[i][3]
+            current_logg_avg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
             if (nn < 6):
@@ -262,13 +265,13 @@ class MWM_bin_rv_long_Carton(BaseCarton):
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
-            if (current_logg is not None):
-                if ((current_teff is not None) and (current_teff < 4500) and
-                   (current_logg > 4.0)):
+            if (current_logg_avg is not None):
+                if ((current_teff_avg is not None) and (current_teff_avg < 4500) and
+                   (current_logg_avg > 4.0)):
                     current_priority = 2510
-                elif ((3.5 <= current_logg) and (current_logg <= 4.0)):
+                elif ((3.5 <= current_logg_avg) and (current_logg_avg <= 4.0)):
                     current_priority = 2520
-                elif (current_logg < 3.5):
+                elif (current_logg_avg < 3.5):
                     current_priority = 2530
                 else:
                     current_priority = default_priority
@@ -396,8 +399,7 @@ class MWM_bin_rv_short_Carton(BaseCarton):
     mapper = 'MWM'
     priority = None  # priority is set in post_process()
 
-    # peewee Model name ---> postgres table name
-    # SDSS_DR17_APOGEE_Allstarmerge(CatalogdbModel)--->'sdss_dr17_apogee_allstarmerge'
+    # This carton i.e. mwm_bin_rv_short does not use SDSS_DR17_APOGEE_Allstarmerge.
     # There is gaia_dr3 in the below query so we have done
     # major modification of the old query.
     def build_query(self, version_id, query_region=None):
