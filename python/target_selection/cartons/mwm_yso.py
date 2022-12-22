@@ -1044,6 +1044,9 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     Implementation: Hmag<13 and _8_0_-_24_>2.5 and
     (parallax<0.2 or parallax is null)
 
+    TODO check left outer join
+    TODO Below comments are for v0.5. modify for v1.0.
+
     For CMZ, the raw sql query would be:
     select ct.catalogid from mipsgal m
     join twomass_psc t on twomass_name = designation
@@ -1092,54 +1095,61 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     # mipsgal is a subset of 2MASS
     # mipsgal can be joined to twomass_psc via
     # mipsgal.twomass_name = TwoMassPSC.designation.
-    # Then join via TIC and catalog_to_tic.
     #
     # mipsgal is a subset of 2MASS
-    # 2MASS is a subset of TIC_v8
-    # Gaia_DR2 is a subset of TIC_v8
     #
-    # 2MASS is not a subset of Gaia_DR2
-    # Gaia_DR2 is not a subset of 2MASS
+    # 2MASS is not a subset of Gaia_DR3
+    # Gaia_DR3 is not a subset of 2MASS
     #
     # table catalogdb.mipsgal
     # Foreign-key constraints:
     #    "twomass_name_fk" FOREIGN KEY (twomass_name)
     # REFERENCES twomass_psc(designation)
     #
-    # Due to below, we do not need a between to Catalog and CatalogToTIC_v8
-    # Catalog.catalogid == CatalogToTIC_v8.catalogid
+    # Since the below condition is true,
+    # we do not need a between to Catalog and CatalogToTwoMassPSC
+    #
+    # Catalog.catalogid == CatalogToTwoMassPSC.catalogid
+    #
     # We can remove the join with Catalog in all the cartons
     # since catalogid is completely unique (even across different version_id)
     # so the join with Catalog doesn't give us anything extra and it's a costly join.
 
     def build_query(self, version_id, query_region=None):
 
-        query = (MIPSGAL.select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                                Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                                Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                                TwoMassPSC.pts_key,
-                                TwoMassPSC.designation.alias('twomass_psc_designation'),
-                                TwoMassPSC.j_m, TwoMassPSC.h_m,
-                                TwoMassPSC.k_m, MIPSGAL.mag_3_6, MIPSGAL.mag_4_5,
-                                MIPSGAL.mag_5_8, MIPSGAL.mag_8_0, MIPSGAL.mag_24,
-                                MIPSGAL.hmag, Gaia_DR2.parallax,
-                                MIPSGAL.glon, MIPSGAL.glat)
-                 .join(TwoMassPSC, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
-                 .join(TIC_v8, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                       on=(Gaia_DR2.source_id == TIC_v8.gaia_int))
-                 .switch(TIC_v8)
-                 .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        MIPSGAL.hmag < 13,
-                        (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
-                        (Gaia_DR2.parallax < 0.2) |
-                        (Gaia_DR2.parallax >> None)))
+        query = (CatalogToTwoMassPSC.select(
+            CatalogToTwoMassPSC.catalogid,
+            Gaia_DR3.source_id,
+            Gaia_DR3.ra.alias('gaia_dr3_ra'),
+            Gaia_DR3.dec.alias('gaia_dr3_dec'),
+            TwoMassPSC.pts_key,
+            TwoMassPSC.designation.alias('twomass_psc_designation'),
+            TwoMassPSC.j_m, TwoMassPSC.h_m,
+            TwoMassPSC.k_m, MIPSGAL.mag_3_6,
+            MIPSGAL.mag_4_5,
+            MIPSGAL.mag_5_8, MIPSGAL.mag_8_0,
+            MIPSGAL.mag_24,
+            MIPSGAL.hmag, Gaia_DR3.parallax,
+            MIPSGAL.glon, MIPSGAL.glat)
+            .join(TwoMassPSC,
+                  on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.ptks_key))
+            .join(MIPSGAL,
+                  on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
+            .switch(CatalogToTwoMassPSC)
+            .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
+                  on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
+            .join(Gaia_DR3,
+                  on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .where(CatalogToTwoMassPSC.version_id == version_id,
+                   CatalogToTwoMassPSC.best >> True,
+                   MIPSGAL.hmag < 13,
+                   (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
+                   (Gaia_DR3.parallax < 0.2) |
+                   (Gaia_DR3.parallax >> None)))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToTwoMassPSC, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
