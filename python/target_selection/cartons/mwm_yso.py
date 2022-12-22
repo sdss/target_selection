@@ -332,11 +332,17 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
                          Gaia_DR3.parallax)
-                 .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
                  .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(CatalogToGaia_DR3,
-                         on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 13,
@@ -1380,8 +1386,12 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
                          Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m, Gaia_DR3.parallax)
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC,
+                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .switch(Gaia_DR3)
                  .join(Sagitta_EDR3,
                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
@@ -1440,7 +1450,7 @@ class MWM_YSO_PMS_APOGEE_Carton_zari18pms(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Zari18pms (we use Gaia_DR2 for query)
+        # join with Zari18pms (we use Gaia_DR2 for query and not Gaia_DR3)
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
@@ -1634,7 +1644,7 @@ class MWM_YSO_PMS_BOSS_Carton_zari18pms(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        # join with Zari18pms (we use Gaia_DR2 for query)
+        # join with Zari18pms (we use Gaia_DR2 for query and not Gaia_DR3)
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
