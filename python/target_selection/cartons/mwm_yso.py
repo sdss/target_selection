@@ -170,43 +170,47 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
+                         Gaia_DR3.parallax)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5,
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_rp_mean_mag < 15.5,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR2.parallax > 0.3))
+                        Gaia_DR3.parallax > 0.3))
 
-        # Gaia_DR2 pweewee model class corresponds to
-        # table catalogdb.gaia_dr2_source.
+        # Gaia_DR3 pweewee model class corresponds to
+        # table catalogdb.gaia_dr3_source.
         #
         # All values of TIC_v8.plx (for non-null entries) are not the same as
-        # values of Gaia_DR2.parallax.
+        # values of Gaia_DR3.parallax.
         # Hence, in the above query, we cannot use TIC_v8.plx instead
-        # of Gaia_DR2.parallax.
+        # of Gaia_DR3.parallax.
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -225,7 +229,7 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
+            "select catalogid, gaia_dr3_rp from " +
             " sandbox.temp_mwm_yso_disk_boss ;")
 
         output = cursor.fetchall()
@@ -320,7 +324,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (AllWise
+        query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
                          Gaia_DR3.ra.alias('gaia_dr3_ra'),
                          Gaia_DR3.dec.alias('gaia_dr3_dec'),
@@ -534,66 +538,73 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         AllWise.designation.alias('allwise_designation'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
+                         Gaia_DR3.parallax)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag < 18.5,
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
-                        Gaia_DR2.parallax > 0.3,
-                        Gaia_DR2.bp_rp * 2.5 + 2.5 >
-                        Gaia_DR2.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        Gaia_DR2.bp_rp * 2.5 - 1 <
-                        Gaia_DR2.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error,
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error * 0.75,
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error <
+                        Gaia_DR3.parallax > 0.3,
+                        Gaia_DR3.bp_rp * 2.5 + 2.5 >
+                        Gaia_DR3.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        Gaia_DR3.bp_rp * 2.5 - 1 <
+                        Gaia_DR3.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error,
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error * 0.75,
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error <
                         peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                            Gaia_DR2.phot_g_mean_flux_over_error, 0.75),
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error <
+                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                            Gaia_DR3.phot_g_mean_flux_over_error, 0.75),
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error <
                         peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                            Gaia_DR2.phot_g_mean_flux_over_error, 0.95),
+                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                            Gaia_DR3.phot_g_mean_flux_over_error, 0.95),
                         peewee.fn.log(
-                            peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                            Gaia_DR2.phot_bp_mean_flux_over_error) * 5 + 11 <
-                        Gaia_DR2.phot_bp_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        Gaia_DR2.bp_rp > 1.3,
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
+                            peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                            Gaia_DR3.phot_bp_mean_flux_over_error) * 5 + 11 <
+                        Gaia_DR3.phot_bp_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        Gaia_DR3.bp_rp > 1.3,
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error > 0.02))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -669,66 +680,74 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
+                         AllWise.designation.alias('allwise_designation'),
+                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
+                         TwoMassPSC.k_m,
+                         Gaia_DR3.parallax)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTIC_v8,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5,
-                        Gaia_DR2.phot_g_mean_mag < 18.5,
+                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_rp_mean_mag < 15.5,
+                        Gaia_DR3.phot_g_mean_mag < 18.5,
                         TwoMassPSC.h_m < 13,
-                        Gaia_DR2.parallax > 0.3,
-                        Gaia_DR2.bp_rp * 2.5 + 2.5 >
-                        Gaia_DR2.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        Gaia_DR2.bp_rp * 2.5 - 1 <
-                        Gaia_DR2.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error,
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error * 0.75,
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error <
+                        Gaia_DR3.parallax > 0.3,
+                        Gaia_DR3.bp_rp * 2.5 + 2.5 >
+                        Gaia_DR3.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        Gaia_DR3.bp_rp * 2.5 - 1 <
+                        Gaia_DR3.phot_g_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error,
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error >
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error * 0.75,
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error <
                         peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                            Gaia_DR2.phot_g_mean_flux_over_error, 0.75),
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error <
+                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                            Gaia_DR3.phot_g_mean_flux_over_error, 0.75),
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error <
                         peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                            Gaia_DR2.phot_g_mean_flux_over_error, 0.95),
+                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                            Gaia_DR3.phot_g_mean_flux_over_error, 0.95),
                         peewee.fn.log(
-                            peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                            Gaia_DR2.phot_bp_mean_flux_over_error) * 5 + 11 <
-                        Gaia_DR2.phot_bp_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR2.parallax) - 1),
-                        Gaia_DR2.bp_rp > 1.3,
-                        peewee.fn.sqrt(Gaia_DR2.phot_g_n_obs) /
-                        Gaia_DR2.phot_g_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR2.phot_bp_n_obs) /
-                        Gaia_DR2.phot_bp_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR2.phot_rp_n_obs) /
-                        Gaia_DR2.phot_rp_mean_flux_over_error > 0.02))
+                            peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                            Gaia_DR3.phot_bp_mean_flux_over_error) * 5 + 11 <
+                        Gaia_DR3.phot_bp_mean_mag -
+                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                        Gaia_DR3.bp_rp > 1.3,
+                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
+                        Gaia_DR3.phot_g_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
+                        Gaia_DR3.phot_bp_mean_flux_over_error > 0.02,
+                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
+                        Gaia_DR3.phot_rp_mean_flux_over_error > 0.02))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -746,7 +765,7 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
+            "select catalogid, gaia_dr3_rp from " +
             " sandbox.temp_mwm_yso_variable_boss ;")
 
         output = cursor.fetchall()
