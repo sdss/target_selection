@@ -13,12 +13,13 @@ import peewee
 from astropy.table import Table
 
 # TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
-                                             CatalogToTIC_v8, Gaia_DR2,
-                                             Legacy_Survey_DR8, Panstarrs1,
-                                             TIC_v8, TwoMassPSC)
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC, Gaia_DR2,
+                                             Gaia_DR3, Legacy_Survey_DR8,
+                                             Panstarrs1, TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
@@ -251,21 +252,17 @@ def get_file_carton(filename):
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
 
-            # TODO
-            # put the query here after gaia_dr3 crossmatch table
-            # with name like catalog_to_gaia_dr3 is ready
-            query_gaia_dr3 = None
-#            query_gaia_dr3 = \
-#               (query_common
-#                .join(CatalogToGaia_DR3)
-#                .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-#                .join(temp,
-#                      on=(temp.Gaia_DR3_Source_ID == Gaia_DR3.source_id))
-#                .switch(Catalog)
-#                .where(CatalogToGaia_DR3.version_id == version_id,
-#                       (CatalogToGaia_DR3.best >> True) |
-#                       CatalogToGaia_DR3.best.is_null(),
-#                       Catalog.version_id == version_id))
+            query_gaia_dr3 = \
+                (query_common
+                 .join(CatalogToGaia_DR3)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .join(temp,
+                       on=(temp.Gaia_DR3_Source_ID == Gaia_DR3.source_id))
+                 .switch(Catalog)
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        (CatalogToGaia_DR3.best >> True) |
+                        CatalogToGaia_DR3.best.is_null(),
+                        Catalog.version_id == version_id))
 
             query_gaia_dr2 = \
                 (query_common
@@ -306,19 +303,32 @@ def get_file_carton(filename):
 
             query_twomass_psc = \
                 (query_common
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join(CatalogToTwoMassPSC)
+                 .join(TwoMassPSC)
                  .join(temp,
                        on=(temp.TwoMASS_ID == TwoMassPSC.designation))
                  .switch(Catalog)
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        (CatalogToTIC_v8.best >> True) |
-                        CatalogToTIC_v8.best.is_null(),
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
+                        (CatalogToTwoMassPSC.best >> True) |
+                        CatalogToTwoMassPSC.best.is_null(),
                         Catalog.version_id == version_id))
+
+# old before v1 crossmatch
+#             query_twomass_psc = \
+#                 (query_common
+#                  .join(CatalogToTIC_v8,
+#                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+#                  .join(TIC_v8,
+#                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+#                  .join(TwoMassPSC,
+#                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+#                  .join(temp,
+#                        on=(temp.TwoMASS_ID == TwoMassPSC.designation))
+#                  .switch(Catalog)
+#                  .where(CatalogToTIC_v8.version_id == version_id,
+#                         (CatalogToTIC_v8.best >> True) |
+#                         CatalogToTIC_v8.best.is_null(),
+#                         Catalog.version_id == version_id))
 
             len_table = len(self._table)
 
