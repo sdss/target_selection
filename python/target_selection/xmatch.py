@@ -34,6 +34,7 @@ from target_selection.utils import (Timer, get_configuration_values,
                                     vacuum_outputs, vacuum_table)
 
 
+
 EPOCH = 2016.0
 QUERY_RADIUS = 1.
 
@@ -65,16 +66,6 @@ class Catalog(peewee.Model):
     lead = peewee.TextField(null=False)
     version_id = peewee.IntegerField(null=False, index=True)
 
-
-class Intermediate(peewee.Model):
-    """Model for the output table."""
-
-    catalogid = peewee.BigIntegerField(index=True, null=False)
-    ra = peewee.DoubleField(null=False)
-    dec = peewee.DoubleField(null=False)
-    pmra = peewee.FloatField(null=True)
-    pmdec = peewee.FloatField(null=True)
-    parallax = peewee.FloatField(null=True)
 
 
 class TempCatalog(Catalog):
@@ -1418,27 +1409,61 @@ class XMatchPlanner(object):
 
                 with self.database.atomic():
 
-                    temp_model = self._get_relational_model(model, temp=True)
-                    temp_table = temp_model._meta.table_name
 
                     self._setup_transaction(model, phase=1)
+                    inter_name1 = 'phase1_content'
+                    model_pk_class = model_pk.__class__
 
-                    self.log.debug(f'Selecting linked targets into temporary '
-                                   f'table {temp_table!r} with join path '
-                                   f'{path}{self._get_sql(query)}')
-                    query.create_table(temp_table, temporary=True)
+                    class Intermediate1(peewee.Model):
+                        """Model for the intermediate results of phase_1."""
+                        target_id = model_pk_class(null=False, index=True)
+                        catalogid = peewee.BigIntegerField(index=True, null=False)
+                        best = peewee.BooleanField(null=False)
+                        distance = peewee.DoubleField(null=True)
+                        version_id = peewee.SmallIntegerField(null=False, index=True)
+
+                        class Meta:
+                            database = self.database
+                            schema = self.schema
+                            table_name = inter_name1
+                            primary_key = False
+
+                    query_str = self._get_sql(query, return_string=True)
+
+
+                    self.log.debug(f'Selecting linked targets into '
+                                   f'table {self.schema}.{inter_name1} IN PSQL '
+                                   f'with join path {path}{self._get_sql(query)}')
+
+                    sql_file = open('phase1_query.sql', 'w')
+
+                    if self._options['database_options']:
+                        options = self._options['database_options'].copy()
+                        for param in options:
+                            if param == 'maintenance_work_mem':
+                                continue
+                            value = options[param]
+                            sql_file.write(f'SET {param}={value!r};\n')
+
+                    sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name1};')
+                    sql_file.write(f'CREATE TABLE {self.schema}.{inter_name1} AS (')
+                    sql_file.write(query_str+');')
+                    sql_file.close()
+
+                    os.system('psql -U sdss -d sdss5db -f phase1_query.sql -o phase1_output.log')
+
 
                     self.log.debug(f'Copying data into relational model '
                                    f'{rel_model._meta.table_name!r}.')
 
-                    fields = [temp_model.target_id, temp_model.catalogid,
-                              temp_model.version_id, temp_model.best]
+                    fields = [Intermediate1.target_id, Intermediate1.catalogid,
+                              Intermediate1.version_id, Intermediate1.best]
 
                     nids = rel_model.insert_from(
-                        temp_model.select(temp_model.target_id,
-                                          temp_model.catalogid,
+                        Intermediate1.select(Intermediate1.target_id,
+                                          Intermediate1.catalogid,
                                           peewee.Value(self._version_id),
-                                          temp_model.best),
+                                          Intermediate1.best),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in'
@@ -1608,10 +1633,29 @@ class XMatchPlanner(object):
                                          fields).returning())
 
                 self.log.debug(f'Inserting cross-matched data into '
-                               f'relational model {rel_table_name!r}'
+                               f'relational model {rel_table_name!r} in PSQL: '
                                f'{self._get_sql(in_query)}')
 
-                n_catalogid = in_query.execute()
+                in_query_str = self._get_sql(unmatched, return_string=True)
+
+                sql_file = open('phase2_query.sql', 'w')
+
+                if self._options['database_options']:
+                    options = self._options['database_options'].copy()
+                    for param in options:
+                        if param == 'maintenance_work_mem':
+                            continue
+                        value = options[param]
+                        sql_file.write(f'SET {param}={value!r};\n')
+
+                sql_file.write(in_query_str+';')
+                sql_file.close()
+
+                os.system('psql -U sdss -d sdss5db -f phase2_query.sql -o phase2_output.log')
+                out_file = open('phase2_output.log','r')
+                lines = out_file.readlines()
+                out_file.close()
+                n_catalogid = int(lines[-1].split()[-1])
 
         self.log.debug(f'Cross-matched {TempCatalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '
@@ -1686,10 +1730,10 @@ class XMatchPlanner(object):
                 # 1. Run link query and create temporary table with results.
 
                 self._setup_transaction(model, phase=3)
-                inter_name = 'phase3_content_'+table_name
+                inter_name3 = 'phase3_content'
                 model_pk_class = model_pk.__class__
 
-                class Intermediate(peewee.Model):
+                class Intermediate3(peewee.Model):
                     """Model for the intermediate results of phase_3."""
 
                     catalogid = peewee.BigIntegerField(index=True, null=False)
@@ -1701,23 +1745,32 @@ class XMatchPlanner(object):
                     class Meta:
                         database = self.database
                         schema = self.schema
-                        table_name = inter_name
+                        table_name = inter_name3
                         primary_key = False
 
                 unmatched_query_str = self._get_sql(unmatched, return_string=True)
 
                 self.log.debug(f'Selecting unique targets '
                                f'into table '
-                               f'{self.schema}.{inter_name!r}'
+                               f'{self.schema}.{inter_name3!r}'
                                f' in PSLQ: {self._get_sql(unmatched)}')
 
                 sql_file = open('phase3_query.sql', 'w')
-                sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name};')
-                sql_file.write(f'CREATE TABLE {self.schema}.{inter_name} AS (')
+
+                if self._options['database_options']:
+                    options = self._options['database_options'].copy()
+                    for param in options:
+                        if param == 'maintenance_work_mem':
+                            continue
+                        value = options[param]
+                        sql_file.write(f'SET {param}={value!r};\n')
+
+                sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name3};')
+                sql_file.write(f'CREATE TABLE {self.schema}.{inter_name3} AS (')
                 sql_file.write(unmatched_query_str+');')
                 sql_file.close()
 
-                os.system('psql -U sdss -d sdss5db -a -f phase3_query.sql')
+                os.system('psql -U sdss -d sdss5db -f phase3_query.sql -o phase3_output.log')
 
                 # Analyze the temporary table to gather stats.
                 # self.log.debug('Running ANALYZE on temporary table.')
@@ -1726,12 +1779,12 @@ class XMatchPlanner(object):
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
 
-                fields = [Intermediate.catalogid, Intermediate.target_id,
-                          Intermediate.version_id, Intermediate.best]
+                fields = [Intermediate3.catalogid, Intermediate3.target_id,
+                          Intermediate3.version_id, Intermediate3.best]
 
                 rel_insert_query = rel_model.insert_from(
-                    Intermediate.select(Intermediate.catalogid,
-                                        Intermediate.target_id,
+                    Intermediate3.select(Intermediate3.catalogid,
+                                        Intermediate3.target_id,
                                         self._version_id,
                                         peewee.SQL('true')), fields).returning()
 
@@ -1748,7 +1801,7 @@ class XMatchPlanner(object):
                 # 3. Fill out the temporary catalog table with the information
                 #    from the unique targets.
 
-                temp_table = peewee.Table(inter_name)
+                temp_table = peewee.Table(inter_name3)
 
                 fields = [TempCatalog.catalogid,
                           TempCatalog.lead,
@@ -1970,3 +2023,5 @@ class XMatchPlanner(object):
                 self.log.debug(f'{parameter}: {value:,}')
             else:
                 self.log.debug(f'{parameter}: {value}')
+
+
