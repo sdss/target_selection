@@ -9,19 +9,14 @@
 import peewee
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToGaia_DR3,
-    CatalogToTIC_v8,
-    CatalogToTwoMassPSC,
-    GAIA_ASSAS_SN_Cepheids,
-    Gaia_DR2,
-    Gaia_DR2_TwoMass_Best_Neighbour,
-    Gaia_DR3,
-    Gaia_dr3_astrophysical_parameters,
-    TIC_v8,
-    TwoMassPSC
-)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC,
+                                             GAIA_ASSAS_SN_Cepheids, Gaia_DR2,
+                                             Gaia_DR2_TwoMass_Best_Neighbour,
+                                             Gaia_DR3,
+                                             Gaia_dr3_astrophysical_parameters,
+                                             TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
