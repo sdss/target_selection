@@ -8,13 +8,9 @@
 
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToGaia_DR3,
-    CatalogToTwoMassPSC,
-    Gaia_DR3,
-    TwoMassPSC
-)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTwoMassPSC,
+                                             Gaia_DR3, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
