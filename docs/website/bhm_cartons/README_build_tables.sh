@@ -89,41 +89,48 @@ END {printf("</tbody></table><figcaption>A table of all BHM cartons from targeti
 ### now process the json
 # see: proc_carton_desc.py
 # e.g.
-cp  ~/SDSSV/gitwork/target_selection_again/docs/website/bhm_cartons/carton_descriptions.json
-python ~/SDSSV/gitwork/target_selection_again/docs/website/bhm_cartons/proc_carton_desc.py > bhm_target_cartons.html
+cd ~/SDSSV/gitwork/target_selection_again/docs/website/bhm_cartons/
+python proc_carton_desc.py > bhm_target_cartons.html
 
 
 # Then do this auto conversion to latex:
 #
-TEXOUT=~/SDSSV/dr18/dr18_paper/sections/bhm_target_cartons.tex
+TEXOUT=bhm_target_cartons.tex
 pandoc --from=html --to=latex --output=$TEXOUT bhm_target_cartons.html
 
 # replace the references with bibtex equivalents:
 
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020ApJS..250....8L\/abstract}{Lyke\net al. 2020}/\\citealt{Lyke2020}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020ApJS..250....8L\/abstract}{Lyke\net al., 2020}/\\citealt{Lyke2020}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2014ApJ...785..104R\/abstract}{Rykoff\net al., 2014}/\\citealt{Rykoff2014}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020MNRAS.499.4768I\/abstract}{Ider\nChitham et al., 2020}/\\citealt{IderChitham2020}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...3S\/abstract}{Salvato\net al., 2022}/\\citealt{Salvato2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...3S\/abstract}{Salvato\net al. 2022}/\\citealt{Salvato2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al. 2019}/\\citealt{Shu2019}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al. \(2019\)}/\\citet{Shu2019}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al., 2019}/\\citealt{Shu2019}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al., \(2019\)}/\\citet{Shu2019}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2021ApJS..253....8M\/abstract}{CatWISE2020}/CatWISE2020 \\citep{Marocco2021}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen, \(2022\)}/\\citet{Yang2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen \(2022\)}/\\citet{Yang2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen, 2022}/\\citealt{Yang2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019PASA...36...33O\/abstract}{SkyMapper-dr2}/SkyMapper-dr2 \\citep{Onken2019}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...2L\/abstract}{Liu\net al. 2022}/\\citealt{Liu2022}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...2L\/abstract}{Liu\net al., 2022}/\\citealt{Liu2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022ApJS..259...35A\/abstract}{Abdurro'\''uf\net al., 2022}/\\citealt{Abdurrouf_2021_sdssDR17}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2011ApJ...729..141B\/abstract}{Bovy\net al., 2011}/\\citealt{Bovy2011}/g'  $TEXOUT
 # perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
-
-# checks
-grep -A1 adsab $TEXOUT
-
 
 # get the section numbering right
 perl -0777 -pi -e 's/\\subsubsection{/\\subsection{/g'  $TEXOUT
 
+# formatting
+perl -0777 -pi -e 's/\\textbf{/\\noindent\\textbf{/g'  $TEXOUT
+
 #replace some spurious stuff
 perl -0777 -pi -e 's/σ/\$\\sigma\$/g'  $TEXOUT
+perl -0777 -pi -e 's/→/\$\\rightarrow\$/g'  $TEXOUT
 
 # perl -0777 -pi -e 's///g'  $TEXOUT
+awk 'BEGIN {flag=1} NF==0 {flag=1} $0~/Catalogdb tables required/ {flag=0} flag==1 {print $0}' $TEXOUT >  temp.$TEXOUT
+mv temp.$TEXOUT  $TEXOUT
+
+# checks (should result in zero rows)
+grep -A1 adsab $TEXOUT
+
