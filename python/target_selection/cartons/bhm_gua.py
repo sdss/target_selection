@@ -20,6 +20,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     SDSS_DR19p_Speclite,
     Gaia_unWISE_AGN,
 )
+# DEBUG STUFF TO USE TEMP TABLE
+CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+
 from target_selection.cartons.base import BaseCarton
 
 # Details: Start here
@@ -112,11 +116,11 @@ class BhmGuaBaseCarton(BaseCarton):
                 ss19.pk.alias('s19_pk'),
             )
             .where(
-                ss19.snmedian >= spec_sn_thresh,
+                ss19.sn_median_all >= spec_sn_thresh,
                 ss19.zwarning == 0,
-                ss19.zerr <= spec_z_err_thresh,
-                ss19.zerr > 0.0,
-                ss19.scienceprimary > 0,
+                ss19.z_err <= spec_z_err_thresh,
+                ss19.z_err > 0.0,
+                ss19.specprimary > 0,
             )
             .alias('s19')
         )
@@ -184,7 +188,7 @@ class BhmGuaBaseCarton(BaseCarton):
                 c.catalogid,
                 c.ra,   # extra
                 c.dec,   # extra
-                t.gaia_sourceid.aliad('gaia_dr2_source_id'),   # extra
+                t.gaia_sourceid.alias('gaia_dr2_source_id'),   # extra
                 t.unwise_objid,   # extra
                 priority.alias('priority'),
                 value.alias('value'),
@@ -203,7 +207,7 @@ class BhmGuaBaseCarton(BaseCarton):
                 t.w2.alias('gua_w2'),   # extra
                 t.prob_rf.alias('gua_prob_rf'),   # extra
                 t.phot_z.alias('gua_phot_z'),   # extra
-                s19.pk.alias('s19_pk'),  # extra
+                s19.c.s19_pk.alias('s19_pk'),  # extra
                 # rely on the centralised magnitude routines for 'real' griz, bp,rp,gaia_g
             )
             .join(c2g2)
@@ -218,6 +222,7 @@ class BhmGuaBaseCarton(BaseCarton):
                 c2g2.version_id == version_id,
                 fn.coalesce(c2s19.version_id, version_id) == version_id,
                 c2g2.best >> True,
+                # fn.coalesce(c2s19.best, True) >> True,
             )
             .where(
                 (t.prob_rf >= self.parameters['prob_rf_min']),
@@ -230,17 +235,6 @@ class BhmGuaBaseCarton(BaseCarton):
             )
             # then reject any GUA targets with existing good DR19p spectroscopy
             .where(s19.c.s19_pk.is_null(True))
-            # .where(
-            #     s19.pk.is_null(True) |
-            #     (s19.scienceprimary == 0) |
-            #     ~(
-            #         (s19.snmedian >= spec_sn_thresh) &
-            #         (s19.zwarning == 0) &
-            #         (s19.zerr <= spec_z_err_thresh) &
-            #         (s19.zerr > 0.0) &
-            #         (s19.scienceprimary > 0)
-            #     )
-            # )
             # avoid duplicates - trust the gaia ids in the GUA parent sample
             .distinct([t.gaia_sourceid])
         )

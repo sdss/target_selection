@@ -22,6 +22,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     CatalogToSDSS_DR19p_Speclite,
 )
 
+# DEBUG STUFF TO USE TEMP TABLE
+CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
 
@@ -110,7 +113,7 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         return fieldlist
 
-    def append_spatial_query(self, query, cte, fieldlist):
+    def append_spatial_query(self, query, fieldlist):
         '''Extend the peewee query using a list of field centres'''
         if fieldlist is None:
             return query
@@ -119,8 +122,8 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         q = False
         for f in fieldlist:
-            q = (q | peewee.fn.q3c_radial_query(cte.c.ra,
-                                                cte.c.dec,
+            q = (q | peewee.fn.q3c_radial_query(self.alias_c.ra,
+                                                self.alias_c.dec,
                                                 f['racen'],
                                                 f['deccen'],
                                                 f['radius']))
@@ -188,13 +191,13 @@ class BhmAqmesBaseCarton(BaseCarton):
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
                 t.fiberid.alias('dr16q_fiberid'),   # extra
-                t.ra.alias("dr16q_ra"),   # extra
-                t.dec.alias("dr16q_dec"),   # extra
                 t.gaia_ra.alias("dr16q_gaia_ra"),   # extra
                 t.gaia_dec.alias("dr16q_gaia_dec"),   # extra
                 t.sdss2gaia_sep.alias("dr16q_sdss2gaia_sep"),   # extra
                 t.z.alias("dr16q_redshift"),   # extra
                 c2s.best.alias("c2s_best"),  # extra
+                s.pk.alias("s19p_pk"),  # extra
+                s.specprimary.alias("s19p_specprimary"),  # extra
             )
             .join(c2s)
             .join(s)
@@ -207,9 +210,9 @@ class BhmAqmesBaseCarton(BaseCarton):
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
-                # c2s.best >> True,   # TODO check this is working in v1.0
-                #                     # - this condition killed many AQMES
-                #                     #   targets in v0+v0.5 cross-matches
+                c2s.best >> True,   # TODO check this is working in v1.0
+                #                   # - this condition killed many AQMES
+                #                   #   targets in v0+v0.5 cross-matches
             )
             .where
             (

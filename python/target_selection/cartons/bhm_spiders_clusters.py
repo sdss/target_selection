@@ -19,7 +19,7 @@ from target_selection.mag_flux import AB2nMgy, AB2Jy
 # general catalogdb imports
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
-    EROSITASupersetClusters,
+    EROSITASupersetv1Clusters,
 )
 
 # imports of existing spectro catalogues
@@ -58,12 +58,11 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 
 # Notes on how many targets to expect:
 # => SELECT ero_version,xmatch_method,xmatch_version,opt_cat,count(*)
-#      FROM erosita_superset_clusters GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat;
-#        ero_version        |      xmatch_method |      xmatch_version      |   opt_cat    | count
-# --------------------------+--------------------+--------------------------+--------------+--------
-#  eFEDS_c001_V18C_legacy_d | EROMAPPER_LS_DR8   | grzw1_v0.3_2020-12-04    | lsdr8        |  73768
-#  em01_c946_201008_poscorr | EROMAPPER_LS_DR8   | grzw1_v0.3_2020-12-04    | lsdr8        | 160465
-#  em01_c946_201008_poscorr | EROMAPPER_PS1_DR2  | eromapper_2020-10-23     | ps1dr2       | 140808
+#      FROM erosita_superset_v1_clusters GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat;
+#
+#  ero_version | xmatch_method | xmatch_version  | opt_cat |  count
+# -------------+---------------+-----------------+---------+---------
+#  eRASS4_020  | eromapper     | lsdr10a_grz_z_v | lsdr10  | 2330083
 
 #
 #
@@ -80,6 +79,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
     tile = False
     instrument = 'BOSS'
     inertial = True
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -87,34 +87,39 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         ls = Legacy_Survey_DR10.alias()
         c2ls = CatalogToLegacy_Survey_DR10.alias()
 
-        xx = EROSITASupersetClusters.alias()
-        x = (
-            xx
-            .select(
-                fn.rank().over(partition_by=[xx.ero_detuid],
-                               order_by=[xx.xmatch_metric.desc()]).alias('x_rank'),
-                xx.ero_detuid.alias('ero_detuid'),
-                xx.ls_id.alias('ls_id'),
-                xx.target_has_spec.alias('target_has_spec'),
-            )
-            .where(
-                (xx.ero_version == self.parameters['ero_version']),
-                (xx.xmatch_method == self.parameters['xmatch_method']),
-                (xx.xmatch_version == self.parameters['xmatch_version']),
-                (xx.opt_cat == self.parameters['opt_cat']),
-                (xx.xmatch_metric > self.parameters['xmatch_metric_min']),
-                (xx.ero_det_like > self.parameters['det_like_min']),
-            )
-            .alias('x')
-        )
+        x = EROSITASupersetv1Clusters.alias()
+        # xx = EROSITASupersetv1Clusters.alias()
+        # x = (
+        #     xx
+        #     .select(
+        #         fn.rank().over(partition_by=[xx.ero_detuid],
+        #                        order_by=[xx.xmatch_metric.desc()]).alias('x_rank'),
+        #         xx.ero_detuid.alias('ero_detuid'),
+        #         xx.ls_id.alias('ls_id'),
+        #         xx.target_has_spec.alias('target_has_spec'),
+        #     )
+        #     .where(
+        #         (xx.ero_version == self.parameters['ero_version']),
+        #         (xx.xmatch_method == self.parameters['xmatch_method']),
+        #         (xx.xmatch_version == self.parameters['xmatch_version']),
+        #         (xx.opt_cat == self.parameters['opt_cat']),
+        #         (xx.xmatch_metric > self.parameters['xmatch_metric_min']),
+        #         (xx.ero_det_like > self.parameters['det_like_min']),
+        #     )
+        #     .alias('x')
+        # )
 
         instrument = peewee.Value(self.instrument)
         inertial = peewee.Value(self.inertial).cast('bool')
 
-        fibertotflux_r_max = AB2nMgy(self.parameters['fibertotmag_r_min'])
-        fibertotflux_r_min = AB2nMgy(self.parameters['fibertotmag_r_max'])
+        fibertotflux_i_max = AB2nMgy(self.parameters['fibertotmag_i_min'])
+        fibertotflux_i_min = AB2nMgy(self.parameters['fibertotmag_i_max'])
         fibertotflux_z_max = AB2nMgy(self.parameters['fibertotmag_z_min'])
         fibertotflux_z_min = AB2nMgy(self.parameters['fibertotmag_z_max'])
+        fibertotflux_i_max_for_core = AB2nMgy(self.parameters['fibertotmag_i_min_for_core'])
+        fibertotflux_i_min_for_core = AB2nMgy(self.parameters['fibertotmag_i_max_for_core'])
+        fibertotflux_z_max_for_core = AB2nMgy(self.parameters['fibertotmag_z_min_for_core'])
+        fibertotflux_z_min_for_core = AB2nMgy(self.parameters['fibertotmag_z_max_for_core'])
 
         fibertotflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibertotmag_r_for_cadence1'])
         fibertotflux_z_min_for_cadence1 = AB2nMgy(self.parameters['fibertotmag_z_for_cadence1'])
@@ -138,42 +143,71 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
                 ss19.pk.alias('s19_pk'),
             )
             .where(
-                ss19.snmedian >= spec_sn_thresh,
+                ss19.sn_median_all >= spec_sn_thresh,
                 ss19.zwarning == 0,
-                ss19.zerr <= spec_z_err_thresh,
-                ss19.zerr > 0.0,
-                ss19.scienceprimary > 0,
+                ss19.z_err <= spec_z_err_thresh,
+                ss19.z_err > 0.0,
+                ss19.specprimary > 0,
             )
             .alias('s19')
         )
         # #########################################################################
 
+        # logic is written this backwards way so that a failure to meet ant core
+        # criterion results in non-core status
+        is_core = peewee.Case(
+            None,
+            (
+                (~((ls.fiberflux_r.between(fibertotflux_i_min_for_core,
+                                           fibertotflux_i_max_for_core)) |
+                   (ls.fiberflux_i.between(fibertotflux_z_min_for_core,
+                                           fibertotflux_z_max_for_core))), False),
+            ),
+            True)
 
         # priority is determined by target rank within cluster
         # start with a priority floor value (per carton)
         # then increment if any conditions are met:
 
-        priority = peewee.Case(
+        # priority = peewee.Case(
+        #     None,
+        #     (
+        #         (
+        #             x.c.x_rank == 1,
+        #             self.parameters['priority_floor_bcg']
+        #         ),
+        #         (
+        #             x.c.x_rank > 1,
+        #             self.parameters['priority_floor_member'] +
+        #             fn.least(self.parameters['priority_levels'] - 2,
+        #                      x.c.x_rank - 2)
+        #         ),
+        #     ),
+        #     None)
+
+        dpriority_non_core = peewee.Case(
             None,
-            (
-                (
-                    x.c.x_rank == 1,
-                    self.parameters['priority_floor_bcg']
-                ),
-                (
-                    x.c.x_rank > 1,
-                    self.parameters['priority_floor_member'] +
-                    fn.least(self.parameters['priority_levels'] - 2,
-                             x.c.x_rank - 2)
-                ),
-            ),
-            None)
+            ((is_core, 0), ),
+            self.parameters['dpriority_non_core'])
+
+        priority_floor = peewee.Case(
+            None,
+            ((x.target_priority == 0, self.parameters['priority_floor_bcg']), ),
+            self.parameters['priority_floor_member']
+        )
+
+        priority = (
+            priority_floor +
+            x.target_priority +
+            dpriority_non_core
+        )
 
         value = peewee.Case(
             None,
             (
-                (x.c.x_rank == 1, self.parameters['value_bcg']),
-                (x.c.x_rank > 1, self.parameters['value_member']),
+                (~is_core, 0),
+                (x.target_priority == 0, self.parameters['value_bcg']),
+                (x.target_priority > 0, self.parameters['value_member']),
             ),
             None).cast('float')
 
@@ -222,6 +256,17 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
         i0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i)))
         z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+
+        g0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_g)))
+        r0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_r)))
+        i0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_i)))
+        z0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_z)))
+
+        g0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g)))
+        r0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        i0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i)))
+        z0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z)))
+
         g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
                                       peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
         r_z_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r) /
@@ -262,7 +307,8 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
             c.select(
                 c.catalogid.alias('catalogid'),
                 ls.ls_id.alias('ls_id'),  # extra
-                x.c.ero_detuid.cast('text').alias('ero_detuid'),  # extra
+                x.pkey.alias('ero_pkey'),  # extra
+                x.ero_detuid.cast('text').alias('ero_detuid'),  # extra
                 s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
                 c.ra.alias('ra'),  # extra
                 c.dec.alias('dec'),  # extra
@@ -279,14 +325,28 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
                 magnitude_gaia_bp.alias('bp'),
                 magnitude_gaia_rp.alias('rp'),
                 inertial.alias('inertial'),
+                g0_p.alias('ls10_mag_g'),   # extra
+                r0_p.alias('ls10_mag_r'),  # extra
+                i0_p.alias('ls10_mag_i'),  # extra
+                z0_p.alias('ls10_mag_z'),  # extra
                 g0_e.alias('ls10_fibermag_g'),  # extra
                 r0_e.alias('ls10_fibermag_r'),  # extra
                 i0_e.alias('ls10_fibermag_i'),  # extra
                 z0_e.alias('ls10_fibermag_z'),  # extra
+                g0_t.alias('ls10_fibertotmag_g'),  # extra
+                r0_t.alias('ls10_fibertotmag_r'),  # extra
+                i0_t.alias('ls10_fibertotmag_i'),  # extra
+                z0_t.alias('ls10_fibertotmag_z'),  # extra
+                is_core.alias('is_core'),  # extra
+                x.target_priority.alias('orig_target_priority'),
+                x.eromapper_lambda.alias("eromapper_lambda"),
+                x.eromapper_z_lambda.alias("eromapper_z_lambda"),
+                x.xmatch_flags.alias("xmatch_flags"),
+                x.target_has_spec.alias("target_has_spec"),
             )
             .join(c2ls)
             .join(ls)
-            .join(x, on=(ls.ls_id == x.c.ls_id))
+            .join(x, on=(ls.ls_id == x.ls_id))
             # start joining the spectroscopy
             .switch(c)
             .join(c2s19, JOIN.LEFT_OUTER)
@@ -303,15 +363,24 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
                 s19.c.s19_pk.is_null(True),
             )
             .where(
+                (x.ero_version == self.parameters['ero_version']),
+                (x.xmatch_method == self.parameters['xmatch_method']),
+                (x.xmatch_version == self.parameters['xmatch_version']),
+                (x.opt_cat == self.parameters['opt_cat']),
+                (x.xmatch_metric > self.parameters['xmatch_metric_min']),
+                (x.ero_det_like > self.parameters['det_like_min']),
+            )
+            .where(
                 (
-                    (ls.fibertotflux_r.between(fibertotflux_r_min, fibertotflux_r_max)) |
+                    (ls.fibertotflux_i.between(fibertotflux_i_min, fibertotflux_i_max)) |
                     (ls.fibertotflux_z.between(fibertotflux_z_min, fibertotflux_z_max))
                 ),
-                (x.c.target_has_spec == 0),
+                (x.target_has_spec == 0),
                 # gaia safety checks to avoid bad ls photometry
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
-            )
+            ).
+            distinct([ls.ls_id])
         )
 
         if query_region:

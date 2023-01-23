@@ -37,28 +37,7 @@ from target_selection.mag_flux import AB2Jy, AB2nMgy
 
 class BhmCscBossCarton(BaseCarton):
     '''
-    SELECT *
-        FROM catalogdb.bhm_csc_v2 as x
-        LEFT OUTER JOIN panstarrs1 as p
-            on x.idps = p.extid_hi_lo
-        LEFT OUTER JOIN tic_v8 as tic
-            on tic.gaia_int = x.idg2
-        LEFT OUTER JOIN catalog_to_panstarrs1 as c2p
-            on p.catid_objid = c2p.target_id
-        LEFT OUTER JOIN catalog_to_tic_v8 as c2t
-            on c2t.target_id = tic.id
-    WHERE (   (     x.ocat = 'P'
-                AND p.i_stk_psf_flux BETWEEN xxx AND xxxx
-                AND p.i_stk_psf_flux != 'NaN')
-           OR (     x.ocat = 'G'
-               AND (NOT tic.gaiamag IS NULL)
-               AND tic.gaiamag BETWEEN 13. AND xxxx)
-           )
-           AND ( COALESCE(c2p.version_id,c2t.version_id) = 25 )
-           AND ( COALESCE(c2p.best,c2t.best) = True )
-    ;
     '''
-
     name = 'bhm_csc_boss'
     category = 'science'
     mapper = 'BHM'
@@ -129,11 +108,11 @@ class BhmCscBossCarton(BaseCarton):
                 ss19.pk.alias('s19_pk'),
             )
             .where(
-                ss19.snmedian >= spec_sn_thresh,
+                ss19.sn_median_all >= spec_sn_thresh,
                 ss19.zwarning == 0,
-                ss19.zerr <= spec_z_err_thresh,
-                ss19.zerr > 0.0,
-                ss19.scienceprimary > 0,
+                ss19.z_err <= spec_z_err_thresh,
+                ss19.z_err > 0.0,
+                ss19.specprimary > 0,
             )
             .alias('s19')
         )
@@ -154,37 +133,43 @@ class BhmCscBossCarton(BaseCarton):
             (
                 (((ps.i_stk_psf_flux > i_psf_flux_min_for_cadence1) |
                   (g3.phot_g_mean_mag < gaia_g_mag_max_for_cadence1)),
-                 priority_floor_bright + (priority_1 * dpriority_has_spec) + x.priority - 1),
+                 priority_floor_bright + (priority_1 * dpriority_has_spec) + x.xpriority - 1),
             ),
-            priority_floor_dark + (priority_1 * dpriority_has_spec) + x.priority - 1)
+            priority_floor_dark + (priority_1 * dpriority_has_spec) + x.xpriority - 1)
 
         query = (
             x.select(
-                fn.coalesce(fn.max(c2g3.catalogid),
-                            fn.max(c2ls.catalogid),
-                            fn.max(c2ps.catalogid)).alias('catalogid'),
-                fn.max(x.csc21p_id).alias('csc_csc21p_id'),
-                fn.max(x.ra).alias('csc_opt_ra'),
-                fn.max(x.dec).alias('csc_opt_dec'),
-                fn.max(x.best_mag).alias('csc_best_mag'),
-                fn.max(x.mag_type).alias('csc_mag_type'),
-                fn.max(x.best_oir_cat).alias('csc_best_oir_cat'),
-                fn.max(x.gaia_dr3_srcid).alias('csc_gaia_dr3_srcid'),
-                fn.max(x.ls_dr10_lsid).alias('csc_ls_dr10_lsid'),
-                fn.max(x.ps21p_ippobjid).alias('csc_ps21p_ippobjid'),
-                fn.max(g3.phot_g_mean_mag).alias("g3_g_mag"),
-                fn.max(ls.fiberflux_r).alias('ls_fiberflux_r'),
-                fn.max(ps.i_stk_psf_flux).alias('ps_i_stk_psf_flux'),
-                fn.max(priority).alias('priority'),
-                fn.max(cadence).alias('cadence'),
-                fn.max(value).alias('value'),
+                fn.coalesce(c2g3.catalogid,
+                            c2ls.catalogid,
+                            c2ps.catalogid).alias('catalogid'),
+                priority.alias('priority'),
+                cadence.alias('cadence'),
+                value.alias('value'),
+                x.pk.alias('csc_pk'),  # extra
+                x.csc21p_id.alias('csc_csc21p_id'),  # extra
+                x.ra.alias('csc_opt_ra'),  # extra
+                x.dec.alias('csc_opt_dec'),  # extra
+                x.best_mag.alias('csc_best_mag'),  # extra
+                x.mag_type.alias('csc_mag_type'),  # extra
+                x.best_oir_cat.alias('csc_best_oir_cat'),  # extra
+                x.xpriority.alias('csc_xpriority'),  # extra
+                x.xband.alias('csc_xband'),  # extra
+                x.gaia_dr3_srcid.alias('csc_gaia_dr3_srcid'),  # extra
+                x.ls_dr10_lsid.alias('csc_ls_dr10_lsid'),  # extra
+                x.ps21p_ippobjid.alias('csc_ps21p_ippobjid'),  # extra
+                g3.phot_g_mean_mag.alias("g3_g_mag"),  # extra
+                ls.fiberflux_r.alias('ls_fiberflux_r'),  # extra
+                ls.fiberflux_i.alias('ls_fiberflux_i'),  # extra
+                ps.r_stk_psf_flux.alias('ps_r_stk_psf_flux'),  # extra
+                ps.i_stk_psf_flux.alias('ps_i_stk_psf_flux'),  # extra
+                s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
             )
             .join(g3, join_type=JOIN.LEFT_OUTER,
                   on=(x.gaia_dr3_srcid == g3.source_id))
             .join(ls, join_type=JOIN.LEFT_OUTER,
                   on=(x.ls_dr10_lsid == ls.ls_id))
             .join(ps, join_type=JOIN.LEFT_OUTER,
-                  on=(x.idps == ps.ps21p_ippobjid))
+                  on=(x.ps21p_ippobjid == ps.catid_objid))
             .join(c2ps, join_type=JOIN.LEFT_OUTER,
                   on=(ps.catid_objid == c2ps.target_id))
             .join(c2ls, join_type=JOIN.LEFT_OUTER,
@@ -192,18 +177,17 @@ class BhmCscBossCarton(BaseCarton):
             .join(c2g3, join_type=JOIN.LEFT_OUTER,
                   on=(g3.source_id == c2g3.target_id))
             .join(c2s19, join_type=JOIN.LEFT_OUTER,
-                  on=(fn.coalesce(fn.max(c2g3.catalogid),
-                                  fn.max(c2ls.catalogid),
-                                  fn.max(c2ps.catalogid)) == c2s19.catalogid))
+                  on=(fn.coalesce(c2g3.catalogid,
+                                  c2ls.catalogid,
+                                  c2ps.catalogid) == c2s19.catalogid))
             .join(s19, join_type=JOIN.LEFT_OUTER,
                   on=(s19.c.s19_pk == c2s19.target_id))
             .where(
                 fn.coalesce(c2g3.version_id, c2ls.version_id, c2ps.version_id) == version_id,
                 fn.coalesce(c2s19.version_id, version_id) == version_id,
-                fn.coalesce(c2ps.best, c2g3.best) >> True,
+                fn.coalesce(c2g3.best, c2ls.best, c2ps.best) >> True,
             )
             .where(
-                (x.best_oir_cat == 'gdr3' | x.best_oir_cat == 'lsdr10' | x.best_oir_cat == 'ps1dr2'),
                 (
                     (x.best_oir_cat == 'gdr3') &
                     (g3.phot_g_mean_mag > gaia_g_mag_min) &
@@ -215,7 +199,10 @@ class BhmCscBossCarton(BaseCarton):
                     (ls.fiberflux_r < fiberflux_r_max) &
                     (ls.fiberflux_i < fiberflux_i_max) &
                     (ls.fiberflux_z < fiberflux_z_max) &
-                    (ls.fiberflux_g > 0.0 | ls.fiberflux_r > 0.0 | ls.fiberflux_z > 0.0)
+                    ((ls.fiberflux_g > 0.0) |
+                     (ls.fiberflux_r > 0.0) |
+                     (ls.fiberflux_i > 0.0) |
+                     (ls.fiberflux_z > 0.0))
                     # TODO check logic
                 ) |
                 (
@@ -227,8 +214,8 @@ class BhmCscBossCarton(BaseCarton):
                     (ps.i_stk_psf_flux != 'NaN')
                 )
             )
-            .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g3.catalogid)))
-            .group_by(x.csc21p_id)
+            # .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g3.catalogid)))
+            .distinct([fn.coalesce(c2g3.catalogid, c2ls.catalogid, c2ps.catalogid)])
         )
 
         if query_region:
