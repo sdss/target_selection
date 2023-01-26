@@ -19,7 +19,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     BHM_RM_v1,
     CatalogToLegacy_Survey_DR8,
     CatalogToLegacy_Survey_DR10,
+    CatalogToGaia_DR2,
     CatalogToGaia_DR3,
+    CatalogToPanstarrs1,
 )
 
 
@@ -50,6 +52,7 @@ class BhmRmBaseCarton(BaseCarton):
     alias_c = None
     alias_t = None
     alias_tw = None
+    can_offset = False
 
     def get_fieldlist(self):
         '''Read the RM field centres from the yaml'''
@@ -80,6 +83,8 @@ class BhmRmBaseCarton(BaseCarton):
         c2ls8 = CatalogToLegacy_Survey_DR8.alias()
         c2ls10 = CatalogToLegacy_Survey_DR10.alias()
         c2g3 = CatalogToGaia_DR3.alias()
+        c2g2 = CatalogToGaia_DR2.alias()
+        c2ps = CatalogToPanstarrs1.alias()
         t = BHM_RM_v1.alias()
         self.alias_c = c
         self.alias_t = t
@@ -157,33 +162,52 @@ class BhmRmBaseCarton(BaseCarton):
 
         opt_prov = peewee.Value("psfmag")
 
+        route_taken = peewee.Case(None,
+                                  (
+                                      (c2ls10.catalogid.is_null(False), 'lsdr10'),
+                                      (c2g3.catalogid.is_null(False), 'gdr3'),
+                                      (c2ls8.catalogid.is_null(False), 'lsdr8'),
+                                      (c2g2.catalogid.is_null(False), 'gdr2'),
+                                      (c2ps.catalogid.is_null(False), 'ps1dr2'),
+                                  ),
+                                  'unknown')
         query = (
             t.select(
                 c.catalogid,
                 c2ls10.catalogid.alias('c2ls10_catalogid'),  # extra
                 c2g3.catalogid.alias('c2g3_catalogid'),  # extra
                 c2ls8.catalogid.alias('c2ls8_catalogid'),  # extra
+                c2g2.catalogid.alias('c2g2_catalogid'),  # extra
+                c2ps.catalogid.alias('c2ps_catalogid'),  # extra
                 c.ra,  # extra
                 c.dec,  # extra
                 t.rm_field_name.alias('rm_field_name'),  # extra
-                t.pk.alias('rm_pk'),  # extra
+                t.pkey.alias('rm_pkey'),  # extra
                 instrument.alias('instrument'),
                 priority.alias('priority'),
                 value.alias('value'),
                 cadence_v0p5.alias('cadence'),
                 cadence_v0.alias('cadence_v0'),  # extra
                 cadence_v0p5.alias('cadence_v0p5'),  # extra
-                cadence_v1p0.alias('cadence_v1p0'),  # extra
+                cadence_v1p0.alias('cadence_v1p0_maybe'),  # extra
                 t.mag_g.alias('g'),
                 t.mag_r.alias('r'),
                 t.mag_i.alias('i'),
                 t.mag_z.alias('z'),
-                t.gaia_g.alias('gaia_mag'),
-                t.gaia_bp.alias('gaia_bp'),
-                t.gaia_rp.alias('gaia_rp'),
+                t.gaia_g.alias('gaia_g'),
+                t.gaia_bp.alias('bp'),
+                t.gaia_rp.alias('rp'),
                 opt_prov.alias('optical_prov'),
                 inertial.alias('inertial'),
-                # c2t.best.alias("c2t_best"),  # extra
+                c2ls10.best.alias('c2ls10_best'),  # extra
+                c2g3.best.alias('c2g3_best'),  # extra
+                c2ls8.best.alias('c2ls8_best'),  # extra
+                c2g2.best.alias('c2g2_best'),  # extra
+                c2ps.best.alias('c2ps_best'),  # extra
+                t.catalogidv05.alias('rm_catalogidv05'),  # extra
+                t.ra.alias('rm_ra'),  # extra
+                t.dec.alias('rm_dec'),  # extra
+                route_taken.alias('route_taken'),  # extra
             )
             .join(c2ls10, JOIN.LEFT_OUTER,
                   on=(c2ls10.target_id == t.ls_id_dr10))
@@ -191,12 +215,23 @@ class BhmRmBaseCarton(BaseCarton):
                   on=(c2g3.target_id == t.gaia_dr3_source_id))
             .join(c2ls8, JOIN.LEFT_OUTER,
                   on=(c2ls8.target_id == t.ls_id_dr8))
-            .join(c, on=(fn.coalesce(c2ls10.catalogid, c2g3.catalogid, c2ls8.catalogid)))
+            .join(c2g2, JOIN.LEFT_OUTER,
+                  on=(c2g2.target_id == t.gaia_dr2_source_id))
+            .join(c2ps, JOIN.LEFT_OUTER,
+                  on=(c2ps.target_id == t.panstarrs1_catid_objid))
+            .join(c, on=(fn.coalesce(c2ls10.catalogid,
+                                     c2g3.catalogid,
+                                     c2ls8.catalogid,
+                                     c2g2.catalogid,
+                                     c2ps.catalogid)
+                         == c.catalogid))
             .where(
                 c.version_id == version_id,
                 fn.coalesce(c2ls10.version_id, version_id) == version_id,
                 fn.coalesce(c2g3.version_id, version_id) == version_id,
                 fn.coalesce(c2ls8.version_id, version_id) == version_id,
+                fn.coalesce(c2g2.version_id, version_id) == version_id,
+                fn.coalesce(c2ps.version_id, version_id) == version_id,
                 # fn.coalesce(c2ls10.best,True) >> True   # TODO check if this is dropping RM
                 #                                         # targets like it does for AQMES
             )
@@ -215,9 +250,9 @@ class BhmRmBaseCarton(BaseCarton):
             )
             .where(
                 # Reject any objects where the t.rm_unsuitable flag is set
-                t.rm_unsuitable >> True,
+                t.rm_unsuitable >> False,
             )
-            # .distinct([t.pk])   # avoid duplicates - trust the RM parent sample
+            .distinct([t.pkey])   # avoid duplicates - trust the RM parent sample
             # - only needed if NOT using c2t.best = True condition
         )
         query = self.append_spatial_query(query, fieldlist)
@@ -312,6 +347,26 @@ class BhmRmAncillaryCarton(BhmRmBaseCarton):
 
         query = query.where(
             (t.rm_ancillary >> True),
+            ~(t.rm_field_name.contains('SDSS-RM'))  # ignore this carton in the SDSS-RM field
+        )
+
+        return query
+
+
+class BhmRmXrayQsoCarton(BhmRmBaseCarton):
+    '''
+    bhm_rm_xrayqso:
+       selected based on X-ray and SED
+
+    '''
+
+    name = 'bhm_rm_xrayqso'
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        t = self.alias_t
+        query = query.where(
+            (t.rm_xrayqso > 0),
             ~(t.rm_field_name.contains('SDSS-RM'))  # ignore this carton in the SDSS-RM field
         )
 

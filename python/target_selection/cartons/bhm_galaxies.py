@@ -44,6 +44,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
     # cadence is set later below
     # cadence = 'dark_1x1'
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()

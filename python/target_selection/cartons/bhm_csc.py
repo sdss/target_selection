@@ -154,6 +154,7 @@ class BhmCscBossCarton(BaseCarton):
                 x.best_oir_cat.alias('csc_best_oir_cat'),  # extra
                 x.xpriority.alias('csc_xpriority'),  # extra
                 x.xband.alias('csc_xband'),  # extra
+                x.logfx.alias('csc_logfx'),  # extra
                 x.gaia_dr3_srcid.alias('csc_gaia_dr3_srcid'),  # extra
                 x.ls_dr10_lsid.alias('csc_ls_dr10_lsid'),  # extra
                 x.ps21p_ippobjid.alias('csc_ps21p_ippobjid'),  # extra
@@ -232,7 +233,7 @@ class BhmCscApogeeCarton(BaseCarton):
     '''
     SELECT * from bhm_csc_v2 AS x
     WHERE
-      AND x.hmag BETWEEN 7 AND 14
+      AND x.best_mag BETWEEN 7 AND 14
     '''
     name = 'bhm_csc_apogee'
     mapper = 'BHM'
@@ -258,44 +259,42 @@ class BhmCscApogeeCarton(BaseCarton):
         cadence = peewee.Case(
             None,
             (
-                ((x.hmag < hmag_max_for_cadence1), self.parameters['cadence1']),
+                ((x.best_mag < hmag_max_for_cadence1), self.parameters['cadence1']),
             ),
             self.parameters['cadence2'])
 
         # Compute net priority
-        priority = peewee.Value(self.parameters['priority_floor']) + x.priority - 1
+        priority = peewee.Value(self.parameters['priority_floor']) + x.xpriority - 1
 
         query = (
             x.select(
                 # c2tic.catalogid.alias('catalogid'),
                 c2tm.catalogid.alias('catalogid'),
-                x.csc21p_id.alias('csc_csc21p_id'),
-                x.best_oir_cat.alias('csc_best_oir_cat'),
-                x.ra.alias('csc_oir_ra'),
-                x.dec.alias('csc_oir_dec'),
-                x.best_mag.alias('csc_best_mag'),
-                x.mag_type.alias('csc_mag_type'),
-                x.tmass_designation.alias('csc_tmass_designation'),
+                x.csc21p_id.alias('csc_csc21p_id'),  # extra
                 priority.alias('priority'),
                 cadence.alias('cadence'),
                 value.alias('value'),
+                x.best_oir_cat.alias('csc_best_oir_cat'),  # extra
+                x.ra.alias('csc_oir_ra'),  # extra
+                x.dec.alias('csc_oir_dec'),  # extra
+                x.best_mag.alias('csc_best_mag'),  # extra
+                x.mag_type.alias('csc_mag_type'),  # extra
+                x.xpriority.alias('csc_xpriority'),  # extra
+                x.xband.alias('csc_xband'),  # extra
+                x.logfx.alias('csc_logfx'),  # extra
+                x.tmass_designation.alias('csc_tmass_designation'),  # extra
             )
-            # .join(tic, on=(x.designation2m == tic.twomass_psc))
-            # .join(c2tic, on=(tic.id == c2tic.target_id))
-            .join(tm, on=(x.designation2m == tm.designation))
-            .join(c2tm, on=(tm.designation == c2tm.target_id))
+            .join(tm, on=(x.tmass_designation == tm.designation))
+            .join(c2tm, on=(tm.pts_key == c2tm.target_id))
             .where(
                 c2tm.version_id == version_id,
                 c2tm.best >> True,
                 x.best_oir_cat == '2mass',
-                # c2tic.version_id == version_id,
-                #  c2tic.best >> True,
                 x.best_mag >= self.parameters['hmag_min'],
                 x.best_mag < self.parameters['hmag_max'],
                 # x.best_mag != 'NaN',
             )
-            # .distinct(x.csc21p_id)
-            .distinct(c2tm.catalogid)
+            .distinct([c2tm.catalogid])
         )
 
         if query_region:

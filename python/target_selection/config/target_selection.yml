@@ -19,6 +19,7 @@
     - bhm_rm_known_spec
     - bhm_rm_var
     - bhm_rm_ancillary
+    - bhm_rm_xrayqso
     - mwm_erosita_stars
     - mwm_erosita_compact_gen
     - bhm_csc_boss
@@ -151,8 +152,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1520
-      dpriority_match_flags: 1
-      dpriority_det_like: 2
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
       dpriority_has_spec: 200
       dpriority_non_core: 2000
     bhm_spiders_agn_lsdr10_north:
@@ -189,8 +191,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1520
-      dpriority_match_flags: 1
-      dpriority_det_like: 2
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
       dpriority_has_spec: 200
       dpriority_non_core: 2000
     bhm_spiders_agn_gaiadr3:
@@ -217,8 +220,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1540
-      dpriority_match_flags: 1
-      dpriority_det_like: 2
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
@@ -246,8 +250,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1540
-      dpriority_match_flags: 1
-      dpriority_det_like: 2
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
@@ -275,8 +280,9 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1500
-      dpriority_match_flags: 1
-      dpriority_det_like: 2
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
@@ -321,14 +327,11 @@
       parallax_min_at_g16: 0.2
       parallax_min_slope: -0.22
       parallax_max: 0.7
-      gaia_bp_rp_min: 0.619
-      gaia_bp_rp_max: 0.863
-      ls_g_r_min: 0.254
-      ls_g_r_max: 0.448
-      ls_r_z_min: 0.024
-      ls_r_z_max: 0.190
-      gaia_g_ls_r_min: 0.0
-      gaia_g_ls_r_max: 0.1
+      dered_dist_max: 0.07
+      g_r_dered_nominal: 0.30
+      r_z_dered_nominal: 0.06
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
     bhm_rm_base:
       fieldlist:
         - { name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49 }
@@ -363,6 +366,13 @@
       mag_g_max_cvz_s: 21.7
     bhm_rm_ancillary:
       priority: 1004
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_xrayqso:
+      priority: 1005
       value: 1000.0
       mag_i_min: 15.0
       mag_i_max: 21.5

@@ -107,18 +107,18 @@ north_gal_pole_dec = +27.12825   # deg, J2000
 
 '''
 # Notes on how many targets to expect:
- sdss5db=> SELECT ero_version,xmatch_method,xmatch_version,opt_cat,count(*)
-           FROM erosita_superset_v1_agn GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat;
-           ero_version           |  xmatch_method  |      xmatch_version      | opt_cat |  count
----------------------------------+-----------------+--------------------------+---------+---------
- eRASS_s3_1B_220829_poscorr_v006 | XPS/NWAY_EROTDA | JWMS_06Oct22_erotda      | lsdr10  |    9703
- eRASS_s3_1B_221007_poscorr_v007 | indef           | JWMS_21Oct22_cw2020_gedr | gedr3   | 1298743
- eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr10  | 1895479
- eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr9   |   47172
- eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22             | gedr3   | 2465166
- eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22_nomask      | lsdr10  | 1937267
- eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | gedr3   |    2007
- eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | lsdr10  |    5207
+ sdss5db=> SELECT ero_version,xmatch_method,xmatch_version,opt_cat,ero_flux_type,count(*)
+           FROM erosita_superset_v1_agn GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat,ero_flux_type;
+           ero_version           |  xmatch_method  |      xmatch_version      | opt_cat | ero_flux_type |  count
+---------------------------------+-----------------+--------------------------+---------+---------------+---------
+ eRASS_s3_1B_220829_poscorr_v006 | XPS/NWAY_EROTDA | JWMS_06Oct22_erotda      | lsdr10  | 0.2-2.3keV    |    9703
+ eRASS_s3_1B_221007_poscorr_v007 | indef           | JWMS_21Oct22_cw2020_gedr | gedr3   | 0.2-2.3keV    | 1298743
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr10  | 0.2-2.3keV    | 1895479
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr9   | 0.2-2.3keV    |   47172
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22             | gedr3   | 0.2-2.3keV    | 2465166
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22_nomask      | lsdr10  | 0.2-2.3keV    | 1937267
+ eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | gedr3   | 0.2-2.3keV    |    2007
+ eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | lsdr10  | 0.2-2.3keV    |    5207
 (8 rows)
 '''
 
@@ -257,14 +257,10 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             None,
             ((is_core, 0), ),
             1)
-        # priority_4 = peewee.Case(
-        #     None,
-        #     (
-        #         (gal_lat < self.parameters['min_gal_lat_for_core'], 1),
-        #         (x.ero_flux < self.parameters['min_ero_flux_for_core'], 1),
-        #         (x.ero_det_like < self.parameters['min_det_like_for_core'], 1),
-        #     ),
-        #     0)
+        priority_5 = peewee.Case(
+            None,
+            ((x.ero_flags.bin_and(2**9) == 0, 1), ),
+            0)
 
         # priority = fn.max(
         priority = (
@@ -272,7 +268,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
             priority_3 * self.parameters['dpriority_has_spec'] +
-            priority_4 * self.parameters['dpriority_non_core']
+            priority_4 * self.parameters['dpriority_non_core'] +
+            priority_5 * self.parameters['dpriority_not_hard']
         )
 
         # choose cadence based on fiber magnitude in r-band
@@ -432,14 +429,6 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
-                ls.ls_id.alias('ls_id'),  # extra
-                ls.gaia_dr3_source_id.alias('gaia_dr3_source_id'),  # extra
-                x.ero_detuid.alias('ero_detuid'),  # extra
-                x.ero_flux.alias('ero_flux'),  # extra
-                x.ero_det_like.alias('ero_det_like'),  # extra
-                s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
-                c.ra.alias('ra'),   # extra
-                c.dec.alias('dec'),   # extra
                 priority.alias('priority'),
                 value.alias('value'),
                 cadence.alias('cadence'),
@@ -452,6 +441,15 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 magnitude_gaia_g.alias('gaia_g'),
                 magnitude_gaia_bp.alias('bp'),
                 magnitude_gaia_rp.alias('rp'),
+                ls.ls_id.alias('ls_id'),  # extra
+                ls.gaia_dr3_source_id.alias('gaia_dr3_source_id'),  # extra
+                x.ero_detuid.alias('ero_detuid'),  # extra
+                x.ero_flux.alias('ero_flux'),  # extra
+                x.ero_det_like.alias('ero_det_like'),  # extra
+                x.ero_flags.alias('ero_flags'),  # extra
+                s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
+                c.ra.alias('ra'),   # extra
+                c.dec.alias('dec'),   # extra
                 g0_p.alias('ls10_mag_g'),   # extra
                 r0_p.alias('ls10_mag_r'),  # extra
                 i0_p.alias('ls10_mag_i'),  # extra
@@ -629,13 +627,18 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
             ((is_core, 0), ),
             1
         )
+        priority_5 = peewee.Case(
+            None,
+            ((x.ero_flags.bin_and(2**9) == 0, 1), ),
+            0)
 
         priority = (
             self.parameters['priority_floor'] +
             priority_1 * self.parameters['dpriority_match_flags'] +
             priority_2 * self.parameters['dpriority_det_like'] +
             priority_3 * self.parameters['dpriority_has_spec'] +
-            priority_4 * self.parameters['dpriority_non_core']
+            priority_4 * self.parameters['dpriority_non_core'] +
+            priority_5 * self.parameters['dpriority_not_hard']
         )
 
         # choose cadence based on magnitude in Gaia G and RP-bands
@@ -819,353 +822,3 @@ class BhmSpidersAgnGaiadr3viaCW2020Carton(BhmSpidersAgnGaiadr3Carton):
 # the gaia dr3 hemisphere match and adjusting the parameters only
 class BhmSpidersAgnSepCarton(BhmSpidersAgnGaiadr3Carton):
     name = 'bhm_spiders_agn_sep'
-
-
-# class BhmSpidersAgnPs1dr2Carton(BaseCarton):
-#
-#     name = 'bhm_spiders_agn_ps1dr2'
-#     category = 'science'
-#     mapper = 'BHM'
-#     program = 'bhm_spiders'
-#     tile = False
-#     instrument = 'BOSS'
-#
-#     def build_query(self, version_id, query_region=None):
-#
-#         c = Catalog.alias()
-#         x = EROSITASupersetAGN.alias()
-#         ps = Panstarrs1.alias()
-#         c2ps = CatalogToPanstarrs1.alias()
-#         g3 = Gaia_DR3.alias()
-#         c2g3 = CatalogToGaia_DR3.alias()
-#
-#         instrument = peewee.Value(self.instrument)
-#
-#         g_psf_flux_max = AB2Jy(self.parameters['g_psf_mag_min'])
-#         r_psf_flux_max = AB2Jy(self.parameters['r_psf_mag_min'])
-#         i_psf_flux_max = AB2Jy(self.parameters['i_psf_mag_min'])
-#         z_psf_flux_max = AB2Jy(self.parameters['z_psf_mag_min'])
-#         g_psf_flux_min = AB2Jy(self.parameters['g_psf_mag_max'])
-#         r_psf_flux_min = AB2Jy(self.parameters['r_psf_mag_max'])
-#         i_psf_flux_min = AB2Jy(self.parameters['i_psf_mag_max'])
-#         z_psf_flux_min = AB2Jy(self.parameters['z_psf_mag_max'])
-#         g_psf_flux_min_for_cadence1 = AB2Jy(self.parameters['g_psf_mag_max_for_cadence1'])
-#         r_psf_flux_min_for_cadence1 = AB2Jy(self.parameters['r_psf_mag_max_for_cadence1'])
-#         i_psf_flux_min_for_cadence1 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence1'])
-#         g_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['g_psf_mag_max_for_cadence2'])
-#         r_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['r_psf_mag_max_for_cadence2'])
-#         i_psf_flux_min_for_cadence2 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence2'])
-#
-#         # value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
-#
-#         # these control matching to spectroscopy
-#         spec_sn_thresh = self.parameters['spec_sn_thresh']
-#         spec_z_err_thresh = self.parameters['spec_z_err_thresh']
-#
-#         # #########################################################################
-#         # prepare the spectroscopy catalogues
-#
-#         # SDSS DR19p
-#         # downslect only 'good' spectra
-#         c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
-#         ss19 = SDSS_DR19p_Speclite.alias()
-#         s19 = (
-#             ss19.select(
-#                 ss19.pk.alias('s19_pk'),
-#             )
-#             .where(
-#                 ss19.sn_median_all >= spec_sn_thresh,
-#                 ss19.zwarning == 0,
-#                 ss19.z_err <= spec_z_err_thresh,
-#                 ss19.z_err > 0.0,
-#                 ss19.specprimary > 0,
-#             )
-#             .alias('s19')
-#         )
-#         # #########################################################################
-#
-#         # compute the abs(Galactic latitude):
-#         gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
-#                                                           north_gal_pole_dec,
-#                                                           c.ra, c.dec))
-#         value = peewee.Case(
-#             None,
-#             ((gal_lat > self.parameters['in_plane_lat_cut'],
-#               self.parameters.get('value', 1.0)),),
-#             0.0
-#         ).cast('float')
-#
-#         # priority is determined by target properties
-#         # start with a priority floor value (per carton)
-#         # then increment if any conditions are met:
-#         # add +dpriority_match_flags if target is a secondary cross-match (match_flag > 1)
-#         # add +dpriority_det_like if target has a low value of ero_det_like
-#         # add +dpriority_has_spec if target has existing good SDSS spectroscopy
-#         # add +dpriority_in_plane if target lies at |b| < in_plane_lat_cut
-#
-#         priority_1 = peewee.Case(
-#             None,
-#             ((x.xmatch_flags > 1, 1), ),
-#             0)
-#         priority_2 = peewee.Case(
-#             None,
-#             ((x.ero_det_like < self.parameters['det_like_for_priority'], 1), ),
-#             0)
-#         priority_3 = peewee.Case(
-#             None,
-#             ((s19.c.s19_pk.is_null(False), 1), ),
-#             0)
-#         priority_4 = peewee.Case(
-#             None,
-#             ((gal_lat > self.parameters['in_plane_lat_cut'], 0),),
-#             1
-#         )
-#
-#         priority = fn.max(
-#             self.parameters['priority_floor'] +
-#             priority_1 * self.parameters['dpriority_match_flags'] +
-#             priority_2 * self.parameters['dpriority_det_like'] +
-#             priority_3 * self.parameters['dpriority_has_spec'] +
-#             priority_4 * self.parameters['dpriority_in_plane']
-#         )
-#
-#         # choose cadence based on psf_flux magnitude in panstarrs1 g,r,i-bands
-#         cadence1 = self.parameters['cadence1']
-#         cadence2 = self.parameters['cadence2']
-#         cadence3 = self.parameters['cadence3']
-#         cadence4 = 'unknown_cadence'
-#         cadence = peewee.Case(
-#             None,
-#             (
-#                 ((ps.g_stk_psf_flux > g_psf_flux_min_for_cadence1) |
-#                  (ps.r_stk_psf_flux > r_psf_flux_min_for_cadence1) |
-#                  (ps.i_stk_psf_flux > i_psf_flux_min_for_cadence1), cadence1),
-#                 ((ps.g_stk_psf_flux > g_psf_flux_min_for_cadence2) |
-#                  (ps.r_stk_psf_flux > r_psf_flux_min_for_cadence2) |
-#                  (ps.i_stk_psf_flux > i_psf_flux_min_for_cadence2), cadence2),
-#                 ((ps.g_stk_psf_flux <= g_psf_flux_min_for_cadence2) &
-#                  (ps.r_stk_psf_flux <= r_psf_flux_min_for_cadence2) &
-#                  (ps.i_stk_psf_flux <= i_psf_flux_min_for_cadence2), cadence3),
-#             ),
-#             cadence4)
-#
-#         # compute transformed SDSS mags for pointlike and extended sources separately
-#         # transform the panstarrs1-dr2 griz into sdss psfmag griz
-#
-#         # extract coeffs from fit logs via:
-#         # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_ps1dr2_pointlike/ps1dr2_stk_psf_to_sdss_psfmag_?_results.log  bhm_spiders_agn_ps1dr2_extended/ps1dr2_stk_psf_to_sdss_fiber2mag_?_results.log  # noqa
-#
-#         coeffs = {
-#             "g2_p": 0.275586,
-#             "g1_p": -0.178727,
-#             "g0_p": 0.024900,
-#             "i2_p": -0.051817,
-#             "i1_p": 0.098077,
-#             "i0_p": -0.028243,
-#             "r2_p": -0.031567,
-#             "r1_p": 0.056499,
-#             "r0_p": -0.013487,
-#             "z2_p": -0.290196,
-#             "z1_p": 0.156009,
-#             "z0_p": -0.079393,
-#             "g2_e": 0.084856,
-#             "g1_e": -0.076550,
-#             "g0_e": 0.841168,
-#             "i2_e": 0.048106,
-#             "i1_e": 0.025289,
-#             "i0_e": 0.652371,
-#             "r2_e": 0.066827,
-#             "r1_e": -0.118807,
-#             "r0_e": 0.752550,
-#             "z2_e": 0.558727,
-#             "z1_e": -0.006461,
-#             "z0_e": 0.512403,
-#         }
-#
-#         Jy_min = AB2Jy(30.00)
-#
-#         # pointlike and extended - both start from ps1dr2 stk psf fluxes
-#         g0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.g_stk_psf_flux)))
-#         r0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.r_stk_psf_flux)))
-#         i0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.i_stk_psf_flux)))
-#         z0 = (8.9 - 2.5 * peewee.fn.log(peewee.fn.greatest(Jy_min, ps.z_stk_psf_flux)))
-#         g_r = g0 - r0
-#         r_i = r0 - i0
-#         i_z = i0 - z0
-#
-#         # use different transform coeffs for pointlike and extended sources
-#         g_p = (g0 + coeffs['g0_p'] + coeffs['g1_p'] * g_r + coeffs['g2_p'] * g_r * g_r)
-#         r_p = (r0 + coeffs['r0_p'] + coeffs['r1_p'] * g_r + coeffs['r2_p'] * g_r * g_r)
-#         i_p = (i0 + coeffs['i0_p'] + coeffs['i1_p'] * r_i + coeffs['i2_p'] * r_i * r_i)
-#         z_p = (z0 + coeffs['z0_p'] + coeffs['z1_p'] * i_z + coeffs['z2_p'] * i_z * i_z)
-#
-#         g_e = (g0 + coeffs['g0_e'] + coeffs['g1_e'] * g_r + coeffs['g2_e'] * g_r * g_r)
-#         r_e = (r0 + coeffs['r0_e'] + coeffs['r1_e'] * g_r + coeffs['r2_e'] * g_r * g_r)
-#         i_e = (i0 + coeffs['i0_e'] + coeffs['i1_e'] * r_i + coeffs['i2_e'] * r_i * r_i)
-#         z_e = (z0 + coeffs['z0_e'] + coeffs['z1_e'] * i_z + coeffs['z2_e'] * i_z * i_z)
-#
-#         # validity checks - set limits semi-manually
-#         g_r_p_min = -0.5
-#         g_r_p_max = 1.4
-#         r_i_p_min = -0.5
-#         r_i_p_max = 2.0
-#         i_z_p_min = -0.5
-#         i_z_p_max = 1.0
-#         g_r_e_min = -0.5
-#         g_r_e_max = 1.5
-#         r_i_e_min = -0.2
-#         r_i_e_max = 1.3
-#         i_z_e_min = -0.3
-#         i_z_e_max = 0.8
-#
-#         valid_p = (g0.between(0.1, 29.9) &
-#                    r0.between(0.1, 29.9) &
-#                    z0.between(0.1, 29.9) &
-#                    g_r.between(g_r_p_min, g_r_p_max) &
-#                    r_i.between(r_i_p_min, r_i_p_max) &
-#                    i_z.between(i_z_p_min, i_z_p_max))
-#
-#         valid_e = (g0.between(0.1, 29.9) &
-#                    r0.between(0.1, 29.9) &
-#                    z0.between(0.1, 29.9) &
-#                    g_r.between(g_r_e_min, g_r_e_max) &
-#                    r_i.between(r_i_e_min, r_i_e_max) &
-#                    i_z.between(i_z_e_min, i_z_e_max))
-#
-#         # We want to switch between psfmags and fibermags depending on
-#         # ps.flags EXT+EXT_ALT (i.e. extended sources)
-#         ext_flags = 8388608 + 16777216
-#         good_stack_flag = 134217728
-#
-#         opt_prov = peewee.Case(
-#             None,
-#             (
-#                 ((ps.flags.bin_and(ext_flags) == 0) & valid_p, 'sdss_psfmag_from_ps1dr2'),
-#                 ((ps.flags.bin_and(ext_flags) > 0) & valid_e, 'sdss_fiber2mag_from_ps1dr2'),
-#             ),
-#             'undefined')
-#         magnitude_g = peewee.Case(
-#             None,
-#             (
-#                 ((ps.flags.bin_and(ext_flags) == 0) & valid_p, g_p.cast('float')),
-#                 ((ps.flags.bin_and(ext_flags) > 0) & valid_e, g_e.cast('float')),
-#             ),
-#             'NaN')
-#         magnitude_r = peewee.Case(
-#             None,
-#             (
-#                 ((ps.flags.bin_and(ext_flags) == 0) & valid_p, r_p.cast('float')),
-#                 ((ps.flags.bin_and(ext_flags) > 0) & valid_e, r_e.cast('float')),
-#             ),
-#             'NaN')
-#         magnitude_i = peewee.Case(
-#             None,
-#             (
-#                 ((ps.flags.bin_and(ext_flags) == 0) & valid_p, i_p.cast('float')),
-#                 ((ps.flags.bin_and(ext_flags) > 0) & valid_e, i_e.cast('float')),
-#             ),
-#             'NaN')
-#         magnitude_z = peewee.Case(
-#             None,
-#             (
-#                 ((ps.flags.bin_and(ext_flags) == 0) & valid_p, z_p.cast('float')),
-#                 ((ps.flags.bin_and(ext_flags) > 0) & valid_e, z_e.cast('float')),
-#             ),
-#             'NaN')
-#
-#         ##############################
-#
-#         query = (
-#             c.select(
-#                 fn.min(c.catalogid).alias('catalogid'),
-#                 fn.min(ps.catid_objid).alias('ps1_catid_objid'),  # extra
-#                 fn.min(g3.source_id).alias('gaia_dr3_source_id'),  # extra
-#                 fn.min(x.ero_detuid).alias('ero_detuid'),  # extra
-#                 fn.min(s19.c.s19_pk).alias('sdss_dr19p_speclite_pk'),  # extra
-#                 fn.min(c.ra).alias('ra'),  # extra
-#                 fn.min(c.dec).alias('dec'),  # extra
-#                 priority.alias("priority"),
-#                 fn.min(value).alias('value'),
-#                 fn.min(cadence).alias('cadence'),
-#                 fn.min(instrument).alias('instrument'),
-#                 fn.min(magnitude_g).alias('g'),
-#                 fn.min(magnitude_r).alias('r'),
-#                 fn.min(magnitude_i).alias('i'),
-#                 fn.min(magnitude_z).alias('z'),
-#                 fn.min(g3.phot_g_mean_mag).alias('gaia_g'),
-#                 fn.min(g3.phot_bp_mean_mag).alias('bp'),
-#                 fn.min(g3.phot_rp_mean_mag).alias('rp'),
-#                 fn.min(opt_prov).alias('optical_prov'),
-#                 fn.min(g0).alias("ps1dr2_stk_psf_mag_g"),   # extra
-#                 fn.min(r0).alias("ps1dr2_stk_psf_mag_r"),   # extra
-#                 fn.min(i0).alias("ps1dr2_stk_psf_mag_i"),   # extra
-#                 fn.min(z0).alias("ps1dr2_stk_psf_mag_z"),   # extra
-#                 fn.min(ps.flags).alias("ps1dr2_flags"),  # extra
-#             )
-#             .join(c2ps)
-#             .where(
-#                 c.version_id == version_id,
-#                 c2ps.version_id == version_id,
-#                 fn.coalesce(c2s19.version_id, version_id) == version_id,
-#                 fn.coalesce(c2g3.version_id, version_id) == version_id,
-#                 c2ps.best >> True,
-#             )
-#             .join(ps)
-#             .join(x, on=(ps.catid_objid == x.ps1_dr2_id))
-#             .switch(c)
-#             .join(c2g3, JOIN.LEFT_OUTER)  # do not reject c2g3.best=False entries
-#             .join(g3, JOIN.LEFT_OUTER)
-#             # start joining the spectroscopy
-#             .switch(c)
-#             .join(c2s19, JOIN.LEFT_OUTER)
-#             .join(s19, JOIN.LEFT_OUTER,
-#                   on=(s19.c.s19_pk == c2s19.target_id))
-#             # finished joining the spectroscopy
-#             .where(
-#                 (x.ero_version == self.parameters['ero_version']),
-#                 (x.xmatch_method == self.parameters['xmatch_method']),
-#                 (x.xmatch_version == self.parameters['xmatch_version']),
-#                 (x.opt_cat == self.parameters['opt_cat']),
-#                 (x.xmatch_metric >= self.parameters['p_any_min']),
-#                 (x.ero_det_like > self.parameters['det_like_min']),
-#                 (ps.g_stk_psf_flux < g_psf_flux_max),
-#                 (ps.r_stk_psf_flux < r_psf_flux_max),
-#                 (ps.i_stk_psf_flux < i_psf_flux_max),
-#                 (ps.z_stk_psf_flux < z_psf_flux_max),
-#                 (ps.g_stk_psf_flux != 'NaN'),   # these NaNs are NOT represented as nulls
-#                 (ps.r_stk_psf_flux != 'NaN'),   # these NaNs are NOT represented as nulls
-#                 (ps.i_stk_psf_flux != 'NaN'),   # these NaNs are NOT represented as nulls
-#                 (
-#                     (ps.g_stk_psf_flux > g_psf_flux_min) |
-#                     (ps.r_stk_psf_flux > r_psf_flux_min) |
-#                     (ps.i_stk_psf_flux > i_psf_flux_min) |
-#                     (ps.z_stk_psf_flux > z_psf_flux_min)
-#                 ),
-#                 (ps.flags.bin_and(good_stack_flag) > 0),
-#             )
-#             .group_by(ps.catid_objid)   # avoid duplicates - we trust the ps1 ids
-#             .having(
-#                 # each and every match to gaia must satisfy the bright star rejection criteria
-#                 fn.sum(
-#                     peewee.Case(
-#                         None,
-#                         (
-#                             (g3.phot_g_mean_mag < self.parameters['gaia_g_mag_limit'], 1),
-#                             (g3.phot_rp_mean_mag < self.parameters['gaia_rp_mag_limit'], 1),
-#                         ),
-#                         0)
-#                 ) == 0
-#             )
-#         )
-#
-#         if query_region:
-#             query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
-#                                                            query_region[0],
-#                                                            query_region[1],
-#                                                            query_region[2]))
-#
-#         return query
-# #
-# # END BhmSpidersAgnPs1dr2Carton
-# # ##################################################################################
-#

@@ -810,8 +810,8 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
     instrument = 'BOSS'
 
     def build_query(self, version_id, query_region=None):
-        ls = Legacy_Survey_DR8.alias()
-        c2ls = CatalogToLegacy_Survey_DR8.alias()
+        ls = Legacy_Survey_DR10.alias()
+        c2ls = CatalogToLegacy_Survey_DR10.alias()
 
         # an alias to simplify accessing the query parameters:
         pars = self.parameters
@@ -842,9 +842,14 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
 
         g0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g)))
         r0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        i0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i)))
         z0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z)))
         g_r = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g) /
                                     peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        r_i = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_i)))
+        i_z = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_z)))
         r_z = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r) /
                                     peewee.fn.greatest(nMgy_min, ls.flux_z)))
 
@@ -857,12 +862,20 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
             peewee.fn.greatest(nMgy_min, ls.flux_g / ls.mw_transmission_g)))
         r0_dered = (22.5 - 2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
+        i0_dered = (22.5 - 2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i)))
         z0_dered = (22.5 - 2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
 
         g_r_dered = (-2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_g / ls.mw_transmission_g) /
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
+        r_i_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r) /
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i)))
+        i_z_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i) /
+            peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
         r_z_dered = (-2.5 * peewee.fn.log(
             peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r) /
             peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
@@ -908,13 +921,19 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
                 ls.ls_id,
                 g0.alias("ls10_mag_g"),
                 r0.alias("ls10_mag_r"),
+                i0.alias("ls10_mag_i"),
                 z0.alias("ls10_mag_z"),
                 g_r.alias("ls10_mag_g_r"),
+                r_i.alias("ls10_mag_r_i"),
+                i_z.alias("ls10_mag_i_z"),
                 r_z.alias("ls10_mag_r_z"),
                 g0_dered.alias("ls10_mag_dered_g"),
                 r0_dered.alias("ls10_mag_dered_r"),
+                i0_dered.alias("ls10_mag_dered_i"),
                 z0_dered.alias("ls10_mag_dered_z"),
                 g_r_dered.alias("ls10_mag_dered_g_r"),
+                r_i_dered.alias("ls10_mag_dered_r_i"),
+                i_z_dered.alias("ls10_mag_dered_i_z"),
                 r_z_dered.alias("ls10_mag_dered_r_z"),
                 bp_rp_dered.alias("gaia_mag_dered_bp_rp"),
                 bp_g_dered.alias("gaia_mag_dered_bp_g"),
@@ -930,11 +949,13 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
                 ls.ebv.alias("ls10_ebv"),
                 ls.mw_transmission_g.alias("ls10_mw_transmission_g"),
                 ls.mw_transmission_r.alias("ls10_mw_transmission_r"),
+                ls.mw_transmission_i.alias("ls10_mw_transmission_i"),
                 ls.mw_transmission_z.alias("ls10_mw_transmission_z"),
                 ls.parallax,
                 ls.parallax_ivar,
                 ls.nobs_g.alias("ls10_nobs_g"),
                 ls.nobs_r.alias("ls10_nobs_r"),
+                ls.nobs_i.alias("ls10_nobs_i"),
                 ls.nobs_z.alias("ls10_nobs_z"),
                 ls.ref_cat.alias("ls10_ref_cat"),
                 ls.ref_id.alias("ls10_ref_id"),
@@ -948,7 +969,7 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
                 c2ls.version_id == version_id,
                 c2ls.best >> True,
                 ls.type == 'PSF',
-                (ls.ref_cat == 'G2' | ls.ref_cat == 'E3'),
+                ((ls.ref_cat == 'G2') | (ls.ref_cat == 'GE')),
                 ls.gaia_phot_g_mean_mag > pars['mag_gaia_g_min'],
                 ls.parallax < pars['parallax_max'],
                 ls.parallax > (
