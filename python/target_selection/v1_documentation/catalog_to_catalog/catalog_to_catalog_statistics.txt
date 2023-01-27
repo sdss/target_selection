@@ -4,13 +4,10 @@ There are 13 tables crossmatched in both version_id=21 and version_id=25 crossma
 
 The first output table sandbox.catalog_ver25_to_ver31_full_all with all the catalogid pairs for each input table contains 189,151,494 entries
 
-The old final output table sandbox.catalog_ver25_to_ver31_full_unique with the list unique pairs of catalogids contains 63,186,724 entries.
-This table contains 54,559,686 unique lowest_catalogid's (version_id=25) and 56,508,221 unique highest_catalogid's (version_id=31)
-Restricting this table to things in target we should obtain the statistics for the new final output table
-This table contains 57,019,664 entries with lowest_catalogid's present in targetdb.target.
-This table contains 51,525,427 unique lowest_catalogid's (version_id=25) present in target associated with 56,508,221 unique highest_catalogid's (version_id=31)
-
+The final output table sandbox.catalog_ver25_to_ver31_full_unique with the list of unique pairs of catalogids contains 57,019,663 entries.
+This table contains 51,525,427 unique lowest_catalogid's (version_id=25) and 56,508,221 unique highest_catalogid's (version_id=31)
 
 The total number of version_id=25 catalogid's in the target table are 76,775,553 (one duplicated).
 But from those 25,197,586 come from the catalog_to_skies_v2 table which means the number of non-sky version_id=25 catalogids in target are 51,577,967
-This means that 99.9% of the non-sky ver25 catalogids in the target table were matched to ver31 catalogids and only 52,540 are not crossmatched.
+Since no matched entry belongs to the catalog_to_skies_v2 table (confirmed) this means that 99.9% of the non-sky ver25 catalogids in the target table
+were matched to ver31 catalogids and only 52,540 are not matched.
