@@ -29,6 +29,11 @@ bhm_colr_galaxies_lsdr10
 '''
 
 
+# used by cartons that need to compute Galactic latitude:
+north_gal_pole_ra = 192.85948   # deg, J2000
+north_gal_pole_dec = +27.12825   # deg, J2000
+
+
 class BhmColrGalaxiesLsdr10Carton(BaseCarton):
     '''
     A sample of bright galaxies selected from legacysurvey/dr10
@@ -97,6 +102,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         # TODO investigate using real lsdr10 i-band where available
         g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
         r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        i0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i)))
         z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
         g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
                                       peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
@@ -153,6 +159,14 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
             ),
             self.parameters['cadence3'])
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+
+        # https://www.legacysurvey.org/dr10/bitmasks/
+        maskbits_andmask = 2**0 + 2**1 + 2**4 + 2**7 + 2**8 + 2**10 + 2**11 + 2**13
+        fitbits_andmask = 2**5 + 2**6 + 2**7 + 2**8 + 2**12
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
@@ -174,6 +188,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 inertial.alias('inertial'),
                 g0_e.cast('real').alias('ls10_fibermag_g'),  # extra
                 r0_e.cast('real').alias('ls10_fibermag_r'),  # extra
+                i0_e.cast('real').alias('ls10_fibermag_i'),  # extra
                 z0_e.cast('real').alias('ls10_fibermag_z'),  # extra
                 g_r_e.cast('real').alias('ls10_g_r_e'),  # extra
                 r_z_e.cast('real').alias('ls10_r_z_e'),  # extra
@@ -182,7 +197,10 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ls.flux_i.alias('ls10_flux_i'),  # extra
                 ls.flux_z.alias('ls10_flux_z'),  # extra
                 ls.ebv.alias('ls10_ebv'),  # extra
+                ls.maskbits.alias('ls10_maskbits'),  # extra
+                ls.fitbits.alias('ls10_fitbits'),  # extra
                 ls.mw_transmission_z.alias('ls10_mw_transmission_z'),  # extra
+                gal_lat.alias('abs_gal_lat'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -203,6 +221,10 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
                 ls.shape_r >= self.parameters['shape_r_min'],
+                gal_lat > self.parameters['min_gal_lat'],
+                ls.ebv < self.parameters['max_ebv'],
+                (ls.maskbits.bin_and(maskbits_andmask) == 0),  # avoid bad ls data
+                (ls.fitbits.bin_and(fitbits_andmask) == 0),  # avoid bad ls fits
             )
             .distinct(c.catalogid)
         )

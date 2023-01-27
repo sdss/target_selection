@@ -98,7 +98,8 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
     name = 'mwm_erosita_stars'
     category = 'science'
-    instrument = None  # assigned in post_process()
+    # instrument = None  # assigned in post_process()
+    instrument = 'BOSS'
     cadence = None  # assigned in post_process()
     program = 'mwm_erosita'
     mapper = 'MWM'
@@ -106,26 +107,55 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
+        bright_bright_limit = 13
+        cadence = peewee.Case(
+            None,
+            (
+                (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_1x2'),
+            ),
+            'dark_1x3'
+        ).cast('text')
+
+        priority = (
+            EROSITASupersetv1Stars.xmatch_flags - 1 +
+            peewee.Case(
+                None,
+                (
+                    (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
+                ),
+                1910
+            ).cast('integer')
+        )
 
         query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
-                         Gaia_DR3.phot_bp_mean_mag.alias('bp'),
-                         Gaia_DR3.phot_rp_mean_mag.alias('rp'),
-                         Gaia_DR3.parallax,
-                         Gaia_DR3.pmra,
-                         Gaia_DR3.pmdec,
-                         EROSITASupersetv1Stars.target_priority,
-                         EROSITASupersetv1Stars.ero_detuid,
-                         EROSITASupersetv1Stars.xmatch_metric,
-                         EROSITASupersetv1Stars.ero_flux,
-                         EROSITASupersetv1Stars.ero_ra,
-                         EROSITASupersetv1Stars.ero_dec,
-                         EROSITASupersetv1Stars.opt_ra,
-                         EROSITASupersetv1Stars.opt_dec)
+                 .select(
+                     CatalogToGaia_DR3.catalogid,
+                     Gaia_DR3.source_id,
+                     Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                     Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                     Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
+                     Gaia_DR3.phot_bp_mean_mag.alias('bp'),
+                     Gaia_DR3.phot_rp_mean_mag.alias('rp'),
+                     Gaia_DR3.parallax,
+                     Gaia_DR3.pmra,
+                     Gaia_DR3.pmdec,
+                     cadence.alias('cadence'),
+                     priority.alias('priority'),
+                     EROSITASupersetv1Stars.target_priority,
+                     EROSITASupersetv1Stars.ero_detuid,
+                     EROSITASupersetv1Stars.xmatch_metric,
+                     EROSITASupersetv1Stars.xmatch_flags,
+                     EROSITASupersetv1Stars.ero_flux,
+                     EROSITASupersetv1Stars.ero_ra,
+                     EROSITASupersetv1Stars.ero_dec,
+                     EROSITASupersetv1Stars.opt_ra,
+                     EROSITASupersetv1Stars.opt_dec,
+                     # peewee.fn.dense_rank().over(
+                     #     partition_by=[EROSITASupersetv1Stars.ero_detuid],
+                     #     order_by=[EROSITASupersetv1Stars.xmatch_metric.desc()]
+                     # ).alias('x_rank'),
+                 )
                  .distinct(CatalogToGaia_DR3.catalogid)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(EROSITASupersetv1Stars,
@@ -134,7 +164,8 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                         CatalogToGaia_DR3.best >> True,
                         EROSITASupersetv1Stars.xmatch_method == 'HamStar',
                         EROSITASupersetv1Stars.xmatch_version == 'v1.1.1',
-                        EROSITASupersetv1Stars.xmatch_metric > 0.0))
+                        EROSITASupersetv1Stars.xmatch_metric > 0.0,
+                        Gaia_DR3.phot_g_mean_mag > bright_bright_limit))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -155,118 +186,119 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, model):
-        """
-        The results of the above query can then be sorted
-        to assign cadences using the following logic:
-
-        bright_bright_limit = 13   # (available for modification later)
-        ## N/A ir_faint_limit = 13 # (available for modification later)
-
-        #notv1# - if bright_bright_limit > gaia.phot_g_mean_mag  &
-        #notv1#      twomass.h_m < ir_faint_limit:
-        #notv1#          cadence = bright_apogee_1x1      &&    priority = 2400
-
-        - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
-                 cadence = bright_boss_1x1          &&    priority = 2400
-
-        - if 17 < gaia.phot_g_mean_mag < 18:
-                  cadence = dark_boss_1x2           &&    priority = 1920
-
-        - if 18 < gaia.phot_g_mean_mag:
-                  cadence = dark_boss_1x3          &&    priority = 1920
-        """
-
-        bright_bright_limit = 13
-        # ir_faint_limit = 13
-
-        # Set cadence and priority
-
-        cursor = self.database.execute_sql(
-            "select catalogid, gaia_g from " +
-            " sandbox.temp_mwm_erosita_stars ;")
-
-        output = cursor.fetchall()
-
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_g = output[i][1]
-
-            # current_g corresponds to gaia_dr3_g which is not null
-            if (current_g < bright_bright_limit):
-                pass
-            elif ((bright_bright_limit <= current_g) and (current_g < 17)):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_1x1'
-                current_priority = 2400
-            elif ((17 <= current_g) and (current_g < 19)):
-                current_instrument = 'BOSS'
-                current_cadence = 'dark_1x2'
-                current_priority = 1920
-            elif (18 <= current_g):
-                current_instrument = 'BOSS'
-                 current_cadence = 'dark_1x3'
-                current_priority = 1920
-            else:
-                # All cases should be covered above so we should not get here.
-                current_instrument = None
-                current_cadence = None
-                current_priority = None
-                raise TargetSelectionError('error in mwm_erosita_stars ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None, ' +
-                                           'priority = None')
-
-            if current_instrument is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_stars " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_cadence is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_stars " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_stars " +
-                    " set priority = '" + str(current_priority) + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-        # More than one optical source may have the same xmatch_metric
-        # for an X-ray source - much less likely in v1
-        # Select any one source with highest xmatch_metric for given ero_detuid
-        self.database.execute_sql("update sandbox.temp_mwm_erosita_stars " +
-                                  "set selected = false")
-
-        cursor = self.database.execute_sql(
-            "select catalogid, ero_detuid, xmatch_metric from " +
-            " sandbox.temp_mwm_erosita_stars " +
-            " order by ero_detuid asc, xmatch_metric desc;")
-
-        output = cursor.fetchall()
-
-        list_of_catalog_id = [0] * len(output)
-        count = {}
-        for i in range(len(output)):
-            ero_detuid = output[i][1]
-            count[ero_detuid] = 0
-
-        current_target = 0
-        for i in range(len(output)):
-            ero_detuid = output[i][1]
-            if (count[ero_detuid] == 0):
-                count[ero_detuid] = 1
-                list_of_catalog_id[current_target] = output[i][0]
-                current_target = current_target + 1
-
-        max_target = current_target
-        for k in range(max_target + 1):
-            self.database.execute_sql(
-                " update sandbox.temp_mwm_erosita_stars set selected = true " +
-                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+    # def post_process(self, model):
+    #     """
+    #     The results of the above query can then be sorted
+    #     to assign cadences using the following logic:
+    #
+    #     bright_bright_limit = 13   # (available for modification later)
+    #     ## N/A ir_faint_limit = 13 # (available for modification later)
+    #
+    #     #notv1# - if bright_bright_limit > gaia.phot_g_mean_mag  &
+    #     #notv1#      twomass.h_m < ir_faint_limit:
+    #     #notv1#          cadence = bright_apogee_1x1      &&    priority = 2400
+    #
+    #     - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
+    #              cadence = bright_boss_1x1          &&    priority = 2400
+    #
+    #     - if 17 < gaia.phot_g_mean_mag < 18:
+    #               cadence = dark_boss_1x2           &&    priority = 1920
+    #
+    #     - if 18 < gaia.phot_g_mean_mag:
+    #               cadence = dark_boss_1x3          &&    priority = 1920
+    #     """
+    #
+    #     # bright_bright_limit = 13
+    #     # # ir_faint_limit = 13
+    #
+    #     # Set cadence and priority
+    #     temp_table = f'{self.schema}.{self.table_name}'
+    #
+    #     # cursor = self.database.execute_sql(
+    #     #     "select catalogid, gaia_g from " +
+    #     #     temp_table + " ;")
+    #     #
+    #     # output = cursor.fetchall()
+    #     #
+    #     # for i in range(len(output)):
+    #     #     current_catalogid = output[i][0]
+    #     #     current_g = output[i][1]
+    #     #
+    #     #     # current_g corresponds to gaia_dr3_g which is not null
+    #     #     #if (current_g < bright_bright_limit):
+    #     #     #    pass
+    #     #     if ((bright_bright_limit <= current_g) and (current_g < 17)):
+    #     #         current_instrument = 'BOSS'
+    #     #         current_cadence = 'bright_1x1'
+    #     #         current_priority = 2400
+    #     #     elif ((17 <= current_g) and (current_g < 19)):
+    #     #         current_instrument = 'BOSS'
+    #     #         current_cadence = 'dark_1x2'
+    #     #         current_priority = 1920
+    #     #     elif (18 <= current_g):
+    #     #         current_instrument = 'BOSS'
+    #     #         current_cadence = 'dark_1x3'
+    #     #         current_priority = 1920
+    #     #     else:
+    #     #         # All cases should be covered above so we should not get here.
+    #     #         current_instrument = None
+    #     #         current_cadence = None
+    #     #         current_priority = None
+    #     #         raise TargetSelectionError('error in ' + self.name +
+    #     #                                    ' post_process(): ' +
+    #     #                                    'instrument = None, cadence= None, ' +
+    #     #                                    'priority = None')
+    #     #
+    #     #     if current_instrument is not None:
+    #     #         self.database.execute_sql(
+    #     #             " update " + temp_table +
+    #     #             " set instrument = '" + current_instrument + "'"
+    #     #             " where catalogid = " + str(current_catalogid) + ";")
+    #     #
+    #     #     if current_cadence is not None:
+    #     #         self.database.execute_sql(
+    #     #             " update " + temp_table +
+    #     #             " set cadence = '" + current_cadence + "'"
+    #     #             " where catalogid = " + str(current_catalogid) + ";")
+    #     #
+    #     #     if current_priority is not None:
+    #     #         self.database.execute_sql(
+    #     #             " update " + temp_table +
+    #     #             " set priority = '" + str(current_priority) + "'"
+    #     #             " where catalogid = " + str(current_catalogid) + ";")
+    #
+    #     # More than one optical source may have the same xmatch_metric
+    #     # for an X-ray source - much less likely in v1
+    #     # Select any one source with highest xmatch_metric for given ero_detuid
+    #     self.database.execute_sql("update " + temp_table +
+    #                               " set selected = false")
+    #
+    #     cursor = self.database.execute_sql(
+    #         "select catalogid, ero_detuid, xmatch_metric from " +
+    #         temp_table +
+    #         " order by ero_detuid asc, xmatch_metric desc;")
+    #
+    #     output = cursor.fetchall()
+    #
+    #     list_of_catalog_id = [0] * len(output)
+    #     count = {}
+    #     for i in range(len(output)):
+    #         ero_detuid = output[i][1]
+    #         count[ero_detuid] = 0
+    #
+    #     current_target = 0
+    #     for i in range(len(output)):
+    #         ero_detuid = output[i][1]
+    #         if (count[ero_detuid] == 0):
+    #             count[ero_detuid] = 1
+    #             list_of_catalog_id[current_target] = output[i][0]
+    #             current_target = current_target + 1
+    #
+    #     max_target = current_target
+    #     for k in range(max_target + 1):
+    #         self.database.execute_sql(
+    #             " update " + temp_table + " set selected = true " +
+    #             " where catalogid = " + str(list_of_catalog_id[k]) + ";")
 
 
 class MWM_EROSITA_Compact_Carton(BaseCarton):
@@ -344,34 +376,61 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr2_dec'),
-                         Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
-                         Gaia_DR3.phot_bp_mean_mag.alias('bp'),
-                         Gaia_DR3.phot_rp_mean_mag.alias('rp'),
-                         Gaia_DR3.parallax,
-                         Gaia_DR3.pmra,
-                         Gaia_DR3.pmdec,
-                         EROSITASupersetv1Compactobjects.target_priority,
-                         EROSITASupersetv1Compactobjects.ero_detuid,
-                         EROSITASupersetv1Compactobjects.xmatch_metric,
-                         EROSITASupersetv1Compactobjects.ero_flux,
-                         EROSITASupersetv1Compactobjects.ero_ra,
-                         EROSITASupersetv1Compactobjects.ero_dec,
-                         EROSITASupersetv1Compactobjects.opt_ra,
-                         EROSITASupersetv1Compactobjects.opt_dec)
-                 .distinct(CatalogToGaia_DR3.catalogid)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .join(EROSITASupersetv1Compactobjects,
-                       on=(Gaia_DR3.source_id == EROSITASupersetv1Compactobjects.gaia_dr3_source_id))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        EROSITASupersetv1Compactobjects.xmatch_method == 'NWAY_CV',
-                        EROSITASupersetv1Compactobjects.xmatch_version == '20Oct2022',
-                 ))
+        cadence = peewee.Case(
+            None,
+            (
+                (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_1x2'),
+            ),
+            'dark_1x3'
+        ).cast('text')
+
+        priority = peewee.Case(
+            None,
+            (
+                (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
+            ),
+            1910
+        ).cast('integer')
+
+        query = (
+            CatalogToGaia_DR3
+            .select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias('gaia_dr2_ra'),
+                Gaia_DR3.dec.alias('gaia_dr2_dec'),
+                Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
+                Gaia_DR3.phot_bp_mean_mag.alias('bp'),
+                Gaia_DR3.phot_rp_mean_mag.alias('rp'),
+                Gaia_DR3.parallax,
+                Gaia_DR3.pmra,
+                Gaia_DR3.pmdec,
+                cadence.alias('cadence'),
+                priority.alias('priority'),
+                EROSITASupersetv1Compactobjects.target_priority,
+                EROSITASupersetv1Compactobjects.ero_detuid,
+                EROSITASupersetv1Compactobjects.xmatch_metric,
+                EROSITASupersetv1Compactobjects.ero_flux,
+                EROSITASupersetv1Compactobjects.ero_ra,
+                EROSITASupersetv1Compactobjects.ero_dec,
+                EROSITASupersetv1Compactobjects.opt_ra,
+                EROSITASupersetv1Compactobjects.opt_dec
+            )
+            .distinct(CatalogToGaia_DR3.catalogid)
+            .join(Gaia_DR3,
+                  on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(EROSITASupersetv1Compactobjects,
+                  on=(Gaia_DR3.source_id ==
+                      EROSITASupersetv1Compactobjects.gaia_dr3_source_id))
+            .where
+            (
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                EROSITASupersetv1Compactobjects.xmatch_method == 'NWAY_CV',
+                EROSITASupersetv1Compactobjects.xmatch_version == '20Oct2022',
+            )
+        )
 
         # Gaia_DR2 peewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
@@ -392,86 +451,88 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, model):
-        """
-        The results of the above query can then be sorted
-        to assign cadences using the following logic:
-         #------ then use following logic to assign cadences
-
-        bright_bright_limit = 13   # (available for modification later)
-
-        - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
-               cadence = bright_boss_1x1   &&   priority = 2400
-
-        - if 17 < gaia.phot_g_mean_mag < 18:
-               cadence = dark_boss_1x2     &&   priority = 1910
-
-        - if 18 < gaia.phot_g_mean_mag:
-        cadence = dark_boss_1x3     &&   priority = 1910
-
-        Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
-              the cadence is None
-        """
-
-        bright_bright_limit = 13
-
-        # Set cadence and priority
-
-        cursor = self.database.execute_sql(
-            "select catalogid, gaia_g from " +
-            " sandbox.temp_mwm_erosita_compact ;")
-
-        output = cursor.fetchall()
-
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_g = output[i][1]
-
-            # current_g corresponds to gaia_dr2_g which is not null
-            # So we do not check if current_g is None.
-            if ((current_g < bright_bright_limit)):
-                # The settings for this case are the same
-                # same as the settings for the next case.
-                # We do this case separately for historical reasons.
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_1x1'
-                current_priority = 2400
-            elif ((bright_bright_limit <= current_g) and (current_g < 17)):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_1x1'
-                current_priority = 2400
-            elif ((17 <= current_g) and (current_g < 18)):
-                current_instrument = 'BOSS'
-                current_cadence = 'dark_1x2'
-                current_priority = 1910
-            elif (18 <= current_g):
-                current_instrument = 'BOSS'
-                current_cadence = 'dark_1x3'
-                current_priority = 1910
-            else:
-                # All cases should be covered above so we should not get here.
-                current_instrument = None
-                current_cadence = None
-                current_priority = None
-                raise TargetSelectionError('error in mwm_erosita_compact ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None, ' +
-                                           'priority = None')
-
-            if current_instrument is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_compact " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_cadence is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_compact " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_erosita_compact " +
-                    " set priority = '" + str(current_priority) + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+    # def post_process(self, model):
+    #     """
+    #     The results of the above query can then be sorted
+    #     to assign cadences using the following logic:
+    #      #------ then use following logic to assign cadences
+    #
+    #     bright_bright_limit = 13   # (available for modification later)
+    #
+    #     - if bright_bright_limit < gaia.phot_g_mean_mag < 17:
+    #            cadence = bright_boss_1x1   &&   priority = 2400
+    #
+    #     - if 17 < gaia.phot_g_mean_mag < 18:
+    #            cadence = dark_boss_1x2     &&   priority = 1910
+    #
+    #     - if 18 < gaia.phot_g_mean_mag:
+    #     cadence = dark_boss_1x3     &&   priority = 1910
+    #
+    #     Note: For the case gaia.phot_g_mean_mag < bright_bright_limit
+    #           the cadence is None
+    #     """
+    #
+    #     bright_bright_limit = 13
+    #
+    #     # Set cadence and priority
+    #     temp_table = f'{self.schema}.{self.table_name}'
+    #
+    #     cursor = self.database.execute_sql(
+    #         "select catalogid, gaia_g from " +
+    #         #  " sandbox.temp_mwm_erosita_compact ;")
+    #         temp_table + " ;")
+    #
+    #     output = cursor.fetchall()
+    #
+    #     for i in range(len(output)):
+    #         current_catalogid = output[i][0]
+    #         current_g = output[i][1]
+    #
+    #         # current_g corresponds to gaia_dr2_g which is not null
+    #         # So we do not check if current_g is None.
+    #         if ((current_g < bright_bright_limit)):
+    #             # The settings for this case are the same
+    #             # same as the settings for the next case.
+    #             # We do this case separately for historical reasons.
+    #             current_instrument = 'BOSS'
+    #             current_cadence = 'bright_1x1'
+    #             current_priority = 2400
+    #         elif ((bright_bright_limit <= current_g) and (current_g < 17)):
+    #             current_instrument = 'BOSS'
+    #             current_cadence = 'bright_1x1'
+    #             current_priority = 2400
+    #         elif ((17 <= current_g) and (current_g < 18)):
+    #             current_instrument = 'BOSS'
+    #             current_cadence = 'dark_1x2'
+    #             current_priority = 1910
+    #         elif (18 <= current_g):
+    #             current_instrument = 'BOSS'
+    #             current_cadence = 'dark_1x3'
+    #             current_priority = 1910
+    #         else:
+    #             # All cases should be covered above so we should not get here.
+    #             current_instrument = None
+    #             current_cadence = None
+    #             current_priority = None
+    #             raise TargetSelectionError('error in ' + self.name +
+    #                                        ' post_process(): ' +
+    #                                        'instrument = None, cadence= None, ' +
+    #                                        'priority = None')
+    #
+    #         if current_instrument is not None:
+    #             self.database.execute_sql(
+    #                 " update " + temp_table +
+    #                 " set instrument = '" + current_instrument + "'"
+    #                 " where catalogid = " + str(current_catalogid) + ";")
+    #
+    #         if current_cadence is not None:
+    #             self.database.execute_sql(
+    #                 " update " + temp_table +
+    #                 " set cadence = '" + current_cadence + "'"
+    #                 " where catalogid = " + str(current_catalogid) + ";")
+    #
+    #         if current_priority is not None:
+    #             self.database.execute_sql(
+    #                 " update " + temp_table +
+    #                 " set priority = '" + str(current_priority) + "'"
+    #                 " where catalogid = " + str(current_catalogid) + ";")

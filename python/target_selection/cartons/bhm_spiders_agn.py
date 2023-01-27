@@ -178,6 +178,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
         fiberflux_r_min_for_core = AB2nMgy(self.parameters['fibermag_r_max_for_core'])
         fiberflux_i_max_for_core = AB2nMgy(self.parameters['fibermag_i_min_for_core'])
         fiberflux_i_min_for_core = AB2nMgy(self.parameters['fibermag_i_max_for_core'])
+        fiberflux_z_max_for_core = AB2nMgy(self.parameters['fibermag_z_min_for_core'])
+        fiberflux_z_min_for_core = AB2nMgy(self.parameters['fibermag_z_max_for_core'])
 
         fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_for_cadence1'])
         fiberflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_r_for_cadence2'])
@@ -219,12 +221,15 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             None,
             (
                 (gal_lat < self.parameters['min_gal_lat_for_core'], False),
+                (c.dec < self.parameters['min_dec_for_core'], False),
                 (x.ero_flux < self.parameters['min_ero_flux_for_core'], False),
                 (x.ero_det_like < self.parameters['min_det_like_for_core'], False),
                 (~((ls.fiberflux_r.between(fiberflux_r_min_for_core,
                                            fiberflux_r_max_for_core)) |
                    (ls.fiberflux_i.between(fiberflux_i_min_for_core,
-                                           fiberflux_i_max_for_core))), False),
+                                           fiberflux_i_max_for_core)) |
+                   (ls.fiberflux_z.between(fiberflux_z_min_for_core,
+                                           fiberflux_z_max_for_core))), False),
             ),
             True)
 
@@ -443,10 +448,13 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 magnitude_gaia_rp.alias('rp'),
                 ls.ls_id.alias('ls_id'),  # extra
                 ls.gaia_dr3_source_id.alias('gaia_dr3_source_id'),  # extra
+                ls.gaia_dr2_source_id.alias('gaia_dr2_source_id'),  # extra
                 x.ero_detuid.alias('ero_detuid'),  # extra
                 x.ero_flux.alias('ero_flux'),  # extra
                 x.ero_det_like.alias('ero_det_like'),  # extra
                 x.ero_flags.alias('ero_flags'),  # extra
+                x.xmatch_flags.alias('xmatch_flags'),  # extra
+                x.xmatch_metric.alias('xmatch_metric'),  # extra
                 s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
                 c.ra.alias('ra'),   # extra
                 c.dec.alias('dec'),   # extra
@@ -465,7 +473,11 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 ls.type.alias('ls10_type'),  # extra
                 ls.shape_r.alias('ls10_shape_r'),  # extra
                 is_core.alias('is_core'),  # extra
-                gal_lat.alias('gal_lat'),  # extra
+                ls.ref_cat.alias('ls_ref_cat'),  # extra
+                ls.ref_id.alias('ls_ref_id'),  # extra
+                ls.maskbits.alias('ls_maskbits'),  # extra
+                ls.fitbits.alias('ls_fitbits'),  # extra
+                gal_lat.alias('abs_gal_lat'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -489,7 +501,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 (x.ero_version == self.parameters['ero_version']),
                 (x.xmatch_method == self.parameters['xmatch_method']),
                 (x.xmatch_version == self.parameters['xmatch_version']),
-                (x.opt_cat == self.parameters['opt_cat']),
+                ((x.opt_cat == self.parameters['opt_cat1']) |
+                 (x.opt_cat == self.parameters['opt_cat2'])),
                 (x.xmatch_metric >= self.parameters['p_any_min']),
                 (
                     (ls.fiberflux_r.between(fiberflux_r_min, fiberflux_r_max)) |

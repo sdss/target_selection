@@ -59,13 +59,21 @@ class BhmCscBossCarton(BaseCarton):
         r_psf_flux_max = AB2Jy(self.parameters['r_psf_mag_min'])
         i_psf_flux_max = AB2Jy(self.parameters['i_psf_mag_min'])
         z_psf_flux_max = AB2Jy(self.parameters['z_psf_mag_min'])
+        g_psf_flux_min = AB2Jy(self.parameters['g_psf_mag_max'])
+        r_psf_flux_min = AB2Jy(self.parameters['r_psf_mag_max'])
+        i_psf_flux_min = AB2Jy(self.parameters['i_psf_mag_max'])
+        z_psf_flux_min = AB2Jy(self.parameters['z_psf_mag_max'])
         fiberflux_g_max = AB2nMgy(self.parameters['fibermag_g_min'])
         fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
         fiberflux_i_max = AB2nMgy(self.parameters['fibermag_i_min'])
         fiberflux_z_max = AB2nMgy(self.parameters['fibermag_z_min'])
+        fiberflux_g_min = AB2nMgy(self.parameters['fibermag_g_max'])
+        fiberflux_r_min = AB2nMgy(self.parameters['fibermag_r_max'])
+        fiberflux_i_min = AB2nMgy(self.parameters['fibermag_i_max'])
+        fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
 
         gaia_g_mag_min = self.parameters['gaia_g_mag_min']
-        gaia_rp_mag_min = self.parameters['gaia_rp_mag_min']
+        gaia_g_mag_max = self.parameters['gaia_g_mag_max']
 
         i_psf_flux_min_for_cadence1 = AB2Jy(self.parameters['i_psf_mag_max_for_cadence1'])
         fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_max_for_cadence1'])
@@ -191,8 +199,7 @@ class BhmCscBossCarton(BaseCarton):
             .where(
                 (
                     (x.best_oir_cat == 'gdr3') &
-                    (g3.phot_g_mean_mag > gaia_g_mag_min) &
-                    (g3.phot_rp_mean_mag > gaia_rp_mag_min)
+                    (g3.phot_g_mean_mag.between(gaia_g_mag_min,gaia_g_mag_max))
                 ) |
                 (
                     (x.best_oir_cat == 'lsdr10') &
@@ -200,11 +207,10 @@ class BhmCscBossCarton(BaseCarton):
                     (ls.fiberflux_r < fiberflux_r_max) &
                     (ls.fiberflux_i < fiberflux_i_max) &
                     (ls.fiberflux_z < fiberflux_z_max) &
-                    ((ls.fiberflux_g > 0.0) |
-                     (ls.fiberflux_r > 0.0) |
-                     (ls.fiberflux_i > 0.0) |
-                     (ls.fiberflux_z > 0.0))
-                    # TODO check logic
+                    ((ls.fiberflux_g > fiberflux_g_min) |
+                     (ls.fiberflux_r > fiberflux_r_min) |
+                     (ls.fiberflux_i > fiberflux_i_min) |
+                     (ls.fiberflux_z > fiberflux_z_min))
                 ) |
                 (
                     (x.best_oir_cat == 'ps1dr2') &
@@ -212,7 +218,10 @@ class BhmCscBossCarton(BaseCarton):
                     (ps.r_stk_psf_flux < r_psf_flux_max) &
                     (ps.i_stk_psf_flux < i_psf_flux_max) &
                     (ps.z_stk_psf_flux < z_psf_flux_max) &
-                    (ps.i_stk_psf_flux != 'NaN')
+                    ((ps.g_stk_psf_flux > g_psf_flux_min) |
+                     (ps.r_stk_psf_flux > r_psf_flux_min) |
+                     (ps.i_stk_psf_flux > i_psf_flux_min) |
+                     (ps.z_stk_psf_flux > z_psf_flux_min))
                 )
             )
             # .distinct(fn.coalesce(fn.max(c2ps.catalogid), fn.max(c2g3.catalogid)))
@@ -274,6 +283,10 @@ class BhmCscApogeeCarton(BaseCarton):
                 priority.alias('priority'),
                 cadence.alias('cadence'),
                 value.alias('value'),
+                tm.j_m.alias('j'),
+                tm.h_m.alias('h'),
+                tm.k_m.alias('k'),
+                tm.pts_key.alias('twomass_pts_key'),
                 x.best_oir_cat.alias('csc_best_oir_cat'),  # extra
                 x.ra.alias('csc_oir_ra'),  # extra
                 x.dec.alias('csc_oir_dec'),  # extra
@@ -289,10 +302,13 @@ class BhmCscApogeeCarton(BaseCarton):
             .where(
                 c2tm.version_id == version_id,
                 c2tm.best >> True,
-                x.best_oir_cat == '2mass',
-                x.best_mag >= self.parameters['hmag_min'],
-                x.best_mag < self.parameters['hmag_max'],
+                # x.best_oir_cat == '2mass',
+                # x.best_mag >= self.parameters['hmag_min'],
+                # x.best_mag < self.parameters['hmag_max'],
                 # x.best_mag != 'NaN',
+                tm.h_m.between(self.parameters['hmag_min'],
+                               self.parameters['hmag_max']),
+
             )
             .distinct([c2tm.catalogid])
         )
