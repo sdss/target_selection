@@ -296,7 +296,7 @@ class MetaXMatch:
         self.database.bind([TempMatch])
         if TempMatch.table_exists():
             self.database.drop_tables([TempMatch])
-            self.log.info('Dropped table {TempMatch._meta.table_name}')
+            self.log.info(f'Dropped table {TempMatch._meta.table_name}')
 
         self.database.create_tables([TempMatch])
         self.log.info(f'Created table {TempMatch._meta.table_name}')
@@ -359,9 +359,17 @@ def create_unique_table(first_xmatch_version, second_xmatch_version):
                         f'ver{second_xmatch_version}_full_unique')
     UniqueMatch._meta.table_name = output_tablename
     database.bind([UniqueMatch])
+    log = target_selection.log
+    log_path_and_name = os.path.realpath(f'./catalog_ver{first_xmatch_version}'
+                                         f'_to_ver{second_xmatch_version}'
+                                         '_unique_table_creation.log')
+    log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+
     if UniqueMatch.table_exists():
         database.drop_tables([UniqueMatch])
+        log.info(f'Dropped table {output_tablename}')
     database.create_tables([UniqueMatch])
+    log.info(f'Created table {output_tablename}')
     TempMatch._meta.table_name = input_tablename
     query = (TempMatch
              .select(TempMatch.lowest_catalogid,
@@ -378,11 +386,6 @@ def create_unique_table(first_xmatch_version, second_xmatch_version):
     insert_query = UniqueMatch.insert_from(query, fields).returning()
     n_unique = insert_query.execute()
     tf = time.time()
-    log = target_selection.log
-    log_path_and_name = os.path.realpath(f'./catalog_ver{first_xmatch_version}'
-                                         '_to_ver{first_xmatch_version}'
-                                         '_unique_table_creation.log')
-    log.start_file_logger(log_path_and_name, rotating=False, mode='a')
     log.info(f'Created unique pairs table with {n_unique} '
              f'entries in {(tf-ti):.2f} seconds')
 
