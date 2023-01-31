@@ -26,6 +26,9 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2Jy, AB2nMgy
 
+# DEBUG STUFF TO USE TEMP TABLE
+CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 # Details: Start here
 # https://wiki.sdss.org/display/OPS/Cartons+for+v0.5#Cartonsforv0.5-BHMCSC # noqa: E501

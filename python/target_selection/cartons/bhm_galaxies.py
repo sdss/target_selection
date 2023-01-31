@@ -223,8 +223,8 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ls.shape_r >= self.parameters['shape_r_min'],
                 gal_lat > self.parameters['min_gal_lat'],
                 ls.ebv < self.parameters['max_ebv'],
-                (ls.maskbits.bin_and(maskbits_andmask) == 0),  # avoid bad ls data
-                (ls.fitbits.bin_and(fitbits_andmask) == 0),  # avoid bad ls fits
+                # (ls.maskbits.bin_and(maskbits_andmask) == 0),  # avoid bad ls data
+                # (ls.fitbits.bin_and(fitbits_andmask) == 0),  # avoid bad ls fits
             )
             .distinct(c.catalogid)
         )

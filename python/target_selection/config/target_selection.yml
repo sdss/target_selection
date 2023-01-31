@@ -13,7 +13,10 @@
     - bhm_colr_galaxies_lsdr10
     - bhm_spiders_agn_lsdr10
     - bhm_spiders_agn_gdr3
+    - bhm_spiders_agn_gaiadr3_viacw2020:
+    - bhm_spiders_agn_gaiadr3_both:
     - bhm_spiders_agn_sep
+    - bhm_spiders_agn_tda
     - ops_std_boss_lsdr10
     - bhm_rm_core
     - bhm_rm_known_spec
@@ -22,6 +25,7 @@
     - bhm_rm_xrayqso
     - mwm_erosita_stars
     - mwm_erosita_compact
+    - mwm_erosita_compact_deep
     - bhm_csc_boss
     - bhm_csc_apogee
 
@@ -118,8 +122,8 @@
       gaia_g_mag_limit: 15.0
       gaia_rp_mag_limit: 15.0
       shape_r_min: 1.0
-      min_gal_lat: 20.0
-      max_ebv: 0.15
+      min_gal_lat: 18.0
+      max_ebv: 0.2
     bhm_spiders_agn_lsdr10:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
@@ -190,10 +194,11 @@
       cadence2: 'dark_1x2'
       cadence3: 'dark_1x4'
       det_like_min: 6.0
-      det_like_for_priority: 8.0
+      min_dec_for_core: -75.0
       min_det_like_for_core: 7.0
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
+      det_like_for_priority: 8.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -206,8 +211,10 @@
     bhm_spiders_agn_gaiadr3:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
-      xmatch_method: 'XPS/NWAY'
-      xmatch_version: 'JWMS_24Oct22'
+      xmatch_method1: 'XPS/NWAY'
+      xmatch_method2: ''
+      xmatch_version1: 'JWMS_24Oct22'
+      xmatch_version2: ''
       opt_cat: 'gedr3'
       gaia_g_max_for_cadence1: 16.0
       gaia_rp_max_for_cadence1: 16.0
@@ -223,6 +230,7 @@
       min_det_like_for_core: 7.0
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
+      min_dec_for_core: -75.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -236,8 +244,10 @@
     bhm_spiders_agn_gaiadr3_viacw2020:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
-      xmatch_method: 'indef'
-      xmatch_version: 'JWMS_21Oct22_cw2020_gedr'
+      xmatch_method1: 'indef'
+      xmatch_method2: ''
+      xmatch_version1: 'JWMS_21Oct22_cw2020_gedr'
+      xmatch_version2: ''
       opt_cat: 'gedr3'
       gaia_g_max_for_cadence1: 16.0
       gaia_rp_max_for_cadence1: 16.0
@@ -253,6 +263,40 @@
       min_det_like_for_core: 7.0
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
+      min_dec_for_core: -75.0
+      p_any_min: 0.1
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+      priority_floor: 1540
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
+      dpriority_has_spec: 200
+      in_plane_lat_cut: 15.0
+      dpriority_non_core: 2000
+    bhm_spiders_agn_gaiadr3_both:
+      value: 1.0
+      ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
+      xmatch_method1: 'XPS/NWAY'
+      xmatch_method2: 'indef'
+      xmatch_version1: 'JWMS_24Oct22'
+      xmatch_version2: 'JWMS_21Oct22_cw2020_gedr'
+      opt_cat: 'gedr3'
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_max_for_cadence2: 19.0
+      gaia_rp_max_for_cadence2: 19.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      det_like_min: 6.0
+      det_like_for_priority: 8.0
+      min_det_like_for_core: 7.0
+      min_ero_flux_for_core: 2.0e-14
+      min_gal_lat_for_core: 15.0
+      min_dec_for_core: -75.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -266,8 +310,10 @@
     bhm_spiders_agn_sep:
       value: 1.0
       ero_version: 'eRASS_s5_V29C'
-      xmatch_method: 'XPS/NWAY'
-      xmatch_version: 'JWTL_Oct22'
+      xmatch_method1: 'XPS/NWAY'
+      xmatch_method2: ''
+      xmatch_version1: 'JWTL_Oct22'
+      xmatch_version2: ''
       opt_cat: 'gedr3'
       gaia_g_max_for_cadence1: 16.0
       gaia_rp_max_for_cadence1: 16.0
@@ -281,8 +327,9 @@
       det_like_min: 6.0
       det_like_for_priority: 8.0
       min_det_like_for_core: 7.0
-      min_ero_flux_for_core: 2.0e-14
+      min_ero_flux_for_core: 1.0e-14
       min_gal_lat_for_core: 15.0
+      min_dec_for_core: -90.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -293,6 +340,28 @@
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
+    bhm_spiders_agn_tda:
+      value: 0.0
+      ero_version: 'eRASS_s3_1B_220829_poscorr_v006'
+      xmatch_method: 'XPS/NWAY_EROTDA'
+      xmatch_version: 'JWMS_06Oct22_erotda'
+      opt_cat: 'lsdr10'
+      fibermag_r_min: 13.5
+      fibermag_r_max: 22.5
+      fibermag_i_min: 13.5
+      fibermag_i_max: 22.3
+      fibermag_z_min: 13.5
+      fibermag_z_max: 21.5
+      fibermag_r_for_cadence1: 16.5
+      fibermag_r_for_cadence2: 18.5
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      priority_floor: 1690
     bhm_spiders_clusters_lsdr10:
       value_bcg: 5.0
       value_member: 1.0

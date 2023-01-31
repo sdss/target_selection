@@ -215,7 +215,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                                                           north_gal_pole_dec,
                                                           c.ra, c.dec))
 
-        # logic is written this backwards way so that a failure to meet ant core
+        # logic is written this backwards way so that a failure to meet any core
         # criterion results in non-core status
         is_core = peewee.Case(
             None,
@@ -602,6 +602,7 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
             None,
             (
                 (gal_lat < self.parameters['min_gal_lat_for_core'], False),
+                (c.dec < self.parameters['min_dec_for_core'], False),
                 (x.ero_flux < self.parameters['min_ero_flux_for_core'], False),
                 (x.ero_det_like < self.parameters['min_det_like_for_core'], False),
             ),
@@ -781,7 +782,8 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
                 g3.phot_bp_mean_mag.alias('bp'),
                 g3.phot_rp_mean_mag.alias('rp'),
                 is_core.alias('is_core'),  # extra
-                gal_lat.alias('gal_lat'),  # extra
+                gal_lat.alias('abs_gal_lat'),  # extra
+                x.xmatch_version.alias('xmatch_version'),  # extra
             )
             .join(c2g3)
             .where(
@@ -801,8 +803,10 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
             # finished joining the spectroscopy
             .where(
                 (x.ero_version == self.parameters['ero_version']),
-                (x.xmatch_method == self.parameters['xmatch_method']),
-                (x.xmatch_version == self.parameters['xmatch_version']),
+                ((x.xmatch_method == self.parameters['xmatch_method1']) |
+                 (x.xmatch_method == self.parameters['xmatch_method2'])),
+                ((x.xmatch_version == self.parameters['xmatch_version1'])|
+                 (x.xmatch_version == self.parameters['xmatch_version2'])),
                 (x.opt_cat == self.parameters['opt_cat']),
                 (x.xmatch_metric >= self.parameters['p_any_min']),
                 (g3.phot_g_mean_mag > self.parameters['gaia_g_mag_limit']),
@@ -831,7 +835,282 @@ class BhmSpidersAgnGaiadr3viaCW2020Carton(BhmSpidersAgnGaiadr3Carton):
     name = 'bhm_spiders_agn_gaiadr3_viacw2020'
 
 
+# ##################################################################################
+class BhmSpidersAgnGaiadr3BothCarton(BhmSpidersAgnGaiadr3Carton):
+    name = 'bhm_spiders_agn_gaiadr3_both'
+
+
 # we can get away with just inheriting the selection code from
 # the gaia dr3 hemisphere match and adjusting the parameters only
 class BhmSpidersAgnSepCarton(BhmSpidersAgnGaiadr3Carton):
     name = 'bhm_spiders_agn_sep'
+
+
+class BhmSpidersAgnTdaCarton(BaseCarton):
+
+    name = 'bhm_spiders_agn_tda'
+    category = 'science'
+    mapper = 'BHM'
+    program = 'bhm_spiders'
+    tile = False
+    instrument = 'BOSS'
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        c = Catalog.alias()
+        x = EROSITASupersetv1AGN.alias()
+        ls = Legacy_Survey_DR10.alias()
+        c2ls = CatalogToLegacy_Survey_DR10.alias()
+
+        instrument = peewee.Value(self.instrument)
+
+        fiberflux_r_max = AB2nMgy(self.parameters['fibermag_r_min'])
+        fiberflux_r_min = AB2nMgy(self.parameters['fibermag_r_max'])
+        fiberflux_i_max = AB2nMgy(self.parameters['fibermag_i_min'])
+        fiberflux_i_min = AB2nMgy(self.parameters['fibermag_i_max'])
+        fiberflux_z_max = AB2nMgy(self.parameters['fibermag_z_min'])
+        fiberflux_z_min = AB2nMgy(self.parameters['fibermag_z_max'])
+        fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_for_cadence1'])
+        fiberflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_r_for_cadence2'])
+        gaia_g_max_for_cadence1 = self.parameters['gaia_g_max_for_cadence1']
+        gaia_rp_max_for_cadence1 = self.parameters['gaia_rp_max_for_cadence1']
+
+        # choose cadence based on fiber magnitude in r-band + gaia G,RP
+        cadence1 = self.parameters['cadence1']
+        cadence2 = self.parameters['cadence2']
+        cadence3 = self.parameters['cadence3']
+        cadence4 = 'unknown_cadence'
+        cadence = peewee.Case(
+            None,
+            (
+                (
+                    ((ls.fiberflux_r > fiberflux_r_min_for_cadence1) |
+                     (ls.gaia_phot_g_mean_mag.between(0.1, gaia_g_max_for_cadence1)) |
+                     (ls.gaia_phot_rp_mean_mag.between(0.1, gaia_rp_max_for_cadence1))),
+                    cadence1),
+                (ls.fiberflux_r > fiberflux_r_min_for_cadence2, cadence2),
+                (ls.fiberflux_r <= fiberflux_r_min_for_cadence2, cadence3),
+            ),
+            cadence4)
+
+        value = peewee.Value(self.parameters['value']).cast('float')
+        priority = peewee.Value(self.parameters['priority_floor']).cast('integer')
+
+        # compute transformed SDSS mags for pointlike and extended sources separately
+        # transform the legacysurvey grz into sdss psfmag griz
+
+        # extract coeffs from fit logs via:
+        # awk 'BEGIN {print("coeffs = {")} /POLYFIT/{ if($3~/sdss_psfmag/){pe="p"} else if ($3~/sdss_fiber2mag/){pe="e"} else{pe="error"}; printf("\"%s%d_%s\": %s,\n", substr($3,length($3)), $8, pe, $10)} END {print("}")}'  bhm_spiders_agn_lsdr8_*/lsdr8_*mag_to_sdss_*mag_?_results.log  # noqa
+        coeffs = {
+            "g2_e": -0.113816,
+            "g1_e": 0.317176,
+            "g0_e": 0.094145,
+            "i2_e": -0.415858,
+            "i1_e": 0.168922,
+            "i0_e": -0.010771,
+            "r2_e": 0.029398,
+            "r1_e": -0.019938,
+            "r0_e": 0.354042,
+            "z2_e": -0.111262,
+            "z1_e": 0.237656,
+            "z0_e": 0.148923,
+            "g2_p": 0.187193,
+            "g1_p": -0.184362,
+            "g0_p": 0.049492,
+            "i2_p": -0.098979,
+            "i1_p": -0.405518,
+            "i0_p": 0.009688,
+            "r2_p": -0.001935,
+            "r1_p": 0.098201,
+            "r0_p": 0.050321,
+            "z2_p": -0.034163,
+            "z1_p": 0.109878,
+            "z0_p": -0.030167,
+        }
+
+        nMgy_min = 1e-3  # equiv to AB=30
+        # pointlike - start from ls8 (psf)fluxes
+        g0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g)))
+        r0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        i0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i)))
+        z0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z)))
+        g_r_p = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g) /
+                                      peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        r_z_p = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r) /
+                                      peewee.fn.greatest(nMgy_min, ls.flux_z)))
+
+        # extended - start from ls8 fiberfluxes
+        g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
+        r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        i0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i)))
+        z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+        g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        r_z_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r) /
+                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+
+        g_p = (g0_p + coeffs['g0_p'] + coeffs['g1_p'] * g_r_p + coeffs['g2_p'] * g_r_p * g_r_p)
+        r_p = (r0_p + coeffs['r0_p'] + coeffs['r1_p'] * g_r_p + coeffs['r2_p'] * g_r_p * g_r_p)
+        i_p = (r0_p + coeffs['i0_p'] + coeffs['i1_p'] * r_z_p + coeffs['i2_p'] * r_z_p * r_z_p)
+        z_p = (z0_p + coeffs['z0_p'] + coeffs['z1_p'] * r_z_p + coeffs['z2_p'] * r_z_p * r_z_p)
+
+        g_e = (g0_e + coeffs['g0_e'] + coeffs['g1_e'] * g_r_e + coeffs['g2_e'] * g_r_e * g_r_e)
+        r_e = (r0_e + coeffs['r0_e'] + coeffs['r1_e'] * g_r_e + coeffs['r2_e'] * g_r_e * g_r_e)
+        i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
+        z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
+
+        # validity checks - set limits semi-manually
+        g_r_p_min = -0.25
+        g_r_p_max = 1.75
+        r_z_p_min = -0.5
+        r_z_p_max = 2.5
+        g_r_e_min = 0.0
+        g_r_e_max = 1.75
+        r_z_e_min = 0.2
+        r_z_e_max = 1.6
+        valid_p = (g0_p.between(0.1, 29.9) &
+                   r0_p.between(0.1, 29.9) &
+                   z0_p.between(0.1, 29.9) &
+                   g_r_p.between(g_r_p_min, g_r_p_max) &
+                   r_z_p.between(r_z_p_min, r_z_p_max))
+        valid_e = (g0_e.between(0.1, 29.9) &
+                   r0_e.between(0.1, 29.9) &
+                   z0_e.between(0.1, 29.9) &
+                   g_r_e.between(g_r_e_min, g_r_e_max) &
+                   r_z_e.between(r_z_e_min, r_z_e_max))
+
+        # We want to switch between psfmags and fibermags depending on
+        # ls.type parameter (PSF or extended)
+        # For 'PSF' targets, we use psfmags, but for extended sources use fiber2mags
+        opt_prov = peewee.Case(
+            None,
+            (
+                ((ls.type == 'PSF') & valid_p, 'sdss_psfmag_from_lsdr10'),
+                ((ls.type != 'PSF') & valid_e, 'sdss_fiber2mag_from_lsdr10'),
+            ),
+            'undefined')
+
+        magnitude_g = peewee.Case(
+            None,
+            (
+                ((ls.type == 'PSF') & valid_p, g_p.cast('float')),
+                ((ls.type != 'PSF') & valid_e, g_e.cast('float')),
+            ),
+            'NaN')
+        magnitude_r = peewee.Case(
+            None,
+            (
+                ((ls.type == 'PSF') & valid_p, r_p.cast('float')),
+                ((ls.type != 'PSF') & valid_e, r_e.cast('float')),
+            ),
+            'NaN')
+        magnitude_i = peewee.Case(
+            None,
+            (
+                ((ls.type == 'PSF') & valid_p, i_p.cast('float')),
+                ((ls.type != 'PSF') & valid_e, i_e.cast('float')),
+            ),
+            'NaN')
+        magnitude_z = peewee.Case(
+            None,
+            (
+                ((ls.type == 'PSF') & valid_p, z_p.cast('float')),
+                ((ls.type != 'PSF') & valid_e, z_e.cast('float')),
+            ),
+            'NaN')
+
+        magnitude_gaia_g = peewee.Case(
+            None,
+            ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),),
+            'NaN')
+        magnitude_gaia_bp = peewee.Case(
+            None,
+            ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),),
+            'NaN')
+        magnitude_gaia_rp = peewee.Case(
+            None,
+            ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
+            'NaN')
+
+        query = (
+            c.select(
+                c.catalogid.alias('catalogid'),
+                priority.alias('priority'),
+                value.alias('value'),
+                cadence.alias('cadence'),
+                instrument.alias('instrument'),
+                opt_prov.alias('optical_prov'),
+                magnitude_g.alias('g'),
+                magnitude_r.alias('r'),
+                magnitude_i.alias('i'),
+                magnitude_z.alias('z'),
+                magnitude_gaia_g.alias('gaia_g'),
+                magnitude_gaia_bp.alias('bp'),
+                magnitude_gaia_rp.alias('rp'),
+                ls.ls_id.alias('ls_id'),  # extra
+                ls.gaia_dr3_source_id.alias('gaia_dr3_source_id'),  # extra
+                ls.gaia_dr2_source_id.alias('gaia_dr2_source_id'),  # extra
+                x.ero_detuid.alias('ero_detuid'),  # extra
+                x.ero_flux.alias('ero_flux'),  # extra
+                x.ero_det_like.alias('ero_det_like'),  # extra
+                x.ero_flags.alias('ero_flags'),  # extra
+                x.xmatch_flags.alias('xmatch_flags'),  # extra
+                x.xmatch_metric.alias('xmatch_metric'),  # extra
+                c.ra.alias('ra'),   # extra
+                c.dec.alias('dec'),   # extra
+                g0_p.alias('ls10_mag_g'),   # extra
+                r0_p.alias('ls10_mag_r'),  # extra
+                i0_p.alias('ls10_mag_i'),  # extra
+                z0_p.alias('ls10_mag_z'),  # extra
+                g0_e.alias('ls10_fibermag_g'),  # extra
+                r0_e.alias('ls10_fibermag_r'),  # extra
+                i0_e.alias('ls10_fibermag_i'),  # extra
+                z0_e.alias('ls10_fibermag_z'),  # extra
+                ls.nobs_g.alias('ls10_nobs_g'),
+                ls.nobs_r.alias('ls10_nobs_r'),
+                ls.nobs_i.alias('ls10_nobs_i'),
+                ls.nobs_z.alias('ls10_nobs_z'),
+                ls.type.alias('ls10_type'),  # extra
+                ls.shape_r.alias('ls10_shape_r'),  # extra
+                ls.ref_cat.alias('ls_ref_cat'),  # extra
+                ls.ref_id.alias('ls_ref_id'),  # extra
+                ls.maskbits.alias('ls_maskbits'),  # extra
+                ls.fitbits.alias('ls_fitbits'),  # extra
+                # gal_lat.alias('abs_gal_lat'),  # extra
+            )
+            .join(c2ls)
+            .join(ls)
+            .join(x, on=(ls.ls_id == x.ls_id))
+            # admin criteria
+            .where(
+                c.version_id == version_id,
+                c2ls.version_id == version_id,
+                c2ls.best >> True,
+            )
+            # science criteria
+            .where(
+                (x.ero_version == self.parameters['ero_version']),
+                (x.xmatch_method == self.parameters['xmatch_method']),
+                (x.xmatch_version == self.parameters['xmatch_version']),
+                (x.opt_cat == self.parameters['opt_cat']),
+                (
+                    (ls.fiberflux_r.between(fiberflux_r_min, fiberflux_r_max)) |
+                    (ls.fiberflux_i.between(fiberflux_i_min, fiberflux_i_max)) |
+                    (ls.fiberflux_z.between(fiberflux_z_min, fiberflux_z_max))
+                ),
+                # gaia safety checks to avoid bad ls photometry
+                ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
+                ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
+            )
+            # .group_by(ls)   # avoid duplicates - we trust the legacy survey entries
+            .distinct([ls.ls_id])   # avoid duplicates - we trust the legacy survey entries
+        )
+
+        if query_region:
+            query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
+                                                           query_region[0],
+                                                           query_region[1],
+                                                           query_region[2]))
+
+        return query

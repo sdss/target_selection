@@ -40,6 +40,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 #     CatalogToPanstarrs1,    # only exists after v0.5 cross-match
 # )
 
+# DEBUG STUFF TO USE TEMP TABLE
+CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+
 # Details: Start here
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
 
