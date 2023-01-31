@@ -11,3 +11,6 @@ The total number of version_id=25 catalogid's in the target table are 76,775,553
 But from those 25,197,586 come from the catalog_to_skies_v2 table which means the number of non-sky version_id=25 catalogids in target are 51,577,967
 Since no matched entry belongs to the catalog_to_skies_v2 table (confirmed) this means that 99.9% of the non-sky ver25 catalogids in the target table
 were matched to ver31 catalogids and only 52,540 are not matched.
+
+These non-matched non-sky v0.5 targets were stored in table sandbox.catalog_ver25_to_ver31_non_matched and file /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/sandbox/crossmatch/catalog_ver25_to_ver31_non_matched.csv. 96.2% of them have lead='supercosmos' in the catalog table,
+And the other lead values are  bhm_rm_v0, sdss_dr16_specobj, skymapper_dr2, bhm_csc, gaia_qso, and ps1_g18 (none of which were crossmatched in v1). Table supercosmos was ingested in place 16 out of 24 in v0.5 crossmatch, which means stars with lead='supercosmos' are not present in any of the main tables and thus is probably not strange to not find them in v1.
