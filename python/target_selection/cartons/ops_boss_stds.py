@@ -319,6 +319,7 @@ class OPS_eBOSS_Stds_Carton(BaseCarton):
     priority = 5300
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -1020,6 +1021,7 @@ class OPS_BOSS_Stds_GaiaDR2_Carton(BaseCarton):
     priority = 5352
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         tic = TIC_v8.alias()

@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 #
 # @Author: Pramod Gupta (psgupta@uw.edu)
-# @Date: 2020-10-16
-# @Filename: mwm_legacy.py
+# @Date: 2022-12-11
+# @Filename: mwm_legacy_ir2opt.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
                                              Gaia_DR2,
-                                             SDSS_APOGEE_AllStarMerge_r13,
+                                             SDSS_DR17_APOGEE_Allstarmerge,
                                              TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
@@ -24,16 +24,15 @@ from target_selection.cartons import BaseCarton
 # Catalog : catalogdb.catalog
 # CatalogToTIC_v8 : catalogdb.catalog_to_tic_v8
 # Gaia_DR2 : catalogdb.gaia_dr2_source
-# SDSS_APOGEE_AllStarMerge_r13 : catalogdb.sdss_apogeeallstarmerge_r13
+# SDSS_DR17_APOGEE_Allstarmerge : catalogdb.sdss_dr17_apogee_allstarmerge
 # TIC_v8 : catalogdb.tic_v8
 # TwoMassPSC : catalogdb.twomass_psc
 #
 
 # We associate each APOGEE target with a 2MASS source since the
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
-# APOGEE_ID is essentially the same as
+# APOGEE_ID is the same as
 # the “designation” column of the 2MASS PSC;
-# We just have to strip off the “2M” in the APOGEE_ID.
 #
 # For example:
 # sdss5db=# select designation from  catalogdb.twomass_psc limit 2;
@@ -43,39 +42,21 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
-#      apogee_id
-# --------------------
-#  2M14044120-1550575
-#  2M14033676-1554164
-# (2 rows)
-#
-# sdss5db=# select ltrim(apogee_id,'2M') from
-#  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
-#       ltrim
+# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
+#    apogee_id
 # ------------------
-#  14044120-1550575
-#  14033676-1554164
+#  19140272-1554055
+#  19155129-1617591
 # (2 rows)
 #
+# Historical Note:
+# The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
+# For that table, we had to use the below command to remove the 2M from the
+# left part of apogee_id.
 #
-# sdss5db=# select count(1) from
-#  catalogdb.sdss_apogeeallstarmerge_r13 where dist_src='gaia';
-#  count
-# -------
-#      0
-# (1 row)
+# select ltrim(apogee_id,'2M') from
+#  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
 #
-# Hence use trim(dist_src) like below:
-#
-# sdss5db=# select count(1) from
-#  catalogdb.sdss_apogeeallstarmerge_r13 where trim(dist_src)='gaia';
-#  count
-# --------
-#  487508
-# (1 row)
-#
-
 
 class MWM_Legacy_ir2opt_Carton(BaseCarton):
     """MWM APOGEE targets.
@@ -86,12 +67,12 @@ What is it?: APOGEE targets to be observed with BOSS fibres.
 To be used as a filler for MWM-led plates.
 
 Simplified Description of selection criteria: Select all Gaia targets that
-have an APOGEE counterpart (i.e., have an entry in sdss_apogeeallstarmerge_r13)
+have an APOGEE counterpart (i.e., have an entry in sdss_dr17_apogee_allstarmerge)
 with 13 < G < 18, BP > 13, and RP > 13.
 
 Wiki page: NA
 
-Additional source catalogs needed: Gaia, sdss_apogeeallstarmerge_r13
+Additional source catalogs needed: Gaia DR2, sdss_dr17_apogee_allstarmerge
 
 Additional cross-matching needed: NA
 
@@ -129,10 +110,9 @@ NA
                  .switch(TIC_v8)
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_APOGEE_AllStarMerge_r13,
+                 .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                                           '2M')))
+                           SDSS_DR17_APOGEE_Allstarmerge.apogee_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         Gaia_DR2.phot_g_mean_mag.between(13, 18),
