@@ -1,0 +1,16 @@
+-) GAIA-DR2 proper motions were not used in phase_2, but only 695 K targets are ingested in phase_2 (0.04% of total) and this problem
+only affects the targets with proper motions which according to the crossmatch test is ~3% of the targets ingested in phase_2.
+So we expect to affect ~20K targets and the epoch difference is only 0.5 years.
+
+-) Epoch=2000 was used for all TIC_v8 targets in phase_2 which includes targets with posflag='GAIA2', but only 7.9 M entries (0.45% of total)
+are ingested in phase_2, and targets present in GAIA-DR2 are ingested in phase_1
+
+-) Splitting the phase_1 query by target_id (pts_key in this case) changes how the best column is set and this was used in 2MASS linking.
+However, in crossmatch test version_id=30 there are no dup_catalogid=True entries in sandbox.duplicates_info probably because it would imply
+that 2mass resolved an entry from a previously ingested catalog. Plus best column in phase_1 only indicates the smallest target_id linked
+for a given catalogid.
+
+-) Table gaia_dr2_wd_sdss is a list of observations instead of a list of targets and thus there are by construction multiple target_id's
+associated with the same catalogid corresponding to different observations of the same source (up to ~50 some times),
+but since no duplicate is eliminated from the crossmatch process the relational table should properly inform about this behaviour.
+
