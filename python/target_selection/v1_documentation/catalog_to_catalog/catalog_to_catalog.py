@@ -80,7 +80,7 @@ class MetaXMatch:
         self.second_plan = config['xmatch_plans'][1]
         log_filename = config['log_file']
         self.log = target_selection.log
-        log_path_and_name = os.path.realpath('./'+log_filename)
+        log_path_and_name = os.path.realpath('./' + log_filename)
         self.log.start_file_logger(log_path_and_name, rotating=False, mode='a')
         self.log.sh.setLevel(0)
 
@@ -114,7 +114,7 @@ class MetaXMatch:
             racen, deccen, radius = self.sample_region
             st_dec = str(deccen)
             if '-' not in st_dec:
-                st_dec = 'pos'+st_dec
+                st_dec = 'pos' + st_dec
             else:
                 st_dec = st_dec.replace('-', 'neg')
                 output_name = (f'catalog_ver{self.first_version}_to_ver{self.second_version}_all'
@@ -126,9 +126,9 @@ class MetaXMatch:
 
         self.output_name = output_name
         self.log.info(' ')
-        self.log.info('#'*45)
+        self.log.info('#' * 45)
         self.log.info(log_message)
-        self.log.info('#'*45)
+        self.log.info('#' * 45)
 
         first_tables = set(first_plan_config['order'])
         second_tables = set(second_plan_config['order'])
@@ -185,8 +185,9 @@ class MetaXMatch:
 
         db_models = self.database.models
 
-        tables = [db_models['catalogdb.'+name] for name in self.intersecting_tables]
-        rel_tables = [db_models['catalogdb.catalog_to_'+name] for name in self.intersecting_tables]
+        tables = [db_models['catalogdb.' + name] for name in self.intersecting_tables]
+        rel_tables = [db_models['catalogdb.catalog_to_' + name]
+                      for name in self.intersecting_tables]
 
         index = self.intersecting_tables.index(name)
         table = tables[index]
@@ -252,7 +253,7 @@ class MetaXMatch:
                 curr_tuple = (entry['table'], sorted_catids[0], sorted_catids[1])
                 results_list.append(curr_tuple)
                 if self.show_first and npair <= self.show_first and not split:
-                    tuple_log = str(npair)+'  '+'  '.join([str(el) for el in curr_tuple])
+                    tuple_log = str(npair) + '  ' + '  '.join([str(el) for el in curr_tuple])
                     self.log.info(tuple_log)
 
         # In this final part we go over the results and split it in chunks of N entries
@@ -304,9 +305,9 @@ class MetaXMatch:
         for curr_table in tables_to_process:
             t1 = time.time()
             logname = 'Running table ' + curr_table
-            self.log.info('-'*52)
+            self.log.info('-' * 52)
             self.log.info(f'|{logname:^50}|')
-            self.log.info('-'*52)
+            self.log.info('-' * 52)
 
             if self.split_query and curr_table in self.split_query_info.keys():
                 ntargetids, npairs = 0, 0
@@ -314,7 +315,7 @@ class MetaXMatch:
                 max_tar, bin_tar = self.split_query_info[curr_table]
                 self.log.info(f'Using binning={bin_tar} and max value ={max_tar}')
                 min_targetid, max_targetid = 0, bin_tar
-                while(min_targetid < max_tar):
+                while (min_targetid < max_tar):
                     ti_iter = time.time()
                     curr_targetids, curr_pairs = self.match_in_table(curr_table, split=True,
                                                                      min_targetid=min_targetid,
