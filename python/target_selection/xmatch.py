@@ -1455,7 +1455,7 @@ class XMatchPlanner(object):
 
                         sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name1};')
                         sql_file.write(f'CREATE TABLE {self.schema}.{inter_name1} AS (')
-                        sql_file.write(query_str+');')
+                        sql_file.write(query_str + ');')
                         sql_file.close()
 
                         os.system('psql -U sdss -d sdss5db -f '
@@ -1481,7 +1481,7 @@ class XMatchPlanner(object):
                         sql_file = open('phase1_query.sql', 'w')
                         sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name1};')
                         sql_file.write(f'CREATE TABLE {self.schema}.{inter_name1} AS (')
-                        sql_file.write(first_query_str+');')
+                        sql_file.write(first_query_str + ');')
                         sql_file.close()
 
                         os.system('psql -U sdss -d sdss5db -f phase1_query.sql '
@@ -1503,7 +1503,7 @@ class XMatchPlanner(object):
                                     sql_file.write(f'SET {param}={value!r};\n')
 
                             sql_file.write(f'INSERT INTO {self.schema}.{inter_name1} ')
-                            sql_file.write(range_query_str+';')
+                            sql_file.write(range_query_str + ';')
                             sql_file.close()
                             os.system('psql -U sdss -d sdss5db -f phase1_query.sql '
                                       '-o phase1_output.log')
@@ -1705,7 +1705,7 @@ class XMatchPlanner(object):
                         value = options[param]
                         sql_file.write(f'SET {param}={value!r};\n')
 
-                sql_file.write(in_query_str+';')
+                sql_file.write(in_query_str + ';')
                 sql_file.close()
 
                 os.system('psql -U sdss -d sdss5db -f phase2_query.sql -o phase2_output.log')
@@ -1824,7 +1824,7 @@ class XMatchPlanner(object):
 
                 sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name3};')
                 sql_file.write(f'CREATE TABLE {self.schema}.{inter_name3} AS (')
-                sql_file.write(unmatched_query_str+');')
+                sql_file.write(unmatched_query_str + ');')
                 sql_file.close()
 
                 os.system('psql -U sdss -d sdss5db -f phase3_query.sql -o phase3_output.log')
