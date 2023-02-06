@@ -5,12 +5,15 @@ from itertools import combinations
 
 import numpy as np
 import peewee
-import target_selection
 import yaml
 from peewee import fn
 from playhouse.postgres_ext import ArrayField
+
 from sdssdb.peewee.sdss5db.catalogdb import database
 from sdssdb.peewee.sdss5db.targetdb import Target
+
+import target_selection
+
 
 database.connect(dbname='sdss5db')  # Use 'sdss' to get read/write permissions
 
