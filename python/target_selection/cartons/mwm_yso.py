@@ -9,6 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
+                                             CatalogToAllWise,
                                              CatalogToGaia_DR3,
                                              CatalogToTIC_v8,
                                              CatalogToTwoMassPSC, Gaia_DR2,
@@ -87,10 +88,9 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
                        on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
                  .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTIC_v8,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
+                 .join(CatalogToAllWise,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.designation))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 13,
@@ -101,11 +101,6 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
-        #
-        # All values of TIC_v8.plx (for non-null entries) are not the same as
-        # values of Gaia_DR3.parallax.
-        # Hence, in the above query, we cannot use TIC_v8.plx instead
-        # of Gaia_DR3.parallax.
 
         if query_region:
             query = (query
@@ -1044,7 +1039,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     Implementation: Hmag<13 and _8_0_-_24_>2.5 and
     (parallax<0.2 or parallax is null)
 
-    TODO check left outer join
+    DONE (email of 1/6/20232 with jsg) check left outer join
     TODO Below comments are for v0.5. modify for v1.0.
 
     For CMZ, the raw sql query would be:
