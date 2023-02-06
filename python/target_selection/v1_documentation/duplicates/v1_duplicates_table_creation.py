@@ -2,10 +2,13 @@ import os
 import time
 
 import peewee
-import target_selection
 import yaml
 from peewee import Case, Model, fn
+
 from sdssdb.peewee.sdss5db.catalogdb import database
+
+import target_selection
+
 
 schema = 'sandbox'
 
