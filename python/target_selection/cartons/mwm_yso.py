@@ -93,11 +93,21 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
                  .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.designation))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToTwoMassPSC.best >> True,
+                        CatalogToAllWise.best >> True,
                         TwoMassPSC.h_m < 13,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
                         (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
                         (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
                         Gaia_DR3.parallax > 0.3))
+
+        # There can be cases in which the same catalogid has multiple entries
+        # in a catalog_to_x table since the same physical object
+        # may match with multiple catalogids.
+        # Hence, we have the below code in the above query.
+        #                CatalogToGaia_DR3.best >> True,
+        #                CatalogToTwoMassPSC.best >> True,
+        #                CatalogToAllWise.best >> True,
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
