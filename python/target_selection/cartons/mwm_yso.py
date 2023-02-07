@@ -90,7 +90,7 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
                  .switch(CatalogToGaia_DR3)
                  .join(CatalogToAllWise,
                        on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
-                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.designation))
+                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         CatalogToTwoMassPSC.best >> True,
