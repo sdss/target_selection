@@ -15,7 +15,7 @@ from peewee import fn
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     CatalogToGaia_DR2,
-    # Gaia_DR2,
+    Gaia_DR2,
     CatalogToSDSS_DR19p_Speclite,
     SDSS_DR19p_Speclite,
     Gaia_unWISE_AGN,
@@ -94,11 +94,12 @@ class BhmGuaBaseCarton(BaseCarton):
     priority = None
     cadence = None
     instrument = 'BOSS'
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
         c2g2 = CatalogToGaia_DR2.alias()
-        # g2 = Gaia_DR2.alias()
+        g2 = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
 
         spec_sn_thresh = self.parameters['spec_sn_thresh']
@@ -156,23 +157,36 @@ class BhmGuaBaseCarton(BaseCarton):
             "z0_p": -0.440676,
         }
 
-        bp_rp = t.bp - t.rp
-        g = (t.g + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp + coeffs['g2_p'] * bp_rp * bp_rp +
-             coeffs['g3_p'] * bp_rp * bp_rp * bp_rp)
-        r = (t.g + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp + coeffs['r2_p'] * bp_rp * bp_rp +
-             coeffs['r3_p'] * bp_rp * bp_rp * bp_rp)
-        i = (t.g + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp + coeffs['i2_p'] * bp_rp * bp_rp +
-             coeffs['i3_p'] * bp_rp * bp_rp * bp_rp)
-        z = (t.g + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp + coeffs['z2_p'] * bp_rp * bp_rp +
-             coeffs['z3_p'] * bp_rp * bp_rp * bp_rp)
+        #  bp_rp = t.bp - t.rp
+        #  g = (t.g + coeffs['g0_p'] + coeffs['g1_p'] * bp_rp + coeffs['g2_p'] * bp_rp * bp_rp +
+        #       coeffs['g3_p'] * bp_rp * bp_rp * bp_rp)
+        #  r = (t.g + coeffs['r0_p'] + coeffs['r1_p'] * bp_rp + coeffs['r2_p'] * bp_rp * bp_rp +
+        #       coeffs['r3_p'] * bp_rp * bp_rp * bp_rp)
+        #  i = (t.g + coeffs['i0_p'] + coeffs['i1_p'] * bp_rp + coeffs['i2_p'] * bp_rp * bp_rp +
+        #       coeffs['i3_p'] * bp_rp * bp_rp * bp_rp)
+        #  z = (t.g + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp + coeffs['z2_p'] * bp_rp * bp_rp +
+        #       coeffs['z3_p'] * bp_rp * bp_rp * bp_rp)
+
+        g = (g2.phot_g_mean_mag + coeffs['g0_p'] + coeffs['g1_p'] * g2.bp_rp +
+             coeffs['g2_p'] * g2.bp_rp * g2.bp_rp +
+             coeffs['g3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
+        r = (g2.phot_g_mean_mag + coeffs['r0_p'] + coeffs['r1_p'] * g2.bp_rp +
+             coeffs['r2_p'] * g2.bp_rp * g2.bp_rp +
+             coeffs['r3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
+        i = (g2.phot_g_mean_mag + coeffs['i0_p'] + coeffs['i1_p'] * g2.bp_rp +
+             coeffs['i2_p'] * g2.bp_rp * g2.bp_rp +
+             coeffs['i3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
+        z = (g2.phot_g_mean_mag + coeffs['z0_p'] + coeffs['z1_p'] * g2.bp_rp +
+             coeffs['z2_p'] * g2.bp_rp * g2.bp_rp +
+             coeffs['z3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
 
         # validity checks - set limits semi-manually
         bp_rp_min = 0.0
         bp_rp_max = 1.8
-        valid = (t.g.between(0.1, 29.9) &
-                 t.bp.between(0.1, 29.9) &
-                 t.rp.between(0.1, 29.9) &
-                 bp_rp.between(bp_rp_min, bp_rp_max))
+        valid = (g2.phot_g_mean_mag.between(0.1, 29.9) &
+                 g2.phot_bp_mean_mag.between(0.1, 29.9) &
+                 g2.phot_rp_mean_mag.between(0.1, 29.9) &
+                 g2.bp_rp.between(bp_rp_min, bp_rp_max))
 
         opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gaiadr2'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
@@ -200,9 +214,9 @@ class BhmGuaBaseCarton(BaseCarton):
                 magnitude_r.alias('r'),
                 magnitude_i.alias('i'),
                 magnitude_z.alias('z'),
-                t.g.alias('gaia_g'),
-                t.bp.alias('bp'),
-                t.rp.alias('rp'),
+                g2.phot_g_mean_mag.alias('gaia_g'),
+                g2.phot_bp_mean_mag.alias('bp'),
+                g2.phot_rp_mean_mag.alias('rp'),
                 t.w1.alias('gua_w1'),   # extra
                 t.w2.alias('gua_w2'),   # extra
                 t.prob_rf.alias('gua_prob_rf'),   # extra
@@ -211,7 +225,8 @@ class BhmGuaBaseCarton(BaseCarton):
                 # rely on the centralised magnitude routines for 'real' griz, bp,rp,gaia_g
             )
             .join(c2g2)
-            .join(t, on=(c2g2.target_id == t.gaia_sourceid))
+            .join(g2, on=(c2g2.target_id == g2.source_id))
+            .join(t, on=(g2.source_id == t.gaia_sourceid))
             # joining to spectroscopy
             .switch(c)
             .join(c2s19, JOIN.LEFT_OUTER)
@@ -226,11 +241,11 @@ class BhmGuaBaseCarton(BaseCarton):
             )
             .where(
                 (t.prob_rf >= self.parameters['prob_rf_min']),
-                (t.g >= self.parameters['mag_g_min']),
-                (t.rp >= self.parameters['mag_rp_min']),
+                (g2.phot_g_mean_mag >= self.parameters['mag_g_min']),
+                (g2.phot_rp_mean_mag >= self.parameters['mag_rp_min']),
                 (
-                    (t.g < self.parameters['mag_g_max']) |
-                    (t.rp < self.parameters['mag_rp_max'])
+                    (g2.phot_g_mean_mag < self.parameters['mag_g_max']) |
+                    (g2.phot_rp_mean_mag < self.parameters['mag_rp_max'])
                 ),
             )
             # then reject any GUA targets with existing good DR19p spectroscopy
