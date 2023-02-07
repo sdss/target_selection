@@ -1,0 +1,753 @@
+'1.0.0':
+    run_id: 7
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    exclude_nodes:
+        - gaiadr2_tmass_best_neighbour
+        - sdss_dr13_photoobj
+        - skymapper_dr1_1
+    path_mode: config_list
+    order:
+        - gaia_dr3_source
+        - gaia_dr2_source
+        - legacy_survey_dr10
+        - legacy_survey_dr8
+        - panstarrs1
+        - tic_v8
+        - tic_v8_extended
+        - sdss_dr13_photoobj_primary
+        - twomass_psc
+        - kepler_input_10
+        - tycho2
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - milliquas_7_7
+        - uvotssc1
+        - xmm_om_suss_5_0
+        - allwise
+        - glimpse
+        - glimpse360
+    tables:
+        gaia_dr3_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch: 2016.0
+        gaia_dr2_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+        legacy_survey_dr10:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax  # No skip phases anymore
+            epoch: 2016.0  # Consistent with ref_epoch column
+        legacy_survey_dr8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch_column: ref_epoch  # Has some Nulls
+        panstarrs1:
+            ra_column: ra  # raMean of Stacked object
+            dec_column: dec
+            query_radius: 1
+        tic_v8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        tic_v8_extended:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        sdss_dr13_photoobj_primary:
+            ra_column: ra
+            dec_column: dec
+        twomass_psc:
+            ra_column: ra
+            dec_column: decl
+        kepler_input_10:
+            ra_column: kic_degree_ra  # kic_ra is in hours
+            dec_column: kic_dec
+            parallax_column: kic_parallax
+        tycho2:
+            ra_column: ramdeg  # Has ~128k sources with empty values
+            dec_column: demdeg
+            pmra_column: pmra
+            pmdec_column: pmde
+            is_pmra_cos: true
+            epoch: 2000.0  # radeg/dedeg is the alternative
+            has_missing_coordinates: true
+        gaia_dr2_wd_sdss:
+            ra_column: ra
+            dec_column: dec
+        guvcat:
+            ra_column: ra
+            dec_column: dec
+            query_radius: 2.5  # Value used in final v0.5 run
+        milliquas_7_7:
+            ra_column: ra
+            dec_column: dec
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_5_0:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        allwise:
+            ra_column: ra  # pmra/pmdec columns are apparent motion
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse360:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+    join_paths:
+        - ['gaia_dr2_source', 'gaia_dr2_neighbourhood', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['legacy_survey_dr8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['panstarrs1', 'gaia_edr3_panstarrs1_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['tic_v8', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['twomass_psc', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tycho2', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['gaia_dr2_wd_sdss', 'gaia_dr2_wd', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allwise', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['allwise', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['allwise', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse360', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+
+'1.0.0-test.3':
+    run_id: 6
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    exclude_nodes:
+        - gaiadr2_tmass_best_neighbour
+        - sdss_dr13_photoobj
+        - skymapper_dr1_1
+    path_mode: config_list
+    order:
+        - gaia_dr3_source
+        - gaia_dr2_source
+        - legacy_survey_dr10
+        - legacy_survey_dr8
+        - panstarrs1
+        - tic_v8
+        - tic_v8_extended
+        - sdss_dr13_photoobj_primary
+        - twomass_psc
+        - kepler_input_10
+        - tycho2
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - milliquas_7_7
+        - uvotssc1
+        - xmm_om_suss_5_0
+        - allwise
+        - glimpse
+        - glimpse360
+    tables:
+        gaia_dr3_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch: 2016.0
+        gaia_dr2_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+        legacy_survey_dr10:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax  # No skip phases anymore
+            epoch: 2016.0  # Consistent with ref_epoch column
+        legacy_survey_dr8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch_column: ref_epoch  # Has some Nulls
+        panstarrs1:
+            ra_column: ra  # raMean of Stacked object
+            dec_column: dec
+            query_radius: 1
+        tic_v8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        tic_v8_extended:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        sdss_dr13_photoobj_primary:
+            ra_column: ra
+            dec_column: dec
+        twomass_psc:
+            ra_column: ra
+            dec_column: decl
+        kepler_input_10:
+            ra_column: kic_degree_ra  # kic_ra is in hours
+            dec_column: kic_dec
+            parallax_column: kic_parallax
+        tycho2:
+            ra_column: ramdeg  # Has ~128k sources with empty values
+            dec_column: demdeg
+            pmra_column: pmra
+            pmdec_column: pmde
+            is_pmra_cos: true
+            epoch: 2000.0  # radeg/dedeg is the alternative
+            has_missing_coordinates: true
+        gaia_dr2_wd_sdss:
+            ra_column: ra
+            dec_column: dec
+        guvcat:
+            ra_column: ra
+            dec_column: dec
+            query_radius: 2.5  # Value used in final v0.5 run
+        milliquas_7_7:
+            ra_column: ra
+            dec_column: dec
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_5_0:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        allwise:
+            ra_column: ra  # pmra/pmdec columns are apparent motion
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse360:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+    join_paths:
+        - ['gaia_dr2_source', 'gaia_dr2_neighbourhood', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['legacy_survey_dr8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['panstarrs1', 'gaia_edr3_panstarrs1_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['tic_v8', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['twomass_psc', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tycho2', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['gaia_dr2_wd_sdss', 'gaia_dr2_wd', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allwise', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['allwise', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['allwise', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse360', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    sample_region:
+        - [270., 66.56, 2.]  # North CVZ
+        - [90., -66.56, 2.]  # South CVZ
+        - [45.0, 0.0, 2.]  # Stripe-82-West
+        - [135.0, 1.0, 2.]  # eFEDS
+        - [315.0, 0.0, 2.]  # Stripe-82-East
+        - [200.0, 32.375, 1.0]  # North/South boundary
+        - [282.95, 0.18, 2.0]  # GG crowded region
+        - [270.89, -30.03, 0.707]  # Baade's Window
+        - [136.2712, 2.508899, 2.828]  # Observed Field (104404)
+        - [180.0, 32.375, 0.707]  # Overlap of N/S in LS10
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+
+'1.0.0-test.2':
+    run_id: 5
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    exclude_nodes:
+        - gaiadr2_tmass_best_neighbour
+        - sdss_dr13_photoobj
+        - skymapper_dr1_1
+    path_mode: config_list
+    order:
+        - gaia_dr3_source
+        - gaia_dr2_source
+        - legacy_survey_dr10
+        - legacy_survey_dr8
+        - panstarrs1
+        - tic_v8
+        - tic_v8_extended
+        - sdss_dr13_photoobj_primary
+        - sdss_dr19p_speclite
+        - twomass_psc
+        - kepler_input_10
+        - tycho2
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - milliquas_7_7
+        - uvotssc1
+        - xmm_om_suss_5_0
+        - allwise
+        - glimpse
+        - glimpse360
+    tables:
+        gaia_dr3_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch: 2016.0
+        gaia_dr2_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+        legacy_survey_dr10:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax  # No skip phases anymore
+            epoch: 2016.0  # Consistent with ref_epoch column that has either 0s (which I was advise to use as 2016) or 2016s.
+        legacy_survey_dr8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch_column: ref_epoch  # Has some Nulls but shouldn't be a problem for get_epoch() and sql_apply_pm()
+        panstarrs1:
+            ra_column: ra  # raMean of Stacked object
+            dec_column: dec
+            query_radius: 1
+        tic_v8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        tic_v8_extended:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        sdss_dr13_photoobj_primary:
+            ra_column: ra
+            dec_column: dec
+        sdss_dr19p_speclite:
+            ra_column: plug_ra
+            dec_column: plug_dec
+        twomass_psc:
+            ra_column: ra
+            dec_column: decl
+        kepler_input_10:
+            ra_column: kic_degree_ra  # kic_ra is in hours
+            dec_column: kic_dec
+            parallax_column: kic_parallax
+        tycho2:
+            ra_column: ramdeg  # Has ~128k sources (5% of total) with empty values
+            dec_column: demdeg
+            pmra_column: pmra
+            pmdec_column: pmde
+            is_pmra_cos: true
+            epoch: 2000.0  # radeg/dedeg coords with average(epra_1990,epde_1990) epochs (Totally Filled) USED in GAIA-eDR3 crossmatch
+            has_missing_coordinates: true
+        gaia_dr2_wd_sdss:
+            ra_column: ra
+            dec_column: dec
+        guvcat:
+            ra_column: ra
+            dec_column: dec
+            query_radius: 2.5  # Value used in final v0.5 run
+        milliquas_7_7:
+            ra_column: ra
+            dec_column: dec
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_5_0:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        allwise:
+            ra_column: ra  # There are pmra/pmdec columns but not using them because they are apparent motion
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse360:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+    join_paths:
+        - ['gaia_dr2_source', 'gaia_dr2_neighbourhood', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['legacy_survey_dr8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['panstarrs1', 'gaia_edr3_panstarrs1_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['tic_v8', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['sdss_dr19p_speclite', 'sdss_dr13_photoobj_primary', 'catalog_to_sdss_dr13_photoobj_primary', 'catalog']
+        - ['twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['twomass_psc', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tycho2', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['gaia_dr2_wd_sdss', 'gaia_dr2_wd', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allwise', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['allwise', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['allwise', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse360', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    sample_region:
+        - [128.00,  4.00, 1.414]  # Reg1_1
+        - [142.00,  4.00, 1.414]  # Reg1_2
+        - [128.00, -1.00, 1.414]  # Reg1_3
+        - [142.00, -1.00, 1.414]  # Reg1_4
+        - [73.00, -57.00, 1.414]  # Reg2_1
+        - [80.00, -57.00, 1.414]  # Reg2_2
+        - [73.00, -53.00, 1.414]  # Reg2_3
+        - [355.50, -55.80, 1.414]  # Reg3
+        - [104.50, -56.00, 1.131]  # LowLat1
+        - [226.00, -35.37, 0.318]  # LowLat2
+        - [15.00, -0.86, 0.566]  # Stripe82_overlap
+        - [282.95,  0.18, 0.707]  # GG Crowded
+        - [270.89, -30.03, 0.707]  # Baade's Window
+        - [257.11, -23.41, 0.707]  # gal=(0,10)
+        - [248.59, -17.38, 0.707]  # gal=(0,20)
+        - [136.2712,  2.508899, 2.828]  # Observed Field (104404)
+        - [180.0, 32.375, 0.707]  # Overlap of N/S in LS10
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+
+'1.0.0-test.1':
+    run_id: 4
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    exclude_nodes:
+        - gaiadr2_tmass_best_neighbour
+        - sdss_dr13_photoobj
+        - skymapper_dr1_1
+    path_mode: config_list
+    order:
+        - gaia_dr3_source
+        - gaia_dr2_source
+        - legacy_survey_dr10
+        - panstarrs1
+        - tic_v8
+        - tic_v8_extended
+        - sdss_dr13_photoobj_primary
+        - sdss_dr19p_speclite
+        - twomass_psc
+        - kepler_input_10
+        - tycho2
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - legacy_survey_dr8
+        - allwise
+        - uvotssc1
+        - xmm_om_suss_5_0
+        - glimpse
+        - glimpse360
+        - milliquas_7_7
+    tables:
+        gaia_dr3_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch: 2016.0
+        gaia_dr2_source:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+        legacy_survey_dr10:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax  # No skip phases anymore
+            epoch: 2016.0  # Consistent with ref_epoch column that has either 0s (which I was advise to use as 2016) or 2016s.
+        panstarrs1:
+            ra_column: ra  # raMean of Stacked object
+            dec_column: dec
+            query_radius: 1
+        tic_v8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        tic_v8_extended:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: plx
+            epoch: 2000.0
+        sdss_dr13_photoobj_primary:
+            ra_column: ra
+            dec_column: dec
+        sdss_dr19p_speclite:
+            ra_column: plug_ra
+            dec_column: plug_dec
+        twomass_psc:
+            ra_column: ra
+            dec_column: decl
+        kepler_input_10:
+            ra_column: kic_degree_ra  # kic_ra is in hours
+            dec_column: kic_dec
+            parallax_column: kic_parallax
+        tycho2:
+            ra_column: ramdeg  # Has ~128k sources (5% of total) with empty values
+            dec_column: demdeg
+            pmra_column: pmra
+            pmdec_column: pmde
+            is_pmra_cos: true
+            epoch: 2000.0  # radeg/dedeg coords with average(epra_1990,epde_1990) epochs (Totally Filled) USED in GAIA-eDR3 crossmatch
+            has_missing_coordinates: true
+        gaia_dr2_wd_sdss:
+            ra_column: ra
+            dec_column: dec
+        guvcat:
+            ra_column: ra
+            dec_column: dec
+            query_radius: 2.5  # Value used in final v0.5 run
+        legacy_survey_dr8:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: pmra
+            pmdec_column: pmdec
+            is_pmra_cos: true
+            parallax_column: parallax
+            epoch_column: ref_epoch  # Has some Nulls but shouldn't be a problem for get_epoch() and sql_apply_pm()
+        allwise:
+            ra_column: ra  # There are pmra/pmdec columns but not using them because they are apparent motion
+            dec_column: dec
+            query_radius: 2  # In v0.5 we used 3 here but produced too many multiples
+        uvotssc1:
+            ra_column: radeg
+            dec_column: dedeg
+            skip_phases: [3]
+            query_radius: 3
+        xmm_om_suss_5_0:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        glimpse360:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+        milliquas_7_7:
+            ra_column: ra
+            dec_column: dec
+            skip_phases: [3]
+            query_radius: 3
+    join_paths:
+        - ['gaia_dr2_source', 'gaia_dr2_neighbourhood', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['legacy_survey_dr10', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['panstarrs1', 'gaia_edr3_panstarrs1_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['tic_v8', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8', 'tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['tic_v8_extended', 'sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tic_v8_extended', 'allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'gaia_edr3_sdssdr13_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['sdss_dr13_photoobj_primary', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['sdss_dr19p_speclite', 'sdss_dr13_photoobj_primary', 'catalog_to_sdss_dr13_photoobj_primary', 'catalog']
+        - ['twomass_psc', 'gaia_edr3_tmass_psc_xsc_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['twomass_psc', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['twomass_psc', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['twomass_psc', 'mipsgal', 'mipsgal_extra', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['twomass_psc', 'allwise', 'skymapper_dr2', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['twomass_psc', 'allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['kepler_input_10', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['kepler_input_10', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['tycho2', 'gaia_edr3_tycho2tdsc_merge_best_neighbour2', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['tycho2', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['tycho2', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['gaia_dr2_wd_sdss', 'gaia_dr2_wd', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['legacy_survey_dr8', 'gaia_dr2_source', 'catalog_to_gaia_dr2_source', 'catalog']
+        - ['allwise', 'gaia_edr3_allwise_best_neighbour', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allwise', 'tic_v8', 'catalog_to_tic_v8', 'catalog']
+        - ['allwise', 'tic_v8_extended', 'catalog_to_tic_v8_extended', 'catalog']
+        - ['allwise', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        - ['glimpse360', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    sample_region:
+        - [128.00,  4.00, 1.000]  # Reg1_1
+        - [142.00,  4.00, 1.000]  # Reg1_2
+        - [128.00, -1.00, 1.000]  # Reg1_3
+        - [142.00, -1.00, 1.000]  # Reg1_4
+        - [73.00, -57.00, 1.000]  # Reg2_1
+        - [80.00, -57.00, 1.000]  # Reg2_2
+        - [73.00, -53.00, 1.000]  # Reg2_3
+        - [355.50, -55.80, 1.000]  # Reg3
+        - [104.50, -56.00, 0.800]  # LowLat1
+        - [226.00, -35.37, 0.225]  # LowLat2
+        - [15.00, -0.86, 0.400]  # Stripe82_overlap
+        - [282.95,  0.18, 0.500]  # GG Crowded
+        - [270.89, -30.03, 0.500]  # Baade's Window
+        - [257.11, -23.41, 0.500]  # gal=(0,10)
+        - [248.59, -17.38, 0.500]  # gal=(0,20)
+        - [136.2712,  2.508899, 2.000]  # Observed Field (104404)
+        - [180.0, 32.375, 0.500]  # Overlap of N/S in LS10
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false

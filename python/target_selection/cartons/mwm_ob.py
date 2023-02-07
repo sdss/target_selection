@@ -62,6 +62,7 @@ class MWM_OB_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -273,6 +274,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     cadence = 'bright_3x1'
     program = 'mwm_ob'
     priority = 2910
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 

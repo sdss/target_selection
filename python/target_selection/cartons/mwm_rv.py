@@ -10,9 +10,11 @@ import math
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2,
-                                             SDSS_APOGEE_AllStarMerge_r13,
+from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
+                                             CatalogToGaia_DR3,
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
+                                             SDSS_DR17_APOGEE_Allstarmerge,
                                              TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
@@ -33,7 +35,7 @@ from target_selection.cartons import BaseCarton
 
 # Wiki page: Binaries and Substellar Companions
 
-# Additional source catalogs needed: Just need sdss_apogeeallstarmerge_r13
+# Additional source catalogs needed: Just need sdss_dr17_apogee_allstarmerge
 
 # Additional cross-matching needed: (None)
 
@@ -44,8 +46,8 @@ from target_selection.cartons import BaseCarton
 # (See entries for this in 2.2.1.x below)
 
 # Pseudo SQL (optional): SELECT apogee_id, nvisits, ra, dec,
-# pmra, pmdec, h, baseline, fields FROM sdss_apogeeallstarmerge_r13
-# WHERE h<12.8 AND nvisits>=3 AND dist_src == 'gaia' AND
+# pmra, pmdec, h, baseline, fields FROM sdss_dr17_apogee_allstarmerge
+# WHERE h<12.8 AND nvisits>=3 AND dist_src == 'GaiaDR3' AND
 # [targflags contains 'APOGEE_SHORT' OR 'APOGEE_INTERMEDIATE' OR
 # 'APOGEE_LONG' OR '*APOGEE2_*BIN_’] AS mwm_rv_long
 
@@ -60,8 +62,10 @@ from target_selection.cartons import BaseCarton
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
 # APOGEE_ID is essentially the same as
 # the “designation” column of the 2MASS PSC;
-# We just have to strip off the “2M” in the APOGEE_ID.
-#
+# We for sdss_dr17_apogee_allstarmerge we do not
+# have to strip off the “2M” in the APOGEE_ID.
+# (old: for sdss_apogeeallstarmerge_r13 we had to strip off the
+#  “2M” in the APOGEE_ID.)
 # For example:
 # sdss5db=# select designation from  catalogdb.twomass_psc limit 2;
 #    designation
@@ -70,13 +74,14 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
-#      apogee_id
-# --------------------
-#  2M14044120-1550575
-#  2M14033676-1554164
+# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
+#    apogee_id
+# ------------------
+#  19140272-1554055
+#  19155129-1617591
 # (2 rows)
-#
+
+# ######### start comment for old sdss_apogeeallstarmerge_r13 #######################
 # sdss5db=# select ltrim(apogee_id,'2M') from
 #  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
 #       ltrim
@@ -102,25 +107,27 @@ from target_selection.cartons import BaseCarton
 #  487508
 # (1 row)
 #
+# ######### end comment for old sdss_apogeeallstarmerge_r13 ##########
 
-mwm_rv_long_condition = (SDSS_APOGEE_AllStarMerge_r13.h < 12.8,
-                         SDSS_APOGEE_AllStarMerge_r13.nvisits >= 3,
-                         peewee.fn.trim(SDSS_APOGEE_AllStarMerge_r13.dist_src) ==
-                         'gaia',
-                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+mwm_rv_long_condition = (SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
+                         SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 6,  # old 3,
+                         peewee.fn.trim(SDSS_DR17_APOGEE_Allstarmerge.dist_src) ==
+                         'GaiaDR3',  # old gaia
+                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE_SHORT%') |
-                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE_INTERMEDIATE%') |
-                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE_LONG%') |
-                         (SDSS_APOGEE_AllStarMerge_r13.targflags %
+                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE2_%BIN_%'))
 
 
-class MWM_RV_Long_FPS_Carton(BaseCarton):
+# old class name MWM_RV_Long_FPS_Carton(BaseCarton):
+class MWM_bin_rv_long_Carton(BaseCarton):
     """3.2.1.3. Long Baseline Targets for FPS
 
-    Shorthand name: mwm_rv_long_fps
+    Shorthand name: mwm_bin_rv_long (old name mwm_rv_long_fps)
 
     Simplified Description of selection criteria:
      Select from long-baseline targets (above) with H brighter than 11.5
@@ -153,7 +160,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     Target selection final for v0?: No
     """
 
-    name = 'mwm_rv_long_fps'
+    name = 'mwm_bin_rv_long'  # old name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
@@ -162,37 +169,40 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
     priority = None  # priority is set in post_process()
 
     # peewee Model name ---> postgres table name
-    # SDSS_APOGEE_AllStarMerge_r13(CatalogdbModel)--->'sdss_apogeeallstarmerge_r13'
-
+    # SDSS_DR17_APOGEE_Allstarmerge(CatalogdbModel)--->'sdss_dr17_apogee_allstarmerge'
+    # There is no gaia_dr3 in the below query so we do not have to do
+    # major modification of the old query.
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid,
-                         SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                         SDSS_APOGEE_AllStarMerge_r13.nvisits,
-                         SDSS_APOGEE_AllStarMerge_r13.ra.alias('allstarmerge_ra'),
-                         SDSS_APOGEE_AllStarMerge_r13.dec.alias('allstarmerge_dec'),
-                         SDSS_APOGEE_AllStarMerge_r13.pmra.alias('allstarmerge_pmra'),
-                         SDSS_APOGEE_AllStarMerge_r13.pmdec.alias('allstarmerge_pmdec'),
-                         SDSS_APOGEE_AllStarMerge_r13.h,
-                         SDSS_APOGEE_AllStarMerge_r13.baseline,
-                         SDSS_APOGEE_AllStarMerge_r13.fields,
-                         SDSS_APOGEE_AllStarMerge_r13.teff,
-                         SDSS_APOGEE_AllStarMerge_r13.logg)
+                         SDSS_DR17_APOGEE_Allstarmerge.apogee_id,
+                         SDSS_DR17_APOGEE_Allstarmerge.nvisits,
+                         SDSS_DR17_APOGEE_Allstarmerge.ra.alias('allstarmerge_ra'),
+                         SDSS_DR17_APOGEE_Allstarmerge.dec.alias('allstarmerge_dec'),
+                         SDSS_DR17_APOGEE_Allstarmerge.pmra.alias('allstarmerge_pmra'),
+                         SDSS_DR17_APOGEE_Allstarmerge.pmdec.alias('allstarmerge_pmdec'),
+                         SDSS_DR17_APOGEE_Allstarmerge.h,
+                         SDSS_DR17_APOGEE_Allstarmerge.baseline,
+                         SDSS_DR17_APOGEE_Allstarmerge.fields,
+                         SDSS_DR17_APOGEE_Allstarmerge.teff_avg,  # old teff
+                         SDSS_DR17_APOGEE_Allstarmerge.logg_avg,  # old logg
+                         SDSS_DR17_APOGEE_Allstarmerge.dist,
+                         SDSS_DR17_APOGEE_Allstarmerge.dist_src
+                         )
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8,
                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
                  .join(TwoMassPSC,
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_APOGEE_AllStarMerge_r13,
+                 .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_APOGEE_AllStarMerge_r13.apogee_id,
-                                           '2M')))
+                           SDSS_DR17_APOGEE_Allstarmerge.apogee_id))  # old ltrim
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,
-                        SDSS_APOGEE_AllStarMerge_r13.h < 11.5))
+                        SDSS_DR17_APOGEE_Allstarmerge.h < 11.5))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -214,6 +224,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
         if <nn> is less than 6 then
             set <nn> = 6
 
+        Teff means teff_avg of SDSS_DR17_APOGEE_Allstarmerge.
+        logg measn logg_avg of SDSS_DR17_APOGEE_Allstarmerge.
         For priority:
         IF Teff < 4500 AND logg > 4.0 THEN priority = 2510
         ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2520
@@ -223,10 +235,11 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 
         default_priority = 2540
 
-        # teff and logg are from SDSS_APOGEE_AllStarMerge_r13
+        # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
+        # old name was teff, logg
         cursor = self.database.execute_sql(
-            "select catalogid, nvisits, h, teff, logg from " +
-            " sandbox.temp_mwm_rv_long_fps ;")
+            "select catalogid, nvisits, h, teff_avg, logg_avg from " +
+            " sandbox.temp_mwm_bin_rv_long ;")
 
         output = cursor.fetchall()
 
@@ -234,8 +247,8 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_nvisits = output[i][1]
             current_h = output[i][2]
-            current_teff = output[i][3]
-            current_logg = output[i][4]
+            current_teff_avg = output[i][3]
+            current_logg_avg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
             if (nn < 6):
@@ -248,17 +261,17 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " update sandbox.temp_mwm_bin_rv_long " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
-            if (current_logg is not None):
-                if ((current_teff is not None) and (current_teff < 4500) and
-                   (current_logg > 4.0)):
+            if (current_logg_avg is not None):
+                if ((current_teff_avg is not None) and (current_teff_avg < 4500) and
+                   (current_logg_avg > 4.0)):
                     current_priority = 2510
-                elif ((3.5 <= current_logg) and (current_logg <= 4.0)):
+                elif ((3.5 <= current_logg_avg) and (current_logg_avg <= 4.0)):
                     current_priority = 2520
-                elif (current_logg < 3.5):
+                elif (current_logg_avg < 3.5):
                     current_priority = 2530
                 else:
                     current_priority = default_priority
@@ -267,7 +280,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 
             if current_priority is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_rv_long_fps " +
+                    " update sandbox.temp_mwm_bin_rv_long " +
                     " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
 
@@ -298,7 +311,7 @@ class MWM_RV_Long_FPS_Carton(BaseCarton):
 # Pseudo SQL (optional):  SELECT catalog.catalogid,
 # catalog.ra, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
 # catalog.epoch, twomass_psc.h_m, FROM catalog
-# JOIN gaia_dr2_source, twomass_psc, allWise
+# JOIN gaia_dr3_source, twomass_psc, allWise
 # WHERE h_m < 12.8 AND ((j_m-k_m) - (1.5*0.918*(h_m-w2mpro-0.05))) >= 0.5
 # AND (j_msigcom <= 0.1 AND h_msigcom<=0.1 AND k_msigcom <= 0.1) AND w2_sigmpro <=0.1
 # AND (ph_qual= 'AAA' OR ph_qual= 'AAB' OR ph_qual= 'ABA'
@@ -345,13 +358,14 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                            (TwoMassPSC.rd_flg == '221') |
                            (TwoMassPSC.rd_flg == '222')),
                           TwoMassPSC.ext_key >> None,
-                          Gaia_DR2.parallax.is_null(False))
+                          Gaia_DR3.parallax.is_null(False))
 
 
-class MWM_RV_Short_FPS_Carton(BaseCarton):
+class MWM_bin_rv_short_Carton(BaseCarton):
+    # old class name MWM_RV_Short_FPS_Carton(BaseCarton):
     """3.2.2.3. Short Baseline Targets for FPS
 
-    Shorthand name: mwm_rv_short_fps
+    Shorthand name: mwm_bin_rv_short (old name = 'mwm_rv_short_fps')
 
     Simplified Description of selection criteria:
      Select from short-baseline targets (above) with H brighter than 10.8
@@ -377,7 +391,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     Target selection final for v0?: No
     """
 
-    name = 'mwm_rv_short_fps'
+    name = 'mwm_bin_rv_short'  # old name = 'mwm_rv_short_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_18x1'
@@ -385,23 +399,32 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
     mapper = 'MWM'
     priority = None  # priority is set in post_process()
 
+    # This carton i.e. mwm_bin_rv_short does not use SDSS_DR17_APOGEE_Allstarmerge.
+    # There is gaia_dr3 in the below query so we have done
+    # major modification of the old query.
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
-                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         Gaia_DR3.pmra.alias('gaia_dr3_pmra'),
+                         Gaia_DR3.pmdec.alias('gaia_dr3_pmdec'),
                          TwoMassPSC.h_m.alias('twomass_h_m'),
                          TIC_v8.teff,
                          TIC_v8.logg)
                  .join(CatalogToTIC_v8,
                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .switch(Catalog)
+                 .join(CatalogToGaia_DR3,
+                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(Catalog)
+                 .join(CatalogToTwoMassPSC,
+                       on=(Catalog.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC,
+                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .switch(TIC_v8)
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
@@ -435,7 +458,7 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
         # teff and logg are from TIC_v8
         cursor = self.database.execute_sql(
             "select catalogid, teff, logg from " +
-            " sandbox.temp_mwm_rv_short_fps ;")
+            " sandbox.temp_mwm_bin_rv_short ;")
 
         output = cursor.fetchall()
 
@@ -459,6 +482,6 @@ class MWM_RV_Short_FPS_Carton(BaseCarton):
 
             if current_priority is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_rv_short_fps " +
+                    " update sandbox.temp_mwm_bin_rv_short " +
                     " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")

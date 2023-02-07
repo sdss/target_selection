@@ -13,12 +13,13 @@ import peewee
 from astropy.table import Table
 
 # TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
-                                             CatalogToTIC_v8, Gaia_DR2,
-                                             Legacy_Survey_DR8, Panstarrs1,
-                                             TIC_v8, TwoMassPSC)
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC, Gaia_DR2,
+                                             Gaia_DR3, Legacy_Survey_DR8,
+                                             Panstarrs1, TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
@@ -50,7 +51,49 @@ def get_file_carton(filename):
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one cartonname')
+                                           ' contains more than one cartonname')
+
+            unique_can_offset = numpy.unique(self._table['can_offset'])
+            if len(unique_can_offset) > 1:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' contains more than one' +
+                                           ' value of can_offset:' +
+                                           ' can_offset values must be ' +
+                                           ' all 0 or all 1')
+
+            if (unique_can_offset[0] != 1) and (unique_can_offset[0] != 0):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' can_offset can only be 0 or 1.' +
+                                           ' can_offset is ' +
+                                           str(unique_can_offset[0]))
+
+            unique_inertial = numpy.unique(self._table['inertial'])
+            if len(unique_inertial) > 2:
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' contains more than two' +
+                                           ' values of inertial:' +
+                                           ' inertial values must be ' +
+                                           ' 0 or 1')
+
+            if (unique_inertial[0] != 1) and (unique_inertial[0] != 0):
+                raise TargetSelectionError('error in get_file_carton(): ' +
+                                           filename +
+                                           ' inertial can only be 0 or 1.' +
+                                           ' inertial is ' +
+                                           str(unique_inertial[0]))
+
+            # If there is only one inertial value then the above statement
+            # is enough. Otherwise, we need to run the below check.
+            if len(unique_inertial) == 2:
+                if (unique_inertial[1] != 1) and (unique_inertial[1] != 0):
+                    raise TargetSelectionError('error in get_file_carton(): ' +
+                                               filename +
+                                               ' inertial can only be 0 or 1.' +
+                                               ' inertial is ' +
+                                               str(unique_inertial[1]))
 
             # The valid_program list is from the output of the below command.
             # select distinct(program) from targetdb.carton order by program;
@@ -103,12 +146,12 @@ def get_file_carton(filename):
                 if (self.category not in valid_category):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid category = ' +
+                                               ' contains invalid category = ' +
                                                self.category)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one category')
+                                           ' contains more than one category')
 
             unique_program = numpy.unique(self._table['program'])
             if len(unique_program) == 1:
@@ -116,12 +159,12 @@ def get_file_carton(filename):
                 if (self.program not in valid_program):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid program = ' +
+                                               ' contains invalid program = ' +
                                                self.program)
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one program')
+                                           ' contains more than one program')
 
             unique_mapper = numpy.unique(self._table['mapper'])
             if len(unique_mapper) == 1:
@@ -131,14 +174,14 @@ def get_file_carton(filename):
                 if (self.mapper not in valid_mapper):
                     raise TargetSelectionError('error in get_file_carton(): ' +
                                                filename +
-                                               'contains invalid mapper = ' +
+                                               ' contains invalid mapper = ' +
                                                self.mapper)
                 if (self.mapper == ''):
                     self.mapper = None
             else:
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            filename +
-                                           'contains more than one mapper')
+                                           ' contains more than one mapper')
 
             basename_fits = os.path.basename(filename)
             basename_parts = os.path.splitext(basename_fits)
@@ -209,10 +252,17 @@ def get_file_carton(filename):
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
 
-            # TODO
-            # put the query here after gaia_dr3 crossmatch table
-            # like catalog_to_gaia_dr3 is ready
-            query_gaia_dr3 = None
+            query_gaia_dr3 = \
+                (query_common
+                 .join(CatalogToGaia_DR3)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .join(temp,
+                       on=(temp.Gaia_DR3_Source_ID == Gaia_DR3.source_id))
+                 .switch(Catalog)
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        (CatalogToGaia_DR3.best >> True) |
+                        CatalogToGaia_DR3.best.is_null(),
+                        Catalog.version_id == version_id))
 
             query_gaia_dr2 = \
                 (query_common
@@ -253,19 +303,32 @@ def get_file_carton(filename):
 
             query_twomass_psc = \
                 (query_common
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                 .join(CatalogToTwoMassPSC)
+                 .join(TwoMassPSC)
                  .join(temp,
                        on=(temp.TwoMASS_ID == TwoMassPSC.designation))
                  .switch(Catalog)
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        (CatalogToTIC_v8.best >> True) |
-                        CatalogToTIC_v8.best.is_null(),
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
+                        (CatalogToTwoMassPSC.best >> True) |
+                        CatalogToTwoMassPSC.best.is_null(),
                         Catalog.version_id == version_id))
+
+# old before v1 crossmatch
+#             query_twomass_psc = \
+#                 (query_common
+#                  .join(CatalogToTIC_v8,
+#                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+#                  .join(TIC_v8,
+#                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+#                  .join(TwoMassPSC,
+#                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+#                  .join(temp,
+#                        on=(temp.TwoMASS_ID == TwoMassPSC.designation))
+#                  .switch(Catalog)
+#                  .where(CatalogToTIC_v8.version_id == version_id,
+#                         (CatalogToTIC_v8.best >> True) |
+#                         CatalogToTIC_v8.best.is_null(),
+#                         Catalog.version_id == version_id))
 
             len_table = len(self._table)
 
