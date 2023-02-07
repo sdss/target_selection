@@ -231,6 +231,8 @@
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
       min_dec_for_core: -75.0
+      min_gaia_g_for_core: 16.0
+      max_gaia_g_for_core: 21.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -264,6 +266,8 @@
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
       min_dec_for_core: -75.0
+      min_gaia_g_for_core: 16.0
+      max_gaia_g_for_core: 21.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -297,6 +301,8 @@
       min_ero_flux_for_core: 2.0e-14
       min_gal_lat_for_core: 15.0
       min_dec_for_core: -75.0
+      min_gaia_g_for_core: 16.0
+      max_gaia_g_for_core: 21.0
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
@@ -330,6 +336,8 @@
       min_ero_flux_for_core: 1.0e-14
       min_gal_lat_for_core: 15.0
       min_dec_for_core: -90.0
+      min_gaia_g_for_core: 16.0
+      max_gaia_g_for_core: 21.5
       p_any_min: 0.1
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002

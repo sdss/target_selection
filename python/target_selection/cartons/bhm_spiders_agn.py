@@ -542,7 +542,6 @@ class BhmSpidersAgnLsdr10NorthCarton(BhmSpidersAgnLsdr10Carton):
     name = 'bhm_spiders_agn_lsdr10_north'
 
 
-
 class BhmSpidersAgnGaiadr3Carton(BaseCarton):
 
     name = 'bhm_spiders_agn_gaiadr3'
@@ -605,6 +604,8 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
                 (c.dec < self.parameters['min_dec_for_core'], False),
                 (x.ero_flux < self.parameters['min_ero_flux_for_core'], False),
                 (x.ero_det_like < self.parameters['min_det_like_for_core'], False),
+                (g3.phot_g_mean_mag < self.parameters['min_gaia_g_for_core'], False),
+                (g3.phot_g_mean_mag > self.parameters['max_gaia_g_for_core'], False),
             ),
             True)
 
