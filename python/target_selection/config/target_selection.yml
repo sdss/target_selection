@@ -1,3 +1,29 @@
+'1.0.2':
+ xmatch_plan: 1.0.0
+ cartons:
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+ schema: sandbox
+ magnitudes:
+   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+
+'1.0.1':
+ xmatch_plan: 1.0.0
+ cartons:
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+ schema: sandbox
+ magnitudes:
+   h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+   j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+   k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+   bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+   rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+   gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+
 '0.5.23':
  xmatch_plan: 0.5.0
  cartons:
@@ -1700,7 +1726,35 @@
   database_options:
     work_mem: '5GB'
 
-'0.0.0-test':
+'1.0.0-test':
+  xmatch_plan: 1.0.0
+  cartons:
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  parameters:
+    ops_std_boss_lsdr8:
+      mag_ls_r_min: 15.95
+      mag_ls_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.07
+      g_r_dered_nominal: 0.30
+      r_z_dered_nominal: 0.06
+      bp_rp_dered_nominal: 0.66
+      bp_g_dered_nominal: 0.22
+  magnitudes:
+    h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
+    j: [catalog_to_tic_v8, tic_v8, twomass_psc.j_m]
+    k: [catalog_to_tic_v8, tic_v8, twomass_psc.k_m]
+    bp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_bp_mean_mag]
+    rp: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_tic_v8, tic_v8, gaia_dr2_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+
+'0.5.0-test':
   xmatch_plan: 0.5.0
   cartons:
     # - ops_std_boss_tic
