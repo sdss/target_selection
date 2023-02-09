@@ -61,6 +61,10 @@ class MWM_SNC_100pc_Carton(BaseCarton):
             | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8)
         )
 
+        cte = Gaia_DR3.select(Gaia_DR3.source_id).where(
+            Gaia_DR3.parallax > 0,
+            (Gaia_DR3.parallax - Gaia_DR3.parallax_error) > 10).cte('plx_cte', materialized=True)
+
         query = (
             Gaia_DR3.select(
                 CatalogToGaia_DR3.catalogid,
@@ -70,14 +74,13 @@ class MWM_SNC_100pc_Carton(BaseCarton):
                 bb,
             )
             .join(CatalogToGaia_DR3)
-            .where(
-                (Gaia_DR3.parallax - Gaia_DR3.parallax_error) > 10,
-                ((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~(gal_cut),
-            )
+            .join_from(Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id))
+            .where(((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut)
             .where(
                 CatalogToGaia_DR3.version_id == version_id,
                 CatalogToGaia_DR3.best >> True,
             )
+            .with_cte(cte)
         )
 
         if query_region:
@@ -108,13 +111,16 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region=query_region)
-        query.switch(CatalogToGaia_DR3).join(
-            CatalogToTwoMassPSC,
-            on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
-        ).join(TwoMassPSC).where(
-            TwoMassPSC.h_m < 11,
-            CatalogToTwoMassPSC.version_id == version_id,
-            CatalogToTwoMassPSC.best >> True)
+        query = (query
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC)
+                 .where(
+                     CatalogToTwoMassPSC.version_id == version_id,
+                     CatalogToTwoMassPSC.best >> True,
+                     TwoMassPSC.h_m < 11,
+                 ))
 
         return query
 
@@ -129,10 +135,12 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     instrument = 'BOSS'
     priority = 1800
 
-    def post_process(self, model, **kwargs):
+    def build_query(self, version_id, query_region=None):
 
-        # Minimum magnitude cut.
-        model = model.where(model.phot_g_mean_mag > 10)
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 10)
+
+    def post_process(self, model, **kwargs):
 
         # G > 16 => cadence = dark_2x1
         model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
