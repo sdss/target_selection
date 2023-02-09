@@ -165,8 +165,9 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                                                           c.ra, c.dec))
 
         # https://www.legacysurvey.org/dr10/bitmasks/
-        maskbits_andmask = 2**0 + 2**1 + 2**4 + 2**7 + 2**8 + 2**10 + 2**11 + 2**13
-        fitbits_andmask = 2**5 + 2**6 + 2**7 + 2**8 + 2**12
+        maskbits_mask = 2**1 + 2**13
+        # maskbits_mask = 2**0 + 2**1 + 2**4 + 2**7 + 2**8 + 2**10 + 2**11 + 2**13
+        # fitbits_mask = 2**5 + 2**6 + 2**7 + 2**8 + 2**12
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
@@ -223,8 +224,8 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ls.shape_r >= self.parameters['shape_r_min'],
                 gal_lat > self.parameters['min_gal_lat'],
                 ls.ebv < self.parameters['max_ebv'],
-                # (ls.maskbits.bin_and(maskbits_andmask) == 0),  # avoid bad ls data
-                # (ls.fitbits.bin_and(fitbits_andmask) == 0),  # avoid bad ls fits
+                (ls.maskbits.bin_and(maskbits_mask) == 0),  # avoid bad ls data
+                # (ls.fitbits.bin_and(fitbits_mask) == 0),  # avoid bad ls fits
             )
             .distinct(c.catalogid)
         )

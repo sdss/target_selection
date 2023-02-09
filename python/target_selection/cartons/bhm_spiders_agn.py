@@ -183,6 +183,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 
         fiberflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_r_for_cadence1'])
         fiberflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_r_for_cadence2'])
+        fiberflux_i_min_for_cadence1 = AB2nMgy(self.parameters['fibermag_i_for_cadence1'])
+        fiberflux_i_min_for_cadence2 = AB2nMgy(self.parameters['fibermag_i_for_cadence2'])
         gaia_g_max_for_cadence1 = self.parameters['gaia_g_max_for_cadence1']
         gaia_rp_max_for_cadence1 = self.parameters['gaia_rp_max_for_cadence1']
 
@@ -230,6 +232,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                                            fiberflux_i_max_for_core)) |
                    (ls.fiberflux_z.between(fiberflux_z_min_for_core,
                                            fiberflux_z_max_for_core))), False),
+                (ls.maskbits.bin_and(2**13) > 0, False),  # avoid globular clusters+MCs
             ),
             True)
 
@@ -287,11 +290,13 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             (
                 (
                     ((ls.fiberflux_r > fiberflux_r_min_for_cadence1) |
+                     (ls.fiberflux_i > fiberflux_i_min_for_cadence1) |
                      (ls.gaia_phot_g_mean_mag.between(0.1, gaia_g_max_for_cadence1)) |
                      (ls.gaia_phot_rp_mean_mag.between(0.1, gaia_rp_max_for_cadence1))),
                     cadence1),
-                (ls.fiberflux_r > fiberflux_r_min_for_cadence2, cadence2),
-                (ls.fiberflux_r <= fiberflux_r_min_for_cadence2, cadence3),
+                ((ls.fiberflux_r > fiberflux_r_min_for_cadence2) |
+                 (ls.fiberflux_i > fiberflux_i_min_for_cadence2),
+                 cadence2),
             ),
             cadence4)
 
@@ -510,9 +515,11 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                     (ls.fiberflux_z.between(fiberflux_z_min, fiberflux_z_max))
                 ),
                 (x.ero_det_like > self.parameters['det_like_min']),
-                (ls.maskbits.bin_and(2**2 + 2**3 + 2**4) == 0),  # avoid saturated sources
-                (ls.nobs_r > 0),                        # always require r-band coverage
-                ((ls.nobs_g > 0) | (ls.nobs_z > 0)),    # plus at least one other optical band
+                # (ls.maskbits.bin_and(2**2 + 2**3 + 2**4) == 0),  # avoid saturated sources
+                # (ls.maskbits.bin_and(2**1 + 2**13) == 0),  # avoid bright stars and globular clusters
+                (ls.maskbits.bin_and(2) == 0),  # avoid very bright stars
+                # (ls.nobs_r > 0),                        # always require r-band coverage
+                # ((ls.nobs_g > 0) | (ls.nobs_z > 0)),    # plus at least one other optical band
                 # gaia safety checks to avoid bad ls photometry
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
@@ -534,12 +541,12 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 # ##################################################################################
 
 
-# Testing of the North part of lsdr10 (i.e. dr9)
-# we can get away with just inheriting the selection code from
-# the lsdr10 hemisphere match and adjusting the parameters only
-# ##################################################################################
-class BhmSpidersAgnLsdr10NorthCarton(BhmSpidersAgnLsdr10Carton):
-    name = 'bhm_spiders_agn_lsdr10_north'
+# # Testing of the North part of lsdr10 (i.e. dr9)
+# # we can get away with just inheriting the selection code from
+# # the lsdr10 hemisphere match and adjusting the parameters only
+# # ##################################################################################
+# class BhmSpidersAgnLsdr10NorthCarton(BhmSpidersAgnLsdr10Carton):
+#     name = 'bhm_spiders_agn_lsdr10_north'
 
 
 class BhmSpidersAgnGaiadr3Carton(BaseCarton):
