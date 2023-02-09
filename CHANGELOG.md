@@ -1,10 +1,16 @@
 # Changelog
 
+## 1.0.2 - February 8, 2023
+
+### Fixed
+
+* Update tools.py for manual cartons for Gaia DR3
+
 ## 1.0.1 - February 8, 2023
 
 ### Fixed
 
-* Update mwm_yso cartons for v1.0.
+* Update mwm_yso cartons for v1.0
 
 ## 1.0.0 - February 6, 2023
 
