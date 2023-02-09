@@ -12,7 +12,6 @@ import numpy
 import peewee
 from astropy.table import Table
 
-# TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
@@ -334,11 +333,6 @@ def get_file_carton(filename):
 
             len_gaia_dr3 =\
                 len(self._table[self._table['Gaia_DR3_Source_ID'] > 0])
-
-            # TODO remove below check after gaia_dr3 cross match table is ready
-            if (len_gaia_dr3 > 0):
-                raise TargetSelectionError('error in get_file_carton(): ' +
-                                           'len_gaia_dr3 > 0')
 
             len_gaia_dr2 =\
                 len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
