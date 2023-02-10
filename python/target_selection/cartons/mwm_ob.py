@@ -41,7 +41,7 @@ class MWM_OB_Carton(BaseCarton):
             ON g.source_id = xmatch.source_id
         INNER JOIN gaiadr1.tmass_original_valid AS tm
             ON tm.tmass_oid = xmatch.tmass_oid
-        WHERE parallax < power(10., (10. - tm.ks_m) / 5.)
+        WHERE parallax < fn.pow(10, ((10. - tm.ks_m - 0.61) / 5.))
             AND g.phot_g_mean_mag < 16.
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
@@ -49,9 +49,6 @@ class MWM_OB_Carton(BaseCarton):
             AND tm.j_m - tm.h_m > 0.15 * (g.phot_g_mean_mag - tm.ks_m) - 0.15
             AND tm.j_m - tm.ks_m < 0.23 * (g.phot_g_mean_mag - tm.ks_m) + 0.03
             AND g.phot_g_mean_mag > 2 * (g.phot_g_mean_mag - tm.ks_m) + 3.0
-            AND g.phot_g_mean_mag < 2 * (g.phot_g_mean_mag - tm.ks_m) + 11.
-            AND xmatch.angular_distance < 1.
-            AND r.ruwe < 1.4;
 
     Notes:
         - ks_m is the same as twomass_psc.h_m.
@@ -76,6 +73,12 @@ class MWM_OB_Carton(BaseCarton):
 
         query = (Gaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.ra,
+                         Gaia_DR3.dec,
+                         km,
+                         hm,
+                         jm,
+                         Gm,
                          Gaia_dr3_astrophysical_parameters.teff_esphs,
                          Gaia_DR3.parallax,
                          Gaia_DR3.source_id,
@@ -83,6 +86,9 @@ class MWM_OB_Carton(BaseCarton):
                  .join(CatalogToGaia_DR3)
                  .join(CatalogToTwoMassPSC,
                        on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(TwoMassPSC)
+                 .join_from(Gaia_DR3, Gaia_dr3_astrophysical_parameters,
+                            on=(Gaia_dr3_astrophysical_parameters.source_id == Gaia_DR3.source_id))
                  .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToGaia_DR3.version_id == version_id,
