@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 - February 10, 2023
+
+### Fixed
+
+* Update for manual cartons can_offset
+
+
 ## 1.0.2 - February 8, 2023
 
 ### Fixed
