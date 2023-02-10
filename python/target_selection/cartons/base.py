@@ -483,9 +483,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         # Step 3: localise entries with empty magnitudes and use Gaia transformations
         # from Evans et al (2018).
 
-        gaia_G = cdb.Gaia_DR2.phot_g_mean_mag
-        gaia_BP = cdb.Gaia_DR2.phot_bp_mean_mag
-        gaia_RP = cdb.Gaia_DR2.phot_rp_mean_mag
+        gaia_G = cdb.Gaia_DR3.phot_g_mean_mag
+        gaia_BP = cdb.Gaia_DR3.phot_bp_mean_mag
+        gaia_RP = cdb.Gaia_DR3.phot_rp_mean_mag
 
         x = gaia_BP - gaia_RP
         x2 = x * x
@@ -504,16 +504,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
                      gaia_sdss_g.alias('gaia_sdss_g'),
                      gaia_sdss_r.alias('gaia_sdss_r'),
                      gaia_sdss_i.alias('gaia_sdss_i'))
-             .join(cdb.CatalogToTIC_v8, on=(cdb.CatalogToTIC_v8.catalogid == Model.catalogid))
-             .join(cdb.TIC_v8)
-             .join(cdb.Gaia_DR2)
+             .join(cdb.CatalogToGaia_DR3, on=(cdb.CatalogToGaia_DR3.catalogid == Model.catalogid))
+             .join(cdb.Gaia_DR3)
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
-             .where(cdb.CatalogToTIC_v8.best >> True,
-                    cdb.CatalogToTIC_v8.version_id == self.get_version_id())
-             .where(cdb.Gaia_DR2.phot_g_mean_mag.is_null(False))
-             .where(cdb.Gaia_DR2.phot_bp_mean_mag.is_null(False))
-             .where(cdb.Gaia_DR2.phot_rp_mean_mag.is_null(False))
+             .where(cdb.CatalogToGaia_DR3.best >> True,
+                    cdb.CatalogToGaia_DR3.version_id == self.get_version_id())
+             .where(cdb.Gaia_DR3.phot_g_mean_mag.is_null(False))
+             .where(cdb.Gaia_DR3.phot_bp_mean_mag.is_null(False))
+             .where(cdb.Gaia_DR3.phot_rp_mean_mag.is_null(False))
              .create_table(temp_table._path[0], temporary=True))
 
             nrows = (Model.update(
