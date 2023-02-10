@@ -86,6 +86,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
     priority = None
     value = None
     instrument = None
+    can_offset = False
 
     load_magnitudes = True
 
@@ -256,8 +257,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         log.info('Running query ...')
         version_id = self.get_version_id()
 
-        # If build_query accepts a query_region parameter, call with the query
-        # region. Otherwise will add the radial query condition later.
+        # If build_query accepts a query_region parameter, call with the query region.
+        # Otherwise will add the radial query condition later.
         if 'query_region' in self._build_query_signature.parameters:
             query = self.build_query(version_id, query_region=query_region)
         else:
@@ -1023,6 +1024,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
         else:
             select_from = select_from.select_extend(self.priority)
 
+        if self.can_offset is None:
+            select_from = select_from.select_extend(RModel.can_offset)
+        else:
+            select_from = select_from.select_extend(self.can_offset)
+
         if self.value is not None:
             select_from = select_from.select_extend(self.value)
         else:
@@ -1113,6 +1119,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     CartonToTarget.carton_pk,
                     CartonToTarget.cadence_pk,
                     CartonToTarget.priority,
+                    CartonToTarget.can_offset,
                     CartonToTarget.value,
                     CartonToTarget.instrument_pk,
                     CartonToTarget.delta_ra,
