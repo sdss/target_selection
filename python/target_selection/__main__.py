@@ -215,7 +215,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
         else:
             tsmod.log.info('Not loading data into targetdb.target.')
 
-        if write_table:
+        if load and write_table:
             carton.write_table(mode='targetdb')
 
         if not keep:
