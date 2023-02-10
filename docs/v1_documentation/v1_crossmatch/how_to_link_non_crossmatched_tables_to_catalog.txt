@@ -1,0 +1,68 @@
+Tables to be linked to catalogdb.catalog:
+
+bailer_jones_edr3: contains source_id (gaia_dr3_source.source_id) 
+
+bhm_csc_v3: contains gaia_dr3_srcid(gaia_dr3_source.source_id), ls_dr10_lsid(legacy_survey_dr10,ls_id), tmass_designation(twomass_psc.designation)
+
+bhm_rm_v1: contains gaia_dr2_source_id(gaia_dr2_source.source_id), gaia_dr3_source_id(gaia_dr3_source.source_id), ls_id_dr10(legacy_survey_dr10.ls_id), ls_id_dr8(legacy_survey_dr8.ls_id), panstarrs1_catid_objid(panstarrs1.catid_objid). Defined as FK constraints
+
+bhm_spiders_agn_superset, bhm_spiders_clusters_superset: contain gaia_dr2_source_id(gaia_dr2_source.source_id) and ls_id(legacy_survey_dr8.ls_id). Defined as FK constraints
+
+cataclysmic_variables: contains source_id(gaia_dr2_source.source_id)
+
+erosita_superset_agn, erosita_superset_clusters, erosita_superset_compactobjects, erosita_superset_stars: contain gaia_dr2_id(gaia_dr2_source.source_id),   ls_id(legacy_survey_dr8.ls_id), ps1_dr2_id(panstarrs1.catid_objid).
+
+erosita_superset_v1_agn, erosita_superset_v1_clusters, erosita_superset_v1_compactobjects, erosita_superset_v1_stars: containing ls_id (legacy_survey_dr10.ls_id), and gaia_dr3_source_id(gaia_dr3_source.source_id). Defined as foreign-key constraint
+
+gaia_assas_sn_cepheids, gaia_dr2_clean, gaia_dr2_ruwe, gaia_dr2_wd, and elbadry_rix: contain source_id(gaia_dr2_source.source_id). Defined as FK constraint except for the case of gaia_dr2_ruwe.
+
+gaia_unwise_agn: contains gaia_sourceid(gaia_dr2_source.source_id). Defined as FK constraint
+
+gaia_dr3_astrophysical_parameters, gaia_dr3_galaxy_candidates, gaia_dr3_nss_acceleration_astro, gaia_dr3_nss_non_linear_spectro, gaia_dr3_nss_two_body_orbit, gaia_dr3_qso_candidates, gaia_dr3_synthetic_photometry_gspc, gaia_dr3_vari_agn, gaia_dr3_vari_rrlyrae    gaia_dr3_xp_sampled_mean_spectrum, gaia_dr3_xp_summary, gedr3spur_main: All these tables contain source_id column called source_id pointing to gaia_dr3_source.source_id which is defined as an FK constraint (except for gedr3spur_main and gaia_dr3_astrophysical_parameters).
+              
+galah_dr3: contains dr2_source_id(gaia_dr2_source.source_id) and dr3_source_id(gaia_Dr3_source.source_id). Defined as FK constraints
+
+galex_gr7_gaia_dr3: contains gaia_edr3_source_id(gaia_dr3_source.source_id)
+
+hecate_1_1: contains id_2mass(twomass_psc.designation). It also contains sdss_photid that corresponds to sdss_dr13_photoobj.objid and sdss_specid that corresponds to sdss_dr16_specobj.specobjid but those columns are defined as text instead of bigint so probably a transformation to bigint might be needed and removing the values '-'.
+
+lamost_dr6: contains source_id(gaia_dr3_source.source_id)                          
+
+open_fiber: contain at least one of either gaia_dr2_source_id(gaia_dr2_source.source_id), legacysurvey_dr8_id(legacy_survey_dr8.ls_id), or panstarrs_dr2_id(panstarrs1.catid_objid)
+
+ps1_g18: contains objid(panstarrs1.extid_hi_lo)
+
+rave_dr6_gauguin_madera: Can be linked to gaia_dr3_source using column rave_obs_id which corresponds to column original_ext_source_id in tables gaia_dr3_ravedr6_best_neighbour, and gaia_dr3_ravedr6_neighbourhood                                  
+
+sagitta_edr3: contains source_id(gaia_dr3_source.source_id)                
+
+sdss_dr13_photoobj: contains objid(sdss_dr13_photoobj_primary.objid)
+
+sdss_dr16_apogeestar: contains apogee_id, which corresponds to sdss_dr17_apogee_allstarmerge.apogee_id and gaia_source_id corresponding to gaia_source_dr2.source_id. This means that the table can be joined to catalog through sdss_dr17_apogee_allstarmerge or gaia_dr2_source.
+
+sdss_dr16_apogeestarallvisit, and sdss_dr16_apogeestarvisit: contain apstar_id(sdss_dr16_apogeestar.apstar_id), and visit_id(sdss_dr16_apogeevisit.visit_id), which means these tables can be joined to catalog through sdss_dr16_apogeestar. 
+
+sdss_dr16_apogeevisit: contains apogee_id, which corresponds to sdss_dr16_apogeestar.apogee_id which means these tables can be joined to catalog through sdss_dr16_apogeestar. 
+
+sdss_dr16_qso, sdss_dr16_specobj: contain mjd, plate, and fiberid and together that tuple can be joined to sdss_dr19p_speclite, which in turn can be joined to catalog using catalog_to_speclite_dr19p.
+
+sdss_dr17_apogee_allplates: contains column plate that corresponds to sdss_dr17_apogee_allvisits.plate although the last one is text and has leading whitespace. Then sdss_dr17_apogee_allvisits contains apogee_id, which corresponds to sdss_dr17_apogee_allstarmerge.apogee_id and table sdss_dr17_apogee_allstarmerge contains gaia_source_id (gaia_dr3_source.source_id)
+
+sdss_dr17_apogee_allstarmerge: contains gaia_source_id (gaia_dr3_source.source_id)
+
+sdss_dr17_apogee_allvisits: contains apogee_id, which corresponds to sdss_dr17_apogee_allstarmerge.apogee_id and table sdss_dr17_apogee_allstarmerge contains gaia_source_id (gaia_dr3_source.source_id)
+
+
+sdss_dr19p_speclite: can be linked using catalog_from_sdss_dr19p_speclite table done as a post process of crossmatch because given the nature of sdss_dr19p_speclite it couldn't be crossmatched directly in v1. catalog_to_sdss_dr19p_speclite behaves as the relational tables but the "best" column indicates the best catalogid associated with a given target_id (instead of best target_id associated with a given catalogid)
+
+skymapper_dr2: contains allwise_cntr(allwise.cntr), gaia_dr2_id1(gaia_dr2_source.source_id), and gaia_dr2_id1(gaia_dr2_source.source_id). Defined as FK constraints
+
+skymapper_gaia: contains gaia_source_id(gaia_dr2_source.source_id), Defined as FK constraint
+
+tess_toi_v1: contains ticid(tic_v8.id)                                                              
+
+visual_binary_gaia_dr3: columns dr2_source_id1 and dr2_source_id1 correspond to gaia_dr2_source.source_id, while columns source_id1, and source_id2 correspond to gaia_dr3_source.source_id.
+
+wd_gaia_dr3: contains gaiaedr3(gaia_dr3_source.source_id) defined as FK constraint. It also contains a gaiadr2 column.
+
+xpfeh_gaia_dr3: contains source_id(gaia_dr3_source.source_id). Defined as FK constraint

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.2 - February 8, 2023
+
+### Fixed
+
+* Update tools.py for manual cartons for Gaia DR3
+
+## 1.0.1 - February 8, 2023
+
+### Fixed
+
+* Update mwm_yso cartons for v1.0
+
+## 1.0.0 - February 6, 2023
+
+### 🚀 New
+
+* This tag includes the full code used for the cross-match for v1. Target selection code for v1 cartons **is not complete** as of this tag.
+
+
 ## 0.3.23 - November 15, 2022
 
 ### ✨ Improved

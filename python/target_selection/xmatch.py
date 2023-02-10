@@ -382,6 +382,11 @@ class XMatchPlanner(object):
     join_paths : list
         When using path_mode=``config_list`` is the list of paths to link
         tables to output catalog table in phase_1.
+    phase1_range : list
+        List to indicate which tables will be ingested in phase_1 with multiple
+        queries split by pk range instead of using a single query.
+        Each element of this list is a list with the name of the table the
+        minimum pk value, the maximum pk value and the bin width.
     database_options : dict
         A dictionary of database configuration parameters to be set locally
         during each phase transaction, temporarily overriding the default
@@ -405,7 +410,8 @@ class XMatchPlanner(object):
                  start_node=None, query_radius=None, schema='catalogdb',
                  output_table='catalog', log_path='./xmatch_{plan}.log',
                  debug=False, show_sql=False, sample_region=None,
-                 database_options=None, path_mode='full', join_paths=None):
+                 database_options=None, path_mode='full', join_paths=None,
+                 phase1_range=[]):
 
         self.log = target_selection.log
         self.log.header = ''
@@ -470,6 +476,8 @@ class XMatchPlanner(object):
         self._version_id = None
         self._max_cid = self.run_id << RUN_ID_BIT_SHIFT
         self.path_mode = path_mode
+        self.phase1_range = phase1_range
+
         if path_mode == 'config_list':
             join_paths_warning = 'join_paths needed for path_mode=config_list'
             assert join_paths is not None, join_paths_warning
@@ -1407,27 +1415,112 @@ class XMatchPlanner(object):
 
                 with self.database.atomic():
 
-                    temp_model = self._get_relational_model(model, temp=True)
-                    temp_table = temp_model._meta.table_name
-
                     self._setup_transaction(model, phase=1)
+                    inter_name1 = 'phase1_content'
+                    model_pk_class = model_pk.__class__
 
-                    self.log.debug(f'Selecting linked targets into temporary '
-                                   f'table {temp_table!r} with join path '
-                                   f'{path}{self._get_sql(query)}')
-                    query.create_table(temp_table, temporary=True)
+                    class Intermediate1(peewee.Model):
+                        """Model for the intermediate results of phase_1."""
+                        target_id = model_pk_class(null=False, index=True)
+                        catalogid = peewee.BigIntegerField(index=True, null=False)
+                        best = peewee.BooleanField(null=False)
+                        distance = peewee.DoubleField(null=True)
+                        version_id = peewee.SmallIntegerField(null=False, index=True)
+
+                        class Meta:
+                            database = self.database
+                            schema = self.schema
+                            table_name = inter_name1
+                            primary_key = False
+
+                    query_str = self._get_sql(query, return_string=True)
+
+                    range_info = self.phase1_range
+                    range_tables = [el[0] for el in range_info]
+
+                    if table_name not in range_tables:
+                        self.log.debug(f'Selecting linked targets into '
+                                       f'table {self.schema}.{inter_name1} IN PSQL '
+                                       f'with join path {path}{self._get_sql(query)}')
+
+                        sql_file = open('phase1_query.sql', 'w')
+
+                        if self._options['database_options']:
+                            options = self._options['database_options'].copy()
+                            for param in options:
+                                if param == 'maintenance_work_mem':
+                                    continue
+                                value = options[param]
+                                sql_file.write(f'SET {param}={value!r};\n')
+
+                        sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name1};')
+                        sql_file.write(f'CREATE TABLE {self.schema}.{inter_name1} AS (')
+                        sql_file.write(query_str + ');')
+                        sql_file.close()
+
+                        os.system('psql -U sdss -d sdss5db -f '
+                                  'phase1_query.sql -o phase1_output.log')
+
+                    # If the config file indicates that we want to ingest phase_1 by PK range
+                    # Then instead of doing a simple query to create the intermediate result table
+                    # We first create the table and then do multiple queries each with a PK range
+                    # each time inserting the result to the intermediate result table
+
+                    else:
+                        range_info_table = range_info[range_tables.index(table_name)]
+                        low_limit = range_info_table[1]
+                        high_limit = range_info_table[2]
+                        bin_range = range_info_table[3]
+                        first_query = query.where(model_pk < low_limit)
+                        first_query_str = self._get_sql(first_query, return_string=True)
+                        self.log.debug(f'Selecting linked targets into '
+                                       f'table {self.schema}.{inter_name1} IN PSQL BY PK RANGE '
+                                       f'with join path {path} and base (before splitting) query'
+                                       f'{self._get_sql(query)}')
+
+                        sql_file = open('phase1_query.sql', 'w')
+                        sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name1};')
+                        sql_file.write(f'CREATE TABLE {self.schema}.{inter_name1} AS (')
+                        sql_file.write(first_query_str + ');')
+                        sql_file.close()
+
+                        os.system('psql -U sdss -d sdss5db -f phase1_query.sql '
+                                  '-o phase1_output.log')
+
+                        min_id, max_id = low_limit, low_limit + bin_range
+
+                        while max_id <= high_limit:
+                            range_query = query.where(model_pk >= min_id, model_pk < max_id)
+                            range_query_str = self._get_sql(range_query)
+                            sql_file = open('phase1_query.sql', 'w')
+
+                            if self._options['database_options']:
+                                options = self._options['database_options'].copy()
+                                for param in options:
+                                    if param == 'maintenance_work_mem':
+                                        continue
+                                    value = options[param]
+                                    sql_file.write(f'SET {param}={value!r};\n')
+
+                            sql_file.write(f'INSERT INTO {self.schema}.{inter_name1} ')
+                            sql_file.write(range_query_str + ';')
+                            sql_file.close()
+                            os.system('psql -U sdss -d sdss5db -f phase1_query.sql '
+                                      '-o phase1_output.log')
+                            min_id += bin_range
+                            max_id += bin_range
 
                     self.log.debug(f'Copying data into relational model '
                                    f'{rel_model._meta.table_name!r}.')
 
-                    fields = [temp_model.target_id, temp_model.catalogid,
-                              temp_model.version_id, temp_model.best]
+                    fields = [Intermediate1.target_id, Intermediate1.catalogid,
+                              Intermediate1.version_id, Intermediate1.best]
 
                     nids = rel_model.insert_from(
-                        temp_model.select(temp_model.target_id,
-                                          temp_model.catalogid,
-                                          peewee.Value(self._version_id),
-                                          temp_model.best),
+                        Intermediate1.select(Intermediate1.target_id,
+                                             Intermediate1.catalogid,
+                                             peewee.Value(self._version_id),
+                                             Intermediate1.best),
                         fields).returning().execute()
 
             self.log.debug(f'Linked {nids:,} records in'
@@ -1597,10 +1690,29 @@ class XMatchPlanner(object):
                                          fields).returning())
 
                 self.log.debug(f'Inserting cross-matched data into '
-                               f'relational model {rel_table_name!r}'
+                               f'relational model {rel_table_name!r} in PSQL: '
                                f'{self._get_sql(in_query)}')
 
-                n_catalogid = in_query.execute()
+                in_query_str = self._get_sql(in_query, return_string=True)
+
+                sql_file = open('phase2_query.sql', 'w')
+
+                if self._options['database_options']:
+                    options = self._options['database_options'].copy()
+                    for param in options:
+                        if param == 'maintenance_work_mem':
+                            continue
+                        value = options[param]
+                        sql_file.write(f'SET {param}={value!r};\n')
+
+                sql_file.write(in_query_str + ';')
+                sql_file.close()
+
+                os.system('psql -U sdss -d sdss5db -f phase2_query.sql -o phase2_output.log')
+                out_file = open('phase2_output.log', 'r')
+                lines = out_file.readlines()
+                out_file.close()
+                n_catalogid = int(lines[-1].split()[-1])
 
         self.log.debug(f'Cross-matched {TempCatalog._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '
@@ -1675,15 +1787,47 @@ class XMatchPlanner(object):
                 # 1. Run link query and create temporary table with results.
 
                 self._setup_transaction(model, phase=3)
+                inter_name3 = 'phase3_content'
+                model_pk_class = model_pk.__class__
 
-                temp_model = self._get_relational_model(model, temp=True)
-                temp_table = temp_model._meta.table_name
+                class Intermediate3(peewee.Model):
+                    """Model for the intermediate results of phase_3."""
+
+                    catalogid = peewee.BigIntegerField(index=True, null=False)
+                    target_id = model_pk_class(null=False, index=True)
+                    version_id = peewee.SmallIntegerField(null=False, index=True)
+                    best = peewee.BooleanField(null=False)
+                    distance = peewee.DoubleField(null=True)
+
+                    class Meta:
+                        database = self.database
+                        schema = self.schema
+                        table_name = inter_name3
+                        primary_key = False
+
+                unmatched_query_str = self._get_sql(unmatched, return_string=True)
 
                 self.log.debug(f'Selecting unique targets '
-                               f'into temporary table '
-                               f'{temp_table!r}{self._get_sql(unmatched)}')
+                               f'into table '
+                               f'{self.schema}.{inter_name3!r}'
+                               f' in PSLQ: {self._get_sql(unmatched)}')
 
-                unmatched.create_table(temp_table, temporary=True)
+                sql_file = open('phase3_query.sql', 'w')
+
+                if self._options['database_options']:
+                    options = self._options['database_options'].copy()
+                    for param in options:
+                        if param == 'maintenance_work_mem':
+                            continue
+                        value = options[param]
+                        sql_file.write(f'SET {param}={value!r};\n')
+
+                sql_file.write(f'DROP TABLE IF EXISTS {self.schema}.{inter_name3};')
+                sql_file.write(f'CREATE TABLE {self.schema}.{inter_name3} AS (')
+                sql_file.write(unmatched_query_str + ');')
+                sql_file.close()
+
+                os.system('psql -U sdss -d sdss5db -f phase3_query.sql -o phase3_output.log')
 
                 # Analyze the temporary table to gather stats.
                 # self.log.debug('Running ANALYZE on temporary table.')
@@ -1692,14 +1836,14 @@ class XMatchPlanner(object):
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
 
-                fields = [temp_model.catalogid, temp_model.target_id,
-                          temp_model.version_id, temp_model.best]
+                fields = [Intermediate3.catalogid, Intermediate3.target_id,
+                          Intermediate3.version_id, Intermediate3.best]
 
                 rel_insert_query = rel_model.insert_from(
-                    temp_model.select(temp_model.catalogid,
-                                      temp_model.target_id,
-                                      self._version_id,
-                                      peewee.SQL('true')), fields).returning()
+                    Intermediate3.select(Intermediate3.catalogid,
+                                         Intermediate3.target_id,
+                                         self._version_id,
+                                         peewee.SQL('true')), fields).returning()
 
                 self.log.debug(f'Copying data into relational model '
                                f'{rel_table_name!r}'
@@ -1714,7 +1858,7 @@ class XMatchPlanner(object):
                 # 3. Fill out the temporary catalog table with the information
                 #    from the unique targets.
 
-                temp_table = peewee.Table(temp_table)
+                temp_table = peewee.Table(inter_name3)
 
                 fields = [TempCatalog.catalogid,
                           TempCatalog.lead,
@@ -1795,15 +1939,22 @@ class XMatchPlanner(object):
         vacuum_table(self.database, f'{self.schema}.{self.output_table}',
                      vacuum=True, analyze=True)
 
-    def _get_sql(self, query):
+    def _get_sql(self, query, return_string=False):
         """Returns coulourised SQL text for logging."""
 
         query_str, query_params = query.sql()
 
         if query_params:
+            for ind in range(len(query_params)):
+                if type(query_params[ind]) == str:
+                    query_params[ind] = '\'' + query_params[ind] + '\''
+
             query_str = query_str % tuple(query_params)
 
-        if self._options['show_sql']:
+        query_str = query_str.replace('None', 'Null')
+        if return_string:
+            return query_str
+        elif self._options['show_sql']:
             return f': {color_text(query_str, "blue")}'
         else:
             return '.'
