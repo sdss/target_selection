@@ -107,6 +107,7 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
     priority = 1805
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -134,18 +135,172 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     mapper = 'MWM'
     instrument = 'BOSS'
     priority = 1800
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
         query = query.where(Gaia_DR3.phot_g_mean_mag > 10)
 
+        return query
+
     def post_process(self, model, **kwargs):
 
         # G > 16 => cadence = dark_2x1
-        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+        model.update(cadence='boss_dark_2x1').where(model.phot_g_mean_mag > 16).execute()
 
         # G < 16 => cadence = bright_2x1
-        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+        model.update(cadence='boss_bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+
+        return model
+
+
+class MWM_SNC_Ext_Carton(BaseCarton):
+    """MWM Solar Neighbourhood Census extension.
+
+    Shorthand name: mwm_snc_ext_apogee
+    Simplified Description of selection criteria:
+        Above 100pc, apply a linear cut in absolute G-mag and distance to select increasingly
+        more massive stars at larger distances. 2MASS H-band brighter than 11mag.
+        Add some constraints on astrometric excess noise in crowded regions
+        (Galactic plane, LMC, SMC).
+    Pseudo-code:
+        (parallax<10 && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
+          19.125-0.03225*(1000/parallax))  &&
+          ( (astrometric_excess_noise < 2 &&
+            ( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
+              (l>180 && b>-0.139*l + 25 && b <0.139*l - 25) ||
+              (sqrt( pow(l-303.2,2) + 2*pow(b+44.4,2) ) < 5) ||
+              (sqrt( pow(l-280.3,2) + 2*pow(b+33.0,2) ) < 8))) ||
+            !( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
+               (l>180 && b>-0.139*l + 25 && b <0.139*l - 25) ||
+               (sqrt( pow(l-303.2,2) + 2*pow(b+44.4,2) ) < 5) ||
+               (sqrt( pow(l-280.3,2) + 2*pow(b+33.0,2) ) < 8) ) ) && 2MASS_H < 11
+
+
+    Shorthand name: mwm_snc_ext_boss
+    Simplified Description of selection criteria:
+        Above 100pc, apply a linear cut in absolute G-mag and distance to select increasingly
+        more massive stars at larger distances. Gaia G-band fainter than 10mag.
+        Add some constraints on astrometric excess noise in crowded regions
+        (Galactic plane, LMC, SMC).
+    Pseudo-code:
+        ((parallax-parallax_error>10) && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
+          19.125-0.03225*(1000/parallax))  &&
+          ( (astrometric_excess_noise < 2 &&
+            ( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
+              (l>180 && b>-0.139*l + 25 && b <0.139*l - 25) ||
+              (sqrt( pow(l-303.2,2) + 2*pow(b+44.4,2) ) < 5) ||
+              (sqrt( pow(l-280.3,2) + 2*pow(b+33.0,2) ) < 8))) ||
+            !( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
+               (l>180 && b>-0.139*l + 25 && b <0.139*l - 25) ||
+               (sqrt( pow(l-303.2,2) + 2*pow(b+44.4,2) ) < 5) ||
+               (sqrt( pow(l-280.3,2) + 2*pow(b+33.0,2) ) < 8) ) ) && phot_g_mag > 10
+
+    """
+
+    def build_query(self, version_id, query_region=None):
+
+        ll = Gaia_DR3.l
+        bb = Gaia_DR3.b
+
+        # Dense regions (Galactic plane, SMC, LMC).
+        gal_cut = (
+            ((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
+            | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
+            | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
+            | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8)
+        )
+
+        mag_cut = ((Gaia_DR3.phot_g_mean_mag + 5 * fn.log(Gaia_DR3.parallax / 1000) + 5) < 19.125 -
+                   0.03225 * (1000 / Gaia_DR3.parallax))
+
+        query = (
+            Gaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.phot_g_mean_mag,
+                ll,
+                bb,
+            )
+            .join(CatalogToGaia_DR3)
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                Gaia_DR3.parallax > 0,
+                Gaia_DR3.parallax < 10,
+                ((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut,
+                mag_cut
+            )
+        )
+
+        if query_region:
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
+
+        return query
+
+
+class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
+    """SNC extension for APOGEE. See base carton for details."""
+
+    name = 'mwm_snc_ext_apogee'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 1805
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region=query_region)
+        query = (query
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC)
+                 .where(
+                     CatalogToTwoMassPSC.version_id == version_id,
+                     CatalogToTwoMassPSC.best >> True,
+                     TwoMassPSC.h_m < 11
+                 ))
+
+        return query
+
+
+class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_100pc_Carton):
+    """SNC extension for BOSS. See base carton for details."""
+
+    name = 'mwm_snc_ext_boss'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'BOSS'
+    priority = 1800
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 10)
+
+        return query
+
+    def post_process(self, model, **kwargs):
+
+        # G > 16 => cadence = dark_2x1
+        model.update(cadence='boss_dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+
+        # G < 16 => cadence = bright_2x1
+        model.update(cadence='boss_bright_2x1').where(model.phot_g_mean_mag < 16).execute()
 
         return model
