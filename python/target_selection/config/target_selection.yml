@@ -1,7 +1,7 @@
 '1.0.3':
   xmatch_plan: 1.0.0
   cartons:
-  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/manual/
   schema: sandbox
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
