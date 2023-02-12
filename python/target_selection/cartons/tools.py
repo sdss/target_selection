@@ -36,6 +36,8 @@ def get_file_carton(filename):
 
     class FileCarton(BaseCarton):
 
+        can_offset = None  # Will be set in query.
+
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
             self._file_path = filename
@@ -432,8 +434,10 @@ def get_file_carton(filename):
 
             # Early files may not have the can_offset column. If the table has it, extend
             # the select. Otherwise the column will be filled with the default value.
-            if 'can_offset' in self._table:
-                query = query.select_extend(temp.can_offset.alias('can_offset'))
+            if 'can_offset' in self._table.colnames:
+                query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
+            else:
+                self.can_offset = False
 
             return query
 
