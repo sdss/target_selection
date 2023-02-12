@@ -1446,7 +1446,7 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
         return query
 
 
-class MWM_YSO_PMS_APOGEE_Carton_zari18pms(BaseCarton):
+class MWM_YSO_PMS_APOGEE_Zari18pms_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
     Shorthand name: mwm_yso_pms_apogee_zari18pms
@@ -1638,7 +1638,7 @@ class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
-class MWM_YSO_PMS_BOSS_Carton_zari18pms(BaseCarton):
+class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, BOSS
     Shorthand name: mwm_yso_pms_boss_zari18pms
