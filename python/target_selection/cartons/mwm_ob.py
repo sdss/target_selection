@@ -61,7 +61,7 @@ class MWM_OB_Carton(BaseCarton):
     instrument = 'BOSS'
     cadence = 'bright_3x1'
     program = 'mwm_ob'
-    priority = 2910
+    priority = None
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
