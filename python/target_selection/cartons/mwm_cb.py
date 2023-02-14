@@ -102,6 +102,7 @@ class MWM_CB_GALEX_Mag(BaseCarton):
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         fuv_cut,
+                        fuv_mag > -999,
                         G3.parallax > 0,
                         G3.parallax_error > 0,
                         GUVCat.fuv_magerr < 0.3,
