@@ -212,55 +212,44 @@ class MWM_CB_GALEX_Vol(BaseCarton):
 
         priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
-        main = (Gaia_DR3
-                .select(CatalogToGaia_DR3.catalogid,
-                        G3.source_id,
-                        G3.ra,
-                        G3.dec,
-                        ll,
-                        bb,
-                        parallax,
-                        Gm,
-                        nuv_mag,
-                        priority.alias('priority')
-                        )
-                .join(Galex_GR7_Gaia_DR3,
-                      on=(Gaia_DR3.source_id == Galex_GR7_Gaia_DR3.gaia_edr3_source_id))
-                .join(GUVCat,
-                      on=(GUVCat.objid == Galex_GR7_Gaia_DR3.galex_objid))
-                .join_from(Gaia_DR3, BailerJonesEDR3,
-                           on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
-                .join_from(Gaia_DR3, CatalogToGaia_DR3)
-                .join_from(CatalogToGaia_DR3, CatalogToMILLIQUAS_7_7,
-                           join_type=peewee.JOIN.LEFT_OUTER,
-                           on=(CatalogToMILLIQUAS_7_7.catalogid == CatalogToGaia_DR3.catalogid))
-                .join(MILLIQUAS_7_7, join_type=peewee.JOIN.LEFT_OUTER)
-                .where(CatalogToGaia_DR3.version_id == version_id,
-                       CatalogToGaia_DR3.best >> True,
-                       Galex_GR7_Gaia_DR3.galex_separation < 2.5,
-                       (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
-                        ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
-                       poe > 0,
-                       nuv_mag > -999,
-                       nuv_magerr < 0.2,
-                       nuv_magerr > 0,
-                       nuv_cut,
-                       astro_cut,
-                       (r_med_geo <= 1500) | (1000 / parallax <= 1500),
-                       magellanic_cut)
-                .order_by(CatalogToGaia_DR3.catalogid, Galex_GR7_Gaia_DR3.galex_separation)
-                .distinct(CatalogToGaia_DR3.catalogid)
-                .cte('main_query', materialized=True))
-
-        query = (main
-                 .select(main.c.catalogid)
-                 .join(HECATE_1_1,
-                       join_type=peewee.JOIN.LEFT_OUTER,
-                       on=fn.q3c_radial_query(main.c.ra, main.c.dec,
-                                              HECATE_1_1.ra, HECATE_1_1.dec,
-                                              HECATE_1_1.r1 * 60. / 60.))
-                 .where(HECATE_1_1.pgc.is_null())
-                 .with_cte(main))
+        query = (Gaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         G3.source_id,
+                         G3.ra,
+                         G3.dec,
+                         priority.alias('priority'))
+                 .join(Galex_GR7_Gaia_DR3,
+                       on=(Gaia_DR3.source_id == Galex_GR7_Gaia_DR3.gaia_edr3_source_id))
+                 .join(GUVCat,
+                       on=(GUVCat.objid == Galex_GR7_Gaia_DR3.galex_objid))
+                 .join_from(Gaia_DR3, BailerJonesEDR3,
+                            on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
+                 .join_from(Gaia_DR3, CatalogToGaia_DR3)
+                 .join_from(CatalogToGaia_DR3, CatalogToMILLIQUAS_7_7,
+                            join_type=peewee.JOIN.LEFT_OUTER,
+                            on=(CatalogToMILLIQUAS_7_7.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(MILLIQUAS_7_7, join_type=peewee.JOIN.LEFT_OUTER)
+                 .join_from(Gaia_DR3, HECATE_1_1,
+                            join_type=peewee.JOIN.LEFT_OUTER,
+                            on=fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec,
+                                                   HECATE_1_1.ra, HECATE_1_1.dec,
+                                                   HECATE_1_1.r1 * 60. / 60.))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Galex_GR7_Gaia_DR3.galex_separation < 2.5,
+                        (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
+                         ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
+                        HECATE_1_1.pgc.is_null(),
+                        poe > 0,
+                        nuv_mag > -999,
+                        nuv_magerr < 0.2,
+                        nuv_magerr > 0,
+                        nuv_cut,
+                        astro_cut,
+                        (r_med_geo <= 1500) | (1000 / parallax <= 1500),
+                        magellanic_cut)
+                 .order_by(CatalogToGaia_DR3.catalogid, Galex_GR7_Gaia_DR3.galex_separation)
+                 .distinct(CatalogToGaia_DR3.catalogid))
 
         if query_region:
             query = (query
@@ -350,6 +339,7 @@ class MWM_CB_XMMOM(BaseCarton):
                            (G3.pmdec_error * G3.pmdec / pm) * (G3.pmdec_error * G3.pmdec / pm))
         logpmdpm = fn.log(pm / pm_error)
         poe = G3.parallax / G3.parallax_error
+        poe2 = fn.power(poe, 2)
 
         Gm = G3.phot_g_mean_mag
         parallax = G3.parallax
@@ -373,52 +363,44 @@ class MWM_CB_XMMOM(BaseCarton):
         astro_cut = ~((logpmdpm < 0.301) &
                       (poe > (-1.75 * logpmdpm - 2.8)) &
                       (poe < (1.75 * logpmdpm + 2.8)) |
-                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
-                        (poe * poe) / (3.2 * 3.2)) <= 1))
+                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / 0.1089 + poe2 / 10.24) <= 1))
 
         priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
-        main = (Gaia_DR3
-                .select(CatalogToGaia_DR3.catalogid,
-                        G3.source_id,
-                        G3.ra,
-                        G3.dec,
-                        parallax,
-                        Gm,
-                        priority.alias('priority'))
-                .join_from(Gaia_DR3, BailerJonesEDR3,
-                           on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
-                .join_from(Gaia_DR3, CatalogToGaia_DR3)
-                .join_from(CatalogToGaia_DR3, CatalogToMILLIQUAS_7_7,
-                           join_type=peewee.JOIN.LEFT_OUTER,
-                           on=(CatalogToMILLIQUAS_7_7.catalogid == CatalogToGaia_DR3.catalogid))
-                .join(MILLIQUAS_7_7, join_type=peewee.JOIN.LEFT_OUTER)
-                .join_from(CatalogToGaia_DR3, CatalogToXMM_OM_SUSS_5_0,
-                           on=(CatalogToGaia_DR3.catalogid == CatalogToXMM_OM_SUSS_5_0.catalogid))
-                .join(XMM_OM_SUSS_5_0)
-                .where(CatalogToGaia_DR3.version_id == version_id,
-                       CatalogToGaia_DR3.best >> True,
-                       CatalogToXMM_OM_SUSS_5_0.best >> True,
-                       (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
-                        ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
-                       XMM_OM_SUSS_5_0.uvm2_ab_mag >= -100,
-                       (r_med_geo <= 1500) | (1000 / parallax <= 1500),
-                       poe > 0,
-                       qcut,
-                       color_cuts,
-                       astro_cut)
-                .distinct(CatalogToGaia_DR3.catalogid)
-                .cte('main_query', materialized=True))
-
-        query = (main
-                 .select(main.c.catalogid)
-                 .join(HECATE_1_1,
-                       join_type=peewee.JOIN.LEFT_OUTER,
-                       on=fn.q3c_radial_query(main.c.ra, main.c.dec,
-                                              HECATE_1_1.ra, HECATE_1_1.dec,
-                                              HECATE_1_1.r1 * 60. / 60.))
-                 .where(HECATE_1_1.pgc.is_null())
-                 .with_cte(main))
+        query = (Gaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         G3.source_id,
+                         G3.ra,
+                         G3.dec,
+                         priority.alias('priority'))
+                 .join_from(Gaia_DR3, BailerJonesEDR3,
+                            on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
+                 .join_from(Gaia_DR3, CatalogToGaia_DR3)
+                 .join_from(CatalogToGaia_DR3, CatalogToMILLIQUAS_7_7,
+                            join_type=peewee.JOIN.LEFT_OUTER,
+                            on=(CatalogToMILLIQUAS_7_7.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(MILLIQUAS_7_7, join_type=peewee.JOIN.LEFT_OUTER)
+                 .join_from(CatalogToGaia_DR3, CatalogToXMM_OM_SUSS_5_0,
+                            on=(CatalogToGaia_DR3.catalogid == CatalogToXMM_OM_SUSS_5_0.catalogid))
+                 .join(XMM_OM_SUSS_5_0)
+                 .join_from(Gaia_DR3, HECATE_1_1,
+                            join_type=peewee.JOIN.LEFT_OUTER,
+                            on=fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec,
+                                                   HECATE_1_1.ra, HECATE_1_1.dec,
+                                                   HECATE_1_1.r1 * 60. / 60.))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        CatalogToXMM_OM_SUSS_5_0.best >> True,
+                        (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
+                         ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
+                        HECATE_1_1.pgc.is_null(),
+                        (r_med_geo <= 1500) | (1000 / parallax <= 1500),
+                        uvm2 >= -100,
+                        poe > 0,
+                        qcut,
+                        color_cuts,
+                        astro_cut)
+                 .distinct(CatalogToGaia_DR3.catalogid))
 
         if query_region:
             query = (query
