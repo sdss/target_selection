@@ -109,10 +109,13 @@ from target_selection.cartons import BaseCarton
 #
 # ######### end comment for old sdss_apogeeallstarmerge_r13 ##########
 
+# Below we use GaiaEDR3 and not GaiaDR3 since the dist_src column
+# does not have GaiaDR3
+
 mwm_rv_long_condition = (SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
                          SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 6,  # old 3,
                          peewee.fn.trim(SDSS_DR17_APOGEE_Allstarmerge.dist_src) ==
-                         'GaiaDR3',  # old gaia
+                         'GaiaEDR3',
                          (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE_SHORT%') |
                          (SDSS_DR17_APOGEE_Allstarmerge.targflags %
