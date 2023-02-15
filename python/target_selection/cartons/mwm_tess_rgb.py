@@ -129,6 +129,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
                         CatalogToGaia_DR3.best >> True,
                         (TIC_v8.jmag - TIC_v8.kmag) > 0.3,
                         TIC_v8.hmag < 12,
+                        Gaia_DR3.parallax > 0,
                         ((MH <= 1) & (TIC_v8.tmag < 13)) |
                         ((MH > 1) & (MH <= 3) & (TIC_v8.tmag < (-5 * MH + 18)))
                         ))
