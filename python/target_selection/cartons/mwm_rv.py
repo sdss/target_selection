@@ -62,9 +62,10 @@ from target_selection.cartons import BaseCarton
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
 # APOGEE_ID is essentially the same as
 # the “designation” column of the 2MASS PSC;
-# We for sdss_dr17_apogee_allstarmerge we do not
+# For sdss_dr17_apogee_allstarmerge we
 # have to strip off the “2M” in the APOGEE_ID.
-# (old: for sdss_apogeeallstarmerge_r13 we had to strip off the
+# However, some apogee_id values do not have 2M in the front.
+# (old: for sdss_apogeeallstarmerge_r13 we also had to strip off the
 #  “2M” in the APOGEE_ID.)
 # For example:
 # sdss5db=# select designation from  catalogdb.twomass_psc limit 2;
@@ -74,13 +75,20 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id like '2M%';
+#      apogee_id
+# ---------------------
+# 2M00000002+7417074
+# 2M00000019-1924498
+# etc.
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id not like '2M%';
 #    apogee_id
-# ------------------
-#  19140272-1554055
-#  19155129-1617591
-# (2 rows)
-
+# --------------------
+# 19140272-1554055
+# 19155129-1617591
+#
 # ######### start comment for old sdss_apogeeallstarmerge_r13 #######################
 # sdss5db=# select ltrim(apogee_id,'2M') from
 #  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
