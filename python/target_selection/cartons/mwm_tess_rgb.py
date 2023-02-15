@@ -10,7 +10,8 @@ import numpy
 import peewee
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, TIC_v8
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTIC_v8, Gaia_DR3, TIC_v8)
 
 from target_selection.cartons import BaseCarton
 
@@ -39,6 +40,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
     Definition:
 
+    For v0.5
         - Jmag - Kmag > 0.5 (get red stars)
         - Hmag < 12 (get needed SNR w/APOGEE)
         - Tmag < 13 (get detections of oscillations) [Tmag := TESS magnitude]
@@ -46,37 +48,90 @@ class MWM_TESS_RGB_Carton(BaseCarton):
             where: MH = Hmag - 10 + 5.0 * log10(parallax)
             where the parallax is in mas.
 
-    For v0 we'll also add |b|>20
+    For v1
+    remove the |b| > 20 criterion
+    change the J-K limit to 0.3
+    change the MH, Tmag criteria as described below
+    h2exp remains the same, yes!
+
+    Simplified Description of selection criteria:
+
+    Jmag - Kmag > 0.3,
+    Hmag < 12,
+    MH <= 3 where MH=Hmag-10+5.0*log10(parallax)
+    where the parallax is in mas.
+
+    if MH < 1 then Tmag must be  < 13 else Tmag must be < -5*MH+18
+
+    Gaia DR2 parameters to be converted to Gaia DR3:
+    use Gaia DR3 parallaxes instead of Gaia DR2
+
+    use joins tic_v8 → catalog_to_tic_v8 → catalog → catalog_to_gaia_dr3 → gaia_dr3
+
+    Return columns: Unchanged
+
+    Metadata:
+    priority=2820
+    cadence as before
+    can_offset=True
+    instrument=APOGEE
 
     """
 
-    name = 'mwm_tessrgb_core'
+    name = 'mwm_tess_rgb'  # there is an underscore between tess and rgb
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_tessrgb'
+    program = 'mwm_tessrgb'  # there is no underscore between tess and rgb
     instrument = 'APOGEE'
     cadence = None
-    priority = 2800
+    priority = 2820
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
-        MH = TIC_v8.hmag - 10 + 5 * fn.log(TIC_v8.plx)
+        MH = TIC_v8.hmag - 10 + 5 * fn.log(Gaia_DR3.parallax)
 
-        query = (TIC_v8
+# v0.5
+#         query = (TIC_v8
+#                  .select(CatalogToTIC_v8.catalogid,
+#                          TIC_v8.hmag,
+#                          TIC_v8.jmag,
+#                          TIC_v8.kmag,
+#                          TIC_v8.tmag,
+#                          TIC_v8.plx)
+#                  .join(CatalogToTIC_v8)
+#                  .where(CatalogToTIC_v8.version_id == version_id,
+#                         CatalogToTIC_v8.best >> True)
+#                  .where((TIC_v8.jmag - TIC_v8.kmag) > 0.5)
+#                  .where(((TIC_v8.plx > 0) & (MH < 1)) | (TIC_v8.plx < 0),
+#                         fn.abs(TIC_v8.gallat) > 20)
+#                  .where(TIC_v8.hmag < 12)
+#                  .where(TIC_v8.tmag < 13))
+
+        query = (Catalog
                  .select(CatalogToTIC_v8.catalogid,
                          TIC_v8.hmag,
                          TIC_v8.jmag,
                          TIC_v8.kmag,
                          TIC_v8.tmag,
-                         TIC_v8.plx)
-                 .join(CatalogToTIC_v8)
+                         Gaia_DR3.parallax)
+                 .join(CatalogToTIC_v8,
+                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+                 .join(TIC_v8,
+                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+                 .switch(Catalog)
+                 .join(CatalogToGaia_DR3,
+                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(Gaia_DR3,
+                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True)
-                 .where((TIC_v8.jmag - TIC_v8.kmag) > 0.5)
-                 .where(((TIC_v8.plx > 0) & (MH < 1)) | (TIC_v8.plx < 0),
-                        fn.abs(TIC_v8.gallat) > 20)
-                 .where(TIC_v8.hmag < 12)
-                 .where(TIC_v8.tmag < 13))
+                        CatalogToTIC_v8.best >> True,
+                        CatalogToGaia_DR3.best >> True,
+                        (TIC_v8.jmag - TIC_v8.kmag) > 0.3,
+                        TIC_v8.hmag < 12,
+                        ((MH <= 1) & (TIC_v8.tmag < 13)) |
+                        ((MH > 1) & (MH <= 3) & (TIC_v8.tmag < (-5 * MH + 18)))
+                        ))
 
         if query_region:
             query = (query
