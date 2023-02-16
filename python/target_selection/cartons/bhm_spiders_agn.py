@@ -56,6 +56,22 @@ CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 north_gal_pole_ra = 192.85948   # deg, J2000
 north_gal_pole_dec = +27.12825   # deg, J2000
 
+# maskbits to determine if X-ray detection is potentially problematic
+# https://wiki.mpe.mpg.de/eRosita/EroFollowup/SDSSV_data_model#Notes_on_ero_flags_column_carrying_eRASS_quality_flagging_information # noqa
+ero_flags_mask = (
+    0
+    + 2**0  # FLAG_SP_SNR - eRASS source is located in/near a supernova remnant # noqa
+    + 2**1  # FLAG_SP_BPS - eRASS source is located in/near a bright (X-ray?) point source # noqa
+    + 2**2  # FLAG_SP_SCL - eRASS source is located in/near a star cluster # noqa
+    + 2**3  # FLAG_SP_LGA - eRASS source is located in/near a local galaxy # noqa
+    + 2**4  # FLAG_SP_GC - eRASS source is located in/near a globular cluster # noqa
+    + 2**5  # FLAG_SP_GC_CONS - eRASS source is located in/near a globular cluster (conservative criteria) # noqa
+    # + 2**6   # FLAG_NO_RADEC_ERR - eRASS source is missing an estimate of uncertainty on its sky position # noqa
+    # + 2**7   # FLAG_NO_EXT_ERR - eRASS source is missing an estimate of uncertainty on its X-ray extent # noqa
+    # + 2**8   # FLAG_NO_CTS_ERR - eRASS source is missing an estimate of uncertainty on the number of detected X-ray counts # noqa
+    # + 2**9   # FLAG_HARD_SRC   - eRASS source is significantly detected in the 2.3-5keV band (in either eRASS:1 3B or eRASS:3 3B, with DET_LIKE_3 > 8, 30arcsec radius ) # noqa
+)
+
 # ############################################
 # ############################################
 # ############################################
@@ -111,15 +127,17 @@ north_gal_pole_dec = +27.12825   # deg, J2000
            FROM erosita_superset_v1_agn GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat,ero_flux_type;
            ero_version           |  xmatch_method  |      xmatch_version      | opt_cat | ero_flux_type |  count
 ---------------------------------+-----------------+--------------------------+---------+---------------+---------
+ eRASS_s1_3B_221031_poscorr      | XPS/NWAY        | JBJWMS_24Nov22           | lsdr10  | 2.3-5keV      |    3433
  eRASS_s3_1B_220829_poscorr_v006 | XPS/NWAY_EROTDA | JWMS_06Oct22_erotda      | lsdr10  | 0.2-2.3keV    |    9703
- eRASS_s3_1B_221007_poscorr_v007 | indef           | JWMS_21Oct22_cw2020_gedr | gedr3   | 0.2-2.3keV    | 1298743
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_06Feb23_nomask      | lsdr10  | 0.2-2.3keV    | 1974450
  eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr10  | 0.2-2.3keV    | 1895479
  eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22             | lsdr9   | 0.2-2.3keV    |   47172
+ eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_21Oct22_cw2020_gedr | gedr3   | 0.2-2.3keV    | 1298743
  eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22             | gedr3   | 0.2-2.3keV    | 2465166
  eRASS_s3_1B_221007_poscorr_v007 | XPS/NWAY        | JWMS_24Oct22_nomask      | lsdr10  | 0.2-2.3keV    | 1937267
  eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | gedr3   | 0.2-2.3keV    |    2007
  eRASS_s5_V29C                   | XPS/NWAY        | JWTL_Oct22               | lsdr10  | 0.2-2.3keV    |    5207
-(8 rows)
+(10 rows)
 '''
 
 # Notes on avoiding saturated legacysurvey sources
@@ -232,7 +250,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                                            fiberflux_i_max_for_core)) |
                    (ls.fiberflux_z.between(fiberflux_z_min_for_core,
                                            fiberflux_z_max_for_core))), False),
-                (ls.maskbits.bin_and(2**13) > 0, False),  # avoid globular clusters+MCs
+                (ls.maskbits.bin_and(2**13) > 0, False),  # demote globular clusters and MCs
+                (x.ero_flags.bin_and(ero_flags_mask) > 0, False),  # demote problematic X-ray data
             ),
             True)
 
@@ -297,6 +316,9 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 ((ls.fiberflux_r > fiberflux_r_min_for_cadence2) |
                  (ls.fiberflux_i > fiberflux_i_min_for_cadence2),
                  cadence2),
+                ((ls.fiberflux_r < fiberflux_r_min_for_cadence2) &
+                 (ls.fiberflux_i < fiberflux_i_min_for_cadence2),
+                 cadence3),
             ),
             cadence4)
 
@@ -505,7 +527,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             .where(
                 (x.ero_version == self.parameters['ero_version']),
                 (x.xmatch_method == self.parameters['xmatch_method']),
-                (x.xmatch_version == self.parameters['xmatch_version']),
+                ((x.xmatch_version == self.parameters['xmatch_version1']) |
+                 (x.xmatch_version == self.parameters['xmatch_version2'])),
                 ((x.opt_cat == self.parameters['opt_cat1']) |
                  (x.opt_cat == self.parameters['opt_cat2'])),
                 (x.xmatch_metric >= self.parameters['p_any_min']),
@@ -517,7 +540,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 (x.ero_det_like > self.parameters['det_like_min']),
                 # (ls.maskbits.bin_and(2**2 + 2**3 + 2**4) == 0),  # avoid saturated sources
                 # (ls.maskbits.bin_and(2**1 + 2**13) == 0),  # avoid bright stars and globular clusters
-                (ls.maskbits.bin_and(2) == 0),  # avoid very bright stars
+                # always avoid very bright stars, see https://www.legacysurvey.org/dr10/bitmasks/
+                (ls.maskbits.bin_and(2**1) == 0),
                 # (ls.nobs_r > 0),                        # always require r-band coverage
                 # ((ls.nobs_g > 0) | (ls.nobs_z > 0)),    # plus at least one other optical band
                 # gaia safety checks to avoid bad ls photometry
@@ -539,6 +563,13 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 #
 # END BhmSpidersAgnLsdr10Carton
 # ##################################################################################
+
+
+# we can get away with just inheriting the selection code from
+# the lsdr10 hemisphere match and adjusting the parameters only
+# ##################################################################################
+class BhmSpidersAgnHardCarton(BhmSpidersAgnLsdr10Carton):
+    name = 'bhm_spiders_agn_hard'
 
 
 # # Testing of the North part of lsdr10 (i.e. dr9)

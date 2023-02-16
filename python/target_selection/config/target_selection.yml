@@ -128,7 +128,8 @@
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method: 'XPS/NWAY'
-      xmatch_version: 'JWMS_21Oct22'
+      xmatch_version1: 'JWMS_06Feb23_nomask'
+      xmatch_version2: 'JWMS_21Oct22'
       opt_cat1: 'lsdr10'
       opt_cat2: 'lsdr9'
       fibermag_r_min: 13.5
@@ -164,6 +165,52 @@
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
       priority_floor: 1520
+      dpriority_not_hard: 1
+      dpriority_match_flags: 2
+      dpriority_det_like: 4
+      dpriority_has_spec: 200
+      dpriority_non_core: 2000
+    bhm_spiders_agn_hard:
+      value: 1.0
+      ero_version: 'eRASS_s1_3B_221031_poscorr'
+      xmatch_method: 'XPS/NWAY'
+      xmatch_version1: 'JBJWMS_24Nov22'
+      xmatch_version2: ''
+      opt_cat1: 'lsdr10'
+      opt_cat2: ''
+      fibermag_r_min: 13.5
+      fibermag_r_max: 22.5
+      fibermag_i_min: 13.5
+      fibermag_i_max: 22.3
+      fibermag_z_min: 13.5
+      fibermag_z_max: 21.5
+      fibermag_r_min_for_core: 16.5
+      fibermag_r_max_for_core: 22.0
+      fibermag_i_min_for_core: 16.5
+      fibermag_i_max_for_core: 21.8
+      fibermag_z_min_for_core: 16.5
+      fibermag_z_max_for_core: 21.0
+      fibermag_r_for_cadence1: 16.5
+      fibermag_r_for_cadence2: 19.0
+      fibermag_i_for_cadence1: 16.3
+      fibermag_i_for_cadence2: 18.7
+      gaia_g_max_for_cadence1: 16.0
+      gaia_rp_max_for_cadence1: 16.0
+      gaia_g_mag_limit: 13.5
+      gaia_rp_mag_limit: 13.5
+      cadence1: 'bright_2x1'
+      cadence2: 'dark_1x2'
+      cadence3: 'dark_1x4'
+      det_like_min: 12.0
+      det_like_for_priority: 12.0
+      min_det_like_for_core: 12.0
+      min_ero_flux_for_core: 0.0
+      min_gal_lat_for_core: 10.0
+      min_dec_for_core: -75.0
+      p_any_min: 0.01
+      spec_sn_thresh: 1.60
+      spec_z_err_thresh: 0.002
+      priority_floor: 1510
       dpriority_not_hard: 1
       dpriority_match_flags: 2
       dpriority_det_like: 4
@@ -207,7 +254,7 @@
     bhm_spiders_agn_gaiadr3_viacw2020:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
-      xmatch_method1: 'indef'
+      xmatch_method1: 'XPS/NWAY'
       xmatch_method2: ''
       xmatch_version1: 'JWMS_21Oct22_cw2020_gedr'
       xmatch_version2: ''
