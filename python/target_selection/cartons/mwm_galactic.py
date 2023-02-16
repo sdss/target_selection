@@ -109,10 +109,12 @@ class MWM_Galactic_Core_Carton(BaseCarton):
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 11,
-                        (TwoMassPSC.ph_qual[1] == 'A') | (TwoMassPSC.ph_qual[1] == 'B'),
+                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
+                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
                         TwoMassPSC.gal_contam == 0,
-                        TwoMassPSC.cc_flg[1] == 0,
-                        (TwoMassPSC.rd_flg[1] > 0) & (TwoMassPSC.rd_flg[1] <= 3),
+                        peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == '0',
+                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') > 0) &
+                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') <= 3),
                         ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 3.5) |
                         (Gaia_DR3.phot_g_mean_mag >> None)))
 
