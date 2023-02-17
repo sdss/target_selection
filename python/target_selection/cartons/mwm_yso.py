@@ -1147,11 +1147,12 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
             .distinct(CatalogToTwoMassPSC.catalogid)
             .where(CatalogToTwoMassPSC.version_id == version_id,
                    CatalogToTwoMassPSC.best >> True,
-                   CatalogToGaia_DR3.best >> True,
                    MIPSGAL.hmag < 13,
                    (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
-                   (Gaia_DR3.parallax < 0.2) |
+                   ((Gaia_DR3.parallax < 0.2) & (CatalogToGaia_DR3.best >> True)) |
                    (Gaia_DR3.parallax >> None)))
+        # above condition (Gaia_DR3.parallax >> None) ensures that
+        # that we get the rows from the left outer join
 
         if query_region:
             query = (query
