@@ -371,7 +371,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
         if query_region:
             query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
+                     .join_from(CatalogToTwoMassPSC, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
