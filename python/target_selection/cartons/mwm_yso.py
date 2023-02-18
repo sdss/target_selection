@@ -355,9 +355,6 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToAllWise.best >> True,
                         TwoMassPSC.h_m < 13,
-                        (Gaia_DR3.phot_g_mean_mag > 18.5) &
-                        (CatalogToGaia_DR3.best >> True) |
-                        (Gaia_DR3.phot_g_mean_mag >> None),
                         (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
                         (AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5,
                         (AllWise.w1mpro - AllWise.w2mpro) > 0.50,
@@ -366,7 +363,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         (AllWise.w3mpro - AllWise.w4mpro) >
                         ((AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1),
                         (AllWise.h_m_2mass - AllWise.k_m_2mass) >
-                        (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)))
+                        (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25),
+                        ((Gaia_DR3.phot_g_mean_mag > 18.5) & (CatalogToGaia_DR3.best >> True)) |
+                        (Gaia_DR3.phot_g_mean_mag >> None)))
         # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
         # we get the rows from the left outer join
 
