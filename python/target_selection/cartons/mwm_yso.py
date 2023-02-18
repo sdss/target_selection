@@ -326,8 +326,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
+        query = (CatalogToTwoMassPSC
+                 .select(CatalogToTwoMassPSC.catalogid,
+                         Gaia_DR3.source_id,
                          Gaia_DR3.ra.alias('gaia_dr3_ra'),
                          Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          TwoMassPSC.pts_key,
@@ -338,21 +339,24 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                          TwoMassPSC.j_m, TwoMassPSC.h_m,
                          TwoMassPSC.k_m,
                          Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .join(TwoMassPSC,
+                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .switch(CatalogToTwoMassPSC)
+                 .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
+                       on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(Gaia_DR3,
+                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .switch(CatalogToGaia_DR3)
                  .join(CatalogToAllWise,
                        on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
                  .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
+                 .distinct(CatalogToTwoMassPSC.catalogid)
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToAllWise.best >> True,
                         TwoMassPSC.h_m < 13,
-                        (Gaia_DR3.phot_g_mean_mag > 18.5) |
+                        (Gaia_DR3.phot_g_mean_mag > 18.5) &
+                        (CatalogToGaia_DR3.best >> True) |
                         (Gaia_DR3.phot_g_mean_mag >> None),
                         (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
                         (AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5,
@@ -363,6 +367,8 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         ((AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1),
                         (AllWise.h_m_2mass - AllWise.k_m_2mass) >
                         (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)))
+        # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
+        # we get the rows from the left outer join
 
         if query_region:
             query = (query
