@@ -355,8 +355,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .distinct(CatalogToTwoMassPSC.catalogid)
                  .where(CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToAllWise.best >> True,
+                        CatalogToTwoMassPSC.best >> True,  # See below for CatalogToGaia_DR3.best
+                        (CatalogToAllWise.best >> True) |
+                        (CatalogToAllWise.best >> None),
                         TwoMassPSC.h_m < 13,
                         ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0) |
                         AllWise.j_m_2mass >> None,
@@ -1163,7 +1164,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
                   on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .distinct(CatalogToTwoMassPSC.catalogid)
             .where(CatalogToTwoMassPSC.version_id == version_id,
-                   CatalogToTwoMassPSC.best >> True,
+                   CatalogToTwoMassPSC.best >> True,  # See below for CatalogToGaia_DR3.best
                    MIPSGAL.hmag < 13,
                    (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
                    ((Gaia_DR3.parallax < 0.2) & (CatalogToGaia_DR3.best >> True)) |
