@@ -1147,7 +1147,7 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
             .switch(CatalogToTwoMassPSC)
             .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
                   on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
-            .join(Gaia_DR3,
+            .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
                   on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .distinct(CatalogToTwoMassPSC.catalogid)
             .where(CatalogToTwoMassPSC.version_id == version_id,
