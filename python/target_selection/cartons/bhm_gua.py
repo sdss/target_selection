@@ -16,13 +16,13 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     CatalogToGaia_DR2,
     Gaia_DR2,
-    CatalogToSDSS_DR19p_Speclite,
+    CatalogFromSDSS_DR19p_Speclite,
     SDSS_DR19p_Speclite,
     Gaia_unWISE_AGN,
 )
 # DEBUG STUFF TO USE TEMP TABLE
-CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
-CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
 
@@ -110,7 +110,7 @@ class BhmGuaBaseCarton(BaseCarton):
 
         # SDSS DR19p
         # downslect only 'good' spectra
-        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s19 = CatalogFromSDSS_DR19p_Speclite.alias()
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(

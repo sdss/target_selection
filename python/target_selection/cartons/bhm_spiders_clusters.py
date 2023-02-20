@@ -14,7 +14,7 @@ from peewee import fn
 
 
 from target_selection.cartons.base import BaseCarton
-from target_selection.mag_flux import AB2nMgy, AB2Jy
+from target_selection.mag_flux import AB2nMgy  # , AB2Jy
 
 # general catalogdb imports
 from sdssdb.peewee.sdss5db.catalogdb import (
@@ -24,7 +24,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 
 # imports of existing spectro catalogues
 from sdssdb.peewee.sdss5db.catalogdb import (
-    CatalogToSDSS_DR19p_Speclite,
+    CatalogFromSDSS_DR19p_Speclite,
     SDSS_DR19p_Speclite,
 )
 
@@ -41,8 +41,8 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 # )
 
 # DEBUG STUFF TO USE TEMP TABLE
-CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
-CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 # Details: Start here
 # https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
@@ -140,7 +140,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
 
         # SDSS DR19p
         # downslect only 'good' spectra
-        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s19 = CatalogFromSDSS_DR19p_Speclite.alias()
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(

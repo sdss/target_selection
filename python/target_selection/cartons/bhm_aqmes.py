@@ -19,12 +19,12 @@ from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
     SDSS_DR19p_Speclite,
     SDSS_DR16_QSO,
-    CatalogToSDSS_DR19p_Speclite,
+    CatalogFromSDSS_DR19p_Speclite,
 )
 
 # DEBUG STUFF TO USE TEMP TABLE
-CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
-CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
 
@@ -132,7 +132,7 @@ class BhmAqmesBaseCarton(BaseCarton):
     # main query
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2s = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s = CatalogFromSDSS_DR19p_Speclite.alias()
         s = SDSS_DR19p_Speclite.alias()
         t = SDSS_DR16_QSO.alias()
         self.alias_c = c

@@ -12,7 +12,7 @@ from peewee import JOIN, fn
 from sdssdb.peewee.sdss5db.catalogdb import (
     BHM_CSC_v3,
     CatalogToPanstarrs1,
-    CatalogToSDSS_DR19p_Speclite,
+    CatalogFromSDSS_DR19p_Speclite,
     CatalogToGaia_DR3,
     CatalogToLegacy_Survey_DR10,
     Panstarrs1,
@@ -27,8 +27,8 @@ from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2Jy, AB2nMgy
 
 # DEBUG STUFF TO USE TEMP TABLE
-CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
-CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 # Details: Start here
 # https://wiki.sdss.org/display/OPS/Cartons+for+v0.5#Cartonsforv0.5-BHMCSC # noqa: E501
@@ -112,7 +112,7 @@ class BhmCscBossCarton(BaseCarton):
 
         # SDSS DR19p
         # downslect only 'good' spectra
-        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s19 = CatalogFromSDSS_DR19p_Speclite.alias()
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(
@@ -202,7 +202,7 @@ class BhmCscBossCarton(BaseCarton):
             .where(
                 (
                     (x.best_oir_cat == 'gdr3') &
-                    (g3.phot_g_mean_mag.between(gaia_g_mag_min,gaia_g_mag_max))
+                    (g3.phot_g_mean_mag.between(gaia_g_mag_min, gaia_g_mag_max))
                 ) |
                 (
                     (x.best_oir_cat == 'lsdr10') &

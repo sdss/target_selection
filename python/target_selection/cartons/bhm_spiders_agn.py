@@ -24,7 +24,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 
 # imports of existing spectro catalogue
 from sdssdb.peewee.sdss5db.catalogdb import (
-    CatalogToSDSS_DR19p_Speclite,
+    CatalogFromSDSS_DR19p_Speclite,
     SDSS_DR19p_Speclite,
 )
 # additional imports required by bhm_spiders_agn_lsdr10
@@ -49,8 +49,8 @@ from target_selection.mag_flux import AB2nMgy
 # from target_selection.mag_flux import AB2Jy
 
 # DEBUG STUFF TO USE TEMP TABLE
-CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
-CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 # used by cartons that need to compute Galactic latitude:
 north_gal_pole_ra = 192.85948   # deg, J2000
@@ -213,7 +213,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 
         # SDSS DR19p
         # first downslect only 'good' spectra
-        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s19 = CatalogFromSDSS_DR19p_Speclite.alias()
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(
@@ -303,7 +303,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
         cadence1 = self.parameters['cadence1']
         cadence2 = self.parameters['cadence2']
         cadence3 = self.parameters['cadence3']
-        cadence4 = 'unknown_cadence'
+        # cadence4 = 'unknown_cadence'
         cadence = peewee.Case(
             None,
             (
@@ -316,11 +316,12 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 ((ls.fiberflux_r > fiberflux_r_min_for_cadence2) |
                  (ls.fiberflux_i > fiberflux_i_min_for_cadence2),
                  cadence2),
-                ((ls.fiberflux_r < fiberflux_r_min_for_cadence2) &
-                 (ls.fiberflux_i < fiberflux_i_min_for_cadence2),
-                 cadence3),
+                #  ((ls.fiberflux_r < fiberflux_r_min_for_cadence2) &
+                #   (ls.fiberflux_i < fiberflux_i_min_for_cadence2),
+                #    cadence3),
             ),
-            cadence4)
+            cadence3)
+        #    cadence4)
 
         # compute transformed SDSS mags for pointlike and extended sources separately
         # transform the legacysurvey grz into sdss psfmag griz
@@ -613,7 +614,7 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
 
         # SDSS DR19p
         # downslect only 'good' spectra
-        c2s19 = CatalogToSDSS_DR19p_Speclite.alias()
+        c2s19 = CatalogFromSDSS_DR19p_Speclite.alias()
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(
