@@ -318,7 +318,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
 
     Implementation v1.0:
     Simplified Description of selection criteria selection of YSOs,
-    brighter than H<13, fainter than G>15 or without gaia detection,
+    brighter than H<13, fainter than G>18.5 or without gaia detection,
     colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
     and relates (W3-W4)>(W1-W2)*0.5+1.1,
     and (H-K)>0.65*(J-H)-0.25
@@ -375,7 +375,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         (CatalogToGaia_DR3.best >> True) |
                         (CatalogToGaia_DR3.best >> None),
                         TwoMassPSC.h_m < 13,
-                        (Gaia_DR3.phot_g_mean_mag > 15.0) |
+                        (Gaia_DR3.phot_g_mean_mag > 18.5) |
                         (Gaia_DR3.phot_g_mean_mag >> None),
                         ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 0.5) |
                         AllWise.j_m_2mass >> None,
