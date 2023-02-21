@@ -40,6 +40,7 @@ from target_selection.mag_flux import AB2Jy
 # The below link has more details:
 # https://www.postgresql.org/docs/12/functions-math.html
 
+
 class OPS_BOSS_Stds_Carton(BaseCarton):
     """
     Shorthand name: ops_boss_stds
