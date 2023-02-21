@@ -370,14 +370,14 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                  .distinct(CatalogToTwoMassPSC.catalogid)
                  .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,  # See below for CatalogToGaia_DR3.best
-                        (CatalogToAllWise.best >> True) |
-                        (CatalogToAllWise.best >> None),
-                        (CatalogToGaia_DR3.best >> True) |
-                        (CatalogToGaia_DR3.best >> None),
+                        # (CatalogToAllWise.best >> True) |
+                        # (CatalogToAllWise.best >> None),
+                        # (CatalogToGaia_DR3.best >> True) |
+                        # (CatalogToGaia_DR3.best >> None),
                         TwoMassPSC.h_m < 13,
                         (Gaia_DR3.phot_g_mean_mag > 18.5) |
                         (Gaia_DR3.phot_g_mean_mag >> None),
-                        ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 0.5) |
+                        ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0) |
                         AllWise.j_m_2mass >> None,
                         ((AllWise.w1mpro - AllWise.w2mpro) > 0.50) |
                         AllWise.w1mpro >> None,
