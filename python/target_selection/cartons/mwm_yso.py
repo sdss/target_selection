@@ -348,9 +348,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                        on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
                  .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
                        on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
+                 .switch(CatalogToTwoMassPSC)
                  .join(CatalogToAllWise, peewee.JOIN.LEFT_OUTER,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+                       on=(CatalogToTwoMassPSC.catalogid == CatalogToAllWise.catalogid))
                  .join(AllWise, peewee.JOIN.LEFT_OUTER,
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .distinct(CatalogToTwoMassPSC.catalogid)
