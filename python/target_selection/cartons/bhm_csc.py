@@ -174,7 +174,7 @@ class BhmCscBossCarton(BaseCarton):
                 ls.fiberflux_i.alias('ls_fiberflux_i'),  # extra
                 ps.r_stk_psf_flux.alias('ps_r_stk_psf_flux'),  # extra
                 ps.i_stk_psf_flux.alias('ps_i_stk_psf_flux'),  # extra
-                s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
+                c2s19.target_id.alias('sdss_dr19p_speclite_pk'),  # extra
             )
             .join(g3, join_type=JOIN.LEFT_OUTER,
                   on=(x.gaia_dr3_srcid == g3.source_id))
