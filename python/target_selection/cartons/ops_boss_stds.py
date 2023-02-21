@@ -18,6 +18,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 from target_selection.cartons import BaseCarton
 from target_selection.mag_flux import AB2Jy
 
+
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py

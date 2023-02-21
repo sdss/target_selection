@@ -9,8 +9,8 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,  # CatalogToTIC_v8,
-                                             CatalogToGaia_DR3,
+from sdssdb.peewee.sdss5db.catalogdb import Catalog  # CatalogToTIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3,
                                              EROSITASupersetv1Compactobjects,
                                              EROSITASupersetv1Stars, Gaia_DR3)
 
