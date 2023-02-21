@@ -10,14 +10,17 @@ import peewee
 
 # additional imports required by ops_boss_stds_ps1dr2
 from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog, CatalogToLegacy_Survey_DR8, CatalogToPanstarrs1,
-    CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8, Gaia_DR2,
-    Legacy_Survey_DR8, Panstarrs1, TIC_v8, TwoMassPSC, eBOSS_Target_v5,
-    CatalogToLegacy_Survey_DR10, Legacy_Survey_DR10)
-#    Catalog_ToGaiaDR3, Gaia_DR3)
+    Catalog, CatalogToLegacy_Survey_DR8, CatalogToLegacy_Survey_DR10,
+    CatalogToPanstarrs1, CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8,
+    Gaia_DR2, Legacy_Survey_DR8, Legacy_Survey_DR10, Panstarrs1, TIC_v8,
+    TwoMassPSC, eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 from target_selection.mag_flux import AB2Jy
+
+
+#    Catalog_ToGaiaDR3, Gaia_DR3)
+
 
 
 # See catalog.py for the name of peewee model names corresponding

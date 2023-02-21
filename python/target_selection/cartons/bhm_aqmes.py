@@ -9,8 +9,8 @@
 # isort: skip_file
 
 import peewee
-from peewee import JOIN
-from peewee import fn
+# from peewee import JOIN
+# from peewee import fn
 from astropy.io import fits
 import pkg_resources
 

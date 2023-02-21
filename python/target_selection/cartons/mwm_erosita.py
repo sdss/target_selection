@@ -9,18 +9,18 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             # CatalogToTIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,  # CatalogToTIC_v8,
                                              CatalogToGaia_DR3,
                                              EROSITASupersetv1Compactobjects,
-                                             EROSITASupersetv1Stars,
-                                             Gaia_DR3,)
-                                             # TIC_v8,
-                                             #TwoMassPSC)
-
+                                             EROSITASupersetv1Stars, Gaia_DR3)
 
 from target_selection.cartons import BaseCarton
-from target_selection.exceptions import TargetSelectionError
+
+
+# TIC_v8,
+# TwoMassPSC)
+
+# from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
@@ -241,7 +241,7 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     FROM catalog c
     INNER JOIN catalog_to_gaia_dr3_source c2g3 USING (catalogid)
     INNER JOIN gaia_dr3_source gaia ON gaia.source_id = c2g3.target_id
-    INNER JOIN erosita_superset_v1_compactobjects estars ON estars.gaia_dr3_source_id = gaia.source_id
+    INNER JOIN erosita_superset_v1_compactobjects estars ON estars.gaia_dr3_source_id = gaia.source_id  # noqa
     WHERE (c2g3.version_id = 31) AND /* control version! */
     (c2g3.best is true) AND /* and enforce unique-ish crossmatch */
     estars.xmatch_method = 'NWAY_CV' AND

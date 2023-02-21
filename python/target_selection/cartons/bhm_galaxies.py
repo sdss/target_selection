@@ -8,11 +8,9 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToLegacy_Survey_DR10,
-    Legacy_Survey_DR10,
-)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             CatalogToLegacy_Survey_DR10,
+                                             Legacy_Survey_DR10)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy

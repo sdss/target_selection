@@ -122,6 +122,7 @@ ero_flags_mask = (
 # EXT_ALT     0x01000000  16777216 extended in external data (eg, 2MASS)
 
 '''
+# noqa
 # Notes on how many targets to expect:
  sdss5db=> SELECT ero_version,xmatch_method,xmatch_version,opt_cat,ero_flux_type,count(*)
            FROM erosita_superset_v1_agn GROUP BY ero_version,xmatch_method,xmatch_version,opt_cat,ero_flux_type;
@@ -540,7 +541,8 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
                 ),
                 (x.ero_det_like > self.parameters['det_like_min']),
                 # (ls.maskbits.bin_and(2**2 + 2**3 + 2**4) == 0),  # avoid saturated sources
-                # (ls.maskbits.bin_and(2**1 + 2**13) == 0),  # avoid bright stars and globular clusters
+                # avoid bright stars and globular clusters:
+                # (ls.maskbits.bin_and(2**1 + 2**13) == 0),
                 # always avoid very bright stars, see https://www.legacysurvey.org/dr10/bitmasks/
                 (ls.maskbits.bin_and(2**1) == 0),
                 # (ls.nobs_r > 0),                        # always require r-band coverage
@@ -845,7 +847,7 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
                 (x.ero_version == self.parameters['ero_version']),
                 ((x.xmatch_method == self.parameters['xmatch_method1']) |
                  (x.xmatch_method == self.parameters['xmatch_method2'])),
-                ((x.xmatch_version == self.parameters['xmatch_version1'])|
+                ((x.xmatch_version == self.parameters['xmatch_version1']) |
                  (x.xmatch_version == self.parameters['xmatch_version2'])),
                 (x.opt_cat == self.parameters['opt_cat']),
                 (x.xmatch_metric >= self.parameters['p_any_min']),

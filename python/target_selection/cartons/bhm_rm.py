@@ -25,14 +25,12 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 )
 
 
-#  This module provides the following BHM cartons in v05:
+#  This module provides the following BHM cartons in v1.0:
 #  bhm_rm_core
 #  bhm_rm_known_spec
 #  bhm_rm_var
 #  bhm_rm_ancillary
-
-#pmsig_min = -3.0
-#plxsig_min = -3.0
+#  bhm_rm_xrayqso
 
 
 class BhmRmBaseCarton(BaseCarton):

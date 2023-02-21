@@ -9,22 +9,18 @@
 import peewee
 from peewee import JOIN, fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (
-    BHM_CSC_v3,
-    CatalogToPanstarrs1,
-    CatalogFromSDSS_DR19p_Speclite,
-    CatalogToGaia_DR3,
-    CatalogToLegacy_Survey_DR10,
-    Panstarrs1,
-    SDSS_DR19p_Speclite,
-    Gaia_DR3,
-    Legacy_Survey_DR10,
-    TwoMassPSC,
-    CatalogToTwoMassPSC,
-)
+from sdssdb.peewee.sdss5db.catalogdb import (BHM_CSC_v3,
+                                             CatalogFromSDSS_DR19p_Speclite,
+                                             CatalogToGaia_DR3,
+                                             CatalogToLegacy_Survey_DR10,
+                                             CatalogToPanstarrs1,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
+                                             Legacy_Survey_DR10, Panstarrs1,
+                                             SDSS_DR19p_Speclite, TwoMassPSC)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2Jy, AB2nMgy
+
 
 # DEBUG STUFF TO USE TEMP TABLE
 # CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
