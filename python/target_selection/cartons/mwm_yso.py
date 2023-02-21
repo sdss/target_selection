@@ -282,11 +282,12 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     old shorthand name: mwm_yso_s2
 
     Simplified Description of selection criteria:
+    v1.0
     selection of YSOs, brighter than H<13, fainter than G>15 or
     without gaia detection,
     colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
      relates (W3-W4)>(W1-W2)*0.5+1.1
-     (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1
+     (H-K)>0.65*(J-H)-0.25
     Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
     https://wiki.sdss.org/pages/viewpage.action?spaceKey=OPS&title=Cartons+for+v1.0
@@ -303,9 +304,10 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     cadence options for these targets
     (list all options,
     even though no single target will receive more than one):
-    v0.5
+
     Pseudo SQL (optional):
-    Implementation: h_m<13 and
+    Implementation v0.5:
+    h_m<13 and
     (phot_g_mean_mag>18.5 or phot_g_mean_mag is null)
     and j_m-h_m>1
     and h_m-ks_m>0.5
@@ -313,11 +315,8 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     and w2mpro-w3mpro>1
     and w3mpro-w4mpro>1.5
     and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
-    
-    v1.0
-    Shorthand name:  mwm_yso_embedded_apogee
-    Existing carton code
-    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_yso.py
+
+    Implementation v1.0:
     Simplified Description of selection criteria selection of YSOs,
     brighter than H<13, fainter than G>15 or without gaia detection,
     colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
