@@ -286,7 +286,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     selection of YSOs, brighter than H<13, fainter than G>15 or
     without gaia detection,
     colors J-H>1.0, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
-     relates (W3-W4)>(W1-W2)*0.5+1.1
+     relates (W3-W4)>(W1-W2)*0.8+1.1
      (H-K)>0.65*(J-H)-0.25
     Wiki page:
     https://wiki.sdss.org/display/MWM/YSO+selection+function
@@ -319,8 +319,11 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     Implementation v1.0:
     Simplified Description of selection criteria selection of YSOs,
     brighter than H<13, fainter than G>18.5 or without gaia detection,
-    colors J-H>1.0, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
-    and relates (W3-W4)>(W1-W2)*0.5+1.1,
+    colors J-H>1.0,
+    W1-W2>0.5,
+    W2-W3>1,
+    W3-W4>1.5,
+    and relates (W3-W4)>(W1-W2)*0.8+1.1,
     and (H-K)>0.65*(J-H)-0.25 <<< replace H-K of v0.5 by this H-K
     Gaia DR2 parameters to be converted to Gaia DR3: yes
     Return columns: Unchanged
@@ -386,7 +389,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         ((AllWise.w3mpro - AllWise.w4mpro) > 1.50) |
                         AllWise.w3mpro >> None,
                         ((AllWise.w3mpro - AllWise.w4mpro) >
-                         (AllWise.w1mpro - AllWise.w2mpro) * 0.5 + 1.1) |
+                         (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1) |
                         AllWise.w3mpro >> None,
                         ((AllWise.h_m_2mass - AllWise.k_m_2mass) >
                          (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)) |
