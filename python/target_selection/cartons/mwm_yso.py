@@ -303,16 +303,32 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     cadence options for these targets
     (list all options,
     even though no single target will receive more than one):
+    v0.5
     Pseudo SQL (optional):
     Implementation: h_m<13 and
     (phot_g_mean_mag>18.5 or phot_g_mean_mag is null)
     and j_m-h_m>1
-    and h_m-ks_m>0.5
+    and h_m-ks_m>0.5  <<< this is for v0.5 (below is change for v1.0)
     and w1mpro-w2mpro>0.5
     and w2mpro-w3mpro>1
     and w3mpro-w4mpro>1.5
     and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
-    and (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1
+    and (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1.0
+
+    v1.0
+    Shorthand name:  mwm_yso_embedded_apogee
+    Existing carton code
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_yso.py
+    Simplified Description of selection criteria selection of YSOs,
+    brighter than H<13, fainter than G>15 or without gaia detection,
+    colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
+    and relates (W3-W4)>(W1-W2)*0.5+1.1,
+    and (H-K)>0.65*(J-H)-0.25  ← change for implementation bolded
+    Gaia DR2 parameters to be converted to Gaia DR3: yes
+    Return columns: Unchanged
+    Metadata: Unchanged
+    Lead contact:  Marina Kounkel
+
     """
 
     name = 'mwm_yso_embedded_apogee'
@@ -361,10 +377,10 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         (CatalogToGaia_DR3.best >> True) |
                         (CatalogToGaia_DR3.best >> None),
                         TwoMassPSC.h_m < 13,
-                        ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0) |
+                        (Gaia_DR3.phot_g_mean_mag > 15.0) |
+                        (Gaia_DR3.phot_g_mean_mag >> None),
+                        ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 0.5) |
                         AllWise.j_m_2mass >> None,
-                        ((AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5) |
-                        AllWise.h_m_2mass >> None,
                         ((AllWise.w1mpro - AllWise.w2mpro) > 0.50) |
                         AllWise.w1mpro >> None,
                         ((AllWise.w2mpro - AllWise.w3mpro) > 1.00) |
@@ -372,13 +388,11 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         ((AllWise.w3mpro - AllWise.w4mpro) > 1.50) |
                         AllWise.w3mpro >> None,
                         ((AllWise.w3mpro - AllWise.w4mpro) >
-                         (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1) |
+                         (AllWise.w1mpro - AllWise.w2mpro) * 0.5 + 1.1) |
                         AllWise.w3mpro >> None,
                         ((AllWise.h_m_2mass - AllWise.k_m_2mass) >
                          (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)) |
-                        AllWise.h_m_2mass >> None,
-                        (Gaia_DR3.phot_g_mean_mag > 18.5) |
-                        (Gaia_DR3.phot_g_mean_mag >> None)))
+                        AllWise.h_m_2mass >> None))
         # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
         # we get the rows from the left outer join
 
