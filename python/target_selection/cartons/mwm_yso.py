@@ -285,7 +285,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     v1.0
     selection of YSOs, brighter than H<13, fainter than G>15 or
     without gaia detection,
-    colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
+    colors J-H>1.0, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
      relates (W3-W4)>(W1-W2)*0.5+1.1
      (H-K)>0.65*(J-H)-0.25
     Wiki page:
@@ -319,9 +319,9 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     Implementation v1.0:
     Simplified Description of selection criteria selection of YSOs,
     brighter than H<13, fainter than G>18.5 or without gaia detection,
-    colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
+    colors J-H>1.0, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
     and relates (W3-W4)>(W1-W2)*0.5+1.1,
-    and (H-K)>0.65*(J-H)-0.25
+    and (H-K)>0.65*(J-H)-0.25 <<< replace H-K of v0.5 by this H-K
     Gaia DR2 parameters to be converted to Gaia DR3: yes
     Return columns: Unchanged
     Metadata: Unchanged
