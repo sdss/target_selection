@@ -308,13 +308,12 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     Implementation: h_m<13 and
     (phot_g_mean_mag>18.5 or phot_g_mean_mag is null)
     and j_m-h_m>1
-    and h_m-ks_m>0.5  <<< this is for v0.5 (below is change for v1.0)
+    and h_m-ks_m>0.5
     and w1mpro-w2mpro>0.5
     and w2mpro-w3mpro>1
     and w3mpro-w4mpro>1.5
     and w3mpro-w4mpro>(w1mpro-w2mpro)*0.8+1.1
-    and (H-K)>0.65*(J-H)-0.25  <<<< this is change for v1.0
-
+    
     v1.0
     Shorthand name:  mwm_yso_embedded_apogee
     Existing carton code
@@ -323,7 +322,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     brighter than H<13, fainter than G>15 or without gaia detection,
     colors J-H>0,5, W1-W2>0.5, W2-W3>1, W3-W4>1.5,
     and relates (W3-W4)>(W1-W2)*0.5+1.1,
-    and (H-K)>0.65*(J-H)-0.25  ← change for implementation bolded
+    and (H-K)>0.65*(J-H)-0.25
     Gaia DR2 parameters to be converted to Gaia DR3: yes
     Return columns: Unchanged
     Metadata: Unchanged
