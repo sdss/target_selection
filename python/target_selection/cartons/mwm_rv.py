@@ -62,9 +62,10 @@ from target_selection.cartons import BaseCarton
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
 # APOGEE_ID is essentially the same as
 # the “designation” column of the 2MASS PSC;
-# We for sdss_dr17_apogee_allstarmerge we do not
+# For sdss_dr17_apogee_allstarmerge we
 # have to strip off the “2M” in the APOGEE_ID.
-# (old: for sdss_apogeeallstarmerge_r13 we had to strip off the
+# However, some apogee_id values do not have 2M in the front.
+# (old: for sdss_apogeeallstarmerge_r13 we also had to strip off the
 #  “2M” in the APOGEE_ID.)
 # For example:
 # sdss5db=# select designation from  catalogdb.twomass_psc limit 2;
@@ -74,13 +75,20 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id like '2M%';
+#      apogee_id
+# ---------------------
+# 2M00000002+7417074
+# 2M00000019-1924498
+# etc.
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id not like '2M%';
 #    apogee_id
-# ------------------
-#  19140272-1554055
-#  19155129-1617591
-# (2 rows)
-
+# --------------------
+# 19140272-1554055
+# 19155129-1617591
+#
 # ######### start comment for old sdss_apogeeallstarmerge_r13 #######################
 # sdss5db=# select ltrim(apogee_id,'2M') from
 #  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
@@ -109,10 +117,13 @@ from target_selection.cartons import BaseCarton
 #
 # ######### end comment for old sdss_apogeeallstarmerge_r13 ##########
 
+# Below we use GaiaEDR3 and not GaiaDR3 since the dist_src column
+# does not have GaiaDR3
+
 mwm_rv_long_condition = (SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
                          SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 6,  # old 3,
                          peewee.fn.trim(SDSS_DR17_APOGEE_Allstarmerge.dist_src) ==
-                         'GaiaDR3',  # old gaia
+                         'GaiaEDR3',
                          (SDSS_DR17_APOGEE_Allstarmerge.targflags %
                           '%APOGEE_SHORT%') |
                          (SDSS_DR17_APOGEE_Allstarmerge.targflags %
@@ -198,7 +209,7 @@ class MWM_bin_rv_long_Carton(BaseCarton):
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           SDSS_DR17_APOGEE_Allstarmerge.apogee_id))  # old ltrim
+                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,

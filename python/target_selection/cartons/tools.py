@@ -12,7 +12,6 @@ import numpy
 import peewee
 from astropy.table import Table
 
-# TODO import Gaia_DR3 and CatalogToGaia_DR3 or related table when it is ready.
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              CatalogToLegacy_Survey_DR8,
                                              CatalogToPanstarrs1,
@@ -36,6 +35,8 @@ def get_file_carton(filename):
     """
 
     class FileCarton(BaseCarton):
+
+        can_offset = None  # Will be set in query.
 
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
@@ -335,11 +336,6 @@ def get_file_carton(filename):
             len_gaia_dr3 =\
                 len(self._table[self._table['Gaia_DR3_Source_ID'] > 0])
 
-            # TODO remove below check after gaia_dr3 cross match table is ready
-            if (len_gaia_dr3 > 0):
-                raise TargetSelectionError('error in get_file_carton(): ' +
-                                           'len_gaia_dr3 > 0')
-
             len_gaia_dr2 =\
                 len(self._table[self._table['Gaia_DR2_Source_ID'] > 0])
 
@@ -438,8 +434,10 @@ def get_file_carton(filename):
 
             # Early files may not have the can_offset column. If the table has it, extend
             # the select. Otherwise the column will be filled with the default value.
-            if 'can_offset' in self._table:
-                query = query.select_extend(temp.can_offset.alias('can_offset'))
+            if 'can_offset' in self._table.colnames:
+                query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
+            else:
+                self.can_offset = False
 
             return query
 

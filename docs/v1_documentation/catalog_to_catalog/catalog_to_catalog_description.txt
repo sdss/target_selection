@@ -1,0 +1,30 @@
+The code defines a model for the first output table called TempMatch and the final output table called UniqueMatch.
+First output table contains the catalogid pairs found in each relational table indicating the table associated with the relational table.
+The final output table has a unique entry for each catalogid pair indicating in which tables the pair was found and the number of tables
+in which it was found.
+
+Class MetaXMatch instantiates an object starting from a configuration file and a database.
+The configuration file contains the xmatch plans to be matched, the name of the log file, split_insert_number to indicate how
+many entries are ingested simultaneously to the first output table, the name of another configuration file indicating details
+about each crossmatch run, and 4 optional parameters. There parameters are sample_region to test the code in a single region,
+database options, show first to display the first N results in the log for each table, and split_query to indicate the tables
+in which the main query is split into sub queries restricted to target_id ranges. The individual crossmatch run config file
+on the other hand indicates the version_id and tables of each xmatch run, mainly to calculate the intersecting tables between the 2 runs,
+to look for the matches in those tables.
+
+Instantiation stores the parameters from the configuration file in the MetaXMatch object, and method match_in_table takes as argument the
+name of the table to be matched to do the query and find the catalogid pairs. This method can also be used with argument split=True in
+which case argument min_targetid, and max_targetid are used to do a sub query restricted to a target_id range. For each input table ingested
+in both crossmatch runs the main query starts by creating a cte querying the target table and storing the target_id in the relational table
+associated with the catalogids from the target table that belong to the older crossmatch run version_id (in this case v.05 so version_id=25).
+Then the other query takes the target_ids from the cte and checks which catalogid’s from both versions are associated with that target_id.
+Then for each target_id from the query it looks for all the possible pairs of catalogids in which one catalogid comes from the first
+crossmatch run and the other comes from the second crossmatch run. Finally these catalogid pairs for each input table are ingested in
+a table with suffix “_all”.
+
+Wrapper method run uses some attributes from the MetaXMatch object and for each input table runs the match_in_table method,
+using the split=True argument if necessary.
+
+Finally the function create_unique_table can be used to create the final table for a given pair of crossmatch version_ids.
+For that the table with suffix “_all” must have been previously created with run(), and this function selects the list of unique
+pairs of catalogids indicating for each in which input table that pair was found and the number of tables in which it was found.
