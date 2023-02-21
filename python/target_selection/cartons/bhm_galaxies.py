@@ -9,8 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToLegacy_Survey_DR8,
-                                             Legacy_Survey_DR8)
+                                             CatalogToLegacy_Survey_DR10,
+                                             Legacy_Survey_DR10)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy
@@ -21,19 +21,24 @@ Details: Start here
 https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
 
 This module provides the following BHM cartons:
-bhm_colr_galaxies_lsdr8
+bhm_colr_galaxies_lsdr10
   see particularly: https://wiki.sdss.org/display/BHM/BHM+Cartons+of+Last+Resort
 
 '''
 
 
-class BhmColrGalaxiesLsdr8Carton(BaseCarton):
+# used by cartons that need to compute Galactic latitude:
+north_gal_pole_ra = 192.85948   # deg, J2000
+north_gal_pole_dec = +27.12825   # deg, J2000
+
+
+class BhmColrGalaxiesLsdr10Carton(BaseCarton):
     '''
-    A sample of bright galaxies selected from legacysurvey/dr8
+    A sample of bright galaxies selected from legacysurvey/dr10
     photometry+astrometry+morphology
     '''
 
-    name = 'bhm_colr_galaxies_lsdr8'
+    name = 'bhm_colr_galaxies_lsdr10'
     category = 'science'
     mapper = 'BHM'
     program = 'bhm_filler'
@@ -42,11 +47,12 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
     # cadence is set later below
     # cadence = 'dark_1x1'
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2ls = CatalogToLegacy_Survey_DR8.alias()
-        ls = Legacy_Survey_DR8.alias()
+        c2ls = CatalogToLegacy_Survey_DR10.alias()
+        ls = Legacy_Survey_DR10.alias()
 
         # set the Carton priority+values here - read from yaml
         priority = peewee.Value(int(self.parameters.get('priority', 10000)))
@@ -90,9 +96,11 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
         }
 
         nMgy_min = 1e-3  # equiv to AB=30
-        # extended - start from ls8 fiberfluxes
+        # extended - start from ls10 fiberfluxes
+        # TODO investigate using real lsdr10 i-band where available
         g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
         r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
+        i0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i)))
         z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
         g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
                                       peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
@@ -121,7 +129,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                  g_r_e.between(valid_colour_min_g_r, valid_colour_max_g_r) &
                  r_z_e.between(valid_colour_min_r_z, valid_colour_max_r_z))
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
+        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr10'),), 'undefined')
         magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
         magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
         magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
@@ -139,7 +147,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
             ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
             'NaN')
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr8'),), 'undefined')
+        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr10'),), 'undefined')
 
         cadence = peewee.Case(
             None,
@@ -149,6 +157,15 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
             ),
             self.parameters['cadence3'])
 
+        # compute the abs(Galactic latitude):
+        gal_lat = peewee.fn.abs(90.0 - peewee.fn.q3c_dist(north_gal_pole_ra,
+                                                          north_gal_pole_dec,
+                                                          c.ra, c.dec))
+
+        # https://www.legacysurvey.org/dr10/bitmasks/
+        maskbits_mask = 2**1 + 2**13
+        # maskbits_mask = 2**0 + 2**1 + 2**4 + 2**7 + 2**8 + 2**10 + 2**11 + 2**13
+        # fitbits_mask = 2**5 + 2**6 + 2**7 + 2**8 + 2**12
         query = (
             c.select(
                 c.catalogid.alias('catalogid'),
@@ -168,16 +185,21 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 magnitude_gaia_bp.alias('bp'),
                 magnitude_gaia_rp.alias('rp'),
                 inertial.alias('inertial'),
-                g0_e.cast('real').alias('ls8_fibermag_g'),  # extra
-                r0_e.cast('real').alias('ls8_fibermag_r'),  # extra
-                z0_e.cast('real').alias('ls8_fibermag_z'),  # extra
-                g_r_e.cast('real').alias('ls8_g_r_e'),  # extra
-                r_z_e.cast('real').alias('ls8_r_z_e'),  # extra
-                ls.flux_g.alias('ls8_flux_g'),  # extra
-                ls.flux_r.alias('ls8_flux_r'),  # extra
-                ls.flux_z.alias('ls8_flux_z'),  # extra
-                ls.ebv.alias('ls8_ebv'),  # extra
-                ls.mw_transmission_z.alias('ls8_mw_transmission_z'),  # extra
+                g0_e.cast('real').alias('ls10_fibermag_g'),  # extra
+                r0_e.cast('real').alias('ls10_fibermag_r'),  # extra
+                i0_e.cast('real').alias('ls10_fibermag_i'),  # extra
+                z0_e.cast('real').alias('ls10_fibermag_z'),  # extra
+                g_r_e.cast('real').alias('ls10_g_r_e'),  # extra
+                r_z_e.cast('real').alias('ls10_r_z_e'),  # extra
+                ls.flux_g.alias('ls10_flux_g'),  # extra
+                ls.flux_r.alias('ls10_flux_r'),  # extra
+                ls.flux_i.alias('ls10_flux_i'),  # extra
+                ls.flux_z.alias('ls10_flux_z'),  # extra
+                ls.ebv.alias('ls10_ebv'),  # extra
+                ls.maskbits.alias('ls10_maskbits'),  # extra
+                ls.fitbits.alias('ls10_fitbits'),  # extra
+                ls.mw_transmission_z.alias('ls10_mw_transmission_z'),  # extra
+                gal_lat.alias('abs_gal_lat'),  # extra
             )
             .join(c2ls)
             .join(ls)
@@ -185,7 +207,7 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 c.version_id == version_id,
                 c2ls.version_id == version_id,
                 ls.type != 'PSF',
-                ls.parallax == 0.0,
+                ls.parallax <= 0.0,
                 ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
                 ls.fiberflux_g > fiberflux_g_min,
                 ls.fiberflux_r > fiberflux_r_min,
@@ -194,9 +216,14 @@ class BhmColrGalaxiesLsdr8Carton(BaseCarton):
                 ls.fiberflux_g < fiberflux_g_max,
                 ls.fiberflux_r < fiberflux_r_max,
                 ls.fiberflux_z < fiberflux_z_max,
-                # gaia safety checks to avoid bad ls photometry
+                # safety check using Gaia mags to avoid bad ls photometry
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
+                ls.shape_r >= self.parameters['shape_r_min'],
+                gal_lat > self.parameters['min_gal_lat'],
+                ls.ebv < self.parameters['max_ebv'],
+                (ls.maskbits.bin_and(maskbits_mask) == 0),  # avoid bad ls data
+                # (ls.fitbits.bin_and(fitbits_mask) == 0),  # avoid bad ls fits
             )
             .distinct(c.catalogid)
         )
