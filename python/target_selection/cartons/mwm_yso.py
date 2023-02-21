@@ -285,7 +285,7 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     v1.0
     selection of YSOs, brighter than H<13, fainter than G>15 or
     without gaia detection,
-    colors J-H>1.0, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
+    colors J-H>1.0, H-K > 0.5, W1-W2>0.5, W2-W3>1, W3-W4>1.5, and
      relates (W3-W4)>(W1-W2)*0.8+1.1
      (H-K)>0.65*(J-H)-0.25
     Wiki page:
@@ -320,11 +320,13 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
     Simplified Description of selection criteria selection of YSOs,
     brighter than H<13, fainter than G>18.5 or without gaia detection,
     colors J-H>1.0,
+    H-K > 0.5,
     W1-W2>0.5,
     W2-W3>1,
     W3-W4>1.5,
     and relates (W3-W4)>(W1-W2)*0.8+1.1,
-    and (H-K)>0.65*(J-H)-0.25 <<< replace H-K of v0.5 by this H-K
+    and (H-K)>0.65*(J-H)-0.25 <<< This is additional condition on H-K
+                                  compared to v0.5
     Gaia DR2 parameters to be converted to Gaia DR3: yes
     Return columns: Unchanged
     Metadata: Unchanged
@@ -382,6 +384,8 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         (Gaia_DR3.phot_g_mean_mag >> None),
                         ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0) |
                         AllWise.j_m_2mass >> None,
+                        ((AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5) |
+                        AllWise.h_m_2mass >> None,
                         ((AllWise.w1mpro - AllWise.w2mpro) > 0.50) |
                         AllWise.w1mpro >> None,
                         ((AllWise.w2mpro - AllWise.w3mpro) > 1.00) |
@@ -394,8 +398,13 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                         ((AllWise.h_m_2mass - AllWise.k_m_2mass) >
                          (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)) |
                         AllWise.h_m_2mass >> None))
-        # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
+        # (a) Note that the condition
+        # | (Gaia_DR3.phot_g_mean_mag >> None)
+        # ensures that
         # we get the rows from the left outer join
+        #
+        # (b) Note that there are two conditions on
+        # (AllWise.h_m_2mass - AllWise.k_m_2mass)
 
         if query_region:
             query = (query
