@@ -46,9 +46,10 @@ class MWM_TESS_2min_Carton(BaseCarton):
     program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
-    instrument = None  # instrument is set in post_process()
-    cadence = None  # cadence is set in post_process()
-    priority = None  # priority is set in post_process()
+    instrument = 'APOGEE'  # instrument is also set in post_process()
+    cadence = 'bright_1x1'  # cadence is also set in post_process()
+    priority = 2610  # priority is also set in post_process()
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -104,7 +105,7 @@ class MWM_TESS_2min_Carton(BaseCarton):
             elif (current_tess_target_type == '2min'):
                 current_priority = 2610
             else:
-                current_priority = None
+                current_priority = 2610
 
             numexp = h2exp(current_hmag, sn=80)
             if numexp == 1:
