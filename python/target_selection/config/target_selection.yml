@@ -17,6 +17,7 @@
     - bhm_spiders_agn_gdr3
     - bhm_spiders_agn_sep
     - bhm_spiders_agn_tda
+    - bhm_spiders_agn_hard
     - bhm_csc_boss
     - bhm_csc_apogee
     - bhm_gua_dark
