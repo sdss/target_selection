@@ -47,7 +47,7 @@ class MWM_TESS_2min_Carton(BaseCarton):
     category = 'science'
     mapper = 'MWM'
     instrument = 'APOGEE'  # instrument is also set in post_process()
-    cadence = 'bright_1x1'  # cadence is also set in post_process()
+    cadence = None  # cadence is set in post_process()
     priority = 2610  # priority is also set in post_process()
     can_offset = True
 
