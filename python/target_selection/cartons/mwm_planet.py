@@ -96,6 +96,9 @@ class MWM_TESS_2min_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_hmag = output[i][1]
             current_tess_target_type = str(output[i][2]).strip()
+            current_priority = None
+            current_instrument = None
+            current_cadence = None
 
             # For all, current_priority is the same i.e. 2610
             if (current_tess_target_type == 'exo_TOI'):
