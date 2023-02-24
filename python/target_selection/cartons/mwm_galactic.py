@@ -87,8 +87,8 @@ class MWM_Galactic_Core_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (Catalog
-                 .select(Catalog.catalogid,
+        query = (CatalogToTwoMassPSC
+                 .select(CatalogToTwoMassPSC.catalogid,
                          Gaia_DR3.source_id,
                          Gaia_DR3.ra,
                          Gaia_DR3.dec,
@@ -97,17 +97,15 @@ class MWM_Galactic_Core_Carton(BaseCarton):
                          TwoMassPSC.h_m,
                          TwoMassPSC.designation,
                          Gaia_DR3.phot_g_mean_mag)
-                 .join(CatalogToGaia_DR3,
-                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
-                 .join(Gaia_DR3,
-                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(Catalog)
-                 .join(CatalogToTwoMassPSC,
-                       on=(Catalog.catalogid == CatalogToTwoMassPSC.catalogid))
                  .join(TwoMassPSC,
                        on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
+                 .switch(CatalogToTwoMassPSC)
+                 .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
+                       on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
+                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
                         TwoMassPSC.h_m < 11,
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
@@ -117,10 +115,12 @@ class MWM_Galactic_Core_Carton(BaseCarton):
                         (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') <= 3),
                         ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 3.5) |
                         (Gaia_DR3.phot_g_mean_mag >> None)))
+        # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
+        # that we get the rows from the left outer join
 
         if query_region:
             query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
+                     .join_from(CatalogToTwoMassPSC, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
                                                        query_region[0],
                                                        query_region[1],
