@@ -391,7 +391,53 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
         Model._meta.add_field('optical_prov', peewee.TextField())
 
-        # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
+        # Step 1: join with gaia_dr3_synthetic_photometry_gspc and use synthetic SDSS mags.
+
+        with self.database.atomic():
+
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_g3xp')
+            temp_table = peewee.Table(self.table_name + '_g3xp')
+
+            (Model
+             .select(Model.catalogid,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.z_sdss_mag)
+             .join(cdb.CatalogToGaia_DR3, on=(cdb.CatalogToGaia_DR3.catalogid == Model.catalogid))
+             .join(cdb.Gaia_dr3_synthetic_photometry_gspc)
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+             .where(Model.selected >> True)
+             .where(cdb.CatalogToGaia_DR3.best >> True,
+                    cdb.CatalogToGaia_DR3.version_id == self.get_version_id())
+             .where(
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_mag.is_null(False),
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag.is_null(False),
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag.is_null(False),
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_flag == 1,
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flag == 1,
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
+                 (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
+                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error / 30.0),
+             )
+             .create_table(temp_table._path[0], temporary=True))
+
+            nrows = (Model.update(
+                {Model.g: temp_table.c.g_sdss_mag,
+                 Model.r: temp_table.c.r_sdss_mag,
+                 Model.i: temp_table.c.i_sdss_mag,
+                 Model.optical_prov: peewee.Value('sdss_psfmag_from_g3xp')})
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.g_sdss_mag.is_null(False) &
+                       temp_table.c.r_sdss_mag.is_null(False) &
+                       temp_table.c.i_sdss_mag.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with Gaia DR3 XP magnitudes.')
+
+        # Step 2: localise entries with empty magnitudes,
+        # join with sdss_dr13_photoobj and use SDSS magnitudes.
 
         with self.database.atomic():
 
@@ -409,6 +455,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.SDSS_DR13_PhotoObj,
                    on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
                        cdb.SDSS_DR13_PhotoObj.objid))
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
                     cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
              .where(Model.selected >> True)
@@ -427,7 +474,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.debug(f'{nrows:,} associated with SDSS magnitudes.')
 
-        # Step 2: localise entries with empty magnitudes and use PanSTARRS1
+        # Step 3: localise entries with empty magnitudes and use PanSTARRS1
         # transformations.
 
         # PS1 fluxes are in Janskys. We use stacked fluxes instead of mean
@@ -481,7 +528,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.debug(f'{nrows:,} associated with PS1 magnitudes.')
 
-        # Step 3: localise entries with empty magnitudes and use Gaia transformations
+        # Step 4: localise entries with empty magnitudes and use Gaia transformations
         # from Evans et al (2018).
 
         gaia_G = cdb.Gaia_DR3.phot_g_mean_mag
@@ -527,7 +574,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        temp_table.c.gaia_sdss_r.is_null(False) &
                        temp_table.c.gaia_sdss_i.is_null(False))).execute()
 
-        self.log.debug(f'{nrows:,} associated with Gaia magnitudes.')
+        self.log.debug(f'{nrows:,} associated with Gaia DR3 mean magnitudes.')
 
         # Finally, check if there are any rows in which at least some of the
         # magnitudes are null.
