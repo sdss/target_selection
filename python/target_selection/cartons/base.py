@@ -445,6 +445,21 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         with self.database.atomic():
 
+            # https://www.sdss4.org/dr16/algorithms/photo_flags/
+            # https://www.sdss4.org/dr16/algorithms/photo_flags_recommend/
+            # we ignore SDSS photometry when any of these bits are set
+            sdss_quality_bitmask = (
+                0   # placeholder
+                + (1 << 5)  # PEAKCENTER
+                + (1 << 7)  # NOPROFILE
+                + (1 << 18)  # SATURATED
+                + (1 << 19)  # NOTCHECKED
+                + (1 << 22)  # BADSKY
+                + (1 << 24)  # TOOLARGE
+                + (1 << 28)  # BINNED1
+                + (1 << (16 + 32))  # TOO_FEW_GOOD_DETECTIONS
+            )
+
             self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_sdss')
             temp_table = peewee.Table(self.table_name + '_sdss')
 
@@ -462,6 +477,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
                     cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
+             .where(
+                 cdb.SDSS_DR13_PhotoObj.psfmag_g > -99.,
+                 cdb.SDSS_DR13_PhotoObj.psfmag_r > -99.,
+                 cdb.SDSS_DR13_PhotoObj.psfmag_i > -99.,
+                 cdb.SDSS_DR13_PhotoObj.flags.bin_and(sdss_quality_bitmask) == 0,
+             )
              .where(Model.selected >> True)
              .create_table(temp_table._path[0], temporary=True))
 
@@ -511,11 +532,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(Model.selected >> True)
              .where(cdb.CatalogToPanstarrs1.best >> True,
                     cdb.CatalogToPanstarrs1.version_id == self.get_version_id())
-             .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.g_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.g_stk_psf_flux > 0))
-             .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.r_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.r_stk_psf_flux > 0))
-             .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.i_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.i_stk_psf_flux > 0))
              .create_table(temp_table._path[0], temporary=True))
 
