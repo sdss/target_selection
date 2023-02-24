@@ -420,6 +420,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                  cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_flag == 1,
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flag == 1,
                  cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
+                 # arbitrary faint cut, could go fainter, could cut on G,BP,RP etc instead
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
                  # the following cut on SNR is completely unnecessary at G<15
                  # (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
@@ -443,22 +444,20 @@ class BaseCarton(metaclass=abc.ABCMeta):
         # Step 2: localise entries with empty magnitudes,
         # join with sdss_dr13_photoobj and use SDSS magnitudes.
 
-        with self.database.atomic():
+        # https://www.sdss4.org/dr16/algorithms/photo_flags/
+        # https://www.sdss4.org/dr16/algorithms/photo_flags_recommend/
+        # we ignore SDSS photometry when any of these bits are set
+        # TODO improve/expand the list of rejected bits
+        sdss_quality_bitmask = (
+            0   # just a placeholder
+            + (1 << 7)  # NOPROFILE
+            + (1 << 18)  # SATURATED
+            + (1 << 22)  # BADSKY
+            + (1 << 24)  # TOOLARGE
+            + (1 << (16 + 32))  # TOO_FEW_GOOD_DETECTIONS
+        )
 
-            # https://www.sdss4.org/dr16/algorithms/photo_flags/
-            # https://www.sdss4.org/dr16/algorithms/photo_flags_recommend/
-            # we ignore SDSS photometry when any of these bits are set
-            sdss_quality_bitmask = (
-                0   # placeholder
-                + (1 << 5)  # PEAKCENTER
-                + (1 << 7)  # NOPROFILE
-                + (1 << 18)  # SATURATED
-                + (1 << 19)  # NOTCHECKED
-                + (1 << 22)  # BADSKY
-                + (1 << 24)  # TOOLARGE
-                + (1 << 28)  # BINNED1
-                + (1 << (16 + 32))  # TOO_FEW_GOOD_DETECTIONS
-            )
+        with self.database.atomic():
 
             self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_sdss')
             temp_table = peewee.Table(self.table_name + '_sdss')
@@ -478,9 +477,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
                     cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
              .where(
-                 cdb.SDSS_DR13_PhotoObj.psfmag_g > -99.,
-                 cdb.SDSS_DR13_PhotoObj.psfmag_r > -99.,
-                 cdb.SDSS_DR13_PhotoObj.psfmag_i > -99.,
+                 cdb.SDSS_DR13_PhotoObj.psfmag_r > 14.0,   # avoid stars close to saturation
+                 cdb.SDSS_DR13_PhotoObj.psfmag_g > -99.0,  # avoid bad mags
+                 cdb.SDSS_DR13_PhotoObj.psfmag_i > -99.0,  # avoid bad mags
                  cdb.SDSS_DR13_PhotoObj.flags.bin_and(sdss_quality_bitmask) == 0,
              )
              .where(Model.selected >> True)
@@ -514,6 +513,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x * x + ps1_r
         ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x * x + ps1_i
 
+        # limit panstarrs photometry to r > 14
+        max_flux_r = 10**((14.0 - 8.9) / -2.5)
+
         with self.database.atomic():
 
             self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_ps1')
@@ -532,6 +534,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(Model.selected >> True)
              .where(cdb.CatalogToPanstarrs1.best >> True,
                     cdb.CatalogToPanstarrs1.version_id == self.get_version_id())
+             .where(cdb.Panstarrs1.r_stk_psf_flux < max_flux_r)
              .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False),
                     cdb.Panstarrs1.g_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.g_stk_psf_flux > 0))
