@@ -404,8 +404,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                      cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag,
                      cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag,
                      cdb.Gaia_dr3_synthetic_photometry_gspc.z_sdss_mag)
-             .join(cdb.CatalogToGaia_DR3, on=(cdb.CatalogToGaia_DR3.catalogid == Model.catalogid))
-             .join(cdb.Gaia_dr3_synthetic_photometry_gspc)
+             .join(cdb.CatalogToGaia_DR3,
+                   on=(cdb.CatalogToGaia_DR3.catalogid == Model.catalogid))
+             .join(cdb.Gaia_dr3_synthetic_photometry_gspc,
+                   on=(cdb.CatalogToGaia_DR3.target_id ==
+                       cdb.Gaia_dr3_synthetic_photometry_gspc.source_id))
              .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(Model.selected >> True)
              .where(cdb.CatalogToGaia_DR3.best >> True,
@@ -418,8 +421,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flag == 1,
                  cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
-                 (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
-                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux / 30.0),
+                 # the following cut on SNR is completely unnecessary at G<15
+                 # (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
+                 #  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux / 30.0),
              )
              .create_table(temp_table._path[0], temporary=True))
 
