@@ -419,7 +419,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                  cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
                  (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
-                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error / 30.0),
+                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux / 30.0),
              )
              .create_table(temp_table._path[0], temporary=True))
 
