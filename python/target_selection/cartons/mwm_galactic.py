@@ -141,7 +141,7 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
 
     v1.0
     Shorthand name: mwm_galactic_core_dist
-    Existing carton code:
+    This is a new carton. Code should be put in mwm_galactic.py.
     https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_galactic.py
 
     Simplified Description of selection criteria:
