@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Date: 2020-05-29
+# @Author: Pramod Gupta
+# @Date: 2023-02-28
 # @Filename: mwm_galactic.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
@@ -153,7 +153,7 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
             AND [(phot_g_mean_mag-h_m) > 3.5  OR NOT_EXISTS(phot_g_mean_mag)]
 
     v1.0
-    Shorthand name: mwm_galactic_core
+    Shorthand name: mwm_galactic_core_dist
     Existing carton code:
     https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_galactic.py
 
@@ -175,10 +175,12 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
     gal_contam=0 AND
     cc_flg[1]=0 AND
     (rd_flg[1] > 0 AND rd_flg[1] <= 3)
-    AND [(phot_g_mean_mag-h_m) > 3.5 OR NOT_EXISTS(phot_g_mean_mag)]
 
-    Above  is same as for mwm_galactic_core
-    Below is additional for mwm_galacic_core_dist
+    Above  is same as for mwm_galactic_core.
+    Below is additional for mwm_galacic_core_dist.
+    The below condition on g.phot_g_mean_mag is different from the condition
+    in the mwm_galactic_core carton.
+
     tmass.h_m < 11 AND
     (
 
@@ -238,8 +240,6 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
                         peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == '0',
                         (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') > 0) &
                         (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') <= 3),
-                        ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 3.5) |
-                        (Gaia_DR3.phot_g_mean_mag >> None),
                         (Gaia_DR3.parallax <
                          100 * peewee.fn.power(10, 0.2 * (-2.5 - TwoMassPSC.h_m))) |
                         ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 5) |
