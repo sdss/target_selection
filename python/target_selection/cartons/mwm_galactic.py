@@ -21,7 +21,7 @@ class MWM_Galactic_Core_Carton(BaseCarton):
     Definition: Selection of all IR-bright, red stars – vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
     plane and bulge). Select sources brighter than H<11 AND ((G-H) > 3.5 OR
-    Gaia non-detection). Approximately 5 million stars.
+    Gaia non-detection).
 
     v0.5
     Pseudo-query:
@@ -134,23 +134,10 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
-    plane and bulge). Select sources brighter than H<11 AND ((G-H) > 3.5 OR
-    Gaia non-detection). Approximately 5 million stars.
+    plane and bulge). Select sources brighter than H<11 AND ((G-H) > 5 OR
+    Gaia non-detection).
 
-    v0.5
-    Pseudo-query:
-
-        SELECT catalog.catalogid, catalog.ra, catalog.ra, catalog.dec,
-            catalog.pmra, catalog.pmdec, catalog.epoch, twomass_psc.h_m,
-            gaia_dr2_source.phot_g_mean_mag
-        FROM catalog
-        JOIN catalog_to_TIC, TIC, gaia_dr2_source, gaia_clean, twomass_psc
-        WHERE h_m < 11
-            AND (ph_qual[1] = 'A' OR ph_qual[1] = 'B')
-            AND gal_contam=0
-            AND cc_flg[1]=0
-            AND (rd_flg[1] > 0 AND rd_flg[1] <= 3)
-            AND [(phot_g_mean_mag-h_m) > 3.5  OR NOT_EXISTS(phot_g_mean_mag)]
+    v0.5 only had mwm_galactic_core (there was no mwm_galactic_core_dist in v0.5)
 
     v1.0
     Shorthand name: mwm_galactic_core_dist
@@ -160,10 +147,10 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
     Simplified Description of selection criteria:
     Selection of all IR-bright, red stars – vast majority are red giants;
      follows the density distribution of the MW (concentrated in the plane and bulge).
-     Select sources brighter than H<11 AND ((G-H) > 3.5 OR Gaia non-detection).
+     Select sources brighter than H<11 AND ((G-H) > 5 OR Gaia non-detection).
     Gaia DR2 parameters to be converted to Gaia DR3: position information, phot_g_mean_mag,
 
-    Pseudo-code: Same as v0.5
+    Pseudo-code: Same as v1.0 mwm_galactic_core.
 
     SELECT catalog.catalogid, gaia_dr3.source_id, gaia_dr3.ra,  gaia_dr3.dec,
         gaia_dr3.pmra, gaia_dr3.pmdec,  twomass_psc.h_m, twomass_psc.designation,
@@ -176,8 +163,8 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
     cc_flg[1]=0 AND
     (rd_flg[1] > 0 AND rd_flg[1] <= 3)
 
-    Above  is same as for mwm_galactic_core.
-    Below is additional for mwm_galacic_core_dist.
+    Above  is same as for v1.0 mwm_galactic_core.
+    Below is additional for v1.0 mwm_galactic_core_dist.
     The below condition on g.phot_g_mean_mag is different from the condition
     in the mwm_galactic_core carton.
 
