@@ -40,15 +40,20 @@ class MWM_TESS_2min_Carton(BaseCarton):
 
     All the candidates are compiled in catalogdb.tess_toi_v1. Note that this list
     contains duplicates on ticid.
+
+    We changed the carton class name, the variable 'name'
+    and the temp table name in post_process().
+
+    The old name of this cartoon is 'mwm_tess_planet'.
     """
 
-    name = 'mwm_tess_2min'  # old name 'mwm_tess_planet'
+    name = 'mwm_tess_2min'
     program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
-    instrument = 'APOGEE'  # instrument is also set in post_process()
+    instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
-    priority = 2610  # priority is also set in post_process()
+    priority = 2610
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -82,56 +87,23 @@ class MWM_TESS_2min_Carton(BaseCarton):
 
     def post_process(self, model):
 
-        # priorities = {'exo_TOI': 2610,
-        #               'exo_CTOI': 2610,
-        #               '2min': 2610}
-
         cursor = self.database.execute_sql(
-            "select catalogid, hmag, tess_target_type from " +
-            " sandbox.temp_mwm_tess_planet ;")
+            "select catalogid, hmag from " +
+            " sandbox.temp_mwm_tess_2min ;")
 
         output = cursor.fetchall()
 
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_hmag = output[i][1]
-            current_tess_target_type = str(output[i][2]).strip()
-            current_priority = None
-            current_instrument = None
-            current_cadence = None
-
-            # For all, current_priority is the same i.e. 2610
-            if (current_tess_target_type == 'exo_TOI'):
-                current_priority = 2610
-            elif (current_tess_target_type == 'exo_CTOI'):
-                current_priority = 2610
-            elif (current_tess_target_type == '2min'):
-                current_priority = 2610
-            else:
-                current_priority = 2610
+            current_hmag = float(output[i][1])
 
             numexp = h2exp(current_hmag, sn=80)
             if numexp == 1:
-                current_instrument = 'APOGEE'
                 current_cadence = 'bright_1x1'
             else:
-                current_instrument = 'APOGEE'
                 current_cadence = "bright_1x" + str(int(numexp))
 
-            if current_instrument is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_tess_planet " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_cadence is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_tess_planet " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_tess_planet " +
-                    " set priority = " + str(current_priority) +
-                    " where catalogid = " + str(current_catalogid) + ";")
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_tess_2min " +
+                " set cadence = '" + current_cadence + "'"
+                " where catalogid = " + str(current_catalogid) + ";")
