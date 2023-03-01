@@ -36,15 +36,17 @@ class MWM_WD_PWD_Carton(BaseCarton):
     instrument = 'BOSS'
     cadence = 'dark_2x1'
     priority = 1400
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
-        query = (WD_gaia_dr3
+        query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
-                         WD_gaia_dr3.source_id,
+                         WD_gaia_dr3.gaiaedr3,
                          WD_gaia_dr3.pwd,
                          WD_gaia_dr3.gmag_vega)
-                 .join(CatalogToGaia_DR3)
+                 .join(WD_gaia_dr3,
+                       on=(CatalogToGaia_DR3.target_id == WD_gaia_dr3.gaiaedr3))
                  .where(WD_gaia_dr3.pwd > 0.5,
                         WD_gaia_dr3.gmag_vega <= 20.0,
                         CatalogToGaia_DR3.version_id == version_id,

@@ -178,6 +178,7 @@ class MWM_bin_rv_long_Carton(BaseCarton):
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = None  # priority is set in post_process()
+    can_offset = True
 
     # peewee Model name ---> postgres table name
     # SDSS_DR17_APOGEE_Allstarmerge(CatalogdbModel)--->'sdss_dr17_apogee_allstarmerge'
@@ -409,6 +410,7 @@ class MWM_bin_rv_short_Carton(BaseCarton):
     program = 'mwm_rv'
     mapper = 'MWM'
     priority = None  # priority is set in post_process()
+    can_offset = True
 
     # This carton i.e. mwm_bin_rv_short does not use SDSS_DR17_APOGEE_Allstarmerge.
     # There is gaia_dr3 in the below query so we have done
