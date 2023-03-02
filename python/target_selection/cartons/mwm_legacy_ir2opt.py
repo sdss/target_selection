@@ -112,6 +112,7 @@ NA
     program = 'mwm_legacy'
     mapper = 'MWM'
     priority = 6100
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
