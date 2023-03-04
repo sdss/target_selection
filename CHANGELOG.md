@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 - March 4, 2023
+
+### Fixed
+
+* Use gaia dr3 XP synthetic mags as supplier of griz for targets
+
 ## 1.0.3 - February 10, 2023
 
 ### Fixed

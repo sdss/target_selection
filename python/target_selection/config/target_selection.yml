@@ -27,8 +27,7 @@
     - mwm_erosita_compact_deep
     - ops_std_boss_lsdr10
     - bhm_colr_galaxies_lsdr10
-
-  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/manual/
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
@@ -519,7 +518,7 @@
 '1.0.3':
   xmatch_plan: 1.0.0
   cartons:
-  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/manual/
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
@@ -534,7 +533,7 @@
 '1.0.2':
  xmatch_plan: 1.0.0
  cartons:
- open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft/
+ open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
  schema: sandbox
  magnitudes:
    h: [catalog_to_tic_v8, tic_v8, twomass_psc.h_m]
