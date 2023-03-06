@@ -713,6 +713,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             colnames = [field.name for field in write_query._returning]
 
+            print(mode)
+            print(write_query)
+            print(colnames)
         elif mode == 'targetdb':
 
             mag_fields = [
@@ -749,7 +752,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col._alias)
                 else:
                     colnames.append(col.name)
-
+            print(mode)
+            print(write_query)
+            print(colnames)
         else:
             raise ValueError(
                 'invalud mode. Available modes are "results" and "targetdb".'
