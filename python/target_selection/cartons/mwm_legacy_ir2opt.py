@@ -28,7 +28,7 @@ from target_selection.cartons import BaseCarton
 # TIC_v8 : catalogdb.tic_v8
 # TwoMassPSC : catalogdb.twomass_psc
 #
-
+#
 # We associate each APOGEE target with a 2MASS source since the
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
 # APOGEE_ID is the same as
@@ -42,12 +42,33 @@ from target_selection.cartons import BaseCarton
 #  12032366-5738380
 # (2 rows)
 #
-# sdss5db=# select apogee_id from catalogdb.sdss_dr17_apogee_allstarmerge limit 2;
-#    apogee_id
+# For sdss_dr17_apogee_allstarmerge we
+# have to strip off the “2M” in the APOGEE_ID.
+# However, some apogee_id values do not have 2M in the front.
+# (old: for sdss_apogeeallstarmerge_r13 we also had to strip off the
+#  “2M” in the APOGEE_ID.)
+# For example:
+# sdss5db=# select designation from  catalogdb.twomass_psc limit 2;
+#    designation
 # ------------------
-#  19140272-1554055
-#  19155129-1617591
+#  12034281-5740002
+#  12032366-5738380
 # (2 rows)
+#
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id like '2M%';
+#      apogee_id
+# ---------------------
+# 2M00000002+7417074
+# 2M00000019-1924498
+# etc.
+# sdss5db=# select apogee_id from catalogdb.SDSS_DR17_APOGEE_Allstarmerge
+# where apogee_id not like '2M%';
+#    apogee_id
+# --------------------
+# 19140272-1554055
+# 19155129-1617591
+#
 #
 # Historical Note:
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
@@ -91,6 +112,7 @@ NA
     program = 'mwm_legacy'
     mapper = 'MWM'
     priority = 6100
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -112,7 +134,7 @@ NA
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           SDSS_DR17_APOGEE_Allstarmerge.apogee_id))
+                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         Gaia_DR2.phot_g_mean_mag.between(13, 18),
