@@ -2,9 +2,6 @@
   xmatch_plan: 1.0.0
   cartons:
     - bhm_spiders_clusters_lsdr10
-    - ops_std_eboss
-    - ops_std_boss_gdr2
-    - ops_std_apogee
     - mwm_yso_nebula_apogee
     - mwm_yso_cluster_apogee
     - mwm_yso_cluster_boss
