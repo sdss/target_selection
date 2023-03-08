@@ -2,6 +2,26 @@
   xmatch_plan: 1.0.0
   cartons:
     - bhm_spiders_clusters_lsdr10
+    - ops_std_eboss
+    - ops_std_boss_gdr2
+    - ops_std_apogee
+    - mwm_yso_nebula_apogee
+    - mwm_yso_cluster_apogee
+    - mwm_yso_cluster_boss
+    - mwm_ob_cepheids
+    - mwm_yso_disk_apogee
+    - mwm_yso_disk_boss
+    - mwm_yso_cmz_apogee
+    - mwm_yso_variable_apogee
+    - mwm_yso_variable_boss
+    - mwm_yso_embedded_apogee
+    - mwm_yso_pms_apogee_sagitta_edr3
+    - mwm_yso_pms_apogee_zari18pms
+    - mwm_yso_pms_boss_sagitta_edr3
+    - mwm_yso_pms_boss_zari18pms
+    - mwm_tess_2min
+    - mwm_galactic_core
+    - mwm_galactic_core_dist
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
