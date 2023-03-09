@@ -417,14 +417,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
                  cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_mag.is_null(False),
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag.is_null(False),
                  cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag.is_null(False),
-                 # Now removing the flag selection because it killed everything 
+                 # Now removing the flag selection because it killed everything
                  # with r_sdss_mag < 14.2
                  # cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_flag == 1,
                  # cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flag == 1,
                  # cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
                  # It's possible that in future, we might want to apply cuts on bp-rp
                  # or on the derived sdss colours
-                 # Fairly arbitrary faint cut 
+                 # Fairly arbitrary faint cut
                  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
                  # Could potentially go fainter, or could cut on G,BP,RP etc instead
                  # but that would require a join to gaia_dr3_source table
