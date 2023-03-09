@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.5 - March 8, 2023
+## 1.0.5 - March 9, 2023
 
 ### Fixed
 
