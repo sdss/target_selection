@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.5 - March 9, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.5 cartons
+
+* Updated code for gaia dr3 XP synthetic magnitudes
+
 ## 1.0.4 - March 4, 2023
 
 ### Fixed
