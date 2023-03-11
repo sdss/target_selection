@@ -119,8 +119,8 @@ NA
         query = (Catalog
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
-                         Gaia_DR3.ra,
-                         Gaia_DR3.dec,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          Gaia_DR3.phot_g_mean_mag,
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag,
