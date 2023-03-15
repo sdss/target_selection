@@ -736,6 +736,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     tdb.Target,
                     *mag_fields,
                     tdb.CartonToTarget.priority,
+                    tdb.CartonToTarget.value,
+                    tdb.CartonToTarget.instrument_pk,
+                    tdb.CartonToTarget.inertial,
+                    tdb.CartonToTarget.can_offset,
                     tdb.Cadence.label.alias('cadence'),
                 )
                 .join(tdb.CartonToTarget)
