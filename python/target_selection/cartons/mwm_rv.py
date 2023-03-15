@@ -443,6 +443,7 @@ class MWM_bin_rv_short_Carton(BaseCarton):
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_short_condition,
+                        TwoMassPSC.h_m > 7,
                         TwoMassPSC.h_m < 10.8))
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
