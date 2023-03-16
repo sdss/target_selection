@@ -137,7 +137,7 @@ NA
                        on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
+                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag.between(8, 18)))
