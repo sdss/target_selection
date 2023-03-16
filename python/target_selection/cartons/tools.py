@@ -250,6 +250,7 @@ def get_file_carton(filename):
                                     temp.cadence,
                                     temp.priority,
                                     temp.instrument,
+                                    temp.can_offset.cast('boolean').alias('can_offset'),
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
 
@@ -429,15 +430,15 @@ def get_file_carton(filename):
                                            '(is_panstarrs_dr2 is False) and ' +
                                            '(is_twomass_psc is False)')
 
-            if 'lambda_eff' in self._table.colnames:
-                query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
+            # if 'lambda_eff' in self._table.colnames:
+            #     query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
 
             # Early files may not have the can_offset column. If the table has it, extend
             # the select. Otherwise the column will be filled with the default value.
-            if 'can_offset' in self._table.colnames:
-                query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
-            else:
-                self.can_offset = False
+            # if 'can_offset' in self._table.colnames:
+            #    query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
+            # else:
+            #     self.can_offset = False
 
             return query
 
