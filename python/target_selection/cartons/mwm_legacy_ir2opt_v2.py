@@ -9,9 +9,8 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC, Gaia_DR3,
-                                             SDSS_DR17_APOGEE_Allstarmerge,
-                                             TwoMassPSC)
+                                             CatalogToTwoMassPSC,
+                                             Gaia_DR3, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
@@ -137,7 +136,7 @@ NA
                        on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        Gaia_DR3.phot_g_mean_mag.between(8, 9))) # old 18
+                        Gaia_DR3.phot_g_mean_mag.between(8, 9)))  # old 18
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
