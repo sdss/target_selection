@@ -16,12 +16,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3,
 
 from target_selection.cartons import BaseCarton
 
-
-# TIC_v8,
-# TwoMassPSC)
-
 # from target_selection.exceptions import TargetSelectionError
-
 
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
@@ -98,15 +93,11 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
     name = 'mwm_erosita_stars'
     category = 'science'
-    # instrument = None  # assigned in post_process()
     instrument = 'BOSS'
-    cadence = None  # assigned in post_process()
     program = 'mwm_erosita'
     mapper = 'MWM'
-    priority = None  # assigned in post_processs()
     can_offset = True
 
-    # faintest_cadence = 'dark_1x3'
     faintest_cadence = 'dark_1x2'
     faintest_priority = 1910
 
@@ -155,10 +146,6 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
                      EROSITASupersetv1Stars.ero_dec,
                      EROSITASupersetv1Stars.opt_ra,
                      EROSITASupersetv1Stars.opt_dec,
-                     # peewee.fn.dense_rank().over(
-                     #     partition_by=[EROSITASupersetv1Stars.ero_detuid],
-                     #     order_by=[EROSITASupersetv1Stars.xmatch_metric.desc()]
-                     # ).alias('x_rank'),
                  )
                  .distinct(CatalogToGaia_DR3.catalogid)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
@@ -220,7 +207,9 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     cadence options for these targets
     (list all options, even though no single target will receive more than one):
     minimum exposure is 1x1 for bright 16<g < 17 mag),
-    1x2 for medium (17<g<18), 1xn for the fainter targets (n as large as possible)
+    1x2 for medium (17<g<18)
+    Fainter targets have 1x2 in the normal version of the cvarton,
+    but have 2x2 in the _deep version of this carton.
 
     Pseudo SQL (optional):
 
@@ -231,7 +220,6 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     reveals 11113 targets for 11087 X-ray sources
 
     Implementation:
-
     SELECT c.catalogid, c.ra, c.dec, gaia.phot_g_mean_mag,
     gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.parallax,
     gaia.pmra, gaia.pmdec,
@@ -247,17 +235,13 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     estars.xmatch_method = 'NWAY_CV' AND
     estars.xmatch_version = '20Oct2022'
     limit 10;
-
-    See cadence logic in post_process() below.
     """
 
     name = 'mwm_erosita_compact'
     category = 'science'
-    instrument = None  # assigned in post_process()
-    cadence = None  # assigned in post_process()
+    instrument = 'BOSS'
     program = 'mwm_erosita'
     mapper = 'MWM'
-    priority = None  # assigned in post_processs()
     can_offset = True
     faintest_cadence = 'dark_1x2'
     faintest_priority = 1911
