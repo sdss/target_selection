@@ -182,8 +182,11 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 
     # peewee Model name ---> postgres table name
     # SDSS_DR17_APOGEE_Allstarmerge(CatalogdbModel)--->'sdss_dr17_apogee_allstarmerge'
-    # There is no gaia_dr3 in the below query so we do not have to do
-    # major modification of the old query.
+    # There is no gaia_dr3 in the below query so for v1.0 we do not have to do
+    # a major modification of the v0.5 query.
+    # In the below query, we use replace() instead of ltrim() since
+    # ltrim('2M20', '2M') will also trim the second 2.
+
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog

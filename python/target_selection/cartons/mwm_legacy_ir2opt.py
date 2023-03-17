@@ -114,6 +114,9 @@ NA
     priority = 6100
     can_offset = True
 
+    # In the below query, we use replace() instead of ltrim() since
+    # ltrim('2M20', '2M') will also trim the second 2.
+
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
