@@ -89,10 +89,11 @@ from target_selection.cartons import BaseCarton
 # 19140272-1554055
 # 19155129-1617591
 #
-# ######### start comment for old sdss_apogeeallstarmerge_r13 #######################
-# sdss5db=# select ltrim(apogee_id,'2M') from
+# #### start comment for old sdss_apogeeallstarmerge_r13 ###################
+#
+# sdss5db=# select replace(apogee_id,'2M', '') from
 #  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
-#       ltrim
+#       replace
 # ------------------
 #  14044120-1550575
 #  14033676-1554164
@@ -182,8 +183,11 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 
     # peewee Model name ---> postgres table name
     # SDSS_DR17_APOGEE_Allstarmerge(CatalogdbModel)--->'sdss_dr17_apogee_allstarmerge'
-    # There is no gaia_dr3 in the below query so we do not have to do
-    # major modification of the old query.
+    # There is no gaia_dr3 in the below query so for v1.0 we do not have to do
+    # a major modification of the v0.5 query.
+    # In the below query, we use replace() instead of ltrim() since
+    # ltrim('2M20', '2M') will also trim the second 2.
+
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
@@ -210,7 +214,7 @@ class MWM_bin_rv_long_Carton(BaseCarton):
                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
+                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
                         *mwm_rv_long_condition,

@@ -72,11 +72,6 @@ from target_selection.cartons import BaseCarton
 #
 # Historical Note:
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
-# For that table, we had to use the below command to remove the 2M from the
-# left part of apogee_id.
-#
-# select ltrim(apogee_id,'2M') from
-#  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
 #
 
 class MWM_Legacy_ir2opt_Carton(BaseCarton):
@@ -114,6 +109,9 @@ NA
     priority = 6100
     can_offset = True
 
+    # In the below query, we use replace() instead of ltrim() since
+    # ltrim('2M20', '2M') will also trim the second 2.
+
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
@@ -137,7 +135,7 @@ NA
                        on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
+                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag.between(8, 18)))
