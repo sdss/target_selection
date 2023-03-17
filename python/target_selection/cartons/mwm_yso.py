@@ -441,6 +441,8 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
                  .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
                          Gaia_DR2.ra.alias('gaia_dr2_ra'),
                          Gaia_DR2.dec.alias('gaia_dr2_dec'),
+                         TwoMassPSC.ra.alias('twomass_psc_ra'),
+                         TwoMassPSC.dec.alias('twomass_psc_dec'),
                          TwoMassPSC.pts_key,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          AllWise.designation.alias('allwise_designation'),
