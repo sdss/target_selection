@@ -72,11 +72,6 @@ from target_selection.cartons import BaseCarton
 #
 # Historical Note:
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
-# For that table, we had to use the below command to remove the 2M from the
-# left part of apogee_id.
-#
-# select ltrim(apogee_id,'2M') from
-#  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
 #
 
 class MWM_Legacy_ir2opt_Carton(BaseCarton):

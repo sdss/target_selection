@@ -89,10 +89,11 @@ from target_selection.cartons import BaseCarton
 # 19140272-1554055
 # 19155129-1617591
 #
-# ######### start comment for old sdss_apogeeallstarmerge_r13 #######################
-# sdss5db=# select ltrim(apogee_id,'2M') from
+# #### start comment for old sdss_apogeeallstarmerge_r13 ###################
+#
+# sdss5db=# select replace(apogee_id,'2M', '') from
 #  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
-#       ltrim
+#       replace
 # ------------------
 #  14044120-1550575
 #  14033676-1554164
