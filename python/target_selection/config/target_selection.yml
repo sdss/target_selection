@@ -1,8 +1,6 @@
 '1.0.8':
   xmatch_plan: 1.0.0
   cartons:
-    - ops_std_boss_ps1dr2
-    - ops_std_boss_gdr2
     - mwm_yso_nebula_apogee
     - mwm_erosita_compact
     - mwm_erosita_compact_deep
