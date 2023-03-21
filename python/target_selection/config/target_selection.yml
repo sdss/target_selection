@@ -7,8 +7,6 @@
     - mwm_ob_core
     - mwm_ob_cepheids 
     - mwm_legacy_ir2opt
-    - mwm_bin_rv_short
-    - mwm_bin_rv_long
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
