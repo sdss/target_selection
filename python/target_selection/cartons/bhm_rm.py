@@ -16,7 +16,7 @@ from peewee import fn
 from target_selection.cartons.base import BaseCarton
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
-    BHM_RM_v1,
+    BHM_RM_v1_1,
     CatalogToLegacy_Survey_DR8,
     CatalogToLegacy_Survey_DR10,
     CatalogToGaia_DR2,
@@ -83,7 +83,7 @@ class BhmRmBaseCarton(BaseCarton):
         c2g3 = CatalogToGaia_DR3.alias()
         c2g2 = CatalogToGaia_DR2.alias()
         c2ps = CatalogToPanstarrs1.alias()
-        t = BHM_RM_v1.alias()
+        t = BHM_RM_v1_1.alias()
         self.alias_c = c
         self.alias_t = t
 
