@@ -116,6 +116,7 @@ def get_file_carton(filename):
                 'mwm_gg',
                 'mwm_halo',
                 'mwm_legacy',
+                'mwm_magcloud',
                 'mwm_ob',
                 'mwm_planet',
                 'mwm_rv',
