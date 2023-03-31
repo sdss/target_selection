@@ -3,7 +3,7 @@
 #
 # @Author: José Sánchez-Gallego (gallegoj@uw.edu)
 # @Date: 2020-07-01
-# @Filename: mwm_cb_uvex.py
+# @Filename: mwm_tess_rgb.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import numpy
