@@ -110,6 +110,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid,
+                         TIC_v8.id,
                          TIC_v8.hmag,
                          TIC_v8.jmag,
                          TIC_v8.kmag,
