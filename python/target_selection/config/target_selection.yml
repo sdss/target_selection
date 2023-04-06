@@ -1,7 +1,6 @@
 '1.0.13':
   xmatch_plan: 1.0.0
   cartons:
-    - ops_std_boss_ps1dr2
     - ops_std_boss_gdr2
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
