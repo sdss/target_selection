@@ -8,10 +8,10 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
                                              SDSS_DR17_APOGEE_Allstarmerge,
-                                             TIC_v8, TwoMassPSC)
+                                             TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
@@ -72,11 +72,6 @@ from target_selection.cartons import BaseCarton
 #
 # Historical Note:
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
-# For that table, we had to use the below command to remove the 2M from the
-# left part of apogee_id.
-#
-# select ltrim(apogee_id,'2M') from
-#  catalogdb.sdss_apogeeallstarmerge_r13 limit 2;
 #
 
 class MWM_Legacy_ir2opt_Carton(BaseCarton):
@@ -114,39 +109,43 @@ NA
     priority = 6100
     can_offset = True
 
+    # In the below query, we use replace() instead of ltrim() since
+    # ltrim('2M20', '2M') will also trim the second 2.
+
     def build_query(self, version_id, query_region=None):
 
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.source_id,
-                         Gaia_DR2.phot_g_mean_mag,
-                         Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag,
-                         TwoMassPSC.pts_key)
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
+                 .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         Gaia_DR3.phot_g_mean_mag,
+                         Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag,
+                         TwoMassPSC.pts_key,
+                         TwoMassPSC.designation)
+                 .join(CatalogToGaia_DR3,
+                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(Gaia_DR3,
+                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
                  .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
                  .join(SDSS_DR17_APOGEE_Allstarmerge,
                        on=(TwoMassPSC.designation ==
-                           peewee.fn.ltrim(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M')))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag.between(13, 18),
-                        Gaia_DR2.phot_bp_mean_mag > 13,
-                        Gaia_DR2.phot_rp_mean_mag > 13))
+                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_g_mean_mag.between(8, 18)))
 
-        # Gaia_DR2 peewee model class corresponds to
-        # table catalogdb.gaia_dr2_source.
+        # Gaia_DR3 peewee model class corresponds to
+        # table catalogdb.gaia_dr3_source.
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
