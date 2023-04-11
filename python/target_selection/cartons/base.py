@@ -711,6 +711,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug(f'Writing table to {filename}.')
 
+        if not self.RModel:
+            self.RModel = self.get_model()
+
         if mode == 'results':
 
             results_model = self.RModel
