@@ -11,17 +11,12 @@ import pandas
 import peewee
 
 from sdssdb.peewee.sdss5db import targetdb
-from sdssdb.peewee.sdss5db.catalogdb import (
-    GLIMPSE,
-    AllWise,
-    Catalog,
-    CatalogToAllWise,
-    CatalogToGaia_DR3,
-    CatalogToGLIMPSE,
-    CatalogToTwoMassPSC,
-    Gaia_DR3,
-    TwoMassPSC,
-)
+from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
+                                             CatalogToAllWise,
+                                             CatalogToGaia_DR3,
+                                             CatalogToGLIMPSE,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
+                                             TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
@@ -51,17 +46,14 @@ def subselect(data, othersel, downsampledby=1):
     ranges = [[-5, 5], [-5, 5], [-0.2, 0.2]]
     resolution = 0.1
 
-    countshape = [
-        numpy.round((r[1] - r[0]) / resolution).astype('i4') + 2 for r in ranges
-    ]
+    countshape = [numpy.round((r[1] - r[0]) / resolution).astype('i4') + 2 for r in ranges]
 
     coords = [
         numpy.clip(numpy.floor((c - r[0]) / resolution).astype('i4'), -1, s - 2) + 1
         for (c, r, s) in zip(xyz, ranges, countshape)
     ]
     centers = [
-        r[0] + resolution * (numpy.arange((r[1] - r[0]) / resolution) + 0.5)
-        for r in ranges
+        r[0] + resolution * (numpy.arange((r[1] - r[0]) / resolution) + 0.5) for r in ranges
     ]
 
     flatcoord = numpy.ravel_multi_index(coords, countshape)
@@ -264,10 +256,7 @@ class MWM_Dust_Carton(BaseCarton):
             )
             .join(GLIMPSE, peewee.JOIN.LEFT_OUTER)
             .where(
-                (
-                    (CatalogToAllWise.version_id == version_id)
-                    & (CatalogToAllWise.best >> True)
-                )
+                ((CatalogToAllWise.version_id == version_id) & (CatalogToAllWise.best >> True))
                 | (CatalogToAllWise.catalogid >> None)
             )
             .where(
@@ -279,10 +268,7 @@ class MWM_Dust_Carton(BaseCarton):
                 CatalogToTwoMassPSC.best >> True,
             )
             .where(
-                (
-                    (CatalogToGLIMPSE.version_id == version_id)
-                    & (CatalogToGLIMPSE.best >> True)
-                )
+                ((CatalogToGLIMPSE.version_id == version_id) & (CatalogToGLIMPSE.best >> True))
                 | (CatalogToGLIMPSE.catalogid >> None)
             )
             .where(
@@ -331,14 +317,26 @@ class MWM_Dust_Carton(BaseCarton):
             self.database,
         )
 
+        if self.name == 'mwm_dust_core':
+            mwm_galactic_carton = 'mwm_galactic_core'
+        elif self.name == 'mwm_dust_core_dist':
+            mwm_galactic_carton = 'mwm_galactic_core_dist'
+        else:
+            raise ValueError(f'Invalid carton {self.name}.')
+
+        if self.parameters:
+            mwm_galactic_plan = self.parameters.get(mwm_galactic_carton + '_plan', self.plan)
+        else:
+            mwm_galactic_plan = self.plan
+
         mwm_galactic = (
             targetdb.Target.select(targetdb.Target.catalogid)
             .join(targetdb.CartonToTarget)
             .join(targetdb.Carton)
             .join(targetdb.Version)
             .where(
-                targetdb.Carton.carton == 'mwm_galactic_core',
-                targetdb.Version.plan == self.plan,
+                targetdb.Carton.carton == mwm_galactic_carton,
+                targetdb.Version.plan == mwm_galactic_plan,
                 targetdb.Version.target_selection >> True,
             )
         )
@@ -349,7 +347,9 @@ class MWM_Dust_Carton(BaseCarton):
         # Subsample based on GG and update DB.
         dust_gg_subsel = subselect(data, gg_mask)
         dust_gg_cid = peewee.ValuesList(
-            zip(data.catalogid[dust_gg_subsel]), columns=('catalogid',), alias='vl'
+            zip(data.catalogid[dust_gg_subsel]),
+            columns=('catalogid',),
+            alias='vl',
         )
 
         (
@@ -360,3 +360,13 @@ class MWM_Dust_Carton(BaseCarton):
         )
 
         return
+
+
+class MWM_Dust_Dist_Carton(MWM_Dust_Carton):
+    """MWM Dust Dist Carton.
+
+    Same definition as the dust carton but subsampling using the mwm_galactic_core_dist.
+
+    """
+
+    name = 'mwm_dust_core_dist'
