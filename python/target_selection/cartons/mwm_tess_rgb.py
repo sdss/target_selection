@@ -3,7 +3,7 @@
 #
 # @Author: José Sánchez-Gallego (gallegoj@uw.edu)
 # @Date: 2020-07-01
-# @Filename: mwm_cb_uvex.py
+# @Filename: mwm_tess_rgb.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import numpy
@@ -110,6 +110,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
         query = (Catalog
                  .select(CatalogToTIC_v8.catalogid,
+                         TIC_v8.id,
                          TIC_v8.hmag,
                          TIC_v8.jmag,
                          TIC_v8.kmag,

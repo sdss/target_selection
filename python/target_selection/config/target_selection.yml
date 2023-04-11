@@ -1,3 +1,197 @@
+'1.0.15':
+  xmatch_plan: 1.0.0
+  cartons:
+    - ops_std_eboss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+
+'1.0.14':
+  xmatch_plan: 1.0.0
+  cartons:
+    - ops_std_apogee
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+
+'1.0.13':
+  xmatch_plan: 1.0.0
+  cartons:
+    - ops_std_boss_gdr2
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+  parameters:
+    ops_std_boss_ps1dr2:
+      mag_ps_r_min: 15.95
+      mag_ps_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      mag_gaia_g_max: 19.0
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.10
+      g_r_dered_nominal: 0.24
+      r_i_dered_nominal: 0.08
+      i_z_dered_nominal: 0.00
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+    ops_std_boss_gdr2:
+      mag_gaia_g_min: 15.8
+      mag_gaia_g_max: 18.1
+      mag_gaia_bp_min: 15.8
+      mag_gaia_bp_max: 18.4
+      mag_gaia_rp_min: 15.6
+      mag_gaia_rp_max: 17.6
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.12
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+      g_rp_dered_nominal: 0.43
+      ebv_max: 0.25
+
+'1.0.12':
+  xmatch_plan: 1.0.0
+  cartons:
+    - bhm_rm_core
+    - bhm_rm_known_spec
+    - bhm_rm_var
+    - bhm_rm_ancillary
+    - bhm_rm_xrayqso
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+  parameters:
+    bhm_rm_base:
+      fieldlist:
+        - { name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49 }
+        - { name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49 }
+        - { name: XMM-LSS,  racen: 35.70833, deccen: -5.05000,  radius: 1.49 }
+        - { name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00 }
+        - { name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00 }
+        - { name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00 }
+    bhm_rm_core:
+      priority: 1002
+      value: 1000.0
+      mag_i_min: 17.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_known_spec:
+      priority: 1001
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.7
+      mag_i_max_sdss_rm: 21.7
+      mag_i_max_cosmos: 21.5
+      mag_i_max_xmm_lss: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_var:
+      priority: 1003
+      value: 1000.0
+      mag_i_min: 17.0
+      mag_i_max: 20.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_ancillary:
+      priority: 1004
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_xrayqso:
+      priority: 1005
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+
+'1.0.11':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_tess_rgb
+    - mwm_wd_pwd
+    - mwm_bin_rv_short
+    - mwm_bin_rv_long
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+  parameters:
+    ops_std_boss_ps1dr2:
+      mag_ps_r_min: 15.95
+      mag_ps_r_max: 18.05
+      mag_gaia_g_min: 15.5
+      mag_gaia_g_max: 19.0
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.10
+      g_r_dered_nominal: 0.24
+      r_i_dered_nominal: 0.08
+      i_z_dered_nominal: 0.00
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+    ops_std_boss_gdr2:
+      mag_gaia_g_min: 15.8
+      mag_gaia_g_max: 18.1
+      mag_gaia_bp_min: 15.8
+      mag_gaia_bp_max: 18.4
+      mag_gaia_rp_min: 15.6
+      mag_gaia_rp_max: 17.6
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.12
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+      g_rp_dered_nominal: 0.43
+      ebv_max: 0.25
+
 '1.0.10':
   xmatch_plan: 1.0.0
   cartons:
