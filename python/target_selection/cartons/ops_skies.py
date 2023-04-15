@@ -37,6 +37,7 @@ class OPS_Sky_Boss_Best_Carton(BaseCarton):
     instrument = 'BOSS'
     inertial = True
     priority = 5000
+    can_offset = False
 
     load_magnitudes = False
 
@@ -105,6 +106,7 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
     instrument = 'BOSS'
     inertial = True
     priority = 5001
+    can_offset = False
 
     load_magnitudes = False
 
@@ -173,6 +175,7 @@ class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
     instrument = 'BOSS'
     inertial = True
     priority = 5002
+    can_offset = False
 
     load_magnitudes = False
 
@@ -348,6 +351,7 @@ class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
     instrument = 'APOGEE'
     inertial = True
     priority = 5200
+    can_offset = False
 
     load_magnitudes = False
 
@@ -393,6 +397,7 @@ class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
     instrument = 'APOGEE'
     inertial = True
     priority = 5201
+    can_offset = False
 
     load_magnitudes = False
 
