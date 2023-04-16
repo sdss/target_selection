@@ -3232,7 +3232,7 @@
     rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
-    work_mem: '5GB'
+    work_mem: '10GB'
 
 '0.5.0-test':
   xmatch_plan: 0.5.0
