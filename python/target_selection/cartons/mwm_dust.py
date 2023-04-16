@@ -13,18 +13,19 @@ import peewee
 from sdssdb.peewee.sdss5db import targetdb
 from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
                                              CatalogToAllWise,
-                                             CatalogToGLIMPSE, CatalogToTIC_v8,
-                                             TIC_v8, TwoMassPSC)
+                                             CatalogToGaia_DR3,
+                                             CatalogToGLIMPSE,
+                                             CatalogToTwoMassPSC, Gaia_DR3,
+                                             TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
 
 
 def lbp2xyz(ll, bb, pp):
-
-    dist = 1. / pp  # kpc
+    dist = 1.0 / pp  # kpc
     z = dist * numpy.sin(numpy.radians(bb))
-    x = (dist * numpy.cos(numpy.radians(bb)) * numpy.cos(numpy.radians(ll)))
-    y = (dist * numpy.cos(numpy.radians(bb)) * numpy.sin(numpy.radians(ll)))
+    x = dist * numpy.cos(numpy.radians(bb)) * numpy.cos(numpy.radians(ll))
+    y = dist * numpy.cos(numpy.radians(bb)) * numpy.sin(numpy.radians(ll))
 
     # z is definitely right; x and y depend on conventions.  As long
     # as this routine is used for x and y throughout this code, this should
@@ -38,45 +39,54 @@ def subselect(data, othersel, downsampledby=1):
 
     ll = data['gallong']
     bb = data['gallat']
-    xyz = lbp2xyz(ll, bb, data['plx'])
+    xyz = lbp2xyz(ll, bb, data['parallax'])
 
     dustsel = numpy.ones(len(data), numpy.bool)
 
     ranges = [[-5, 5], [-5, 5], [-0.2, 0.2]]
     resolution = 0.1
 
-    countshape = [numpy.round((r[1] - r[0]) / resolution).astype('i4') + 2
-                  for r in ranges]
+    countshape = [numpy.round((r[1] - r[0]) / resolution).astype('i4') + 2 for r in ranges]
 
-    coords = [numpy.clip(numpy.floor((c - r[0]) / resolution).astype('i4'),
-                         -1, s - 2) + 1
-              for (c, r, s) in zip(xyz, ranges, countshape)]
-    centers = [r[0] + resolution * (numpy.arange((r[1] - r[0]) / resolution) + 0.5)
-               for r in ranges]
+    coords = [
+        numpy.clip(numpy.floor((c - r[0]) / resolution).astype('i4'), -1, s - 2) + 1
+        for (c, r, s) in zip(xyz, ranges, countshape)
+    ]
+    centers = [
+        r[0] + resolution * (numpy.arange((r[1] - r[0]) / resolution) + 0.5) for r in ranges
+    ]
 
     flatcoord = numpy.ravel_multi_index(coords, countshape)
 
-    countsd = numpy.bincount(flatcoord[dustsel & ~othersel],
-                             minlength=numpy.product(countshape))
-    countso = numpy.bincount(flatcoord[othersel & dustsel],
-                             minlength=numpy.product(countshape))
+    countsd = numpy.bincount(
+        flatcoord[dustsel & ~othersel],
+        minlength=numpy.product(countshape),
+    )
+    countso = numpy.bincount(
+        flatcoord[othersel & dustsel],
+        minlength=numpy.product(countshape),
+    )
     countsd = countsd.reshape(countshape)
     countso = countso.reshape(countshape)
 
-    pnumdensd = map_coordinates_wrap((countsd[1:-1, 1:-1, 1:-1], centers),
-                                     [c[dustsel & ~othersel] for c in xyz],
-                                     order=0)
-    pnumdenso = map_coordinates_wrap((countso[1:-1, 1:-1, 1:-1], centers),
-                                     [c[dustsel & ~othersel] for c in xyz],
-                                     order=0)
+    pnumdensd = map_coordinates_wrap(
+        (countsd[1:-1, 1:-1, 1:-1], centers),
+        [c[dustsel & ~othersel] for c in xyz],
+        order=0,
+    )
+    pnumdenso = map_coordinates_wrap(
+        (countso[1:-1, 1:-1, 1:-1], centers),
+        [c[dustsel & ~othersel] for c in xyz],
+        order=0,
+    )
 
-    ntopick = 10. / downsampledby
+    ntopick = 10.0 / downsampledby
     pnumdensleft = ntopick - pnumdenso
 
     numpy.random.seed(0)
     randnum = numpy.random.rand(numpy.sum(dustsel & ~othersel))
 
-    subsel = (randnum < pnumdensleft / 1. / (pnumdensd + (pnumdensd == 0)))
+    subsel = randnum < pnumdensleft / 1.0 / (pnumdensd + (pnumdensd == 0))
 
     dustsel[othersel] = 0
     dustsel[dustsel & ~othersel] = subsel
@@ -87,15 +97,23 @@ def subselect(data, othersel, downsampledby=1):
 def map_coordinates_wrap(grid, coord, **kw):
     gridpts = grid[0]
     gridcoord = grid[1]
-    outputcoordnorm = [numpy.interp(c, gc, numpy.arange(len(gc)))
-                       for c, gc in zip(coord, gridcoord)]
+    outputcoordnorm = [
+        numpy.interp(c, gc, numpy.arange(len(gc))) for c, gc in zip(coord, gridcoord)
+    ]
     from scipy.ndimage import interpolation
-    return interpolation.map_coordinates(gridpts, outputcoordnorm,
-                                         cval=0., mode='constant', **kw)
+
+    return interpolation.map_coordinates(
+        gridpts,
+        outputcoordnorm,
+        cval=0.0,
+        mode='constant',
+        **kw,
+    )
 
 
 # These were initial selection criteria, not used anymore. We use the
 # real GG carton instead.
+
 
 def jkselect(data):
     jk0 = data['j_ks_0']
@@ -104,9 +122,11 @@ def jkselect(data):
 
 def ghselect(data):
     gaiag = data['gaiamag']
-    return ((data['hmag'] < 11) & numpy.where(numpy.isfinite(gaiag),
-                                              gaiag - data['hmag'] > 3.5,
-                                              True))
+    return (data['hmag'] < 11) & numpy.where(
+        numpy.isfinite(gaiag),
+        gaiag - data['hmag'] > 3.5,
+        True,
+    )
 
 
 class MWM_Dust_Carton(BaseCarton):
@@ -150,16 +170,20 @@ class MWM_Dust_Carton(BaseCarton):
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
     priority = 2720
+    can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         # Do a quick check to be sure the GG carton exists in targetdb.
-        gg_exists = (targetdb.Carton.select()
-                     .join(targetdb.Version)
-                     .where(targetdb.Carton.carton == 'mwm_galactic_core',
-                            targetdb.Version.plan == self.plan,
-                            targetdb.Version.target_selection >> True)
-                     .exists())
+        gg_exists = (
+            targetdb.Carton.select()
+            .join(targetdb.Version)
+            .where(
+                targetdb.Carton.carton == 'mwm_galactic_core',
+                targetdb.Version.plan == self.plan,
+                targetdb.Version.target_selection >> True,
+            )
+            .exists()
+        )
         if not gg_exists:
             raise RuntimeError('mwm_galactic has not been loaded yet.')
 
@@ -172,10 +196,10 @@ class MWM_Dust_Carton(BaseCarton):
         rd_flag_1 = peewee.fn.substr(rd_flg, 2, 1).cast('integer')
         gal_contam = TwoMassPSC.gal_contam
 
-        gallong = TIC_v8.gallong
-        gallat = TIC_v8.gallat
+        gallong = Gaia_DR3.l
+        gallat = Gaia_DR3.b
 
-        ipar = 1. / TIC_v8.plx  # kpc
+        ipar = 1.0 / Gaia_DR3.parallax  # kpc
         zz = ipar * fn.sin(fn.radians(gallat))
         xx = ipar * fn.cos(fn.radians(gallat)) * fn.cos(fn.radians(gallong))
         yy = ipar * fn.cos(fn.radians(gallat)) * fn.sin(fn.radians(gallong))
@@ -192,58 +216,90 @@ class MWM_Dust_Carton(BaseCarton):
         j_ks_0_allwise = AllWise.j_m_2mass - AllWise.k_m_2mass - Ej_ks
         j_ks_0 = fn.coalesce(j_ks_0_glimpse, j_ks_0_allwise)
 
-        plxfracunc = TIC_v8.e_plx / TIC_v8.plx
-        dm = 5 * fn.log(1000. / TIC_v8.plx / 10)
-        absmag = TIC_v8.kmag - aks - dm
+        plxfracunc = 1 / Gaia_DR3.parallax_over_error
+        dm = 5 * fn.log(1000.0 / Gaia_DR3.parallax / 10)
+        absmag = TwoMassPSC.k_m - aks - dm
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         peewee.Value(False).alias('selected'),  # Set selected to False
-                         TIC_v8.gaia_int.alias('gaia_souce_id'),
-                         TIC_v8.gallong, TIC_v8.gallat,
-                         TIC_v8.plx,
-                         TIC_v8.gaiamag,
-                         TIC_v8.hmag,
-                         TIC_v8.kmag,
-                         aks.alias('a_ks'),
-                         j_ks_0.alias('j_ks_0'))
-                 .join(TIC_v8)
-                 .join_from(CatalogToTIC_v8, CatalogToAllWise,
-                            peewee.JOIN.LEFT_OUTER,
-                            on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(AllWise, peewee.JOIN.LEFT_OUTER)
-                 .join_from(TIC_v8, TwoMassPSC, peewee.JOIN.LEFT_OUTER)
-                 .join_from(CatalogToAllWise, CatalogToGLIMPSE,
-                            peewee.JOIN.LEFT_OUTER,
-                            on=(CatalogToGLIMPSE.catalogid == CatalogToAllWise.catalogid))
-                 .join(GLIMPSE, peewee.JOIN.LEFT_OUTER)
-                 .where(((CatalogToAllWise.version_id == version_id) &
-                         (CatalogToAllWise.best >> True)) |
-                        (CatalogToAllWise.catalogid >> None))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True)
-                 .where(((CatalogToGLIMPSE.version_id == version_id) &
-                         (CatalogToGLIMPSE.best >> True)) |
-                        (CatalogToGLIMPSE.catalogid >> None))
-                 .where(TIC_v8.hmag < 11.2,
-                        fn.abs(zz) < 0.2,
-                        j_ks_0.is_null(False), j_ks_0 > 0.5,
-                        dist < 5,
-                        plxfracunc < 0.2, plxfracunc > 0,
-                        absmag < 2.6)
-                 .where(ph_qual.regexp('.(A|B).'),
-                        gal_contam == 0,
-                        peewee.fn.substr(cc_flg, 2, 1) == '0',
-                        rd_flag_1 > 0, rd_flag_1 <= 3))
+        query = (
+            Gaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                peewee.Value(False).alias('selected'),  # Set selected to False
+                Gaia_DR3.source_id.alias('gaia_souce_id'),
+                Gaia_DR3.l.alias("gallong"),
+                Gaia_DR3.b.alias("gallat"),
+                Gaia_DR3.parallax,
+                Gaia_DR3.phot_g_mean_mag,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                aks.alias('a_ks'),
+                j_ks_0.alias('j_ks_0'),
+            )
+            .join(CatalogToGaia_DR3)
+            .join(
+                CatalogToAllWise,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToAllWise.catalogid == CatalogToGaia_DR3.catalogid),
+            )
+            .join(AllWise, peewee.JOIN.LEFT_OUTER)
+            .join_from(
+                CatalogToGaia_DR3,
+                CatalogToTwoMassPSC,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid),
+            )
+            .join(TwoMassPSC, peewee.JOIN.LEFT_OUTER)
+            .join_from(
+                CatalogToAllWise,
+                CatalogToGLIMPSE,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToGLIMPSE.catalogid == CatalogToAllWise.catalogid),
+            )
+            .join(GLIMPSE, peewee.JOIN.LEFT_OUTER)
+            .where(
+                ((CatalogToAllWise.version_id == version_id) & (CatalogToAllWise.best >> True))
+                | (CatalogToAllWise.catalogid >> None)
+            )
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+            )
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+            )
+            .where(
+                ((CatalogToGLIMPSE.version_id == version_id) & (CatalogToGLIMPSE.best >> True))
+                | (CatalogToGLIMPSE.catalogid >> None)
+            )
+            .where(
+                TwoMassPSC.h_m < 11.2,
+                fn.abs(zz) < 0.2,
+                j_ks_0.is_null(False),
+                j_ks_0 > 0.5,
+                dist < 5,
+                plxfracunc < 0.2,
+                plxfracunc > 0,
+                absmag < 2.6,
+            )
+            .where(
+                ph_qual.regexp('.(A|B).'),
+                gal_contam == 0,
+                peewee.fn.substr(cc_flg, 2, 1) == '0',
+                rd_flag_1 > 0,
+                rd_flag_1 <= 3,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToAllWise, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToAllWise, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -258,29 +314,59 @@ class MWM_Dust_Carton(BaseCarton):
 
         data = pandas.read_sql(
             f'SELECT * FROM {model._meta.schema}.{model._meta.table_name};',
-            self.database)
+            self.database,
+        )
 
-        mwm_galactic = (targetdb.Target
-                        .select(targetdb.Target.catalogid)
-                        .join(targetdb.CartonToTarget)
-                        .join(targetdb.Carton)
-                        .join(targetdb.Version)
-                        .where(targetdb.Carton.carton == 'mwm_galactic_core',
-                               targetdb.Version.plan == self.plan,
-                               targetdb.Version.target_selection >> True))
+        if self.name == 'mwm_dust_core':
+            mwm_galactic_carton = 'mwm_galactic_core'
+        elif self.name == 'mwm_dust_core_dist':
+            mwm_galactic_carton = 'mwm_galactic_core_dist'
+        else:
+            raise ValueError(f'Invalid carton {self.name}.')
+
+        if self.parameters:
+            mwm_galactic_plan = self.parameters.get(mwm_galactic_carton + '_plan', self.plan)
+        else:
+            mwm_galactic_plan = self.plan
+
+        mwm_galactic = (
+            targetdb.Target.select(targetdb.Target.catalogid)
+            .join(targetdb.CartonToTarget)
+            .join(targetdb.Carton)
+            .join(targetdb.Version)
+            .where(
+                targetdb.Carton.carton == mwm_galactic_carton,
+                targetdb.Version.plan == mwm_galactic_plan,
+                targetdb.Version.target_selection >> True,
+            )
+        )
 
         gg_catids = tuple(zip(*mwm_galactic.tuples()))[0]
         gg_mask = numpy.in1d(data.catalogid, gg_catids)
 
         # Subsample based on GG and update DB.
         dust_gg_subsel = subselect(data, gg_mask)
-        dust_gg_cid = peewee.ValuesList(zip(data.catalogid[dust_gg_subsel]),
-                                        columns=('catalogid',), alias='vl')
+        dust_gg_cid = peewee.ValuesList(
+            zip(data.catalogid[dust_gg_subsel]),
+            columns=('catalogid',),
+            alias='vl',
+        )
 
-        (model
-         .update({model.selected: True})
-         .from_(dust_gg_cid)
-         .where(model.catalogid == dust_gg_cid.c.catalogid)
-         .execute())
+        (
+            model.update({model.selected: True})
+            .from_(dust_gg_cid)
+            .where(model.catalogid == dust_gg_cid.c.catalogid)
+            .execute()
+        )
 
         return
+
+
+class MWM_Dust_Dist_Carton(MWM_Dust_Carton):
+    """MWM Dust Dist Carton.
+
+    Same definition as the dust carton but subsampling using the mwm_galactic_core_dist.
+
+    """
+
+    name = 'mwm_dust_core_dist'

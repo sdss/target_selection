@@ -391,7 +391,78 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.database.execute_sql(f'ALTER TABLE {self.path} ADD COLUMN optical_prov TEXT;')
         Model._meta.add_field('optical_prov', peewee.TextField())
 
-        # Step 1: join with sdss_dr13_photoobj and use SDSS magnitudes.
+        # Step 1: join with gaia_dr3_synthetic_photometry_gspc and use synthetic SDSS mags.
+
+        with self.database.atomic():
+
+            self.database.execute_sql('DROP TABLE IF EXISTS ' + self.table_name + '_g3xp')
+            temp_table = peewee.Table(self.table_name + '_g3xp')
+
+            (Model
+             .select(Model.catalogid,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag,
+                     cdb.Gaia_dr3_synthetic_photometry_gspc.z_sdss_mag)
+             .join(cdb.CatalogToGaia_DR3,
+                   on=(cdb.CatalogToGaia_DR3.catalogid == Model.catalogid))
+             .join(cdb.Gaia_dr3_synthetic_photometry_gspc,
+                   on=(cdb.CatalogToGaia_DR3.target_id ==
+                       cdb.Gaia_dr3_synthetic_photometry_gspc.source_id))
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
+             .where(Model.selected >> True)
+             .where(cdb.CatalogToGaia_DR3.best >> True,
+                    cdb.CatalogToGaia_DR3.version_id == self.get_version_id())
+             .where(
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_mag.is_null(False),
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag.is_null(False),
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_mag.is_null(False),
+                 # Now removing the flag selection because it killed everything
+                 # with r_sdss_mag < 14.2
+                 # cdb.Gaia_dr3_synthetic_photometry_gspc.g_sdss_flag == 1,
+                 # cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flag == 1,
+                 # cdb.Gaia_dr3_synthetic_photometry_gspc.i_sdss_flag == 1,
+                 # It's possible that in future, we might want to apply cuts on bp-rp
+                 # or on the derived sdss colours
+                 # Fairly arbitrary faint cut
+                 cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_mag < 15.0,
+                 # Could potentially go fainter, or could cut on G,BP,RP etc instead
+                 # but that would require a join to gaia_dr3_source table
+                 #
+                 # The following cut on SNR is completely unnecessary at G<15
+                 # (cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux_error <
+                 #  cdb.Gaia_dr3_synthetic_photometry_gspc.r_sdss_flux / 30.0),
+             )
+             .create_table(temp_table._path[0], temporary=True))
+
+            nrows = (Model.update(
+                {Model.g: temp_table.c.g_sdss_mag,
+                 Model.r: temp_table.c.r_sdss_mag,
+                 Model.i: temp_table.c.i_sdss_mag,
+                 Model.optical_prov: peewee.Value('sdss_psfmag_from_g3xp')})
+                .from_(temp_table)
+                .where(Model.catalogid == temp_table.c.catalogid)
+                .where(temp_table.c.g_sdss_mag.is_null(False) &
+                       temp_table.c.r_sdss_mag.is_null(False) &
+                       temp_table.c.i_sdss_mag.is_null(False))).execute()
+
+        self.log.debug(f'{nrows:,} associated with Gaia DR3 XP magnitudes.')
+
+        # Step 2: localise entries with empty magnitudes,
+        # join with sdss_dr13_photoobj and use SDSS magnitudes.
+
+        # https://www.sdss4.org/dr16/algorithms/photo_flags/
+        # https://www.sdss4.org/dr16/algorithms/photo_flags_recommend/
+        # we ignore SDSS photometry when any of these bits are set
+        # TODO improve/expand the list of rejected bits
+        sdss_quality_bitmask = (
+            0   # just a placeholder
+            + (1 << 7)  # NOPROFILE
+            + (1 << 18)  # SATURATED
+            + (1 << 22)  # BADSKY
+            + (1 << 24)  # TOOLARGE
+            + (1 << (16 + 32))  # TOO_FEW_GOOD_DETECTIONS
+        )
 
         with self.database.atomic():
 
@@ -409,8 +480,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .join(cdb.SDSS_DR13_PhotoObj,
                    on=(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.target_id ==
                        cdb.SDSS_DR13_PhotoObj.objid))
+             .where(Model.g.is_null() | Model.r.is_null() | Model.i.is_null())
              .where(cdb.CatalogToSDSS_DR13_PhotoObj_Primary.best >> True,
                     cdb.CatalogToSDSS_DR13_PhotoObj_Primary.version_id == self.get_version_id())
+             .where(
+                 cdb.SDSS_DR13_PhotoObj.psfmag_r > 14.0,   # avoid stars close to saturation
+                 cdb.SDSS_DR13_PhotoObj.psfmag_g > -99.0,  # avoid bad mags
+                 cdb.SDSS_DR13_PhotoObj.psfmag_i > -99.0,  # avoid bad mags
+                 cdb.SDSS_DR13_PhotoObj.flags.bin_and(sdss_quality_bitmask) == 0,
+             )
              .where(Model.selected >> True)
              .create_table(temp_table._path[0], temporary=True))
 
@@ -427,7 +505,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.debug(f'{nrows:,} associated with SDSS magnitudes.')
 
-        # Step 2: localise entries with empty magnitudes and use PanSTARRS1
+        # Step 3: localise entries with empty magnitudes and use PanSTARRS1
         # transformations.
 
         # PS1 fluxes are in Janskys. We use stacked fluxes instead of mean
@@ -441,6 +519,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         ps1_sdss_g = 0.013 + 0.145 * x + 0.019 * x * x + ps1_g
         ps1_sdss_r = -0.001 + 0.004 * x + 0.007 * x * x + ps1_r
         ps1_sdss_i = -0.005 + 0.011 * x + 0.010 * x * x + ps1_i
+
+        # limit panstarrs photometry to r > 14
+        max_flux_r = 10**((14.0 - 8.9) / -2.5)
 
         with self.database.atomic():
 
@@ -460,11 +541,15 @@ class BaseCarton(metaclass=abc.ABCMeta):
              .where(Model.selected >> True)
              .where(cdb.CatalogToPanstarrs1.best >> True,
                     cdb.CatalogToPanstarrs1.version_id == self.get_version_id())
-             .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.r_stk_psf_flux < max_flux_r)
+             .where(cdb.Panstarrs1.g_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.g_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.g_stk_psf_flux > 0))
-             .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.r_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.r_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.r_stk_psf_flux > 0))
-             .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False) &
+             .where(cdb.Panstarrs1.i_stk_psf_flux.is_null(False),
+                    cdb.Panstarrs1.i_stk_psf_flux != 'NaN',
                     (cdb.Panstarrs1.i_stk_psf_flux > 0))
              .create_table(temp_table._path[0], temporary=True))
 
@@ -481,7 +566,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.debug(f'{nrows:,} associated with PS1 magnitudes.')
 
-        # Step 3: localise entries with empty magnitudes and use Gaia transformations
+        # Step 4: localise entries with empty magnitudes and use Gaia transformations
         # from Evans et al (2018).
 
         gaia_G = cdb.Gaia_DR3.phot_g_mean_mag
@@ -527,7 +612,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                        temp_table.c.gaia_sdss_r.is_null(False) &
                        temp_table.c.gaia_sdss_i.is_null(False))).execute()
 
-        self.log.debug(f'{nrows:,} associated with Gaia magnitudes.')
+        self.log.debug(f'{nrows:,} associated with Gaia DR3 mean magnitudes.')
 
         # Finally, check if there are any rows in which at least some of the
         # magnitudes are null.
@@ -626,6 +711,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         log.debug(f'Writing table to {filename}.')
 
+        if not self.RModel:
+            self.RModel = self.get_model()
+
         if mode == 'results':
 
             results_model = self.RModel
@@ -635,6 +723,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             colnames = [field.name for field in write_query._returning]
 
+            print(mode)
+            print(write_query)
+            print(colnames)
         elif mode == 'targetdb':
 
             mag_fields = [
@@ -648,6 +739,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     tdb.Target,
                     *mag_fields,
                     tdb.CartonToTarget.priority,
+                    tdb.CartonToTarget.value,
+                    tdb.CartonToTarget.instrument_pk,
+                    tdb.CartonToTarget.inertial,
+                    tdb.CartonToTarget.can_offset,
                     tdb.Cadence.label.alias('cadence'),
                 )
                 .join(tdb.CartonToTarget)
@@ -671,7 +766,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col._alias)
                 else:
                     colnames.append(col.name)
-
+            print(mode)
+            print(write_query)
+            print(colnames)
         else:
             raise ValueError(
                 'invalud mode. Available modes are "results" and "targetdb".'
