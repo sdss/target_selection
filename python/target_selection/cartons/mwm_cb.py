@@ -70,15 +70,16 @@ class MWM_CB_GALEX_Mag(BaseCarton):
         fuv_mag = GUVCat.fuv_mag
         Gm = G3.phot_g_mean_mag
         parallax = G3.parallax
+        logpar = fn.log(fn.abs(parallax / 1000))
         ll = G3.l
         bb = G3.b
 
-        fuv_cut = (((fuv_mag + 5 * fn.log(parallax / 1000) + 5) > (1.5 + 1.28 * (fuv_mag - Gm))) &
-                   ((fuv_mag + 5 * fn.log(parallax / 1000) + 5) > (2.5 * (fuv_mag - Gm) - 0.5)))
+        fuv_cut = (((fuv_mag + 5 * logpar + 5) > (1.5 + 1.28 * (fuv_mag - Gm))) &
+                   ((fuv_mag + 5 * logpar + 5) > (2.5 * (fuv_mag - Gm) - 0.5)))
 
-        astro_cut1 = ~((logpmdpm < 0.301) &
-                       (poe > (-1.75 * logpmdpm - 2.8)) &
-                       (poe < (1.75 * logpmdpm + 2.8)) |
+        astro_cut1 = ~(((logpmdpm < 0.301) &
+                        (poe > (-1.75 * logpmdpm - 2.8)) &
+                        (poe < (1.75 * logpmdpm + 2.8))) |
                        (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                          (poe * poe) / (3.2 * 3.2)) <= 1))
 
@@ -105,8 +106,6 @@ class MWM_CB_GALEX_Mag(BaseCarton):
                         CatalogToGaia_DR3.best >> True,
                         fuv_cut,
                         fuv_mag > -999,
-                        G3.parallax > 0,
-                        G3.parallax_error > 0,
                         GUVCat.fuv_magerr < 0.3,
                         astro_cut1,
                         astro_cut2)
@@ -187,6 +186,7 @@ class MWM_CB_GALEX_Vol(BaseCarton):
                            (G3.pmdec_error * G3.pmdec / pm) * (G3.pmdec_error * G3.pmdec / pm))
         logpmdpm = fn.log(pm / pm_error)
         poe = G3.parallax / G3.parallax_error
+        logpar = fn.log(fn.abs(1000 / G3.parallax))
 
         nuv_mag = GUVCat.nuv_mag
         nuv_magerr = GUVCat.nuv_magerr
@@ -200,14 +200,14 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         r_med_geo = BailerJonesEDR3.r_med_geo
 
         nuv_cut = ((((nuv_mag - 5 * fn.log(r_med_geo) + 5) > (2 * (nuv_mag - Gm) + 0.7)) |
-                    ((nuv_mag - 5 * fn.log(1000 / parallax) + 5) > (2 * (nuv_mag - Gm) + 0.7))) &
+                    ((nuv_mag - 5 * logpar + 5) > (2 * (nuv_mag - Gm) + 0.7))) &
                    ((nuv_mag - Gm) < (1.6 * (bp - rp) + 1.2)))
 
         astro_cut = ~(((logpmdpm < 0.301) &
                       (poe > (-1.75 * logpmdpm - 2.8)) &
                       (poe < (1.75 * logpmdpm + 2.8))) |
-                      ((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
-                      (poe * poe) / (3.2 * 3.2) <= 1))
+                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
+                        (poe * poe) / (3.2 * 3.2)) <= 1))
 
         magellanic_cut = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
                            (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
@@ -236,13 +236,12 @@ class MWM_CB_GALEX_Vol(BaseCarton):
                      Galex_GR7_Gaia_DR3.galex_separation < 2.5,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                       ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
-                     poe > 0,
                      nuv_mag > -999,
                      nuv_magerr < 0.2,
                      nuv_magerr > 0,
                      nuv_cut,
                      astro_cut,
-                     (r_med_geo <= 1500) | (1000 / parallax <= 1500),
+                     (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      magellanic_cut)
               .order_by(CatalogToGaia_DR3.catalogid, Galex_GR7_Gaia_DR3.galex_separation)
               .distinct(CatalogToGaia_DR3.catalogid))
@@ -358,10 +357,10 @@ class MWM_CB_XMMOM(BaseCarton):
                            (G3.pmdec_error * G3.pmdec / pm) * (G3.pmdec_error * G3.pmdec / pm))
         logpmdpm = fn.log(pm / pm_error)
         poe = G3.parallax / G3.parallax_error
-        poe2 = fn.power(poe, 2)
 
         Gm = G3.phot_g_mean_mag
         parallax = G3.parallax
+        logpar = fn.log(fn.abs(parallax / 1000))
 
         r_med_geo = BailerJonesEDR3.r_med_geo
 
@@ -377,12 +376,13 @@ class MWM_CB_XMMOM(BaseCarton):
 
         color_cuts = (((uvm2 > -999) &
                        ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
-                       ((uvm2 - 5 * fn.log10(parallax / 1000) + 5) > (2 * (uvm2 - Gm) + 0.7))))
+                       ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7))))
 
-        astro_cut = ~((logpmdpm < 0.301) &
+        astro_cut = ~(((logpmdpm < 0.301) &
                       (poe > (-1.75 * logpmdpm - 2.8)) &
-                      (poe < (1.75 * logpmdpm + 2.8)) |
-                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / 0.1089 + poe2 / 10.24) <= 1))
+                      (poe < (1.75 * logpmdpm + 2.8))) |
+                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
+                        (poe * poe) / (3.2 * 3.2)) <= 1))
 
         priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
@@ -407,9 +407,8 @@ class MWM_CB_XMMOM(BaseCarton):
                      CatalogToXMM_OM_SUSS_5_0.best >> True,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
-                     (r_med_geo <= 1500) | (1000 / parallax <= 1500),
+                     (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      uvm2 >= -100,
-                     poe > 0,
                      qcut,
                      color_cuts,
                      astro_cut)
@@ -512,10 +511,10 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                            (G3.pmdec_error * G3.pmdec / pm) * (G3.pmdec_error * G3.pmdec / pm))
         logpmdpm = fn.log(pm / pm_error)
         poe = G3.parallax / G3.parallax_error
-        poe2 = fn.power(poe, 2)
 
         Gm = G3.phot_g_mean_mag
         parallax = G3.parallax
+        logpar = fn.log(fn.abs(parallax / 1000))
 
         r_med_geo = BailerJonesEDR3.r_med_geo
 
@@ -537,12 +536,13 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
 
         color_cuts = (((uvm2 > -999) &
                        ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
-                       ((uvm2 - 5 * fn.log10(parallax / 1000) + 5) > (2 * (uvm2 - Gm) + 0.7))))
+                       ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7))))
 
-        astro_cut = ~((logpmdpm < 0.301) &
+        astro_cut = ~(((logpmdpm < 0.301) &
                       (poe > (-1.75 * logpmdpm - 2.8)) &
-                      (poe < (1.75 * logpmdpm + 2.8)) |
-                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / 0.1089 + poe2 / 10.24) <= 1))
+                      (poe < (1.75 * logpmdpm + 2.8))) |
+                      (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
+                        (poe * poe) / (3.2 * 3.2)) <= 1))
 
         priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
@@ -567,9 +567,8 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                      CatalogToUVOT_SSC_1.best >> True,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
-                     (r_med_geo <= 1500) | (1000 / parallax <= 1500),
+                     (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      uvm2 >= -100,
-                     poe > 0,
                      *qcut,
                      color_cuts,
                      astro_cut)
