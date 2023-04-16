@@ -75,6 +75,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     priority = 5425
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -209,6 +210,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     priority = 5450
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -402,6 +404,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     priority = 5400
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -558,6 +561,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     priority = 5350
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         ls = Legacy_Survey_DR8.alias()
@@ -809,6 +813,7 @@ class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
     priority = 5350
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         ls = Legacy_Survey_DR10.alias()
@@ -1032,6 +1037,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
     priority = 5351
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         ps = Panstarrs1.alias()
