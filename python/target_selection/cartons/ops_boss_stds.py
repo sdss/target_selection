@@ -10,9 +10,10 @@ import peewee
 
 # additional imports required by ops_boss_stds_ps1dr2
 from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog, CatalogToLegacy_Survey_DR8, CatalogToPanstarrs1,
-    CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8, Gaia_DR2,
-    Legacy_Survey_DR8, Panstarrs1, TIC_v8, TwoMassPSC, eBOSS_Target_v5)
+    Catalog, CatalogToLegacy_Survey_DR8, CatalogToLegacy_Survey_DR10,
+    CatalogToPanstarrs1, CatalogToSDSS_DR13_PhotoObj_Primary, CatalogToTIC_v8,
+    Gaia_DR2, Legacy_Survey_DR8, Legacy_Survey_DR10, Panstarrs1, TIC_v8,
+    TwoMassPSC, eBOSS_Target_v5)
 
 from target_selection.cartons import BaseCarton
 from target_selection.mag_flux import AB2Jy
@@ -39,6 +40,7 @@ from target_selection.mag_flux import AB2Jy
 # the PostgreSQL log() which is a base 10 logarithm.
 # The below link has more details:
 # https://www.postgresql.org/docs/12/functions-math.html
+
 
 class OPS_BOSS_Stds_Carton(BaseCarton):
     """
@@ -73,6 +75,7 @@ class OPS_BOSS_Stds_Carton(BaseCarton):
     priority = 5425
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -207,6 +210,7 @@ class OPS_BOSS_Red_Stds_Deredden_Carton(BaseCarton):
     priority = 5450
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -400,6 +404,7 @@ class OPS_BOSS_Stds_TIC_Carton(BaseCarton):
     priority = 5400
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
@@ -556,6 +561,7 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
     priority = 5350
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         ls = Legacy_Survey_DR8.alias()
@@ -789,6 +795,229 @@ class OPS_BOSS_Stds_LSDR8_Carton(BaseCarton):
 # ############################################################################
 
 
+class OPS_BOSS_Stds_LSDR10_Carton(BaseCarton):
+    """
+    Shorthand name: ops_boss_stds_lsdr10
+
+    Comments: Spectrophotometric standards suitable for use by BOSS in dark time.
+
+              Currently this is a copy of OPS_BOSS_Stds_LSDR8_Carton() with only name changes
+
+    Lead contact:  Tom Dwelly
+    """
+
+    name = 'ops_std_boss_lsdr10'
+    category = 'standard_boss'
+    cadence = None
+    program = 'ops_std'
+    priority = 5350
+    mapper = None
+    instrument = 'BOSS'
+    can_offset = False
+
+    def build_query(self, version_id, query_region=None):
+        ls = Legacy_Survey_DR10.alias()
+        c2ls = CatalogToLegacy_Survey_DR10.alias()
+
+        # an alias to simplify accessing the query parameters:
+        pars = self.parameters
+
+        # safety catch to avoid log-of-zero and divide by zero errors.
+        # => use a flux in nano-maggies below which we give up
+        nMgy_min = 1e-3  # equiv to AB=30
+
+        # transform the legacysurvey grz into sdss psfmag griz
+        # use transforms decribed here:
+        # https://wiki.sdss.org/display/OPS/All-sky+BOSS+standards#All-skyBOSSstandards-TransformingphotometryofeBOSS-likestandardsintoSDSSsystem  # noqa
+        # extract coeffs from fit logs via:
+        # gawk 'BEGIN {print("coeffs = {")} /POLYFIT/{printf("\"%s%d\": %s,\n", substr($3,length($3)), $8, $10)} END {print("}")}'  ops_std_eboss/lsdr8_mag_to_sdss_psfmag_*.log  # noqa
+        coeffs = {
+            "g2": 0.193896,
+            "g1": -0.051181,
+            "g0": 0.032614,
+            "i2": 0.044794,
+            "i1": -0.513119,
+            "i0": -0.021466,
+            "r2": -0.034595,
+            "r1": 0.132328,
+            "r0": 0.011408,
+            "z2": -0.381446,
+            "z1": 0.135980,
+            "z0": -0.020589,
+        }
+
+        g0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g)))
+        r0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        i0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i)))
+        z0 = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z)))
+        g_r = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_r)))
+        r_i = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_i)))
+        i_z = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_z)))
+        r_z = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r) /
+                                    peewee.fn.greatest(nMgy_min, ls.flux_z)))
+
+        g = (g0 + coeffs['g0'] + coeffs['g1'] * g_r + coeffs['g2'] * g_r * g_r)
+        r = (r0 + coeffs['r0'] + coeffs['r1'] * g_r + coeffs['r2'] * g_r * g_r)
+        i = (r0 + coeffs['i0'] + coeffs['i1'] * r_z + coeffs['i2'] * r_z * r_z)
+        z = (z0 + coeffs['z0'] + coeffs['z1'] * r_z + coeffs['z2'] * r_z * r_z)
+
+        g0_dered = (22.5 - 2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_g / ls.mw_transmission_g)))
+        r0_dered = (22.5 - 2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
+        i0_dered = (22.5 - 2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i)))
+        z0_dered = (22.5 - 2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
+
+        g_r_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_g / ls.mw_transmission_g) /
+            peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r)))
+        r_i_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r) /
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i)))
+        i_z_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_i / ls.mw_transmission_i) /
+            peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
+        r_z_dered = (-2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.flux_r / ls.mw_transmission_r) /
+            peewee.fn.greatest(nMgy_min, ls.flux_z / ls.mw_transmission_z)))
+
+        # lsdr8 quotes ebv so we can go straight to E(G_BP-G_RP) and E(G_BP-G) directly
+        # using the Stassun et al relation:
+        # E(BP-RP) = 1.31 * E(B-V)
+        # NO! # but we first need to recalibrate the SFD E(B-V) following Schlafly&Finkbeiner2011
+        # NO! # such that SF11 E(B-V) = SFD EB(-V) * 0.884
+        # NO! E_b_v_corr = 0.884
+        # NO! E_bp_rp = 1.31 * E_b_v_corr
+        E_bp_rp = 1.31
+        R_gaia_g = 1.890 * E_bp_rp
+        R_gaia_bp = 2.429 * E_bp_rp
+        E_bp_g = R_gaia_bp - R_gaia_g     # = 0.7061
+
+        bp_rp_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_rp_mean_mag
+                       - ls.ebv * E_bp_rp)
+        bp_g_dered = (ls.gaia_phot_bp_mean_mag - ls.gaia_phot_g_mean_mag
+                      - ls.ebv * E_bp_g)
+
+        g_r_dered_nominal = pars['g_r_dered_nominal']
+        r_z_dered_nominal = pars['r_z_dered_nominal']
+        bp_rp_dered_nominal = pars['bp_rp_dered_nominal']
+        bp_g_dered_nominal = pars['bp_g_dered_nominal']
+
+        dered_dist2 = (
+            (g_r_dered - g_r_dered_nominal) * (g_r_dered - g_r_dered_nominal) +
+            (r_z_dered - r_z_dered_nominal) * (r_z_dered - r_z_dered_nominal) +
+            (bp_rp_dered - bp_rp_dered_nominal) * (bp_rp_dered - bp_rp_dered_nominal) +
+            (bp_g_dered - bp_g_dered_nominal) * (bp_g_dered - bp_g_dered_nominal)
+        )
+        dered_dist_max2 = pars['dered_dist_max'] * pars['dered_dist_max']
+
+        optical_prov = peewee.Value('sdss_psfmag_from_lsdr8')
+
+        query = (
+            Catalog
+            .select(
+                Catalog.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                ls.ls_id,
+                g0.alias("ls10_mag_g"),
+                r0.alias("ls10_mag_r"),
+                i0.alias("ls10_mag_i"),
+                z0.alias("ls10_mag_z"),
+                g_r.alias("ls10_mag_g_r"),
+                r_i.alias("ls10_mag_r_i"),
+                i_z.alias("ls10_mag_i_z"),
+                r_z.alias("ls10_mag_r_z"),
+                g0_dered.alias("ls10_mag_dered_g"),
+                r0_dered.alias("ls10_mag_dered_r"),
+                i0_dered.alias("ls10_mag_dered_i"),
+                z0_dered.alias("ls10_mag_dered_z"),
+                g_r_dered.alias("ls10_mag_dered_g_r"),
+                r_i_dered.alias("ls10_mag_dered_r_i"),
+                i_z_dered.alias("ls10_mag_dered_i_z"),
+                r_z_dered.alias("ls10_mag_dered_r_z"),
+                bp_rp_dered.alias("gaia_mag_dered_bp_rp"),
+                bp_g_dered.alias("gaia_mag_dered_bp_g"),
+                dered_dist2.alias("dered_dist2"),
+                optical_prov.alias('optical_prov'),
+                g.alias("g"),
+                r.alias("r"),
+                i.alias("i"),
+                z.alias("z"),
+                ls.gaia_phot_g_mean_mag.alias("gaia_g"),
+                ls.gaia_phot_bp_mean_mag.alias("bp"),
+                ls.gaia_phot_rp_mean_mag.alias("rp"),
+                ls.ebv.alias("ls10_ebv"),
+                ls.mw_transmission_g.alias("ls10_mw_transmission_g"),
+                ls.mw_transmission_r.alias("ls10_mw_transmission_r"),
+                ls.mw_transmission_i.alias("ls10_mw_transmission_i"),
+                ls.mw_transmission_z.alias("ls10_mw_transmission_z"),
+                ls.parallax,
+                ls.parallax_ivar,
+                ls.nobs_g.alias("ls10_nobs_g"),
+                ls.nobs_r.alias("ls10_nobs_r"),
+                ls.nobs_i.alias("ls10_nobs_i"),
+                ls.nobs_z.alias("ls10_nobs_z"),
+                ls.ref_cat.alias("ls10_ref_cat"),
+                ls.ref_id.alias("ls10_ref_id"),
+                # ls.maskbits,
+            )
+            .join(c2ls,
+                  on=(Catalog.catalogid == c2ls.catalogid))
+            .join(ls,
+                  on=(c2ls.target_id == ls.ls_id))
+            .where(
+                c2ls.version_id == version_id,
+                c2ls.best >> True,
+                ls.type == 'PSF',
+                ((ls.ref_cat == 'G2') | (ls.ref_cat == 'GE')),
+                ls.gaia_phot_g_mean_mag > pars['mag_gaia_g_min'],
+                ls.parallax < pars['parallax_max'],
+                ls.parallax > (
+                    pars['parallax_min_at_g16'] +
+                    (ls.gaia_phot_g_mean_mag - 16.0) * pars['parallax_min_slope']
+                ),
+                ls.gaia_duplicated_source >> False,
+                ls.nobs_g >= 1,   # TODO increase to >= 2 in lsdr9/10?
+                ls.nobs_r >= 1,   # TODO increase to >= 2 in lsdr9/10?
+                ls.nobs_z >= 1,   # TODO increase to >= 2 in lsdr9/10?
+                ls.flux_g > nMgy_min,
+                ls.flux_r > nMgy_min,
+                ls.flux_z > nMgy_min,
+                ls.maskbits == 0,
+                dered_dist2 < dered_dist_max2,
+                r0.between(pars['mag_ls_r_min'], pars['mag_ls_r_max']),
+            )
+        )
+
+        # Below ra, dec and radius are in degrees
+        # query_region[0] is ra of center of the region
+        # query_region[1] is dec of center of the region
+        # query_region[2] is radius of the region
+        if query_region:
+            query = (
+                query.where(
+                    peewee.fn.q3c_radial_query(Catalog.ra,
+                                               Catalog.dec,
+                                               query_region[0],
+                                               query_region[1],
+                                               query_region[2]),
+                    peewee.fn.q3c_radial_query(ls.ra,
+                                               ls.dec,
+                                               query_region[0],
+                                               query_region[1],
+                                               query_region[2]),
+                )
+            )
+        return query
+# ############################################################################
+
+
 # ############################################################################
 class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
 
@@ -808,6 +1037,7 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
     priority = 5351
     mapper = None
     instrument = 'BOSS'
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
         ps = Panstarrs1.alias()

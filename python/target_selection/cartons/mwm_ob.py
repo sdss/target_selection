@@ -9,10 +9,13 @@
 import peewee
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTIC_v8,
+                                             CatalogToTwoMassPSC,
                                              GAIA_ASSAS_SN_Cepheids, Gaia_DR2,
-                                             Gaia_DR2_RUWE,
                                              Gaia_DR2_TwoMass_Best_Neighbour,
+                                             Gaia_DR3,
+                                             Gaia_dr3_astrophysical_parameters,
                                              TIC_v8, TwoMassPSC)
 
 from target_selection.cartons import BaseCarton
@@ -28,17 +31,17 @@ class MWM_OB_Carton(BaseCarton):
     mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Milky Way, then subsampled
     to reduce the sample size / observing burden.
 
-    Query on the Gaia archive:
+    Query on the Gaia archive (this is the v0.5 query, v1 is slightly modified):
 
         SELECT  g.source_id
-        FROM gaiadr2.gaia_source as g
-        JOIN gaiadr2.ruwe AS r
+        FROM gaiadr3.gaia_source as g
+        JOIN gaiadr3.ruwe AS r
             USING (source_id)
-        INNER JOIN gaiadr2.tmass_best_neighbour AS xmatch
+        INNER JOIN gaiadr3.tmass_best_neighbour AS xmatch
             ON g.source_id = xmatch.source_id
         INNER JOIN gaiadr1.tmass_original_valid AS tm
             ON tm.tmass_oid = xmatch.tmass_oid
-        WHERE parallax < power(10., (10. - tm.ks_m) / 5.)
+        WHERE parallax < fn.pow(10, ((10. - tm.ks_m - 0.61) / 5.))
             AND g.phot_g_mean_mag < 16.
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
             AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
@@ -46,9 +49,6 @@ class MWM_OB_Carton(BaseCarton):
             AND tm.j_m - tm.h_m > 0.15 * (g.phot_g_mean_mag - tm.ks_m) - 0.15
             AND tm.j_m - tm.ks_m < 0.23 * (g.phot_g_mean_mag - tm.ks_m) + 0.03
             AND g.phot_g_mean_mag > 2 * (g.phot_g_mean_mag - tm.ks_m) + 3.0
-            AND g.phot_g_mean_mag < 2 * (g.phot_g_mean_mag - tm.ks_m) + 11.
-            AND xmatch.angular_distance < 1.
-            AND r.ruwe < 1.4;
 
     Notes:
         - ks_m is the same as twomass_psc.h_m.
@@ -61,7 +61,7 @@ class MWM_OB_Carton(BaseCarton):
     instrument = 'BOSS'
     cadence = 'bright_3x1'
     program = 'mwm_ob'
-    priority = 2910
+    priority = None
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -69,36 +69,42 @@ class MWM_OB_Carton(BaseCarton):
         km = TwoMassPSC.k_m
         hm = TwoMassPSC.h_m
         jm = TwoMassPSC.j_m
-        Gm = Gaia_DR2.phot_g_mean_mag
+        Gm = Gaia_DR3.phot_g_mean_mag
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.parallax,
-                         Gaia_DR2.source_id.alias('gaia_source_id'),
+        query = (Gaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.ra,
+                         Gaia_DR3.dec,
+                         km,
+                         hm,
+                         jm,
+                         Gm,
+                         Gaia_dr3_astrophysical_parameters.teff_esphs,
+                         Gaia_DR3.parallax,
+                         Gaia_DR3.source_id,
                          km.alias('ks_m'))
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
-                 .join(Gaia_DR2_RUWE,
-                       on=(Gaia_DR2.source_id == Gaia_DR2_RUWE.source_id))
-                 .join(TMBN,
-                       on=(TMBN.source_id == Gaia_DR2_RUWE.source_id))
-                 .join(TwoMassPSC,
-                       on=(TMBN.tmass_pts_key == TwoMassPSC.pts_key))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True)
-                 .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km - 0.61) / 5.)),
+                 .join(CatalogToGaia_DR3)
+                 .join(CatalogToTwoMassPSC,
+                       on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
+                 .join(TwoMassPSC)
+                 .join_from(Gaia_DR3, Gaia_dr3_astrophysical_parameters,
+                            on=(Gaia_dr3_astrophysical_parameters.source_id == Gaia_DR3.source_id))
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
+                        CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True)
+                 .where(Gaia_DR3.parallax < fn.pow(10, ((10. - km - 0.61) / 5.)),
                         Gm < 16.,
                         jm - km - 0.25 * (Gm - km) < 0.10,
                         jm - km - 0.25 * (Gm - km) > -0.30,
                         jm - hm < 0.15 * (Gm - km) + 0.05,
                         jm - hm > 0.15 * (Gm - km) - 0.15,
                         jm - km < 0.23 * (Gm - km) + 0.03,
-                        Gm > 2 * (Gm - km) + 3.0,
-                        TMBN.angular_distance < 1.))
+                        Gm > 2 * (Gm - km) + 3.0))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -107,148 +113,14 @@ class MWM_OB_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, Model):
-        """Subsample of main sample.
+    def post_process(self, model):
+        """Adjust priorities based on ``Teff_esphs``."""
 
-        See files  https://keeper.mpdl.mpg.de/f/a84318bb5213431ea513/?dl=1 and
-        https://keeper.mpdl.mpg.de/f/ee2d70d8eb2f463f9562/?dl=1.
+        (model.update({model.priority: 2700})
+         .where(model.teff_esphs > 10000)).execute()
 
-        After the gamma-3 sims it was decided that the subsampling was not
-        needed but we leave it here just in case.
-
-        """
-
-        return
-
-        # data = numpy.array(Model.select(Model.catalogid,
-        #                                 Model.ks_m,
-        #                                 Model.parallax).tuples(),
-        #                    dtype=[('catalogid', numpy.int64),
-        #                           ('ks_m', float),
-        #                           ('parallax', float)])
-
-        # self.log.debug(f'Number of initial rows: {len(data)}.')
-
-        # data = data[data['parallax'] > 0]
-        # M_K_star = data['ks_m'] + 5. * numpy.log10(data['parallax'] / 100.)
-        # data_sel_idx = numpy.isfinite(M_K_star)
-        # data_sel = data[data_sel_idx]
-        # M_K_star = M_K_star[data_sel_idx]
-
-        # alpha = 0.4
-        # M_K = numpy.arange(min(M_K_star), 0., 0.01)
-        # p = erf(-alpha * (M_K - 0.1))
-
-        # catalogid_new = []
-
-        # # p ~ 3000 so this for loop is actually not that inefficient.
-        # for i in range(len(p) - 1):
-
-        #     w = numpy.where((M_K_star < M_K[i + 1]) & (M_K_star >= M_K[i]))
-        #     p_ = numpy.mean(p[i:i + 1])
-
-        #     N = len(data[w])
-        #     N_new = numpy.int(numpy.round(p_ * N, 2))
-        #     catalogid_ = numpy.random.choice(data_sel['catalogid'][w], N_new,
-        #                                      replace=False)
-        #     catalogid_new += catalogid_.tolist()
-
-        # catalogid_new = set(catalogid_new)
-
-        # self.log.debug(f'Number of selected rows: {len(catalogid_new)}.')
-
-        # self.log.debug('Applying selected mask.')
-
-        # values = ValuesList(zip(catalogid_new), columns=('catalogid',),
-        #                     alias='vl')
-
-        # with self.database.atomic():
-        #     # Change everything to selected=False
-        #     (Model.update({Model.selected: False}).execute())
-        #     # Select the catalogids we calculated. If we tried to do a
-        #     # .where(Model.catalogid != values.c.catalogid) that would take
-        #     # forever, not sure why.
-        #     (Model
-        #      .update({Model.selected: True})
-        #      .from_(values)
-        #      .where(Model.catalogid == values.c.catalogid)
-        #      .execute())
-
-
-# class MWM_OB_MC_Carton(BaseCarton):
-#     """Magellanic Clouds OB stars.
-
-#     Definition: Select all the hot, young stars in Gaia and 2MASS with M_K < 0
-#     mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Magellanic Clouds.
-
-#     Pseudo-query:
-
-#         phot_g_mean_ mag < 16.0
-#         AND parallax < power(10., (10. -  ks_m) / 5.)
-#         AND jm - ks_m - 0.25 * (phot_g_mean_mag - ks_m) < 0.10
-#         AND j_m - h_m < 0.15 * (phot_g_mean_mag -ks_m) + 0.05
-#         AND j_m - ks_m < 0.23 * (phot_g_mean_mag -ks_m) + 0.03
-#         AND phot_g_mean_mag > 2 * (phot_g_mean_mag -ks_m) + 3.0
-#         AND  265.0 < l < 310.0
-#         AND -50 < b < -25.0
-#         AND xmatch.angular distance < 1.0
-
-#     Notes:
-#         - ks_m is the same as twomass_psc.h_m.
-
-#     """
-
-#     name = 'mwm_ob_mc'
-#     mapper = 'MWM'
-#     category = 'science'
-#      # Old cadence = 'mwm_ob_3x1'
-#      # From cadence wiki page:
-#      # mwm_ob_3x1 -> boss_bright_3x1
-#      # Hence we set:
-#     instrument = 'BOSS'
-#     cadence = 'bright_3x1'
-#     program = 'OB'
-
-#     def build_query(self, version_id, query_region=None):
-
-#         b = Gaia_DR2.b
-#         l = Gaia_DR2.l  # noqa
-
-#         km = TwoMassPSC.k_m
-#         hm = TwoMassPSC.h_m
-#         jm = TwoMassPSC.j_m
-#         Gm = Gaia_DR2.phot_g_mean_mag
-
-#         query = (CatalogToTIC_v8
-#                  .select(CatalogToTIC_v8.catalogid,
-#                          Gaia_DR2.source_id.alias('gaia_source_id'))
-#                  .join(TIC_v8)
-#                  .join(Gaia_DR2)
-#                  .join(TMBN, on=(TMBN.source_id == Gaia_DR2.source_id))
-#                  .join(TwoMassPSC,
-#                        on=(TMBN.tmass_pts_key == TwoMassPSC.pts_key))
-#                  .where(CatalogToTIC_v8.version_id == version_id,
-#                         CatalogToTIC_v8.best >> True)
-#                  .where(Gaia_DR2.parallax < fn.pow(10, ((10. - km) / 5.)),
-#                         Gm < 16.,
-#                         Gm > 12,
-#                         jm - km - 0.25 * (Gm - km) < 0.10,
-#                         jm - hm < 0.15 * (Gm - km) + 0.05,
-#                         jm - km < 0.23 * (Gm - km) + 0.03,
-#                         Gm > 2 * (Gm - km) + 3.0,
-#                         TMBN.angular_distance < 1.,
-#                         b > -50., b < -25., l > 265., l < 310.))
-
-#         if query_region:
-#             query = (query
-#                      .join_from(CatalogToTIC_v8, Catalog)
-#                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
-#                                                        Catalog.dec,
-#                                                        query_region[0],
-#                                                        query_region[1],
-#                                                        query_region[2])))
-
-#         return query
+        (model.update({model.priority: 2910})
+         .where((model.teff_esphs < 10000) | (model.teff_esphs.is_null()))).execute()
 
 
 class MWM_OB_Cepheids_Carton(BaseCarton):

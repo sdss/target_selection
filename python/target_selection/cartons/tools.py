@@ -36,6 +36,8 @@ def get_file_carton(filename):
 
     class FileCarton(BaseCarton):
 
+        can_offset = None  # Will be set in query.
+
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
 
             self._file_path = filename
@@ -114,6 +116,7 @@ def get_file_carton(filename):
                 'mwm_gg',
                 'mwm_halo',
                 'mwm_legacy',
+                'mwm_magcloud',
                 'mwm_ob',
                 'mwm_planet',
                 'mwm_rv',
@@ -248,6 +251,7 @@ def get_file_carton(filename):
                                     temp.cadence,
                                     temp.priority,
                                     temp.instrument,
+                                    temp.can_offset.cast('boolean').alias('can_offset'),
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
 
@@ -427,13 +431,15 @@ def get_file_carton(filename):
                                            '(is_panstarrs_dr2 is False) and ' +
                                            '(is_twomass_psc is False)')
 
-            if 'lambda_eff' in self._table.colnames:
-                query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
+            # if 'lambda_eff' in self._table.colnames:
+            #     query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
 
             # Early files may not have the can_offset column. If the table has it, extend
             # the select. Otherwise the column will be filled with the default value.
-            if 'can_offset' in self._table:
-                query = query.select_extend(temp.can_offset.alias('can_offset'))
+            # if 'can_offset' in self._table.colnames:
+            #    query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
+            # else:
+            #     self.can_offset = False
 
             return query
 

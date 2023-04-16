@@ -9,21 +9,22 @@
 # isort: skip_file
 
 import peewee
-from peewee import JOIN
-from peewee import fn
+# from peewee import JOIN
+# from peewee import fn
 from astropy.io import fits
 import pkg_resources
 
 
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
-    SDSS_DR16_SpecObj,
+    SDSS_DR19p_Speclite,
     SDSS_DR16_QSO,
-    CatalogToSDSS_DR16_SpecObj,
-    SDSSV_Plateholes,
-    SDSSV_Plateholes_Meta,
+    CatalogFromSDSS_DR19p_Speclite,
 )
 
+# DEBUG STUFF TO USE TEMP TABLE
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
 
@@ -35,13 +36,13 @@ radius_apo = 1.49  # degrees
 
 # This provides the following BHM cartons:
 #  bhm_aqmes_med
-#  bhm_aqmes_med-faint
+#  bhm_aqmes_med_faint
 #  bhm_aqmes_wide2
-#  bhm_aqmes_wide2-faint
+#  bhm_aqmes_wide2_faint
 #  # bhm_aqmes_wide3        # dumped in v0.5
 #  # bhm_aqmes_wide3-faint  # dumped in v0.5
-#  bhm_aqmes_bonus-dark
-#  bhm_aqmes_bonus-bright
+#  bhm_aqmes_bonus_dark
+#  bhm_aqmes_bonus_bright
 
 # how do we relate the cadence names in v0.5 to cadence names in v0?
 
@@ -112,7 +113,7 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         return fieldlist
 
-    def append_spatial_query(self, query, cte, fieldlist):
+    def append_spatial_query(self, query, fieldlist):
         '''Extend the peewee query using a list of field centres'''
         if fieldlist is None:
             return query
@@ -121,8 +122,8 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         q = False
         for f in fieldlist:
-            q = (q | peewee.fn.q3c_radial_query(cte.c.ra,
-                                                cte.c.dec,
+            q = (q | peewee.fn.q3c_radial_query(self.alias_c.ra,
+                                                self.alias_c.dec,
                                                 f['racen'],
                                                 f['deccen'],
                                                 f['radius']))
@@ -131,36 +132,12 @@ class BhmAqmesBaseCarton(BaseCarton):
     # main query
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
-        c2s = CatalogToSDSS_DR16_SpecObj.alias()
-        s = SDSS_DR16_SpecObj.alias()
+        c2s = CatalogFromSDSS_DR19p_Speclite.alias()
+        s = SDSS_DR19p_Speclite.alias()
         t = SDSS_DR16_QSO.alias()
         self.alias_c = c
         self.alias_t = t
         self.alias_c2s = c2s
-
-        # SDSS-V plateholes - only consider plateholes that
-        # were drilled+shipped and that have firstcarton ~ 'bhm_aqmes_'
-        ssph = SDSSV_Plateholes.alias()
-        ssphm = SDSSV_Plateholes_Meta.alias()
-        sph = (
-            ssph.select(
-                ssph.pkey.alias('pkey'),
-                ssph.target_ra.alias('target_ra'),
-                ssph.target_dec.alias('target_dec'),
-            )
-            .join(
-                ssphm,
-                on=(ssph.yanny_uid == ssphm.yanny_uid)
-            )
-            .where(
-                ssph.holetype == 'BOSS_SHARED',
-                ssph.sourcetype == 'SCI',
-                ssph.firstcarton.contains('bhm_aqmes_'),
-                ssphm.isvalid > 0,
-            )
-            .distinct([ssph.catalogid])
-            .alias('sph')
-        )
 
         # set the Carton priority+values here - read from yaml
         priority_floor = peewee.Value(int(self.parameters.get('priority', 999999)))
@@ -169,27 +146,9 @@ class BhmAqmesBaseCarton(BaseCarton):
         inertial = peewee.Value(self.inertial).cast('bool')
         opt_prov = peewee.Value('sdss_psfmag')
         cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
-        # cadence = peewee.Value(cadence_v0)
         cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
-        # # this is DEBUG until the new v0.5 cadences exist in the DB
-        # # - doesn't work because self.cadence is checked before this point
-        # # - so give up until targetdb.cadence is populated
-        # assert self.cadence in cadence_map_v0p5_to_v0
-        # v0_cadence = cadence_map_v0p5_to_v0[self.cadence]
-        # cadence = peewee.Value(v0_cadence).alias('cadence')
-
-        match_radius_spectro = 1.0 / 3600.0
-
-        priority_boost = peewee.Case(
-            None,
-            (
-                (sph.c.pkey.is_null(False), 0),  # has a platehole entry
-                (sph.c.pkey.is_null(True), 1),   # not in plate programme
-            ),
-            None
-        )
-        priority = priority_floor + priority_boost
+        priority = priority_floor
 
         magnitude_sdss_g = peewee.Case(
             None, ((t.psfmag[1].between(0.1, 29.9), t.psfmag[1]),), 'NaN').cast('float')
@@ -206,13 +165,15 @@ class BhmAqmesBaseCarton(BaseCarton):
         magnitude_gaia_rp = peewee.Case(
             None, ((t.gaia_rp_mag.between(0.1, 29.9), t.gaia_rp_mag),), 'NaN').cast('float')
 
-        bquery = (
+        query = (
             c.select(
                 c.catalogid,
                 t.pk.alias('dr16q_pk'),  # extra
-                s.specobjid.cast('text').alias('dr16_specobjid'),  # extra
+                s.pk.alias('dr19p_pk'),  # extra
                 c.ra,   # extra
                 c.dec,   # extra
+                t.ra.alias('dr16q_ra'),   # extra
+                t.dec.alias('dr16q_dec'),   # extra
                 priority.alias('priority'),
                 value.alias('value'),
                 inertial.alias('inertial'),
@@ -230,13 +191,13 @@ class BhmAqmesBaseCarton(BaseCarton):
                 t.plate.alias('dr16q_plate'),   # extra
                 t.mjd.alias('dr16q_mjd'),   # extra
                 t.fiberid.alias('dr16q_fiberid'),   # extra
-                t.ra.alias("dr16q_ra"),   # extra
-                t.dec.alias("dr16q_dec"),   # extra
                 t.gaia_ra.alias("dr16q_gaia_ra"),   # extra
                 t.gaia_dec.alias("dr16q_gaia_dec"),   # extra
                 t.sdss2gaia_sep.alias("dr16q_sdss2gaia_sep"),   # extra
                 t.z.alias("dr16q_redshift"),   # extra
                 c2s.best.alias("c2s_best"),  # extra
+                s.pk.alias("s19p_pk"),  # extra
+                s.specprimary.alias("s19p_specprimary"),  # extra
             )
             .join(c2s)
             .join(s)
@@ -246,36 +207,23 @@ class BhmAqmesBaseCarton(BaseCarton):
                     (s.mjd == t.mjd) &
                     (s.fiberid == t.fiberid))
             )
-            .join(
-                sph, JOIN.LEFT_OUTER,
-                on=(
-                    fn.q3c_join(sph.c.target_ra, sph.c.target_dec,
-                                c.ra, c.dec,
-                                match_radius_spectro)
-                )
-            )
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
-                # c2s.best >> True,   # TODO check this is working in v0.5
-                #                     # - this condition killed many AQMES
-                #                     #   targets in v0 cross-match
+                c2s.best >> True,   # TODO check this is working in v1.0
+                #                   # - this condition killed many AQMES
+                #                   #   targets in v0+v0.5 cross-matches
             )
             .where
             (
                 t.psfmag[3] >= self.parameters['mag_i_min'],
                 t.psfmag[3] < self.parameters['mag_i_max'],
-                # (t.z >= self.parameters['redshift_min']), # not needed
-                # (t.z <= self.parameters['redshift_max']),
             )
             # .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
             .distinct([c.catalogid])   # avoid duplicates - trust the catalog
-            .cte('bquery', materialized=True)
         )
 
-        query = bquery.select(peewee.SQL('bquery.*'))
-        query = self.append_spatial_query(query, bquery, self.get_fieldlist())
-        query = query.with_cte(bquery)
+        query = self.append_spatial_query(query, self.get_fieldlist())
 
         return query
 

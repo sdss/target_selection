@@ -58,6 +58,7 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     program = 'ops'
     mapper = None
     priority = None
+    can_offset = False
 
     # target_selection propagates the following columns if they are generated
     # during the query (with exactly the below name)
@@ -149,6 +150,7 @@ class OPS_Tycho2_Brightneighbors_Carton(BaseCarton):
     program = 'ops'
     mapper = None
     priority = None
+    can_offset = False
 
     # The column tycho2.designation is the primary key of the table catalogdb.tycho2.
     # Hence below we use
@@ -288,6 +290,7 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
     program = 'ops'
     mapper = None
     priority = None
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
