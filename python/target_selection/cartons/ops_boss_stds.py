@@ -1208,9 +1208,12 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
                 ),
                 dered_dist2 < dered_dist_max2,
                 ps.r_chp_psf.between(pars['mag_ps_r_min'], pars['mag_ps_r_max']),
-                # the following are just to bracket the result to make the query run faster
+                # the following are just attempts to bracket
+                # the result to make the query run faster
                 tic.gaiamag.between(pars['mag_gaia_g_min'], pars['mag_gaia_g_max']),
                 ps.r_stk_psf_flux.between(r_stk_psf_flux_min, r_stk_psf_flux_max),
+                tic.ebv < pars['tic_ebv_max'],
+                bp_rp_dered.between(pars['bp_rp_dered_min'], pars['bp_rp_dered_max']),
             )
         )
 
