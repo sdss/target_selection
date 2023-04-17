@@ -172,14 +172,30 @@ class MWM_Dust_Carton(BaseCarton):
     priority = 2720
     can_offset = True
 
+    mwm_galactic_carton = None
+    mwm_galactic_plan = None
+
     def build_query(self, version_id, query_region=None):
-        # Do a quick check to be sure the GG carton exists in targetdb.
+        # Get the plan used to run mwm_galactic_core.
+        if self.name == 'mwm_dust_core':
+            self.mwm_galactic_carton = 'mwm_galactic_core'
+        elif self.name == 'mwm_dust_core_dist':
+            self.mwm_galactic_carton = 'mwm_galactic_core_dist'
+        else:
+            raise ValueError(f'Invalid carton {self.name}.')
+
+        if self.parameters:
+            self.mwm_galactic_plan = self.parameters.get(self.mwm_galactic_carton + '_plan',
+                                                         self.plan)
+        else:
+            self.mwm_galactic_plan = self.plan
+
         gg_exists = (
             targetdb.Carton.select()
             .join(targetdb.Version)
             .where(
                 targetdb.Carton.carton == 'mwm_galactic_core',
-                targetdb.Version.plan == self.plan,
+                targetdb.Version.plan == self.mwm_galactic_plan,
                 targetdb.Version.target_selection >> True,
             )
             .exists()
@@ -317,26 +333,14 @@ class MWM_Dust_Carton(BaseCarton):
             self.database,
         )
 
-        if self.name == 'mwm_dust_core':
-            mwm_galactic_carton = 'mwm_galactic_core'
-        elif self.name == 'mwm_dust_core_dist':
-            mwm_galactic_carton = 'mwm_galactic_core_dist'
-        else:
-            raise ValueError(f'Invalid carton {self.name}.')
-
-        if self.parameters:
-            mwm_galactic_plan = self.parameters.get(mwm_galactic_carton + '_plan', self.plan)
-        else:
-            mwm_galactic_plan = self.plan
-
         mwm_galactic = (
             targetdb.Target.select(targetdb.Target.catalogid)
             .join(targetdb.CartonToTarget)
             .join(targetdb.Carton)
             .join(targetdb.Version)
             .where(
-                targetdb.Carton.carton == mwm_galactic_carton,
-                targetdb.Version.plan == mwm_galactic_plan,
+                targetdb.Carton.carton == self.mwm_galactic_carton,
+                targetdb.Version.plan == self.mwm_galactic_plan,
                 targetdb.Version.target_selection >> True,
             )
         )
