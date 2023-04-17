@@ -31,6 +31,9 @@
       i_z_dered_nominal: 0.00
       bp_rp_dered_nominal: 0.67
       bp_g_dered_nominal: 0.24
+      tic_ebv_max: 1.50
+      bp_rp_dered_min: 0.57
+      bp_rp_dered_max: 0.77
 
 '1.0.15':
   xmatch_plan: 1.0.0
