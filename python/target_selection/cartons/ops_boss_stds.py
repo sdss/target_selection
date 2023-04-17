@@ -1147,16 +1147,17 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         ext_flags = 8388608 + 16777216
         dered_dist_max2 = pars['dered_dist_max'] * pars['dered_dist_max']
 
-        # the following are just to bracket the result to make the query run faster
+        # the following are just to bracket
+        # the result to make the query run faster
         r_stk_psf_flux_min = AB2Jy(pars['mag_ps_r_max'] + 0.2)
         r_stk_psf_flux_max = AB2Jy(pars['mag_ps_r_min'] - 0.2)
 
         query = (
-            Catalog
+            c2ps
             .select(
-                Catalog.catalogid,
-                Catalog.ra,
-                Catalog.dec,
+                c2ps.catalogid,
+                tic.ra,
+                tic.dec,
                 ps.catid_objid.alias('ps1_catid_objid'),
                 tic.gaia_int.alias('gaia_source'),
                 ps.g_chp_psf.alias("ps1dr2_chp_psfmag_g"),
@@ -1187,8 +1188,6 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
                 tic.plx.alias('parallax'),
                 tic.e_plx.alias('parallax_error'),
             )
-            .join(c2ps,
-                  on=(Catalog.catalogid == c2ps.catalogid))
             .join(ps,
                   on=(c2ps.target_id == ps.catid_objid))
             .join(c2tic,
