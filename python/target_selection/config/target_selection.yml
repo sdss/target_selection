@@ -20,8 +20,8 @@
     ops_std_boss_ps1dr2:
       mag_ps_r_min: 15.95
       mag_ps_r_max: 18.05
-      mag_gaia_g_min: 15.5
-      mag_gaia_g_max: 19.0
+      mag_gaia_g_min: 15.7
+      mag_gaia_g_max: 18.1
       parallax_min_at_g16: 0.2
       parallax_min_slope: -0.22
       parallax_max: 0.7
