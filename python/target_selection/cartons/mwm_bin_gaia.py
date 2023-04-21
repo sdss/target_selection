@@ -3,7 +3,7 @@
 #
 # @Author: Pramod Gupta (psgupta@uw.edu)
 # @Date: 2023-04-21
-# @Filename: mwm_yso.py
+# @Filename: mwm_bin_gaia.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
