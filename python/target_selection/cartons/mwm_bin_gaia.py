@@ -29,7 +29,7 @@ selection criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying
 (period < 1000) & (8 < phot_g_mean_mag < 13) & ((nss_solution_type =
 'Orbital') or (nss.nss_solution_type = 'AstroSpectroSB1')).
 This gives 62,738 sources.
- 
+
 Return columns:
  query for full carton (returns 62,738)
  select gs.source_id, gs.ra, gs.dec, gs.phot_g_mean_mag
@@ -102,7 +102,7 @@ gaiadr3.nss_two_body_orbit satisfying (period < 1000) & (13 <
 phot_g_mean_mag < 16) & ((nss_solution_type = 'Orbital') or
 (nss.nss_solution_type = 'AstroSpectroSB1')).
 This gives 87,470 sources.
- 
+
 Return columns:
  query for full carton (returns 87470)
  select gs.source_id, gs.ra,
@@ -110,13 +110,13 @@ Return columns:
  gaiadr3.gaia_source as gs where (nss.nss_solution_type = 'Orbital' or
  nss.nss_solution_type = 'AstroSpectroSB1')and gs.source_id =
  nss.source_id and gs.phot_g_mean_mag between 13 and 16 and period < 1000
-Metadata: 
-Priority: 2560-2569 
+Metadata:
+Priority: 2560-2569
 Cadence:
 2 visits separated by at least 100 days – new cadence    cadence
 assessed to be incompatible with existing set. Plan to test
 implementation with simplified cadence (bright_2x1 / dark_2x1 - and
-allow partial completion / extra epoch eligibility) 
+allow partial completion / extra epoch eligibility)
 Instrument: BOSS
 can_offset = True
 Lead contact: Kareem El-Badry
@@ -171,22 +171,22 @@ Shorthand name:  mwm_bin_gaia_sb_apogee Existing carton code:
 adql_query_mwm_bin_gaia_sb_apogee.txt Simplified Description of
 selection criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying
 (period < 1000) & (8 < phot_g_mean_mag < 11.5) & ((nss_solution_type =
-'SB1') or (nss_solution_type = 'SB1C')). 
+'SB1') or (nss_solution_type = 'SB1C')).
 This gives 51,810 sources.
- 
+
 Return columns:
  query for full carton (returns 51810)
  select gs.source_id, gs.ra,
  gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
  gaiadr3.gaia_source as gswhere ((nss.nss_solution_type = 'SB1') or
  (nss.nss_solution_type = 'SB1C'))and gs.source_id = nss.source_idand
- gs.phot_g_mean_mag between 8 and 11.5 and period < 1000 
+ gs.phot_g_mean_mag between 8 and 11.5 and period < 1000
 Metadata:
 Priority: 2570-2579
 Cadence: bright_1x1
 Instrument: APOGEE
 can_offset = True
-Lead contact: Kareem El-Badry 
+Lead contact: Kareem El-Badry
     """
 
     name = 'mwm_bin_gaia_sb_apogee'
@@ -238,9 +238,9 @@ Shorthand name:  mwm_bin_gaia_sb_boss Existing carton code:
 adql_query_mwm_bin_gaia_sb_boss.txt Simplified Description of selection
 criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying (period <
 1000) & (11.5 < phot_g_mean_mag < 14) & ((nss_solution_type = 'SB1') or
-(nss_solution_type = 'SB1C')). 
-This gives 111,852 sources. 
- 
+(nss_solution_type = 'SB1C')).
+This gives 111,852 sources.
+
 Return columns:
 # query for full carton (returns 111,852)
 # select gs.source_id, gs.ra,
