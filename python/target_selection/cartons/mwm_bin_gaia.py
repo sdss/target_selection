@@ -36,7 +36,7 @@ Return columns:
  from gaiadr3.nss_two_body_orbit as nss,
   gaiadr3.gaia_source as gs
   where (nss.nss_solution_type = 'Orbital' or
-  nss.nss_solution_type = 'AstroSpectroSB1')and
+  nss.nss_solution_type = 'AstroSpectroSB1') and
   gs.source_id = nss.source_id and gs.phot_g_mean_mag between 8 and 13
   and period < 1000
 Metadata:
@@ -104,11 +104,12 @@ phot_g_mean_mag < 16) & ((nss_solution_type = 'Orbital') or
 This gives 87,470 sources.
  
 Return columns:
-# query for full carton (returns 87470)select gs.source_id, gs.ra,
-# gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
-# gaiadr3.gaia_source as gswhere (nss.nss_solution_type = 'Orbital' or
-# nss.nss_solution_type = 'AstroSpectroSB1')and gs.source_id =
-# nss.source_idand gs.phot_g_mean_mag between 13 and 16and period < 1000
+ query for full carton (returns 87470)
+ select gs.source_id, gs.ra,
+ gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
+ gaiadr3.gaia_source as gs where (nss.nss_solution_type = 'Orbital' or
+ nss.nss_solution_type = 'AstroSpectroSB1')and gs.source_id =
+ nss.source_id and gs.phot_g_mean_mag between 13 and 16 and period < 1000
 Metadata: 
 Priority: 2560-2569 
 Cadence:
@@ -170,16 +171,16 @@ Shorthand name:  mwm_bin_gaia_sb_apogee Existing carton code:
 adql_query_mwm_bin_gaia_sb_apogee.txt Simplified Description of
 selection criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying
 (period < 1000) & (8 < phot_g_mean_mag < 11.5) & ((nss_solution_type =
-'SB1') or (nss_solution_type = 'SB1c')). 
+'SB1') or (nss_solution_type = 'SB1C')). 
 This gives 51,810 sources.
  
 Return columns:
-# query for full carton (returns 51810)
-# select gs.source_id, gs.ra,
-# gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
-# gaiadr3.gaia_source as gswhere ((nss.nss_solution_type = 'SB1') or
-# (nss.nss_solution_type = 'SB1C'))and gs.source_id = nss.source_idand
-# gs.phot_g_mean_mag between 8 and 11.5and period < 100 
+ query for full carton (returns 51810)
+ select gs.source_id, gs.ra,
+ gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
+ gaiadr3.gaia_source as gswhere ((nss.nss_solution_type = 'SB1') or
+ (nss.nss_solution_type = 'SB1C'))and gs.source_id = nss.source_idand
+ gs.phot_g_mean_mag between 8 and 11.5 and period < 1000 
 Metadata:
 Priority: 2570-2579
 Cadence: bright_1x1
@@ -211,9 +212,9 @@ Lead contact: Kareem El-Badry
                        on=(Gaia_DR3.source_id == Gaia_dr3_nss_two_body_orbit.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'Orbital') |
-                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'AstroSpectroSB1'),
-                        Gaia_DR3.phot_g_mean_mag.between(8, 13),
+                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'SB1') |
+                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'SB1C'),
+                        Gaia_DR3.phot_g_mean_mag.between(8, 11.5),
                         Gaia_dr3_nss_two_body_orbit.period < 1000))
 
         # Gaia_DR3 peewee model class corresponds to
@@ -237,7 +238,7 @@ Shorthand name:  mwm_bin_gaia_sb_boss Existing carton code:
 adql_query_mwm_bin_gaia_sb_boss.txt Simplified Description of selection
 criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying (period <
 1000) & (11.5 < phot_g_mean_mag < 14) & ((nss_solution_type = 'SB1') or
-(nss_solution_type = 'SB1c')). 
+(nss_solution_type = 'SB1C')). 
 This gives 111,852 sources. 
  
 Return columns:
@@ -278,9 +279,9 @@ Lead contact: Kareem El-Badry
                        on=(Gaia_DR3.source_id == Gaia_dr3_nss_two_body_orbit.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'Orbital') |
-                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'AstroSpectroSB1'),
-                        Gaia_DR3.phot_g_mean_mag.between(8, 13),
+                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'SB1') |
+                        (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'SB1C'),
+                        Gaia_DR3.phot_g_mean_mag.between(11.5, 14),
                         Gaia_dr3_nss_two_body_orbit.period < 1000))
 
         # Gaia_DR3 peewee model class corresponds to
