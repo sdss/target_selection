@@ -147,7 +147,7 @@ Lead contact: Kareem El-Badry
                         CatalogToGaia_DR3.best >> True,
                         (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'Orbital') |
                         (Gaia_dr3_nss_two_body_orbit.nss_solution_type == 'AstroSpectroSB1'),
-                        Gaia_DR3.phot_g_mean_mag.between(8, 13),
+                        Gaia_DR3.phot_g_mean_mag.between(13, 16),
                         Gaia_dr3_nss_two_body_orbit.period < 1000))
 
         # Gaia_DR3 peewee model class corresponds to
@@ -242,12 +242,12 @@ criteria:  binaries from gaiadr3.nss_two_body_orbit satisfying (period <
 This gives 111,852 sources.
 
 Return columns:
-# query for full carton (returns 111,852)
-# select gs.source_id, gs.ra,
-# gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
-# gaiadr3.gaia_source as gswhere ((nss.nss_solution_type = 'SB1') or
-# (nss.nss_solution_type = 'SB1C'))and gs.source_id = nss.source_idand
-# gs.phot_g_mean_mag between 11.5 and 14and period < 1000
+ query for full carton (returns 111,852)
+ select gs.source_id, gs.ra,
+ gs.dec, gs.phot_g_mean_mag from gaiadr3.nss_two_body_orbit as nss,
+ gaiadr3.gaia_source as gswhere ((nss.nss_solution_type = 'SB1') or
+ (nss.nss_solution_type = 'SB1C'))and gs.source_id = nss.source_idand
+ gs.phot_g_mean_mag between 11.5 and 14 and period < 1000
 Metadata:
 Priority: 2580-2589
 Cadence: bright_1x1
