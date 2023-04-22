@@ -38,8 +38,6 @@ Cadence: bright_1x1
 Instrument: BOSS
 can_offset = True
 Lead contact: Alexander Ji
-Assigned to: Pramod
-Status: Ready for implementation
     """
 
     name = 'mwm_halo_distant_rrl'
@@ -160,7 +158,7 @@ Simplified Description of selection criteria:
 XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
 Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
-Use catalogdb.xpfeh_gaia_dr3
+Use catalogdb.xpfeh_gaia_dr3.
 
 Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, W1 absolute magnitude.
 
@@ -291,7 +289,7 @@ Simplified Description of selection criteria:
 XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
 Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
-Use catalogdb.xpfeh_gaia_dr3 by Pramod (status here Timeline and Tasks for Target Selection v1.0).
+Use catalogdb.xpfeh_gaia_dr3.
 
 Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, W1 absolute magnitude.
 
@@ -317,7 +315,7 @@ Priority:
 Cadence: dark_1x2
 Instrument: BOSS for G>13, APOGEE for G<13
 can_offset = True
-Lead contact: Alexander, Ji Rene Andrae
+Lead contact: Alexander Ji, Rene Andrae
     """
 
     name = 'mwm_halo_mp_xp_dark'
