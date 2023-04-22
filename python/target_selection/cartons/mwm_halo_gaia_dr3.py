@@ -209,7 +209,8 @@ Lead contact: Alexander Ji, Rene Andrae
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_g_mean_mag,
                          Xpfeh_gaia_dr3.logg_xgboost,
-                         Xpfeh_gaia_dr3.teff_xgboost)
+                         Xpfeh_gaia_dr3.teff_xgboost,
+                         Xpfeh_gaia_dr3.mh_xgboost)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
@@ -232,3 +233,52 @@ Lead contact: Alexander Ji, Rene Andrae
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model):
+        """
+        Priority: three levels
+        2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
+        2970 if -2.0 < mh_xgboost <= -1.5
+        6090 if mh_xgboost > -1.5
+
+        Instrument: BOSS for G>13, APOGEE for G<13
+        """
+
+        # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
+        # old name was teff, logg
+        cursor = self.database.execute_sql(
+            "select catalogid, mh_xgboost, phot_g_mean_mag from " +
+            " sandbox.temp_mwm_halo_mp_xp ;")
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_mh_xgboost = output[i][1]
+            current_phot_g_mean_mag = output[i][2]
+
+            if (current_mh_xgboost <= -2.0):
+                current_priority = 2100
+            elif ((current_mh_boost > -2.0) and
+                  (current_mh_boost <= -1.5)):
+                current_priority = 2970
+            else:
+                current_priority = 6090
+
+            if current_priority is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_mp_xp " +
+                    " set priority = '" + current_priority + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if (current_phot_g_mean_mag < 13):
+                current_instrument = 'APOGEE'
+            else:
+                current_instrument = 'BOSS'
+
+            if current_instrument is not None:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_mp_xp " +
+                    " set instrument = '" + current_instrument + "'"
+                    " where catalogid = " + str(current_catalogid) + ";")
+
