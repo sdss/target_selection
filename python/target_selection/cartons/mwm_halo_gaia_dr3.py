@@ -10,7 +10,8 @@ import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              Gaia_DR3,
-                                             Gaia_dr3_vari_rrlyrae)
+                                             Gaia_dr3_vari_rrlyrae,
+                                             Xpfeh_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
 
@@ -20,7 +21,7 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-class MWM_mwm_halo_distant_rrl_Carton(BaseCarton):
+class MWM_halo_distant_rrl_Carton(BaseCarton):
     """ 5.1.30. mwm_halo_distant_rrl
 Shorthand name: mwm_halo_distant_rrl
 Existing carton code: replaces open fiber 2020 28c
@@ -87,7 +88,7 @@ Status: Ready for implementation
         return query
 
 
-class MWM_mwm_halo_distant_rrl_dark_Carton(BaseCarton):
+class MWM_halo_distant_rrl_dark_Carton(BaseCarton):
     """  5.1.31. mwm_halo_distant_rrl_dark
 Shorthand name: mwm_halo_distant_rrl_dark
 Existing carton code:
@@ -136,6 +137,87 @@ Lead contact: Alexander Ji
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 18.8,))
+
+        # Gaia_DR3 peewee model class corresponds to
+        # table catalogdb.gaia_dr3_source.
+
+        if query_region:
+            query = (query
+                     .join_from(CatalogToGaia_DR3, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
+
+        return query
+
+
+class MWM_halo_mp_xp_Carton(BaseCarton):
+    """  5.1.32.  mwm_halo_mp_xp
+Shorthand name: mwm_halo_mp_xp
+Existing carton code: N/A
+Simplified Description of selection criteria:
+XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
+Link to paper: https://arxiv.org/abs/2302.02611 and
+Zenodo: https://doi.org/10.5281/zenodo.7599789
+New catalog (2/14/2023) catalogdb.xpfeh_gaia_dr3
+
+Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, W1 absolute magnitude.
+Specifically:
+BP < 17
+logg_xgboost < 4.0
+teff_xgboost < 5500
+M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
+M_W1 > -0.01 * (5300 - teff_xgboost)
+
+where M_W1 = W_1 + 5 log10(parallax/100)
+(note: solve these equations so that this is a cut on parallax).
+
+Then there are three levels of priority based on selecting
+mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
+at three different priorities.
+
+Return columns:
+Metadata:
+Priority: three levels
+2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
+2970 if -2.0 < mh_xgboost <= -1.5
+6090 if mh_xgboost > -1.5
+Cadence: bright_1x1
+Instrument: BOSS for G>13, APOGEE for G<13
+can_offset = True
+Lead contact: Alexander Ji, Rene Andrae
+    """
+
+    name = 'mwm_halo_mp_xp'
+    category = 'science'
+    instrument = None  # instrument set in post_process()
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = None  # priority set in post_process()
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_g_mean_mag,
+                         Xpfeh_gaia_dr3.logg_xgboost,
+                         Xpfeh_gaia_dr3.teff_xgboost)
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .join(Xpfeh_gaia_dr3,
+                       on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_bp_mean_mag < 17,
+                        Xpfeh_gaia_dr3.logg_xgboost < 4.0,
+                        Xpfeh_gaia_dr3.teff_xgboost < 5500))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
