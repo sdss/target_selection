@@ -242,8 +242,6 @@ Lead contact: Alexander Ji, Rene Andrae
         Instrument: BOSS for G>13, APOGEE for G<13
         """
 
-        # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
-        # old name was teff, logg
         cursor = self.database.execute_sql(
             "select catalogid, mh_xgboost, phot_g_mean_mag from " +
             " sandbox.temp_mwm_halo_mp_xp ;")
@@ -372,8 +370,6 @@ Lead contact: Alexander Ji, Rene Andrae
         Instrument: BOSS for G>13, APOGEE for G<13
         """
 
-        # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
-        # old name was teff, logg
         cursor = self.database.execute_sql(
             "select catalogid, mh_xgboost, phot_g_mean_mag from " +
             " sandbox.temp_mwm_halo_mp_xp_dark ;")
