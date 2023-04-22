@@ -260,8 +260,8 @@ Lead contact: Alexander Ji, Rene Andrae
 
             if (current_mh_xgboost <= -2.0):
                 current_priority = 2100
-            elif ((current_mh_boost > -2.0) and
-                  (current_mh_boost <= -1.5)):
+            elif ((current_mh_xgboost > -2.0) and
+                  (current_mh_xgboost <= -1.5)):
                 current_priority = 2970
             else:
                 current_priority = 6090
@@ -288,7 +288,7 @@ class MWM_halo_mp_xp_dark_Carton(BaseCarton):
     """   5.1.33. mwm_halo_mp_xp_dark
 Shorthand name: mwm_halo_mp_xp_dark
 Existing carton code: N/A dark time cadence for mwm_halo_mp_xp_dark
-Simplified Description of selection criteria:  
+Simplified Description of selection criteria:
 XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
 Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
@@ -303,7 +303,7 @@ teff_xgboost < 5500
 M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
 M_W1 > -0.01 * (5300 - teff_xgboost)
 
-where M_W1 = W_1 + 5 log10(parallax/100) 
+where M_W1 = W_1 + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
 Then there are three levels of priority based on selecting
@@ -311,7 +311,7 @@ mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
 at three different priorities.
 Return columns:
 Metadata:
-Priority: 
+Priority:
 2099 if mh_xgboost <= -2.0 (TBA pending A/B test)
 2969 if -2.0 < mh_xgboost <= -1.5
 6090 if mh_xgboost > -1.5
@@ -390,8 +390,8 @@ Lead contact: Alexander, Ji Rene Andrae
 
             if (current_mh_xgboost <= -2.0):
                 current_priority = 2099
-            elif ((current_mh_boost > -2.0) and
-                  (current_mh_boost <= -1.5)):
+            elif ((current_mh_xgboost > -2.0) and
+                  (current_mh_xgboost <= -1.5)):
                 current_priority = 2969
             else:
                 current_priority = 6090
