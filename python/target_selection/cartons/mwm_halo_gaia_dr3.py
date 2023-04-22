@@ -9,8 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             Gaia_DR3,
-                                             Gaia_dr3_vari_rrlyrae,
+                                             Gaia_DR3, Gaia_dr3_vari_rrlyrae,
                                              Xpfeh_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
