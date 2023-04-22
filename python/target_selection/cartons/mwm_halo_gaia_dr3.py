@@ -546,9 +546,9 @@ vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_vtan = output[i][1]
-            current_parallax_over_error = output[i][2]
+            # current_parallax_over_error = output[i][2]
             current_phot_g_mean_mag = output[i][3]
-            current_m_g = output[i][4]
+            # current_m_g = output[i][4]
 
             # TODO
             if (current_vtan <= -2.0):
