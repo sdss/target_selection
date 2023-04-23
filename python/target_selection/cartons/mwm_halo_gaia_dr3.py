@@ -6,6 +6,8 @@
 # @Filename: mwm_halo_gaia_dr3.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import math
+
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
