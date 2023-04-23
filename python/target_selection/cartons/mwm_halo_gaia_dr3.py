@@ -6,6 +6,8 @@
 # @Filename: mwm_halo_gaia_dr3.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import math
+
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
@@ -264,7 +266,7 @@ Lead contact: Alexander Ji, Rene Andrae
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_mp_xp " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (current_phot_g_mean_mag < 13):
@@ -392,7 +394,7 @@ Lead contact: Alexander Ji, Rene Andrae
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_mp_xp_dark " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (current_phot_g_mean_mag < 13):
@@ -489,9 +491,15 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
     def build_query(self, version_id, query_region=None):
 
-        vtan = 4.74 * peewee.fn.sqrt(Gaia_DR3.pmra * Gaia_DR3.pmra +
-                                     Gaia_DR3.pmdec * Gaia_DR3.pmdec) / Gaia_DR3.parallax
-        m_g = Gaia_DR3.phot_g_mean_mag - (10 - 5 * peewee.fn.log10(Gaia_DR3.parallax))
+        # Below we must use power(Gaia_DR3.pmra, 2) instead of
+        # Gaia_DR3.pmra*Gaia_DR3.pmra. This is because
+        # PostgreSQL does not allow specifying the same column twice.
+        vtan = 4.74 * peewee.fn.sqrt(peewee.fn.power(Gaia_DR3.pmra, 2) +
+                                     peewee.fn.power(Gaia_DR3.pmdec, 2)) / Gaia_DR3.parallax
+        # We compute m_g in in post_process() instead of below since
+        # PostgreSQL does not allow
+        # specifying Gaia_DR3.phot_g_mean_mag in m_g and in select clause.
+        # m_g = Gaia_DR3.phot_g_mean_mag - (10 - 5 * peewee.fn.log10(Gaia_DR3.parallax))
 
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
@@ -506,8 +514,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
                          Gaia_DR3.pmra,
                          Gaia_DR3.pmdec,
                          Gaia_DR3.ruwe,
-                         vtan,
-                         m_g)
+                         vtan.alias('vtan'))  # use alias since vtan is an expression
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
@@ -569,7 +576,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
         cursor = self.database.execute_sql(
             "select catalogid, vtan, " +
-            "parallax_over_error, phot_g_mean_mag, m_g from " +
+            "parallax_over_error, phot_g_mean_mag, parallax from " +
             " sandbox.temp_mwm_halo_local ;")
 
         output = cursor.fetchall()
@@ -579,50 +586,53 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             current_vtan = output[i][1]
             current_parallax_over_error = output[i][2]
             current_phot_g_mean_mag = output[i][3]
-            current_m_g = output[i][4]
+            current_parallax = output[i][4]
 
-            m_g_flag = ((3 < current_m_g) and (current_m_g < 5))
-            parallax_over_error_flag = ((10 <= current_parallax_over_error) and
-                                        (current_parallax_over_error < 50))
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
+
+            m_g_3to5 = ((3 < current_m_g) and (current_m_g < 5))
+            parallax_over_error_10to50 = ((10 <= current_parallax_over_error) and
+                                          (current_parallax_over_error < 50))
 
             current_priority = None
             # Below we do not check for vtan > 150 since
-            # the query in build_query has vtan > 150
+            # the query in build_query() has vtan > 150
             #
             # We do not check for parallax_over_error > 5 since
-            # the query in build_query has parallax_over_erorr > 5
+            # the query in build_query() has parallax_over_erorr > 5
             #
             # The order below is the same order as in the comment above.
-            if (m_g_flag and (current_parallax_over_error >= 50)):
+            if (m_g_3to5 and (current_parallax_over_error >= 50)):
                 if (current_vtan >= 200):
                     current_priority = 2980
                 else:
                     current_priority = 2985
 
-            if ((not m_g_flag) and (current_parallax_over_error >= 50)):
+            if ((not m_g_3to5) and (current_parallax_over_error >= 50)):
                 if (current_vtan >= 200):
                     current_priority = 2990
                 else:
                     current_priority = 2995
 
-            if (m_g_flag and parallax_over_error_flag):
+            if (m_g_3to5 and parallax_over_error_10to50):
                 if (current_vtan >= 200):
                     current_priority = 3020
                 else:
                     current_priority = 3025
 
-            # this is the odd one out
-            if (m_g_flag and (10 > current_parallax_over_error)):
+            # This is the odd one out since it has
+            # (current_vtan >= 150) instead of (current_vtan >= 200)
+            if (m_g_3to5 and (10 > current_parallax_over_error)):
                 if (current_vtan >= 150):
                     current_priority = 3030
 
-            if ((not m_g_flag) and parallax_over_error_flag):
+            if ((not m_g_3to5) and parallax_over_error_10to50):
                 if (current_vtan >= 200):
                     current_priority = 3040
                 else:
                     current_priority = 3045
 
-            if ((not m_g_flag) and (10 > current_parallax_over_error)):
+            if ((not m_g_3to5) and (10 > current_parallax_over_error)):
                 if (current_vtan >= 200):
                     current_priority = 6091
                 else:
@@ -631,7 +641,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_local " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             current_instrument = None
