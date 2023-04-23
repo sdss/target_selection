@@ -463,6 +463,19 @@ phot_rp_mean_mag < 20. and RUWE < 1.4
 and
 vtan > 150
 
+Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
+LH_MSTO1 priority 2980: vtan >= 200      and 3 < M_G < 5       and parallax_over_error >= 50 (N=14k)  # noqa: E501
+LH_MSTO2 priority 2985: 200 > vtan > 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
+LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over_error >= 50 (N=28k)  # noqa: E501
+LH_ALL2  priority 2995: 200 > vtan > 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
+LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
+LH_MSTO4 priority 3025: 200 > vtan > 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
+LH_MSTO5 priority 3030: vtan > 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
+LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
+LH_ALL4  priority 3045: 200 > vtan > 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
+LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501
+LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k))  # noqa: E501
+
     """
 
     name = 'mwm_halo_local'
@@ -489,7 +502,7 @@ vtan > 150
                          Gaia_DR3.phot_g_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag,
                          Gaia_DR3.parallax,
-                         Gaia_DR3.paralax_over_error,
+                         Gaia_DR3.parallax_over_error,
                          Gaia_DR3.pmra,
                          Gaia_DR3.pmdec,
                          Gaia_DR3.ruwe,
@@ -499,7 +512,7 @@ vtan > 150
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.parallax > 0.5,
-                        Gaia_DR3.paralax_over_error > 5,
+                        Gaia_DR3.parallax_over_error > 5,
                         Gaia_DR3.phot_rp_mean_mag < 20,
                         Gaia_DR3.ruwe < 1.4,
                         vtan > 150))
@@ -533,6 +546,24 @@ vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
 
+Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
+LH_MSTO1 priority 2980: vtan >= 200      and 3 < M_G < 5       and parallax_over_error >= 50 (N=14k)  # noqa: E501
+LH_MSTO2 priority 2985: 200 > vtan > 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
+
+LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over_error >= 50 (N=28k)  # noqa: E501
+LH_ALL2  priority 2995: 200 > vtan > 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
+
+LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
+LH_MSTO4 priority 3025: 200 > vtan > 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
+
+LH_MSTO5 priority 3030: vtan > 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
+
+LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
+LH_ALL4  priority 3045: 200 > vtan > 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
+
+LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501
+LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+
         Instrument: BOSS for G>13, APOGEE for G<13
         """
 
@@ -546,18 +577,56 @@ vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_vtan = output[i][1]
-            # current_parallax_over_error = output[i][2]
+            current_parallax_over_error = output[i][2]
             current_phot_g_mean_mag = output[i][3]
-            # current_m_g = output[i][4]
+            current_m_g = output[i][4]
 
-            # TODO
-            if (current_vtan <= -2.0):
-                current_priority = 2100
-            elif ((current_vtan > -2.0) and
-                  (current_vtan <= -1.5)):
-                current_priority = 2970
-            else:
-                current_priority = 6090
+            m_g_flag = ((3 < current_m_g) and (current_m_g < 5))
+            parallax_over_error_flag = ((10 <= current_parallax_over_error) and
+                                        (current_parallax_over_error < 50))
+
+            current_priority = None
+            # Below we do not check for vtan > 150 since
+            # the query in build_query has vtan > 150
+            #
+            # We do not check for parallax_over_error > 5 since
+            # the query in build_query has parallax_over_erorr > 5
+            #
+            # The order below is the same order as in the comment above.
+            if (m_g_flag and (current_parallax_over_error >= 50)):
+                if (current_vtan >= 200):
+                    current_priority = 2980
+                else:
+                    current_priority = 2985
+
+            if ((not m_g_flag) and (current_parallax_over_error >= 50)):
+                if (current_vtan >= 200):
+                    current_priority = 2990
+                else:
+                    current_priority = 2995
+
+            if (m_g_flag and parallax_over_error_flag):
+                if (current_vtan >= 200):
+                    current_priority = 3020
+                else:
+                    current_priority = 3025
+
+            # this is the odd one out
+            if (m_g_flag and (10 > current_parallax_over_error)):
+                if (current_vtan >= 150):
+                    current_priority = 3030
+
+            if ((not m_g_flag) and parallax_over_error_flag):
+                if (current_vtan >= 200):
+                    current_priority = 3040
+                else:
+                    current_priority = 3045
+
+            if ((not m_g_flag) and (10 > current_parallax_over_error)):
+                if (current_vtan >= 200):
+                    current_priority = 6091
+                else:
+                    current_priority = 6092
 
             if current_priority is not None:
                 self.database.execute_sql(
@@ -565,6 +634,7 @@ vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
                     " set priority = '" + current_priority + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
+            current_instrument = None
             if (current_phot_g_mean_mag < 13):
                 current_instrument = 'APOGEE'
             else:
