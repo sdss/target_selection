@@ -496,7 +496,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
         vtan = 4.74 * peewee.fn.sqrt(peewee.fn.power(Gaia_DR3.pmra, 2) +
                                      peewee.fn.power(Gaia_DR3.pmdec, 2)) / Gaia_DR3.parallax
         # We compute m_g in in post_process() instead of below since
-        # PostgreSQLdoes not allow
+        # PostgreSQL does not allow
         # specifying Gaia_DR3.phot_g_mean_mag in m_g and in select clause.
         # m_g = Gaia_DR3.phot_g_mean_mag - (10 - 5 * peewee.fn.log10(Gaia_DR3.parallax))
 
@@ -513,7 +513,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
                          Gaia_DR3.pmra,
                          Gaia_DR3.pmdec,
                          Gaia_DR3.ruwe,
-                         vtan)
+                         vtan.alias('vtan'))  # use alias since vtan is an expression
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
