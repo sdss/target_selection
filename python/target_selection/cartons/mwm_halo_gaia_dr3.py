@@ -17,6 +17,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 
+
 # See catalog.py for the name of peewee model names corresponding
 # to postgres table names:
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
