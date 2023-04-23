@@ -489,12 +489,16 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
     def build_query(self, version_id, query_region=None):
 
+
         # Below we must use power(Gaia_DR3.pmra, 2) instead of
         # Gaia_DR3.pmra*Gaia_DR3.pmra. This is because
         # PostgreSQL does not allow specifying the same column twice.
         vtan = 4.74 * peewee.fn.sqrt(peewee.fn.power(Gaia_DR3.pmra, 2) +
                                      peewee.fn.power(Gaia_DR3.pmdec, 2)) / Gaia_DR3.parallax
-        m_g = Gaia_DR3.phot_g_mean_mag - (10 - 5 * peewee.fn.log10(Gaia_DR3.parallax))
+        # We compute m_g in in post_process() instead of below since
+        # PostgreSQLdoes not allow
+        # specifying Gaia_DR3.phot_g_mean_mag in m_g and in select clause.
+        # m_g = Gaia_DR3.phot_g_mean_mag - (10 - 5 * peewee.fn.log10(Gaia_DR3.parallax))
 
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
@@ -509,8 +513,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
                          Gaia_DR3.pmra,
                          Gaia_DR3.pmdec,
                          Gaia_DR3.ruwe,
-                         vtan,
-                         m_g)
+                         vtan)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
@@ -572,7 +575,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
         cursor = self.database.execute_sql(
             "select catalogid, vtan, " +
-            "parallax_over_error, phot_g_mean_mag, m_g from " +
+            "parallax_over_error, phot_g_mean_mag, current_parallax from " +
             " sandbox.temp_mwm_halo_local ;")
 
         output = cursor.fetchall()
@@ -582,7 +585,9 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             current_vtan = output[i][1]
             current_parallax_over_error = output[i][2]
             current_phot_g_mean_mag = output[i][3]
-            current_m_g = output[i][4]
+            current_parallax = output[i][4]
+            
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax)) 
 
             m_g_3to5 = ((3 < current_m_g) and (current_m_g < 5))
             parallax_over_error_10to50 = ((10 <= current_parallax_over_error) and
