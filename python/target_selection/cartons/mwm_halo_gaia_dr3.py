@@ -491,7 +491,6 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
     def build_query(self, version_id, query_region=None):
 
-
         # Below we must use power(Gaia_DR3.pmra, 2) instead of
         # Gaia_DR3.pmra*Gaia_DR3.pmra. This is because
         # PostgreSQL does not allow specifying the same column twice.
@@ -588,8 +587,8 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             current_parallax_over_error = output[i][2]
             current_phot_g_mean_mag = output[i][3]
             current_parallax = output[i][4]
-            
-            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax)) 
+
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
 
             m_g_3to5 = ((3 < current_m_g) and (current_m_g < 5))
             parallax_over_error_10to50 = ((10 <= current_parallax_over_error) and
