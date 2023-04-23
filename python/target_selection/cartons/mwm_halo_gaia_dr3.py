@@ -266,7 +266,7 @@ Lead contact: Alexander Ji, Rene Andrae
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_mp_xp " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (current_phot_g_mean_mag < 13):
@@ -394,7 +394,7 @@ Lead contact: Alexander Ji, Rene Andrae
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_mp_xp_dark " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (current_phot_g_mean_mag < 13):
@@ -642,7 +642,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             if current_priority is not None:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_local " +
-                    " set priority = '" + current_priority + "'"
+                    " set priority = '" + str(current_priority) + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
 
             current_instrument = None
