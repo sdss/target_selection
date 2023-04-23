@@ -596,10 +596,10 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
             current_priority = None
             # Below we do not check for vtan > 150 since
-            # the query in build_query has vtan > 150
+            # the query in build_query() has vtan > 150
             #
             # We do not check for parallax_over_error > 5 since
-            # the query in build_query has parallax_over_erorr > 5
+            # the query in build_query() has parallax_over_erorr > 5
             #
             # The order below is the same order as in the comment above.
             if (m_g_3to5 and (current_parallax_over_error >= 50)):
