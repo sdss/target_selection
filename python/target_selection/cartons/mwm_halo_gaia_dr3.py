@@ -15,6 +15,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              Xpfeh_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
+from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
@@ -608,13 +609,13 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
                 else:
                     current_priority = 2985
 
-            if ((not m_g_3to5) and (current_parallax_over_error >= 50)):
+            elif ((not m_g_3to5) and (current_parallax_over_error >= 50)):
                 if (current_vtan >= 200):
                     current_priority = 2990
                 else:
                     current_priority = 2995
 
-            if (m_g_3to5 and parallax_over_error_10to50):
+            elif (m_g_3to5 and parallax_over_error_10to50):
                 if (current_vtan >= 200):
                     current_priority = 3020
                 else:
@@ -622,21 +623,30 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
 
             # This is the odd one out since it has
             # (current_vtan >= 150) instead of (current_vtan >= 200)
-            if (m_g_3to5 and (10 > current_parallax_over_error)):
+            elif (m_g_3to5 and (10 > current_parallax_over_error)):
                 if (current_vtan >= 150):
                     current_priority = 3030
 
-            if ((not m_g_3to5) and parallax_over_error_10to50):
+            elif ((not m_g_3to5) and parallax_over_error_10to50):
                 if (current_vtan >= 200):
                     current_priority = 3040
                 else:
                     current_priority = 3045
 
-            if ((not m_g_3to5) and (10 > current_parallax_over_error)):
+            elif ((not m_g_3to5) and (10 > current_parallax_over_error)):
                 if (current_vtan >= 200):
                     current_priority = 6091
                 else:
                     current_priority = 6092
+
+            else:
+                raise TargetSelectionError('error MWM_halo_local_Carton: ' +
+                                           'post_process(): ' +
+                                           ' no priority assigned for target: ' +
+                                           'm_g=' + current_m_g + ', '
+                                           'parallax_over_error=' +
+                                           current_parallax_over_error + ',' +
+                                           'vtan=' + current_vtan)
 
             if current_priority is not None:
                 self.database.execute_sql(
