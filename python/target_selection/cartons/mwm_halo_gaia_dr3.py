@@ -641,11 +641,11 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             else:
                 raise TargetSelectionError('error MWM_halo_local_Carton: ' +
                                            'post_process(): ' +
-                                           ' no priority assigned for target:' +
-                                           'm_g=' + current_m_g +
+                                           ' no priority assigned for target: ' +
+                                           'm_g=' + current_m_g + ', '
                                            'parallax_over_error=' +
-                                            current_parallax_over_error,
-                                           'vtan='current_vtan)
+                                           current_parallax_over_error + ',' +
+                                           'vtan=' + current_vtan)
 
             if current_priority is not None:
                 self.database.execute_sql(
