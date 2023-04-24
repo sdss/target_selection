@@ -438,8 +438,8 @@ vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
-vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
-200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6094
 
 Cadence: bright_1x1
 Instrument: BOSS for G>13, APOGEE for G<13
@@ -475,8 +475,8 @@ LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > paralla
 LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
-LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+LH_ALL5  priority 6092: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6094: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
 Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
@@ -552,8 +552,8 @@ vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
-vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
-200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6094
 
 Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
 LH_MSTO1 priority 2980: vtan >= 200      and 3 < M_G < 5       and parallax_over_error >= 50 (N=14k)  # noqa: E501
@@ -565,8 +565,8 @@ LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > paralla
 LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
-LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+LH_ALL5  priority 6092: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6094: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
 Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
@@ -638,9 +638,9 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
             elif ((not m_g_3to5) and (10 > current_parallax_over_error)):
                 if (current_vtan >= 200):
-                    current_priority = 6091
-                else:
                     current_priority = 6092
+                else:
+                    current_priority = 6094
 
             else:
                 raise TargetSelectionError('error MWM_halo_local_Carton: ' +
@@ -702,8 +702,8 @@ vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
-vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
-200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6094
 
 Cadence: dark_1x2
 Instrument: BOSS for G>13, APOGEE for G<13
@@ -743,8 +743,8 @@ LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > paralla
 LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
-LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+LH_ALL5  priority 6092: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6094: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
 Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
@@ -811,7 +811,7 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
     def post_process(self, model):
         """
 The priority numbers below are from mwm_halo_local.
-The priority numbers for this carton (mwm_halo_local_dark) are one less
+The priority numbers for this carton (i.e. mwm_halo_local_dark) are one less
 than the corresponding priority numbers for mwm_halo_local.
 
 Priority: 11 levels
@@ -824,11 +824,11 @@ vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
-vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
-200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6094
 
 The priority numbers below are from mwm_halo_local.
-The priority numbers for this carton (mwm_halo_local_dark) are one less
+The priority numbers for this carton (i.e. mwm_halo_local_dark) are one less
 than the corresponding priority numbers for mwm_halo_local.
 
 Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
@@ -841,8 +841,8 @@ LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > paralla
 LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
-LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+LH_ALL5  priority 6092: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6094: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
 Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
@@ -914,9 +914,9 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
             elif ((not m_g_3to5) and (10 > current_parallax_over_error)):
                 if (current_vtan >= 200):
-                    current_priority = 6090
-                else:
                     current_priority = 6091
+                else:
+                    current_priority = 6093
 
             else:
                 raise TargetSelectionError('error MWM_halo_local_dark_Carton: ' +
