@@ -8,8 +8,9 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             CatalogToTycho2, Gaia_DR2, TIC_v8,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                             CatalogToTwoMassPSC,
+                                             CatalogToTycho2, Gaia_DR3,
                                              TwoMassPSC, Tycho2)
 
 from target_selection.cartons import BaseCarton
@@ -71,28 +72,27 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         Gaia_DR2.pmra.alias('gaia_dr2_pmra'),
-                         Gaia_DR2.pmdec.alias('gaia_dr2_pmdec'),
-                         Gaia_DR2.phot_g_mean_mag.alias('gaia_g'),
-                         Gaia_DR2.phot_bp_mean_mag.alias('bp'),
-                         Gaia_DR2.phot_rp_mean_mag.alias('rp'))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_g_mean_mag < 13))
+        query = (CatalogToGaia_DR3
+                 .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.source_id,
+                         Gaia_DR3.ra.alias('gaia_dr2_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr2_dec'),
+                         Gaia_DR3.pmra.alias('gaia_dr2_pmra'),
+                         Gaia_DR3.pmdec.alias('gaia_dr2_pmdec'),
+                         Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
+                         Gaia_DR3.phot_bp_mean_mag.alias('bp'),
+                         Gaia_DR3.phot_rp_mean_mag.alias('rp'))
+                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+                 .where(CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_g_mean_mag < 13))
 
         # Gaia_DR2 peewee model class corresponds to
         # table catalogdb.gaia_dr2_source.
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToGaia_DR3, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
@@ -296,23 +296,22 @@ class OPS_2MASS_PSC_Brightneighbors_Carton(BaseCarton):
 
         # We do not select pmra and pmdec below because
         # twomass_psc table does not have pmra and pmdec.
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
+        query = (CatalogToTwoMassPSC
+                 .select(CatalogToTwoMassPSC.catalogid,
                          TwoMassPSC.designation.alias('twomass_psc_designation'),
                          TwoMassPSC.ra.alias('twomass_psc_ra'),
                          TwoMassPSC.decl.alias('twomass_psc_dec'),
                          TwoMassPSC.j_m.alias('twomass_psc_j_m'),
                          TwoMassPSC.h_m.alias('twomass_psc_h_m'),
                          TwoMassPSC.k_m.alias('twomass_psc_k_m'))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
+                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
                         TwoMassPSC.h_m < 7))
 
         if query_region:
             query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
+                     .join_from(CatalogToTwoMassPSC, Catalog)
                      .where(peewee.fn.q3c_radial_query(Catalog.ra,
                                                        Catalog.dec,
                                                        query_region[0],
