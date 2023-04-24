@@ -705,7 +705,7 @@ vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
 
-Cadence: dark_1x1
+Cadence: dark_1x2
 Instrument: BOSS for G>13, APOGEE for G<13
 can_offset = True
 Lead contact: Alexander Ji, Sebastien Lepine
