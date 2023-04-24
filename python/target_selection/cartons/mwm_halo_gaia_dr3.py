@@ -612,7 +612,7 @@ LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > paralla
             # This is the odd one out since it does not
             # set priority for (current_vtan >= 200)
             elif (m_g_3to5 and (10 > current_parallax_over_error)):
-                if  (current_vtan >= 200):
+                if (current_vtan >= 200):
                     pass
                 else:
                     current_priority = 3030
