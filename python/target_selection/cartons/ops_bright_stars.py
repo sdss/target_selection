@@ -30,7 +30,7 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
     ops_gaia_brightneighbors
 
     Simplified Description of selection criteria:
-    "Select all objects from gaia DR2 with G < 13"
+    "Select all objects from gaia DR3 with G < 13"
 
     Wiki page: NA
 
@@ -75,10 +75,10 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr2_dec'),
-                         Gaia_DR3.pmra.alias('gaia_dr2_pmra'),
-                         Gaia_DR3.pmdec.alias('gaia_dr2_pmdec'),
+                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
+                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
+                         Gaia_DR3.pmra.alias('gaia_dr3_pmra'),
+                         Gaia_DR3.pmdec.alias('gaia_dr3_pmdec'),
                          Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
                          Gaia_DR3.phot_bp_mean_mag.alias('bp'),
                          Gaia_DR3.phot_rp_mean_mag.alias('rp'))
@@ -87,8 +87,8 @@ class OPS_Gaia_Brightneighbors_Carton(BaseCarton):
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag < 13))
 
-        # Gaia_DR2 peewee model class corresponds to
-        # table catalogdb.gaia_dr2_source.
+        # Gaia_DR3 peewee model class corresponds to
+        # table catalogdb.gaia_dr3_source.
 
         if query_region:
             query = (query
