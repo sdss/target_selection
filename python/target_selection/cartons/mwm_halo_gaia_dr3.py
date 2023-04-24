@@ -689,7 +689,7 @@ Return columns:
 Metadata:
 
 The priority numbers below are from mwm_halo_local.
-The priority numbers for this carton (mwm_halo_local_dark) are one less
+The priority numbers for this carton (i.e. mwm_halo_local_dark) are one less
 than the corresponding priority numbers for mwm_halo_local.
 
 Priority: 11 levels
@@ -730,7 +730,7 @@ and
 vtan > 150
 
 The priority numbers below are from mwm_halo_local.
-The priority numbers for this carton (mwm_halo_local_dark) are one less
+The priority numbers for this carton (i.e. mwm_halo_local_dark) are one less
 than the corresponding priority numbers for mwm_halo_local.
 
 Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
