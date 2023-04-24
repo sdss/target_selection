@@ -420,28 +420,20 @@ with priority levels based on vtan, absolute G mag (prioritizing MSTO stars),
 and parallax_over_error.
 Return columns:
 Metadata:
+
 Priority: 11 levels
 vtan >= 200 and 3 < M_G < 5 and parallax_over_error >= 50: 2980
-
 200 > vtan >= 150 and 3 < M_G < 5 and parallax_over_error >= 50: 2985
-
 vtan >= 200 and not (3 < M_G < 5) and parallax_over_error >= 50: 2990
-
 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50: 2995
-
 vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
-
 200 > vtan >= 150 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3025
-
-vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
-
+200 > vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
-
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
-
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
-
 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6092
+
 Cadence: bright_1x1
 Instrument: BOSS for G>13, APOGEE for G<13
 can_offset = True
@@ -468,16 +460,16 @@ vtan > 150
 
 Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
 LH_MSTO1 priority 2980: vtan >= 200      and 3 < M_G < 5       and parallax_over_error >= 50 (N=14k)  # noqa: E501
-LH_MSTO2 priority 2985: 200 > vtan > 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
+LH_MSTO2 priority 2985: 200 > vtan >= 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
 LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over_error >= 50 (N=28k)  # noqa: E501
-LH_ALL2  priority 2995: 200 > vtan > 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
+LH_ALL2  priority 2995: 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
 LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
-LH_MSTO4 priority 3025: 200 > vtan > 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
-LH_MSTO5 priority 3030: vtan > 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
+LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
+LH_MSTO5 priority 3030: 200 > vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
-LH_ALL4  priority 3045: 200 > vtan > 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501
-LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k))  # noqa: E501
+LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
+LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
     """
 
@@ -548,7 +540,7 @@ vtan >= 200 and not (3 < M_G < 5) and parallax_over_error >= 50: 2990
 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50: 2995
 vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 200 > vtan >= 150 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3025
-vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
+200 > vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
@@ -556,21 +548,17 @@ vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
 
 Priority algorithm: (exact numbers are TBA, this is based on v0.5 priorities)
 LH_MSTO1 priority 2980: vtan >= 200      and 3 < M_G < 5       and parallax_over_error >= 50 (N=14k)  # noqa: E501
-LH_MSTO2 priority 2985: 200 > vtan > 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
-
+LH_MSTO2 priority 2985: 200 > vtan >= 150 and 3 < M_G < 5       and parallax_over_error >= 50 (N=24k)  # noqa: E501
 LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over_error >= 50 (N=28k)  # noqa: E501
-LH_ALL2  priority 2995: 200 > vtan > 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
-
+LH_ALL2  priority 2995: 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
 LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
-LH_MSTO4 priority 3025: 200 > vtan > 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
-
-LH_MSTO5 priority 3030: vtan > 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
-
+LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
+LH_MSTO5 priority 3030: 200 > vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
-LH_ALL4  priority 3045: 200 > vtan > 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
+LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
+LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
+LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
-LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501
-LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
         Instrument: BOSS for G>13, APOGEE for G<13
         """
@@ -600,7 +588,7 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
             # the query in build_query() has vtan > 150
             #
             # We do not check for parallax_over_error > 5 since
-            # the query in build_query() has parallax_over_erorr > 5
+            # the query in build_query() has parallax_over_error > 5
             #
             # The order below is the same order as in the comment above.
             if (m_g_3to5 and (current_parallax_over_error >= 50)):
@@ -621,10 +609,12 @@ LH_ALL6  priority 6092: 200 > vtan > 150 and not (3 < M_G < 5) and 10 > parallax
                 else:
                     current_priority = 3025
 
-            # This is the odd one out since it has
-            # (current_vtan >= 150) instead of (current_vtan >= 200)
+            # This is the odd one out since it does not
+            # set priority for (current_vtan >= 200)
             elif (m_g_3to5 and (10 > current_parallax_over_error)):
-                if (current_vtan >= 150):
+                if (current_vtan >= 200):
+                    pass
+                else:
                     current_priority = 3030
 
             elif ((not m_g_3to5) and parallax_over_error_10to50):
