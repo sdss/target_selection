@@ -562,7 +562,7 @@ LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > paralla
 
         Instrument: BOSS for G>13, APOGEE for G<13
         """
-        return
+
         cursor = self.database.execute_sql(
             "select catalogid, vtan, " +
             "parallax_over_error, phot_g_mean_mag, parallax from " +
