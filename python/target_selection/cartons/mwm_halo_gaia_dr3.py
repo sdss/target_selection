@@ -10,8 +10,10 @@ import math
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             Gaia_DR3, Gaia_dr3_vari_rrlyrae,
+from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
+                                             CatalogToAllWise,
+                                             CatalogToGaia_DR3, Gaia_DR3,
+                                             Gaia_dr3_vari_rrlyrae,
                                              Xpfeh_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
@@ -163,7 +165,8 @@ Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
 Use catalogdb.xpfeh_gaia_dr3.
 
-Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, W1 absolute magnitude.
+Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
+w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
 BP < 17
@@ -172,7 +175,7 @@ teff_xgboost < 5500
 M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
 M_W1 > -0.01 * (5300 - teff_xgboost)
 
-where M_W1 = W_1 + 5 log10(parallax/100)
+where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
 Then there are three levels of priority based on selecting
@@ -211,10 +214,16 @@ Lead contact: Alexander Ji, Rene Andrae
                          Gaia_DR3.phot_g_mean_mag,
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
-                         Xpfeh_gaia_dr3.mh_xgboost)
+                         Xpfeh_gaia_dr3.mh_xgboost,
+                         AllWise.w1mpro)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToAllWise,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+                 .join(AllWise,
+                       on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
@@ -292,7 +301,8 @@ Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
 Use catalogdb.xpfeh_gaia_dr3.
 
-Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, W1 absolute magnitude.
+Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
+w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
 BP < 17
@@ -301,7 +311,7 @@ teff_xgboost < 5500
 M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
 M_W1 > -0.01 * (5300 - teff_xgboost)
 
-where M_W1 = W_1 + 5 log10(parallax/100)
+where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
 Then there are three levels of priority based on selecting
@@ -339,10 +349,16 @@ Lead contact: Alexander Ji, Rene Andrae
                          Gaia_DR3.phot_g_mean_mag,
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
-                         Xpfeh_gaia_dr3.mh_xgboost)
+                         Xpfeh_gaia_dr3.mh_xgboost,
+                         AllWise.w1mpro)
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
+                 .switch(CatalogToGaia_DR3)
+                 .join(CatalogToAllWise,
+                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+                 .join(AllWise,
+                       on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
