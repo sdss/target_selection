@@ -428,7 +428,7 @@ vtan >= 200 and not (3 < M_G < 5) and parallax_over_error >= 50: 2990
 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50: 2995
 vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 200 > vtan >= 150 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3025
-200 > vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
+vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
@@ -465,11 +465,13 @@ LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over
 LH_ALL2  priority 2995: 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
 LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
 LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
-LH_MSTO5 priority 3030: 200 > vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
+LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
 LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
 LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
+
+Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
     """
 
@@ -540,7 +542,7 @@ vtan >= 200 and not (3 < M_G < 5) and parallax_over_error >= 50: 2990
 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50: 2995
 vtan >= 200 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3020
 200 > vtan >= 150 and 3 < M_G < 5 and 50 > parallax_over_error >= 10: 3025
-200 > vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
+vtan >= 150 and 3 < M_G < 5 and 10 > parallax_over_error >= 5: 3030
 vtan >= 200 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3040
 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10: 3045
 vtan >= 200 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5: 6091
@@ -553,12 +555,13 @@ LH_ALL1  priority 2990: vtan >= 200      and not (3 < M_G < 5) and parallax_over
 LH_ALL2  priority 2995: 200 > vtan >= 150 and not (3 < M_G < 5) and parallax_over_error >= 50 (N=42k)  # noqa: E501
 LH_MSTO3 priority 3020: vtan >= 200      and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=98k)  # noqa: E501
 LH_MSTO4 priority 3025: 200 > vtan >= 150 and 3 < M_G < 5       and 50 > parallax_over_error >= 10 (N=179k)  # noqa: E501
-LH_MSTO5 priority 3030: 200 > vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
+LH_MSTO5 priority 3030: vtan >= 150       and 3 < M_G < 5       and 10 > parallax_over_error >= 5 (N=12k)  # noqa: E501
 LH_ALL3  priority 3040: vtan >= 200      and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=228k)  # noqa: E501
 LH_ALL4  priority 3045: 200 > vtan >= 150 and not (3 < M_G < 5) and 50 > parallax_over_error >= 10 (N=360k)  # noqa: E501
 LH_ALL5  priority 6091: vtan >= 200      and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=274k)  # noqa: E501)
 LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > parallax_over_error >= 5 (N=437k)  # noqa: E501
 
+Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
 
         Instrument: BOSS for G>13, APOGEE for G<13
         """
@@ -609,11 +612,14 @@ LH_ALL6  priority 6092: 200 > vtan >= 150 and not (3 < M_G < 5) and 10 > paralla
                 else:
                     current_priority = 3025
 
-            # This is the odd one out since it does not
-            # set priority for (current_vtan >= 200)
+            # See the case LH_MSTO5 in the above comments.
+            # This is the odd one out since it sets the
+            # same priority for both branches of if(current_vtan >= 200).
+            # We could remove the inside if() but we are keeping it
+            # so that the code is similar to the other elif sections.
             elif (m_g_3to5 and (10 > current_parallax_over_error)):
                 if (current_vtan >= 200):
-                    pass
+                    current_priority = 3030
                 else:
                     current_priority = 3030
 
