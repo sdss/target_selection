@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 # @Author: Pramod Gupta (psgupta@uw.edu)
-# @Date: 2022-12-11
-# @Filename: mwm_legacy_ir2opt.py
+# @Date: 2023-04-24
+# @Filename: mwm_monitor_apogee.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import peewee
@@ -69,7 +69,7 @@ from target_selection.cartons import BaseCarton
 #
 #
 
-class MWM_Legacy_ir2opt_Carton(BaseCarton):
+class MWM_monitor_apogee_n188_long_Carton(BaseCarton):
     """ 5.1.25. mwm_monitor_apogee_*
 
 Shorthand name: mwm_monitor_apogee
@@ -80,32 +80,32 @@ Simplified Description of selection criteria:
 These are targets selected from globular and open clusters that
 have been observed many times over many years with the apogee instrument.
 
-mwm_monitor_apogee_n188:
-
+mwm_monitor_apogee_n188_long:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%N188%'
 AND baseline >= 3000 AND nvisits >= 12  high priority
 
+mwm_monitor_apogee_n188_short:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%N188%'
 AND baseline < 3000 AND baseline >= 1800 AND nvisits >= 12  lower priority
 
-mwm_monitor_apogee_m67:
-
+mwm_monitor_apogee_m67_long:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M67%'
 AND baseline >= 2000 AND nvisits >= 12  high priority
 
+mwm_monitor_apogee_m67_short:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M67%'
 AND baseline < 2000 AND baseline >= 1800 AND nvisits >= 12  lower priority
 
-mwm_monitor_apogee_m15:
-
+mwm_monitor_apogee_m15_long:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M15%'
 AND baseline >= 1300 AND nvisits >= 12  high priority
 
+mwm_monitor_apogee_m15_short:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M15%'
 AND baseline < 1300 AND baseline >= 900 AND nvisits >= 12  lower priority
@@ -129,7 +129,7 @@ can_offset=True
 Lead contact: Nathan De Lee
     """
 
-    name = 'mwm_monitor_apogee_n188_high'
+    name = 'mwm_monitor_apogee_n188_long'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_1x4'
