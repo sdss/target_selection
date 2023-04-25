@@ -169,6 +169,9 @@ Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
 w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
+(Note that below there are two cuts for M_W1
+with teff_xgboost on right hand side)
+
 BP < 17
 logg_xgboost < 4.0
 teff_xgboost < 5500
@@ -305,6 +308,9 @@ Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
 w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
+(Note that below there are two cuts for M_W1
+with teff_xgboost on right hand side)
+
 BP < 17
 logg_xgboost < 4.0
 teff_xgboost < 5500
