@@ -229,6 +229,8 @@ Lead contact: Alexander Ji, Rene Andrae
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToAllWise.version_id == version_id,
+                        CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500))
@@ -367,6 +369,8 @@ Lead contact: Alexander Ji, Rene Andrae
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToAllWise.version_id == version_id,
+                        CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500))
