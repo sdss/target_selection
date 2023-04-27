@@ -208,6 +208,8 @@ Lead contact: Alexander Ji, Rene Andrae
 
     def build_query(self, version_id, query_region=None):
 
+        M_W1 = AllWise.w1mpro + 5 * peewee.fn.log10(AllWise.parallax / 100)
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -218,7 +220,9 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro)
+                         AllWise.w1mpro,
+                         AllWise.parallax,
+                         M_W1.alias('M_W1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
@@ -233,7 +237,10 @@ Lead contact: Alexander Ji, Rene Andrae
                         CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
-                        Xpfeh_gaia_dr3.teff_xgboost < 5500))
+                        Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        AllWise.parallax > 0,
+                        M_W1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
+                        M_W1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -348,6 +355,8 @@ Lead contact: Alexander Ji, Rene Andrae
 
     def build_query(self, version_id, query_region=None):
 
+        M_W1 = AllWise.w1mpro + 5 * peewee.fn.log10(AllWise.parallax / 100)
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -358,7 +367,9 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro)
+                         AllWise.w1mpro,
+                         AllWise.parallax,
+                         M_W1.alias('M_W1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
@@ -373,7 +384,10 @@ Lead contact: Alexander Ji, Rene Andrae
                         CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
-                        Xpfeh_gaia_dr3.teff_xgboost < 5500))
+                        Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        AllWise.parallax > 0,
+                        M_W1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
+                        M_W1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
