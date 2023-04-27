@@ -729,11 +729,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             colnames = [field.name for field in write_query._returning]
 
-            print(mode)
-            print(write_query)
-            print(colnames)
         elif mode == 'targetdb':
-
             mag_fields = [
                 field
                 for field in tdb.Magnitude._meta.fields.values()
@@ -772,9 +768,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col._alias)
                 else:
                     colnames.append(col.name)
-            print(mode)
-            print(write_query)
-            print(colnames)
+
         else:
             raise ValueError(
                 'invalud mode. Available modes are "results" and "targetdb".'
@@ -789,9 +783,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             for row in tuple(results)
         )
 
-        warnings.filterwarnings(
-            'ignore', message='.*converting a masked element to nan.*'
-        )
+        warnings.filterwarnings('ignore', message='.*converting a masked element to nan.*')
 
         carton_table = table.Table(rows=results, names=colnames, masked=True)
 
