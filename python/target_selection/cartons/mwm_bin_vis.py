@@ -149,7 +149,7 @@ class MWM_Wide_Binaries_Base_Carton(BaseCarton):
         # For class B targets we select those whose associated source does not have
         # spectroscopic data and are the brightest source in the pair.
         class_b_priority = self.parameters['class_b_priority']
-        print('here')
+
         (model
          .update({model.priority: class_b_priority})
          .where(model.selected >> True,
