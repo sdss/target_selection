@@ -210,7 +210,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return Model
 
-    def run(self, query_region=None, overwrite=False, limit=None, **post_process_kawrgs):
+    def run(self,
+            query_region=None,
+            overwrite=False,
+            limit=None,
+            add_optical_magnitudes=True,
+            **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
@@ -349,8 +354,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
         log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
-        log.debug('Adding optical magnitude columns.')
-        self.add_optical_magnitudes()
+        if add_optical_magnitudes:
+            log.debug('Adding optical magnitude columns.')
+            self.add_optical_magnitudes()
 
         self.has_run = True
 
