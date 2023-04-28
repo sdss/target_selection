@@ -69,8 +69,14 @@ from target_selection.cartons import BaseCarton
 #
 #
 
-class MWM_monitor_apogee_n188_long_Carton(BaseCarton):
-    """ 5.1.25. mwm_monitor_apogee_*
+class MWM_monitor_apogee_Base_Carton(BaseCarton):
+    """
+MWM_monitor_apogee_Base_Carton is a base carton.
+
+Actual cartons are implemented as subclasses of MWM_monitor_apogee_Base_Carton
+for different conditions in the WHERE clause.
+
+5.1.25. mwm_monitor_apogee_*
 
 Shorthand name: mwm_monitor_apogee
 
@@ -129,15 +135,6 @@ can_offset=True
 Lead contact: Nathan De Lee
     """
 
-    name = 'mwm_monitor_apogee_n188_long'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x4'
-    program = 'mwm_monitor'
-    mapper = 'MWM'
-    priority = 1300
-    can_offset = True
-
     # SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
     # FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%N188%'
     # AND baseline >= 3000 AND nvisits >= 12  high priority
@@ -184,10 +181,7 @@ Lead contact: Nathan De Lee
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        SDSS_DR17_APOGEE_Allstarmerge.baseline >= 3000,
-                        SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
-                        SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188')))
+                        CatalogToTwoMassPSC.best >> True))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -200,5 +194,26 @@ Lead contact: Nathan De Lee
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
+
+        return query
+
+
+class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_n188_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 3000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188'))
 
         return query
