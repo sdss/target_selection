@@ -106,6 +106,8 @@ class MWM_Galactic_Core_Carton(BaseCarton):
                        on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,
+                        CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 11,
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
@@ -220,6 +222,8 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
                        on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,
+                        CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
                         TwoMassPSC.h_m < 11,
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
                         (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
