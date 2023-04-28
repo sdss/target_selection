@@ -208,6 +208,10 @@ Lead contact: Alexander Ji, Rene Andrae
 
     def build_query(self, version_id, query_region=None):
 
+        # We use the lower case variable name m_w1 so that the
+        # corresponding column name is lower case.
+        m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -215,10 +219,12 @@ Lead contact: Alexander Ji, Rene Andrae
                          Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_g_mean_mag,
+                         Gaia_DR3.parallax,
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro)
+                         AllWise.w1mpro,
+                         m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
@@ -229,9 +235,14 @@ Lead contact: Alexander Ji, Rene Andrae
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToAllWise.version_id == version_id,
+                        CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
+                        Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
-                        Xpfeh_gaia_dr3.teff_xgboost < 5500))
+                        Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
+                        m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -346,6 +357,10 @@ Lead contact: Alexander Ji, Rene Andrae
 
     def build_query(self, version_id, query_region=None):
 
+        # We use the lower case variable name m_w1 so that the
+        # corresponding column name is lower case.
+        m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -353,10 +368,12 @@ Lead contact: Alexander Ji, Rene Andrae
                          Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_g_mean_mag,
+                         Gaia_DR3.parallax,
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro)
+                         AllWise.w1mpro,
+                         m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
                        on=(Gaia_DR3.source_id == Xpfeh_gaia_dr3.source_id))
@@ -367,9 +384,14 @@ Lead contact: Alexander Ji, Rene Andrae
                        on=(CatalogToAllWise.target_id == AllWise.cntr))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToAllWise.version_id == version_id,
+                        CatalogToAllWise.best >> True,
                         Gaia_DR3.phot_bp_mean_mag < 17,
+                        Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
-                        Xpfeh_gaia_dr3.teff_xgboost < 5500))
+                        Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
+                        m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
