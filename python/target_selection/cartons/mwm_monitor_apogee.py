@@ -217,3 +217,112 @@ class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
                             SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188'))
 
         return query
+
+
+class MWM_monitor_apogee_n188_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_n188_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1800,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 3000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188'))
+
+        return query
+
+
+class MWM_monitor_apogee_m67_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m67_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 2000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M67'))
+
+        return query
+
+
+class MWM_monitor_apogee_m67_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m67_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1800,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 2000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M67'))
+
+        return query
+
+
+class MWM_monitor_apogee_m15_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m15_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1300,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M15'))
+
+        return query
+
+
+class MWM_monitor_apogee_m15_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m15_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 900,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 1300,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M15'))
+
+        return query
+
