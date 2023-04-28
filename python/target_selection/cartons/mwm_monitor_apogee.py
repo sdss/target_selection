@@ -325,4 +325,3 @@ class MWM_monitor_apogee_m15_short_Carton(MWM_monitor_apogee_Base_Carton):
                             SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M15'))
 
         return query
-
