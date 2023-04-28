@@ -138,6 +138,8 @@ NA
                            peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
                         Gaia_DR3.phot_g_mean_mag.between(8, 18)))
 
         # Gaia_DR3 peewee model class corresponds to
