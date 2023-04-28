@@ -133,10 +133,14 @@ Lead contact: Nathan De Lee
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_1x4'
-    program = 'mwm_legacy'
+    program = 'mwm_monitor'
     mapper = 'MWM'
     priority = 1300
     can_offset = True
+
+    # SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
+    # FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%N188%'
+    # AND baseline >= 3000 AND nvisits >= 12  high priority
 
     # In the below query, we use replace() instead of ltrim() since
     # ltrim('2M20', '2M') will also trim the second 2.
@@ -152,7 +156,19 @@ Lead contact: Nathan De Lee
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag,
                          TwoMassPSC.pts_key,
-                         TwoMassPSC.designation)
+                         TwoMassPSC.designation,
+                         SDSS_DR17_APOGEE_Allstarmerge.apogee_id,
+                         SDSS_DR17_APOGEE_Allstarmerge.ra,
+                         SDSS_DR17_APOGEE_Allstarmerge.dec,
+                         SDSS_DR17_APOGEE_Allstarmerge.nvisits,
+                         SDSS_DR17_APOGEE_Allstarmerge.baseline,
+                         SDSS_DR17_APOGEE_Allstarmerge.j,
+                         SDSS_DR17_APOGEE_Allstarmerge.j_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.h,
+                         SDSS_DR17_APOGEE_Allstarmerge.h_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.k,
+                         SDSS_DR17_APOGEE_Allstarmerge.k_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.fields)
                  .join(CatalogToGaia_DR3,
                        on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
                  .join(Gaia_DR3,
@@ -167,7 +183,11 @@ Lead contact: Nathan De Lee
                            peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        Gaia_DR3.phot_g_mean_mag.between(8, 18)))
+                        CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
+                        SDSS_DR17_APOGEE_Allstarmerge.baseline >= 3000,
+                        SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                        SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188')))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
