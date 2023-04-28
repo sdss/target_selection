@@ -104,7 +104,7 @@ AND baseline >= 2000 AND nvisits >= 12  high priority
 mwm_monitor_apogee_m67_short:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M67%'
-AND baseline < 2000 AND baseline >= 1800 AND nvisits >= 12  lower priority
+AND baseline < 2000 AND baseline >= 1300 AND nvisits >= 12  lower priority
 
 mwm_monitor_apogee_m15_long:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
@@ -276,7 +276,7 @@ class MWM_monitor_apogee_m67_short_Carton(MWM_monitor_apogee_Base_Carton):
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
-        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1800,
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1300,
                             SDSS_DR17_APOGEE_Allstarmerge.baseline < 2000,
                             SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
                             SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M67'))
