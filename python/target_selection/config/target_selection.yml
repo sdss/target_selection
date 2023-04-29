@@ -3288,6 +3288,7 @@
 '1.0.0-test':
   xmatch_plan: 1.0.0
   cartons:
+    - mwm_magcloud_agb_apogee
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   parameters:
@@ -3303,6 +3304,23 @@
       r_z_dered_nominal: 0.06
       bp_rp_dered_nominal: 0.66
       bp_g_dered_nominal: 0.22
+    mwm_magcloud_agb_apogee:
+      h_lim: 13
+      g_lim: 17.5
+      pmra_rough: [-3, 3]
+      pmdec_rough: [-3, 3]
+      gaiag_rough: 18
+      bp_rp_rough: 1
+      ra_rough: [61, 100]
+      dec_rough: [-66, -78]
+      pmdist: 1.2
+      jkcut_lmc: [0.96, 1.240, 1.70, 1.42]
+      hcut_lmc: [12.35, 12.35, 8.0, 8.0]
+      mlon_a: -1.5728745
+      mlon_b: -19.292601
+      jkcut_smc_off: -0.06
+      hcut_smc_off: 0.4
+
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
     j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
@@ -3312,6 +3330,7 @@
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
     work_mem: '10GB'
+    enable_bitmapscan: false
 
 '0.5.0-test':
   xmatch_plan: 0.5.0
