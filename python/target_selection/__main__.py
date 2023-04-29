@@ -104,8 +104,11 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
               help='write table of loaded targets as a FITS file')
 @click.option('--exclude-open-fiber', is_flag=True,
               help='do not process open fiber cartons')
+@click.option('--add-magnitudes/--no-add-optical-magnitudes', '-M/-m',
+              default=True, help='Whether to add optical magnitudes during the carton run.')
 def run(targeting_plan, config_file, overwrite, keep, region, load,
-        skip_query, include, exclude, write_table, limit, exclude_open_fiber):
+        skip_query, include, exclude, write_table, limit, exclude_open_fiber,
+        add_magnitudes):
     """Runs target selection for all cartons."""
 
     carton_classes = {Carton.name: Carton
@@ -203,7 +206,8 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
         if not skip_query:
             carton.run(query_region=(region or None),
                        overwrite=overwrite,
-                       limit=limit)
+                       limit=limit,
+                       add_optical_magnitudes=add_magnitudes)
             if write_table:
                 carton.write_table()
         else:

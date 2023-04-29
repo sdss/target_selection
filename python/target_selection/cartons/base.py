@@ -210,7 +210,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return Model
 
-    def run(self, query_region=None, overwrite=False, limit=None, **post_process_kawrgs):
+    def run(self,
+            query_region=None,
+            overwrite=False,
+            limit=None,
+            add_optical_magnitudes=True,
+            **post_process_kawrgs):
         """Executes the query and post-process steps, and stores the results.
 
         This method calls `.build_query` and runs the returned query. The
@@ -349,8 +354,9 @@ class BaseCarton(metaclass=abc.ABCMeta):
         n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
         log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
-        log.debug('Adding optical magnitude columns.')
-        self.add_optical_magnitudes()
+        if add_optical_magnitudes:
+            log.debug('Adding optical magnitude columns.')
+            self.add_optical_magnitudes()
 
         self.has_run = True
 
@@ -723,11 +729,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
             colnames = [field.name for field in write_query._returning]
 
-            print(mode)
-            print(write_query)
-            print(colnames)
         elif mode == 'targetdb':
-
             mag_fields = [
                 field
                 for field in tdb.Magnitude._meta.fields.values()
@@ -766,9 +768,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     colnames.append(col._alias)
                 else:
                     colnames.append(col.name)
-            print(mode)
-            print(write_query)
-            print(colnames)
+
         else:
             raise ValueError(
                 'invalud mode. Available modes are "results" and "targetdb".'
@@ -783,9 +783,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             for row in tuple(results)
         )
 
-        warnings.filterwarnings(
-            'ignore', message='.*converting a masked element to nan.*'
-        )
+        warnings.filterwarnings('ignore', message='.*converting a masked element to nan.*')
 
         carton_table = table.Table(rows=results, names=colnames, masked=True)
 
