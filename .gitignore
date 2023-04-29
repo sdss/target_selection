@@ -114,3 +114,5 @@ ENV/
 *~
 *.swp
 *.swo
+
+pyrightconfig.json
