@@ -1439,6 +1439,8 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
                        on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
                         TwoMassPSC.h_m < 13))
 
         if query_region:

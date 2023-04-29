@@ -446,6 +446,10 @@ class MWM_bin_rv_short_Carton(BaseCarton):
                  .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
                  .where(CatalogToTIC_v8.version_id == version_id,
                         CatalogToTIC_v8.best >> True,
+                        CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True,
+                        CatalogToGaia_DR3.version_id == version_id,
+                        CatalogToGaia_DR3.best >> True,
                         *mwm_rv_short_condition,
                         TwoMassPSC.h_m > 7,
                         TwoMassPSC.h_m < 10.8))
