@@ -212,6 +212,8 @@ Lead contact: Alexander Ji, Rene Andrae
         # corresponding column name is lower case.
         m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
 
+        # w1mpro is of PostgreSQL numeric(5,3) type
+        # Hence, below we cast it to real so that astropy can handle it.
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -223,7 +225,7 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro,
+                         AllWise.w1mpro.cast('real'),
                          m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
@@ -361,6 +363,8 @@ Lead contact: Alexander Ji, Rene Andrae
         # corresponding column name is lower case.
         m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
 
+        # w1mpro is of PostgreSQL numeric(5,3) type
+        # Hence, below we cast it to real so that astropy can handle it.
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -372,7 +376,7 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro,
+                         AllWise.w1mpro.cast('real'),
                          m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
