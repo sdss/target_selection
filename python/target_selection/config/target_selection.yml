@@ -1,24 +1,3 @@
-'1.0.20':
-  xmatch_plan: 1.0.0
-  cartons:
-    - mwm_galactic_core
-    - mwm_galactic_core_dist
-    - mwm_legacy_ir2opt
-    - mwm_yso_pms_apogee_sagitta_edr3
-    - mwm_bin_rv_short 
-  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
-  schema: sandbox
-  magnitudes:
-    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
-    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
-    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
-    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
-    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
-    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
-  database_options:
-    work_mem: '5GB'
-    enable_bitmapscan: false
-
 '1.0.19':
   xmatch_plan: 1.0.0
   cartons:

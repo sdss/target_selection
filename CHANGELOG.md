@@ -1,10 +1,5 @@
 # Changelog
 
-# 1.0.20 - April 28, 2023
-
-### Fixed
-
-* Update target_selection.yml for plan 1.0.20 cartons
 
 # 1.0.19 - April 26, 2023
 
