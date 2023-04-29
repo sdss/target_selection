@@ -165,7 +165,7 @@ Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
 Use catalogdb.xpfeh_gaia_dr3.
 
-Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
+Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, mh_xgboost < 0
 w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
@@ -175,6 +175,7 @@ with teff_xgboost on right hand side)
 BP < 17
 logg_xgboost < 4.0
 teff_xgboost < 5500
+mh_xgboost < 0
 M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
 M_W1 > -0.01 * (5300 - teff_xgboost)
 
@@ -182,7 +183,7 @@ where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
 Then there are three levels of priority based on selecting
-mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
+mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= 0
 at three different priorities.
 
 Return columns:
@@ -190,7 +191,7 @@ Metadata:
 Priority: three levels
 2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
 2970 if -2.0 < mh_xgboost <= -1.5
-6090 if mh_xgboost > -1.5
+6090 if -1.5 < mh_xgboost <= 0
 Cadence: bright_1x1
 Instrument: BOSS for G>13, APOGEE for G<13
 can_offset = True
@@ -212,6 +213,8 @@ Lead contact: Alexander Ji, Rene Andrae
         # corresponding column name is lower case.
         m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
 
+        # w1mpro is of PostgreSQL numeric(5,3) type
+        # Hence, below we cast it to real so that astropy can handle it.
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -223,7 +226,7 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro,
+                         AllWise.w1mpro.cast('real'),
                          m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
@@ -241,6 +244,7 @@ Lead contact: Alexander Ji, Rene Andrae
                         Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        Xpfeh_gaia_dr3.mh_xgboost < 0,
                         m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
                         m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
@@ -263,7 +267,7 @@ Lead contact: Alexander Ji, Rene Andrae
         Priority: three levels
         2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
         2970 if -2.0 < mh_xgboost <= -1.5
-        6090 if mh_xgboost > -1.5
+        6090 if -1.5 < mh_xgboost <= 0
 
         Instrument: BOSS for G>13, APOGEE for G<13
         """
@@ -315,7 +319,7 @@ Link to paper: https://arxiv.org/abs/2302.02611 and
 Zenodo: https://doi.org/10.5281/zenodo.7599789
 Use catalogdb.xpfeh_gaia_dr3.
 
-Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4,
+Cut on BP<17, teff_xgboost < 5500, logg_xgboost < 4, mh_xgboost < 0
 w1mpro (from AllWise) absolute magnitude.
 
 Specifically:
@@ -325,6 +329,7 @@ with teff_xgboost on right hand side)
 BP < 17
 logg_xgboost < 4.0
 teff_xgboost < 5500
+mh_xgboost < 0
 M_W1 > -0.3 - 0.006 * (5500 - teff_xgboost)
 M_W1 > -0.01 * (5300 - teff_xgboost)
 
@@ -332,14 +337,14 @@ where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
 Then there are three levels of priority based on selecting
-mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
+mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= 0.0
 at three different priorities.
 Return columns:
 Metadata:
 Priority:
 2099 if mh_xgboost <= -2.0 (TBA pending A/B test)
 2969 if -2.0 < mh_xgboost <= -1.5
-6090 if mh_xgboost > -1.5
+6090 if -1.5 < mh_xgboost <= 0
 Cadence: dark_1x2
 Instrument: BOSS for G>13, APOGEE for G<13
 can_offset = True
@@ -361,6 +366,8 @@ Lead contact: Alexander Ji, Rene Andrae
         # corresponding column name is lower case.
         m_w1 = AllWise.w1mpro + 5 * peewee.fn.log10(Gaia_DR3.parallax / 100)
 
+        # w1mpro is of PostgreSQL numeric(5,3) type
+        # Hence, below we cast it to real so that astropy can handle it.
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -372,7 +379,7 @@ Lead contact: Alexander Ji, Rene Andrae
                          Xpfeh_gaia_dr3.logg_xgboost,
                          Xpfeh_gaia_dr3.teff_xgboost,
                          Xpfeh_gaia_dr3.mh_xgboost,
-                         AllWise.w1mpro,
+                         AllWise.w1mpro.cast('real'),
                          m_w1.alias('m_w1'))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
                  .join(Xpfeh_gaia_dr3,
@@ -390,6 +397,7 @@ Lead contact: Alexander Ji, Rene Andrae
                         Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500,
+                        Xpfeh_gaia_dr3.mh_xgboost < 0,
                         m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
                         m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
@@ -412,7 +420,7 @@ Lead contact: Alexander Ji, Rene Andrae
         Priority: three levels
         2099 if mh_xgboost <= -2.0 (TBA pending A/B test)
         2969 if -2.0 < mh_xgboost <= -1.5
-        6090 if mh_xgboost > -1.5
+        6090 if -1.5 < mh_xgboost <=0
 
         Instrument: BOSS for G>13, APOGEE for G<13
         """
