@@ -5,7 +5,7 @@
     - mwm_galactic_core_dist
     - mwm_legacy_ir2opt
     - mwm_yso_pms_apogee_sagitta_edr3
-    - mwm_rv_short 
+    - mwm_bin_rv_short 
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
