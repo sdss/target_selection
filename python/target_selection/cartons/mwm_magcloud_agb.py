@@ -3,7 +3,7 @@
 #
 # @Author: José Sánchez-Gallego (gallegoj@uw.edu)
 # @Date: 2023-04-28
-# @Filename: mwm_magcloud_rgb.py
+# @Filename: mwm_magcloud_agb.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import numpy
@@ -58,8 +58,8 @@ def roi_cut(xcut, ycut, x, y):
     return ind, cutind
 
 
-class MWM_MagCloud_RGB_Base(BaseCarton):
-    """MWM Magellanic clouds RGBs.
+class MWM_MagCloud_AGB_Base(BaseCarton):
+    """MWM Magellanic clouds AGBs.
 
     Definition:
 
@@ -71,7 +71,7 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
 
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_magcloud_rgb'
+    program = 'mwm_magcloud_agb'
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -93,6 +93,8 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
         ra, dec, radius = self.parameters['astro_rough']
         astro_cut = fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec, ra, dec, radius)
 
+        #astro_cut = Gaia_DR3.dec < -40
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.ra,
@@ -103,18 +105,16 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
                          Gaia_DR3.pmdec,
                          Gaia_DR3.parallax,
                          Gaia_DR3.parallax_error,
-                         Gaia_DR3.phot_g_mean_mag,
-                         Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag)
-                         Gaia_DR3_Astrophysical_Parameters.ag_gspphot,
-                         Gaia_DR3_Astrophysical_Parameters.abp_gspphot,
-                         Gaia_DR3_Astrophysical_Parameters.arp_gspphot)                 
+                         TwoMassPSC.h_m,
+                         TwoMassPSC.j_m,
+                         TwoMassPSC.k_m)
                  .join(Gaia_DR3)
-                 .join_from(Gaia_DR3, Gaia_DR3_Astrophysical_Parameters,
-                            on=(Gaia_DR3.source_id == Gaia_DR3_Astrophysical_Parameters.source_id))
-                 .join(Gaia_DR3_Astrophysical_Parameters)
+                 .join_from(CatalogToGaia_DR3, CatalogToTwoMassPSC,
+                            on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
+                 .join(TwoMassPSC)
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        CatalogToTwoMassPSC.best >> True,
                         parallax_cut,
                         colour_cut,
                         pm_cut,
@@ -141,30 +141,47 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
         data['mlat'] = mcoo.B.value
         data['mlon'] = mcoo.L.value
 
+        # Make sure none of the needed quantities are NaN
+        good = (np.isfinite(data['pmra']) & np.isfinite(data['pmdec']) & np.isfinite(data['parallax']) &
+                np.isfinite(data['j_m']) & np.isfinite(data['h_m']) & np.isfinite(data['k_m']))
+        data = data[good]
+        
         # Proper motion cut.
         pmdist = numpy.sqrt((data['pml_ms'] - 1.8)**2 + (data['pmb_ms'] - 0.40)**2)
         gdpm = pmdist < self.parameters['pmdist']
         data = data.loc[gdpm]
-        
-        # Make sure none of the needed quantities are NaN
-        good = (np.isfinite(data['pmra']) & np.isfinite(data['pmdec']) & np.isfinite(data['parallax']) &
-                np.isfinite(data['phot_g_mean_mag']) & np.isfinite(data['phot_bp_mean_mag']) &
-                np.isfinite(data['phot_rp_mean_mag']) & np.isfinite(data['ag_gspphot']) &
-                np.isfinite(data['abp_gspphot']) & np.isfinite(data['arp_gspphot']))
-        data = data[good]
 
-        # Get dereddened magnitudes
-        gmag0 = data['phot_g_mean_mag']-data['ag_gspphot']
-        bp0 = data['phot_bp_mean_mag']-data['abp_gspphot']
-        rp0 = data['phot_rp_mean_mag']-data['arp_gspphot']
+        mlon_a = self.parameters['mlon_a']
+        mlon_b = self.parameters['mlon_b']
 
-        # Apply CMD cut
-        bprpcut = [  1.25,  1.433,   1.6, 2.02,  2.50,  3.58,   3.58,  2.50, 1.6, 1.25]
-        gcut =    [ 17.50, 17.50,  16.7, 16.30, 16.20, 16.20, 15.00, 14.00, 15.2, 16.34]
-        _, cutind = roi_cut(bprpcut,gcut,bp0-rp0,gmag0)
-        data = data.iloc[cutind]
+        # CMD cut
+        # AGB-O and AGB-C
+        # Apply separate cuts to LMC and SMC
 
-        valid_cids = data.catalogid.values
+        # -- LMC --
+        jkcut_lmc = numpy.array(self.parameters['jkcut_lmc'])
+        hcut_lmc = numpy.array(self.parameters['hcut_lmc'])
+        glmc = data['mlat'] > (mlon_a * data['mlon'] + mlon_b)
+        data_lmc = data.loc[glmc]
+        _, cutind = roi_cut(jkcut_lmc,
+                            hcut_lmc,
+                            data_lmc['j_m'] - data_lmc['k_m'],
+                            data_lmc['h_m'])
+        data_lmc = data_lmc.iloc[cutind]
+
+        # -- SMC --
+        jkcut_smc = jkcut_lmc + self.parameters['jkcut_smc_off']
+        hcut_smc = hcut_lmc + self.parameters['hcut_smc_off']
+        gsmc = data['mlat'] <= (mlon_a * data['mlon'] + mlon_b)
+        data_smc = data.loc[gsmc]
+        _, cutind = roi_cut(jkcut_smc,
+                            hcut_smc,
+                            data_smc['j_m'] - data_smc['k_m'],
+                            data_smc['h_m'])
+        data_smc = data_smc.iloc[cutind]
+
+        valid_cids = numpy.hstack([data_lmc.catalogid.values,
+                                   data_smc.catalogid.values])
 
         (model
          .delete()
@@ -174,16 +191,18 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
         return super().post_process(model, **kwargs)
 
 
-class MWM_MagCloud_RGB_BOSS(MWM_MagCloud_RGB_Base):
-    """MWM Magellanic clouds RGBs. BOSS carton."""
+class MWM_MagCloud_AGB_APOGEE(MWM_MagCloud_AGB_Base):
+    """MWM Magellanic clouds RGBs. APOGEE carton."""
 
-    name = 'mwm_magcloud_rgb_boss'
-    instrument = 'BOSS'
-    priority = 2819
+    name = 'mwm_magcloud_agb_apogee'
+    instrument = 'APOGEE'
+    priority = 2818
 
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
-        query = query.where(Gaia_DR3 < self.parameters['g_lim'])
+        query = query.where(TwoMassPSC.h_m < self.parameters['h_lim'])
 
         return query
+
+
