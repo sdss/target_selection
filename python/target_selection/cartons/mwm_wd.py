@@ -50,7 +50,7 @@ class MWM_WD_PWD_Carton(BaseCarton):
                  .join(WD_gaia_dr3,
                        on=(CatalogToGaia_DR3.target_id == WD_gaia_dr3.gaiaedr3))
                  .where(WD_gaia_dr3.pwd > 0.5,
-                        WD_gaia_dr3.gmag_vega < 20.0,
+                        WD_gaia_dr3.gmag_vega <= 20.0,
                         CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True))
 
