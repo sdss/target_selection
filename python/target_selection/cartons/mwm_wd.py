@@ -111,6 +111,7 @@ class MWM_WD_Gaia_Carton(BaseCarton):
 
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
+                         Gaia_DR3.source_id,
                          Gaia_DR3.ra,
                          Gaia_DR3.dec,
                          bp_rp,
