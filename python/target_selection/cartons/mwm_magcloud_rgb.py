@@ -13,52 +13,14 @@ from astropy.units import mas, yr
 from gala.coordinates import MagellanicStreamNidever08
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC, Gaia_DR3,
-                                             TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3, Gaia_DR3,
+                                             Gaia_dr3_astrophysical_parameters)
 
 from target_selection.cartons import BaseCarton
+from target_selection.cartons.mwm_magcloud_agb import roi_cut
 
 
-def roi_cut(xcut, ycut, x, y):
-    """Use cuts in a 2D plane to select points from arrays.
-
-    Parameters
-    ----------
-    xcut : numpy array
-        Array of x-values for the cut.
-    ycut : numpy array
-        Array of y-values for the cut.
-    x : numpy array or list
-        Array of x-values that should be cut.
-    y : numpy array or list
-        Array of y-values that should be cut.
-
-    Returns
-    -------
-    ind : numpy array
-       The indices of values OUTSIDE the cut.
-    cutind :
-       The indices of values INSIDE the cut.
-
-    """
-
-    from matplotlib.path import Path
-
-    tupVerts = list(zip(xcut, ycut))
-
-    points = numpy.vstack((x, y)).T
-
-    p = Path(tupVerts)  # make a polygon
-    inside = p.contains_points(points)
-
-    ind, = numpy.where(~inside)
-    cutind, = numpy.where(inside)
-
-    return ind, cutind
-
-
-class MWM_MagCloud_RGB_Base(BaseCarton):
+class MWM_MagCloud_RGB_BOSS(BaseCarton):
     """MWM Magellanic clouds RGBs.
 
     Definition:
@@ -69,16 +31,19 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
 
     """
 
+    name = 'mwm_magcloud_rgb_boss'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_magcloud_rgb'
+    instrument = 'BOSS'
+    priority = 2819
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
         # Parallax cut
         parallax_cut = ~((Gaia_DR3.parallax > 0) &
-                         ((Gaia_DR3.parallax+0.025) / Gaia_DR3.parallax_error > 5))
+                         ((Gaia_DR3.parallax + 0.025) / Gaia_DR3.parallax_error > 5))
 
         # Rough cuts. Just to reduce the number of rows returned for post-process.
         bp_rp = Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag
@@ -105,16 +70,16 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
                          Gaia_DR3.parallax_error,
                          Gaia_DR3.phot_g_mean_mag,
                          Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag)
-                         Gaia_DR3_Astrophysical_Parameters.ag_gspphot,
-                         Gaia_DR3_Astrophysical_Parameters.abp_gspphot,
-                         Gaia_DR3_Astrophysical_Parameters.arp_gspphot)                 
+                         Gaia_DR3.phot_rp_mean_mag,
+                         Gaia_dr3_astrophysical_parameters.ag_gspphot,
+                         Gaia_dr3_astrophysical_parameters.abp_gspphot,
+                         Gaia_dr3_astrophysical_parameters.arp_gspphot)
                  .join(Gaia_DR3)
-                 .join_from(Gaia_DR3, Gaia_DR3_Astrophysical_Parameters,
-                            on=(Gaia_DR3.source_id == Gaia_DR3_Astrophysical_Parameters.source_id))
-                 .join(Gaia_DR3_Astrophysical_Parameters)
+                 .join_from(Gaia_DR3, Gaia_dr3_astrophysical_parameters,
+                            on=(Gaia_DR3.source_id == Gaia_dr3_astrophysical_parameters.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
+                        Gaia_DR3.phot_g_mean_mag < self.parameters['g_lim'],
                         parallax_cut,
                         colour_cut,
                         pm_cut,
@@ -145,45 +110,35 @@ class MWM_MagCloud_RGB_Base(BaseCarton):
         pmdist = numpy.sqrt((data['pml_ms'] - 1.8)**2 + (data['pmb_ms'] - 0.40)**2)
         gdpm = pmdist < self.parameters['pmdist']
         data = data.loc[gdpm]
-        
+
         # Make sure none of the needed quantities are NaN
-        good = (np.isfinite(data['pmra']) & np.isfinite(data['pmdec']) & np.isfinite(data['parallax']) &
-                np.isfinite(data['phot_g_mean_mag']) & np.isfinite(data['phot_bp_mean_mag']) &
-                np.isfinite(data['phot_rp_mean_mag']) & np.isfinite(data['ag_gspphot']) &
-                np.isfinite(data['abp_gspphot']) & np.isfinite(data['arp_gspphot']))
+        good = (numpy.isfinite(data['pmra']) &
+                numpy.isfinite(data['pmdec']) &
+                numpy.isfinite(data['parallax']) &
+                numpy.isfinite(data['phot_g_mean_mag']) &
+                numpy.isfinite(data['phot_bp_mean_mag']) &
+                numpy.isfinite(data['phot_rp_mean_mag']) &
+                numpy.isfinite(data['ag_gspphot']) &
+                numpy.isfinite(data['abp_gspphot']) &
+                numpy.isfinite(data['arp_gspphot']))
         data = data[good]
 
         # Get dereddened magnitudes
-        gmag0 = data['phot_g_mean_mag']-data['ag_gspphot']
-        bp0 = data['phot_bp_mean_mag']-data['abp_gspphot']
-        rp0 = data['phot_rp_mean_mag']-data['arp_gspphot']
+        gmag0 = data['phot_g_mean_mag'] - data['ag_gspphot']
+        bp0 = data['phot_bp_mean_mag'] - data['abp_gspphot']
+        rp0 = data['phot_rp_mean_mag'] - data['arp_gspphot']
 
         # Apply CMD cut
-        bprpcut = [  1.25,  1.433,   1.6, 2.02,  2.50,  3.58,   3.58,  2.50, 1.6, 1.25]
-        gcut =    [ 17.50, 17.50,  16.7, 16.30, 16.20, 16.20, 15.00, 14.00, 15.2, 16.34]
-        _, cutind = roi_cut(bprpcut,gcut,bp0-rp0,gmag0)
+        bprpcut = self.parameters['bprpcut']
+        gcut = self.parameters['gcut']
+        _, cutind = roi_cut(bprpcut, gcut, bp0 - rp0, gmag0)
         data = data.iloc[cutind]
 
         valid_cids = data.catalogid.values
 
         (model
-         .delete()
+         .update({model.selected: False})
          .where(model.catalogid.not_in(valid_cids.tolist()))
          .execute())
 
         return super().post_process(model, **kwargs)
-
-
-class MWM_MagCloud_RGB_BOSS(MWM_MagCloud_RGB_Base):
-    """MWM Magellanic clouds RGBs. BOSS carton."""
-
-    name = 'mwm_magcloud_rgb_boss'
-    instrument = 'BOSS'
-    priority = 2819
-
-    def build_query(self, version_id, query_region=None):
-
-        query = super().build_query(version_id, query_region)
-        query = query.where(Gaia_DR3 < self.parameters['g_lim'])
-
-        return query

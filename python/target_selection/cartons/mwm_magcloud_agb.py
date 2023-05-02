@@ -58,7 +58,7 @@ def roi_cut(xcut, ycut, x, y):
     return ind, cutind
 
 
-class MWM_MagCloud_AGB_Base(BaseCarton):
+class MWM_MagCloud_AGB_APOGEE(BaseCarton):
     """MWM Magellanic clouds AGBs.
 
     Definition:
@@ -69,16 +69,19 @@ class MWM_MagCloud_AGB_Base(BaseCarton):
 
     """
 
+    name = 'mwm_magcloud_agb_apogee'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_magcloud_agb'
+    instrument = 'APOGEE'
+    priority = 2818
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
         # Parallax cut
         parallax_cut = ~((Gaia_DR3.parallax > 0) &
-                         ((Gaia_DR3.parallax+0.025) / Gaia_DR3.parallax_error > 5))
+                         ((Gaia_DR3.parallax + 0.025) / Gaia_DR3.parallax_error > 5))
 
         # Rough cuts. Just to reduce the number of rows returned for post-process.
         bp_rp = Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag
@@ -92,8 +95,6 @@ class MWM_MagCloud_AGB_Base(BaseCarton):
 
         ra, dec, radius = self.parameters['astro_rough']
         astro_cut = fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec, ra, dec, radius)
-
-        #astro_cut = Gaia_DR3.dec < -40
 
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
@@ -115,6 +116,7 @@ class MWM_MagCloud_AGB_Base(BaseCarton):
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         CatalogToTwoMassPSC.best >> True,
+                        TwoMassPSC.h_m < self.parameters['h_lim'],
                         parallax_cut,
                         colour_cut,
                         pm_cut,
@@ -142,10 +144,14 @@ class MWM_MagCloud_AGB_Base(BaseCarton):
         data['mlon'] = mcoo.L.value
 
         # Make sure none of the needed quantities are NaN
-        good = (np.isfinite(data['pmra']) & np.isfinite(data['pmdec']) & np.isfinite(data['parallax']) &
-                np.isfinite(data['j_m']) & np.isfinite(data['h_m']) & np.isfinite(data['k_m']))
+        good = (numpy.isfinite(data['pmra']) &
+                numpy.isfinite(data['pmdec']) &
+                numpy.isfinite(data['parallax']) &
+                numpy.isfinite(data['j_m']) &
+                numpy.isfinite(data['h_m']) &
+                numpy.isfinite(data['k_m']))
         data = data[good]
-        
+
         # Proper motion cut.
         pmdist = numpy.sqrt((data['pml_ms'] - 1.8)**2 + (data['pmb_ms'] - 0.40)**2)
         gdpm = pmdist < self.parameters['pmdist']
@@ -184,25 +190,8 @@ class MWM_MagCloud_AGB_Base(BaseCarton):
                                    data_smc.catalogid.values])
 
         (model
-         .delete()
+         .update({model.selected: False})
          .where(model.catalogid.not_in(valid_cids.tolist()))
          .execute())
 
         return super().post_process(model, **kwargs)
-
-
-class MWM_MagCloud_AGB_APOGEE(MWM_MagCloud_AGB_Base):
-    """MWM Magellanic clouds RGBs. APOGEE carton."""
-
-    name = 'mwm_magcloud_agb_apogee'
-    instrument = 'APOGEE'
-    priority = 2818
-
-    def build_query(self, version_id, query_region=None):
-
-        query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m < self.parameters['h_lim'])
-
-        return query
-
-

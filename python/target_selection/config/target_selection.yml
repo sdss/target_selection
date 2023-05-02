@@ -3328,7 +3328,6 @@
       bp_g_dered_nominal: 0.22
     mwm_magcloud_agb_apogee:
       h_lim: 13
-      g_lim: 17.5
       pmra_rough: [-3, 3]
       pmdec_rough: [-3, 3]
       gaiag_rough: 18
@@ -3341,6 +3340,16 @@
       mlon_b: -19.292601
       jkcut_smc_off: -0.06
       hcut_smc_off: 0.4
+    mwm_magcloud_rgb_boss:
+      g_lim: 17.5
+      pmra_rough: [-3, 3]
+      pmdec_rough: [-3, 3]
+      gaiag_rough: 18
+      bp_rp_rough: 1
+      astro_rough: [59.5, -72.8, 30]
+      pmdist: 1.2
+      bprpcut: [1.25, 1.433, 1.6, 2.02, 2.50, 3.58, 3.58, 2.50, 1.6, 1.25]
+      gcut: [17.50, 17.50, 16.7, 16.30, 16.20, 16.20, 15.00, 14.00, 15.2, 16.34]
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
     j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
