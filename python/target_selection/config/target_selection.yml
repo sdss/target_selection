@@ -3289,7 +3289,7 @@
   xmatch_plan: 1.0.0
   cartons:
     - mwm_magcloud_agb_apogee
-    - mwm_magcloud_agb_boss
+    - mwm_magcloud_rgb_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   parameters:
@@ -3312,7 +3312,7 @@
       pmdec_rough: [-3, 3]
       gaiag_rough: 18
       bp_rp_rough: 1
-      astro_rough: [80.5, -72, 30]
+      astro_rough: [59.5, -72.8, 30]
       pmdist: 1.2
       jkcut_lmc: [0.96, 1.240, 1.70, 1.42]
       hcut_lmc: [12.35, 12.35, 8.0, 8.0]
