@@ -165,7 +165,7 @@ class MWM_SNC_Ext_Carton(BaseCarton):
         Add some constraints on astrometric excess noise in crowded regions
         (Galactic plane, LMC, SMC).
     Pseudo-code:
-        (parallax<10 && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
+        ((parallax<10) && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
           19.125-0.03225*(1000/parallax))  &&
           ( (astrometric_excess_noise < 2 &&
             ( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
@@ -185,7 +185,7 @@ class MWM_SNC_Ext_Carton(BaseCarton):
         Add some constraints on astrometric excess noise in crowded regions
         (Galactic plane, LMC, SMC).
     Pseudo-code:
-        ((parallax-parallax_error>10) && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
+        ((parallax<10) && (phot_g_mean_mag+5*log10(parallax/1000)+5) <
           19.125-0.03225*(1000/parallax))  &&
           ( (astrometric_excess_noise < 2 &&
             ( (l<=180 && b<-0.139*l + 25 && b>0.139*l - 25) ||
@@ -277,7 +277,7 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
         return query
 
 
-class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_100pc_Carton):
+class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
     """SNC extension for BOSS. See base carton for details."""
 
     name = 'mwm_snc_ext_boss'
