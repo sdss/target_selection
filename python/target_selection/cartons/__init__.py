@@ -4,8 +4,13 @@ import inspect
 import os
 import warnings
 
+from astropy.utils.exceptions import AstropyDeprecationWarning
+
 from ..exceptions import TargetSelectionImportWarning
 from .base import BaseCarton
+
+
+warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
 
 # Import cartons so that they can be discovered by
