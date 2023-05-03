@@ -239,8 +239,9 @@ Lead contact: Nathan De Lee
                 " set selected = true " +
                 " where catalogid = " + str(list_of_catalog_id[k]) + ";")
 
-# Below are sub classes of the above base class MWM_monitor_apogee_Base_Carton
-
+# Below are sub classes of the above base class MWM_monitor_apogee_Base_Carton.
+# Note that there is no __init__() in below sub classes since
+# they use the __init__() from the Base class in Base.py.
 
 class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
 
@@ -263,7 +264,8 @@ class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        # note that there is no self below since we are using super()
+        super().post_process(model)
 
 
 class MWM_monitor_apogee_n188_short_Carton(MWM_monitor_apogee_Base_Carton):
@@ -288,7 +290,7 @@ class MWM_monitor_apogee_n188_short_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        super().post_process(model)
 
 
 class MWM_monitor_apogee_m67_long_Carton(MWM_monitor_apogee_Base_Carton):
@@ -312,7 +314,7 @@ class MWM_monitor_apogee_m67_long_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        super().post_process(model)
 
 
 class MWM_monitor_apogee_m67_short_Carton(MWM_monitor_apogee_Base_Carton):
@@ -337,7 +339,7 @@ class MWM_monitor_apogee_m67_short_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        super().post_process(model)
 
 
 class MWM_monitor_apogee_m15_long_Carton(MWM_monitor_apogee_Base_Carton):
@@ -361,7 +363,7 @@ class MWM_monitor_apogee_m15_long_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        super().post_process(model)
 
 
 class MWM_monitor_apogee_m15_short_Carton(MWM_monitor_apogee_Base_Carton):
@@ -386,4 +388,4 @@ class MWM_monitor_apogee_m15_short_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        super().post_process(self, model)
+        super().post_process(model)
