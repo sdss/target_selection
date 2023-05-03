@@ -218,6 +218,44 @@ class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
 
         return query
 
+    def post_process(self, model):
+        """
+        Select the brightest sources (i.e. smallest phot_g_mean_mag)
+        for duplicate apogee_id (but different gaia dr3 source id)
+        """
+
+        self.database.execute_sql("update sandbox.temp_mwm_monitor_apogee_n188_long " +
+                                  "set selected = false")
+
+        cursor = self.database.execute_sql(
+            "select catalogid, apogee_id, phot_g_mean_mag from " +
+            " sandbox.temp_mwm_monitor_apogee_n188_long " +
+            " order by apogee_id asc, phot_g_mean_mag asc;")
+
+        output = cursor.fetchall()
+        list_of_catalog_id = [0] * len(output)
+        # we use the name counter instead of count
+        # since count is a python built-in function
+        counter = {}
+        current_target = 0
+        for i in range(len(output)):
+            current_apogee_id = output[i][1]
+            # If two targets have same apogee id then we only keep the
+            # first source. Since the sources are
+            # ordered by apogee_id (ascending) and phot_g_mean_mag (ascending)
+            # this means that we will keep the sources with
+            # smallest phot_g_mean_mag (i.e. brightest sources).
+            if (current_apogee_id not in counter.keys()):
+                counter[current_apogee_id] = True
+                list_of_catalog_id[current_target] = output[i][0]
+                current_target = current_target + 1
+
+        max_target = current_target
+        for k in range(max_target + 1):
+            self.database.execute_sql(
+                " update sandbox.temp_mwm_monitor_apogee_n188_long set selected = true " +
+                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+
 
 class MWM_monitor_apogee_n188_short_Carton(MWM_monitor_apogee_Base_Carton):
 
