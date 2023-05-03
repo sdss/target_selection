@@ -1,7 +1,6 @@
 '1.0.21':
   xmatch_plan: 1.0.0
   cartons:
-    - mwm_wd_gaia
     - mwm_halo_mp_xp
     - mwm_halo_mp_xp_dark
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
