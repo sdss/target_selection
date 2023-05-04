@@ -116,7 +116,7 @@ class MWM_WD_Gaia_Carton(BaseCarton):
                          Gaia_DR3.source_id,
                          Gaia_DR3.ra,
                          Gaia_DR3.dec,
-                         bp_rp,
+                         bp_rp.alias('bp_rp'),
                          gaiaG,
                          Gaia_DR3.parallax,
                          Gedr3spur_main.fidelity_v2)
