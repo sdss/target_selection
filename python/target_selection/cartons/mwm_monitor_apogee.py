@@ -269,7 +269,9 @@ class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
         return query
 
     def post_process(self, model):
-        # note that there self above but no self below since we are using super()
+        # Note that self is a parameter of post_process() above but
+        # self is not a parameter of post_process() below
+        # since we are using super().
         super().post_process(model)
 
 
