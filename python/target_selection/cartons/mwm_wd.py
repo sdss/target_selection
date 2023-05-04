@@ -99,6 +99,8 @@ class MWM_WD_Gaia_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        self.database.execute_sql('SET LOCAL random_page_cost = 0.1;')
+
         bp_rp = Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag
         gaiaG = Gaia_DR3.phot_g_mean_mag
         par_log = fn.log10(Gaia_DR3.parallax / 100.)
