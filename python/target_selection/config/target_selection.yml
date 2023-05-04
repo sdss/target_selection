@@ -3344,7 +3344,7 @@
       g_lim: 18.5
       pmra_rough: [-3, 3]
       pmdec_rough: [-3, 3]
-      gaiag_rough: 18
+      gaiag_rough: 18.5
       bp_rp_rough: 1
       astro_rough: [59.5, -72.8, 30]
       pmdist: 1.2
