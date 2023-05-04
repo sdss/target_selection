@@ -215,11 +215,13 @@ Lead contact: Nathan De Lee
 
         output = cursor.fetchall()
         list_of_catalog_id = [0] * len(output)
+
         # We use the name counter instead of count
         # since count is a python built-in function.
         # For counter we use a dictionary
         # since current_apogee_id is a string.
         counter = {}
+
         current_target = 0
         for i in range(len(output)):
             current_apogee_id = output[i][1]
