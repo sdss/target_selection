@@ -215,8 +215,10 @@ Lead contact: Nathan De Lee
 
         output = cursor.fetchall()
         list_of_catalog_id = [0] * len(output)
-        # we use the name counter instead of count
-        # since count is a python built-in function
+        # We use the name counter instead of count
+        # since count is a python built-in function.
+        # For counter we use a dictionary
+        # since current_apogee_id is a string.
         counter = {}
         current_target = 0
         for i in range(len(output)):
@@ -242,6 +244,7 @@ Lead contact: Nathan De Lee
 # Below are sub classes of the above base class MWM_monitor_apogee_Base_Carton.
 # Note that there is no __init__() in below sub classes since
 # they use the __init__() from the Base class in Base.py.
+
 
 class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
 
