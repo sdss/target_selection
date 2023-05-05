@@ -69,8 +69,14 @@ from target_selection.cartons import BaseCarton
 #
 #
 
-class MWM_monitor_apogee_n188_long_Carton(BaseCarton):
-    """ 5.1.25. mwm_monitor_apogee_*
+class MWM_monitor_apogee_Base_Carton(BaseCarton):
+    """
+MWM_monitor_apogee_Base_Carton is a base carton.
+
+Actual cartons are implemented as subclasses of MWM_monitor_apogee_Base_Carton
+for different conditions in the WHERE clause.
+
+5.1.25. mwm_monitor_apogee_*
 
 Shorthand name: mwm_monitor_apogee
 
@@ -98,7 +104,7 @@ AND baseline >= 2000 AND nvisits >= 12  high priority
 mwm_monitor_apogee_m67_short:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
 FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%M67%'
-AND baseline < 2000 AND baseline >= 1800 AND nvisits >= 12  lower priority
+AND baseline < 2000 AND baseline >= 1300 AND nvisits >= 12  lower priority
 
 mwm_monitor_apogee_m15_long:
 SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
@@ -129,14 +135,9 @@ can_offset=True
 Lead contact: Nathan De Lee
     """
 
-    name = 'mwm_monitor_apogee_n188_long'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x4'
-    program = 'mwm_legacy'
-    mapper = 'MWM'
-    priority = 1300
-    can_offset = True
+    # SELECT apogee_id,ra,dec,nvisits,baseline,j,j_err,h,h_err,k,k_err,fields
+    # FROM catalogdb.sdss_dr17_apogee_allstarmerge WHERE fields LIKE '%N188%'
+    # AND baseline >= 3000 AND nvisits >= 12  high priority
 
     # In the below query, we use replace() instead of ltrim() since
     # ltrim('2M20', '2M') will also trim the second 2.
@@ -152,7 +153,19 @@ Lead contact: Nathan De Lee
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag,
                          TwoMassPSC.pts_key,
-                         TwoMassPSC.designation)
+                         TwoMassPSC.designation,
+                         SDSS_DR17_APOGEE_Allstarmerge.apogee_id,
+                         SDSS_DR17_APOGEE_Allstarmerge.ra,
+                         SDSS_DR17_APOGEE_Allstarmerge.dec,
+                         SDSS_DR17_APOGEE_Allstarmerge.nvisits,
+                         SDSS_DR17_APOGEE_Allstarmerge.baseline,
+                         SDSS_DR17_APOGEE_Allstarmerge.j,
+                         SDSS_DR17_APOGEE_Allstarmerge.j_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.h,
+                         SDSS_DR17_APOGEE_Allstarmerge.h_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.k,
+                         SDSS_DR17_APOGEE_Allstarmerge.k_err,
+                         SDSS_DR17_APOGEE_Allstarmerge.fields)
                  .join(CatalogToGaia_DR3,
                        on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
                  .join(Gaia_DR3,
@@ -167,7 +180,8 @@ Lead contact: Nathan De Lee
                            peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        Gaia_DR3.phot_g_mean_mag.between(8, 18)))
+                        CatalogToTwoMassPSC.version_id == version_id,
+                        CatalogToTwoMassPSC.best >> True))
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
@@ -182,3 +196,203 @@ Lead contact: Nathan De Lee
                                                        query_region[2])))
 
         return query
+
+    def post_process(self, model):
+        """
+        Select the brightest sources (i.e. smallest phot_g_mean_mag)
+        for duplicate apogee_id (but different gaia dr3 source id)
+        """
+
+        # self.name is the carton name
+        temp_table_name = "sandbox.temp_" + self.name
+        self.database.execute_sql("update " + temp_table_name +
+                                  " set selected = false")
+
+        cursor = self.database.execute_sql(
+            "select catalogid, apogee_id, phot_g_mean_mag from " +
+            temp_table_name +
+            " order by apogee_id asc, phot_g_mean_mag asc;")
+
+        output = cursor.fetchall()
+        list_of_catalog_id = [0] * len(output)
+
+        # We use the name counter instead of count
+        # since count is a python built-in function.
+        # For counter we use a dictionary
+        # since current_apogee_id is a string.
+        counter = {}
+
+        current_target = 0
+        for i in range(len(output)):
+            current_apogee_id = output[i][1]
+            # If two targets have same apogee id then we only keep the
+            # first source. Since the sources are
+            # ordered by apogee_id (ascending) and phot_g_mean_mag (ascending)
+            # this means that we will keep the sources with
+            # smallest phot_g_mean_mag (i.e. brightest sources).
+            if (current_apogee_id not in counter.keys()):
+                counter[current_apogee_id] = True
+                list_of_catalog_id[current_target] = output[i][0]
+                current_target = current_target + 1
+
+        max_target = current_target
+        for k in range(max_target + 1):
+            self.database.execute_sql(
+                " update " +
+                temp_table_name +
+                " set selected = true " +
+                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+
+# Below are sub classes of the above base class MWM_monitor_apogee_Base_Carton.
+# Note that there is no __init__() in below sub classes since
+# they use the __init__() from the BaseCarton class in base.py.
+
+
+class MWM_monitor_apogee_n188_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_n188_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 3000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188'))
+
+        return query
+
+    def post_process(self, model):
+        # Note that self is a parameter of post_process() above but
+        # self is not a parameter of post_process() below
+        # since we are using super().
+        super().post_process(model)
+
+
+class MWM_monitor_apogee_n188_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_n188_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1800,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 3000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('N188'))
+
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
+class MWM_monitor_apogee_m67_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m67_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 2000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M67'))
+
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
+class MWM_monitor_apogee_m67_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m67_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1300,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 2000,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M67'))
+
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
+class MWM_monitor_apogee_m15_long_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m15_long'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1300
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 1300,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M15'))
+
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
+class MWM_monitor_apogee_m15_short_Carton(MWM_monitor_apogee_Base_Carton):
+
+    name = 'mwm_monitor_apogee_m15_short'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x4'
+    program = 'mwm_monitor'
+    mapper = 'MWM'
+    priority = 1302
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(SDSS_DR17_APOGEE_Allstarmerge.baseline >= 900,
+                            SDSS_DR17_APOGEE_Allstarmerge.baseline < 1300,
+                            SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 12,
+                            SDSS_DR17_APOGEE_Allstarmerge.fields.contains('M15'))
+
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)

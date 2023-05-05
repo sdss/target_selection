@@ -86,7 +86,7 @@ class MWM_CB_GALEX_Mag(BaseCarton):
         astro_cut2 = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
                        (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
 
-        priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
         query = (Gaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
@@ -96,7 +96,7 @@ class MWM_CB_GALEX_Mag(BaseCarton):
                          parallax,
                          Gm,
                          fuv_mag,
-                         priority.alias('priority'))
+                         cadence.alias('cadence'))
                  .join(Galex_GR7_Gaia_DR3,
                        on=(Gaia_DR3.source_id == Galex_GR7_Gaia_DR3.gaia_edr3_source_id))
                  .join(GUVCat,
@@ -212,14 +212,14 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         magellanic_cut = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
                            (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
 
-        priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
         q1 = (Gaia_DR3
               .select(CatalogToGaia_DR3.catalogid,
                       G3.source_id,
                       G3.ra,
                       G3.dec,
-                      priority.alias('priority'))
+                      cadence.alias('cadence'))
               .join(Galex_GR7_Gaia_DR3,
                     on=(Gaia_DR3.source_id == Galex_GR7_Gaia_DR3.gaia_edr3_source_id))
               .join(GUVCat,
@@ -384,14 +384,14 @@ class MWM_CB_XMMOM(BaseCarton):
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
-        priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
         q1 = (Gaia_DR3
               .select(CatalogToGaia_DR3.catalogid,
                       G3.source_id,
                       G3.ra,
                       G3.dec,
-                      priority.alias('priority'))
+                      cadence.alias('cadence'))
               .join_from(Gaia_DR3, BailerJonesEDR3,
                          on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
               .join_from(Gaia_DR3, CatalogToGaia_DR3)
@@ -544,14 +544,14 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
-        priority = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
         q1 = (Gaia_DR3
               .select(CatalogToGaia_DR3.catalogid,
                       G3.source_id,
                       G3.ra,
                       G3.dec,
-                      priority.alias('priority'))
+                      cadence.alias('cadence'))
               .join_from(Gaia_DR3, BailerJonesEDR3,
                          on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
               .join_from(Gaia_DR3, CatalogToGaia_DR3)
