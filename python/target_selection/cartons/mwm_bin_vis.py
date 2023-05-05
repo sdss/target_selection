@@ -119,7 +119,12 @@ class MWM_Wide_Binaries_Base_Carton(BaseCarton):
 
         model.update({model.selected: False}).where(has_spec).execute()
 
-        theta = model.sep_au * (model.dr2_parallax1 + model.dr2_parallax2) / 2000
+        # For stars with spectroscopic data but without APOGEE data, assign priority B.
+        (model
+         .update({model.selected: True,
+                  model.priority: self.parameters['class_b_priority']})
+         .where(has_spec, model.apogee_id.is_null(True))
+         .execute())
 
         # For class A targets (those that have an associated target with spectroscopic data)
         # with sep > 3, assign the highest priority.
@@ -130,6 +135,8 @@ class MWM_Wide_Binaries_Base_Carton(BaseCarton):
                           alias.galah_dr3_source_id.is_null(False) |
                           alias.lamost_dr6_source_id.is_null(False) |
                           alias.rave_obs_id.is_null(False))
+
+        theta = model.sep_au * (model.dr2_parallax1 + model.dr2_parallax2) / 2000
 
         (model
          .update({model.priority: class_a_priority})
