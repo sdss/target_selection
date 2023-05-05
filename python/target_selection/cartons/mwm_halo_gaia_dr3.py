@@ -577,6 +577,7 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
                         Gaia_DR3.parallax > 0.5,
                         Gaia_DR3.parallax_over_error > 5,
                         Gaia_DR3.phot_rp_mean_mag < 20,
+                        Gaia_DR3.phot_g_mean_mag.is_null(False),
                         Gaia_DR3.ruwe < 1.4,
                         vtan > 150))
 
@@ -641,6 +642,8 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
             current_phot_g_mean_mag = output[i][3]
             current_parallax = output[i][4]
 
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
             current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
 
             m_g_3to5 = ((3 < current_m_g) and (current_m_g < 5))
@@ -845,6 +848,7 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
                         Gaia_DR3.parallax > 0.5,
                         Gaia_DR3.parallax_over_error > 5,
                         Gaia_DR3.phot_rp_mean_mag < 20,
+                        Gaia_DR3.phot_g_mean_mag.is_null(False),
                         Gaia_DR3.ruwe < 1.4,
                         vtan > 150))
 
@@ -917,6 +921,8 @@ Note: LH_MSTO5 priority 3030 Covers both vtan>200 and vtan>150.
             current_phot_g_mean_mag = output[i][3]
             current_parallax = output[i][4]
 
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
             current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
 
             m_g_3to5 = ((3 < current_m_g) and (current_m_g < 5))
