@@ -14,7 +14,8 @@ from gala.coordinates import MagellanicStreamNidever08
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3, Gaia_DR3,
-                                             Gaia_dr3_astrophysical_parameters)
+                                             Gaia_dr3_astrophysical_parameters,
+                                             Gaia_Stellar_Parameters)
 
 from target_selection.cartons import BaseCarton
 from target_selection.cartons.mwm_magcloud_agb import roi_cut
@@ -71,12 +72,30 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
                          Gaia_DR3.phot_g_mean_mag,
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag,
+                         Gaia_Stellar_Parameters.chi2_opt,
+                         Gaia_Stellar_Parameters.feh_confidence,
+                         Gaia_Stellar_Parameters.gdr3_source_id,
+                         Gaia_Stellar_Parameters.ln_prior,
+                         Gaia_Stellar_Parameters.logg_confidence,
+                         Gaia_Stellar_Parameters.quality_flags,
+                         Gaia_Stellar_Parameters.teff_confidence,
+                         Gaia_Stellar_Parameters.stellar_params_est_teff,
+                         Gaia_Stellar_Parameters.stellar_params_est_fe_h,
+                         Gaia_Stellar_Parameters.stellar_params_est_logg,
+                         Gaia_Stellar_Parameters.stellar_params_est_e,
+                         Gaia_Stellar_Parameters.stellar_params_est_parallax,
+                         Gaia_Stellar_Parameters.stellar_params_err_teff,
+                         Gaia_Stellar_Parameters.stellar_params_err_fe_h,
+                         Gaia_Stellar_Parameters.stellar_params_err_logg,
+                         Gaia_Stellar_Parameters.stellar_params_err_e,
+                         Gaia_Stellar_Parameters.stellar_params_err_parallax,
                          Gaia_dr3_astrophysical_parameters.ag_gspphot,
                          Gaia_dr3_astrophysical_parameters.abp_gspphot,
                          Gaia_dr3_astrophysical_parameters.arp_gspphot)
                  .join(Gaia_DR3)
                  .join_from(Gaia_DR3, Gaia_dr3_astrophysical_parameters,
                             on=(Gaia_DR3.source_id == Gaia_dr3_astrophysical_parameters.source_id))
+                 .join_from(Gaia_DR3, Gaia_Stellar_Parameters)
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag < self.parameters['g_lim'],
