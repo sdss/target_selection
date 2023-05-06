@@ -12,6 +12,7 @@ from astropy.coordinates import SkyCoord
 from astropy.units import mas, yr
 from gala.coordinates import MagellanicStreamNidever08
 from peewee import fn
+from dustmaps.sfd import SFDQuery
 
 from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3, Gaia_DR3,
                                              Gaia_dr3_astrophysical_parameters,
@@ -71,31 +72,8 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
                          Gaia_DR3.parallax_error,
                          Gaia_DR3.phot_g_mean_mag,
                          Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag,
-                         Gaia_Stellar_Parameters.chi2_opt,
-                         Gaia_Stellar_Parameters.feh_confidence,
-                         Gaia_Stellar_Parameters.gdr3_source_id,
-                         Gaia_Stellar_Parameters.ln_prior,
-                         Gaia_Stellar_Parameters.logg_confidence,
-                         Gaia_Stellar_Parameters.quality_flags,
-                         Gaia_Stellar_Parameters.teff_confidence,
-                         Gaia_Stellar_Parameters.stellar_params_est_teff,
-                         Gaia_Stellar_Parameters.stellar_params_est_fe_h,
-                         Gaia_Stellar_Parameters.stellar_params_est_logg,
-                         Gaia_Stellar_Parameters.stellar_params_est_e,
-                         Gaia_Stellar_Parameters.stellar_params_est_parallax,
-                         Gaia_Stellar_Parameters.stellar_params_err_teff,
-                         Gaia_Stellar_Parameters.stellar_params_err_fe_h,
-                         Gaia_Stellar_Parameters.stellar_params_err_logg,
-                         Gaia_Stellar_Parameters.stellar_params_err_e,
-                         Gaia_Stellar_Parameters.stellar_params_err_parallax,
-                         Gaia_dr3_astrophysical_parameters.ag_gspphot,
-                         Gaia_dr3_astrophysical_parameters.abp_gspphot,
-                         Gaia_dr3_astrophysical_parameters.arp_gspphot)
+                         Gaia_DR3.phot_rp_mean_mag)
                  .join(Gaia_DR3)
-                 .join_from(Gaia_DR3, Gaia_dr3_astrophysical_parameters,
-                            on=(Gaia_DR3.source_id == Gaia_dr3_astrophysical_parameters.source_id))
-                 .join_from(Gaia_DR3, Gaia_Stellar_Parameters)
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag < self.parameters['g_lim'],
@@ -125,7 +103,13 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         data['mlat'] = mcoo.B.value
         data['mlon'] = mcoo.L.value
 
-        # Proper motion cut.
+        # Calculate LMC and SMC radius
+        lmcrad = np.sqrt((data['mlon']+0.6)**2+(data['mlat']-3.6)**2)
+        smcrad = np.sqrt((data['mlon']+15.53)**2+(data['mlat']+11.58)**2)
+        data['lmcrad'] = lmcrad
+        data['smcrad'] = smcrad
+        
+        # Proper motion cut
         pmdist = numpy.sqrt((data['pml_ms'] - 1.8)**2 + (data['pmb_ms'] - 0.40)**2)
         gdpm = pmdist < self.parameters['pmdist']
         data = data.loc[gdpm]
@@ -136,16 +120,28 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
                 numpy.isfinite(data['parallax']) &
                 numpy.isfinite(data['phot_g_mean_mag']) &
                 numpy.isfinite(data['phot_bp_mean_mag']) &
-                numpy.isfinite(data['phot_rp_mean_mag']) &
-                numpy.isfinite(data['ag_gspphot']) &
-                numpy.isfinite(data['abp_gspphot']) &
-                numpy.isfinite(data['arp_gspphot']))
+                numpy.isfinite(data['phot_rp_mean_mag']))
         data = data[good]
 
+        # Get extinction values from SFD
+        coo = SkyCoord(ra=data['ra'],dec=data['dec'],unit='degree',frame='icrs')
+        sfd = SFDQuery()
+        ebv = sfd(coo)
+
+        # For high-extinction regions in the inner LMC/SMC SFD is not that reliable
+        #   but we can "rescale" ebv to get something reasonable
+        # Selection for inner LMC/SMC with high extinction
+        bd, = np.where(((data['lmcrad'] <= 4.5) | (data['smcrad'] <= 2.5)) & (ebv>=0.1))
+        ebv[bd] = ebv[bd]*0.07  # rescale
+        
         # Get dereddened magnitudes
-        gmag0 = data['phot_g_mean_mag'] - data['ag_gspphot']
-        bp0 = data['phot_bp_mean_mag'] - data['abp_gspphot']
-        rp0 = data['phot_rp_mean_mag'] - data['arp_gspphot']
+        Av = 0.86*3.1*ebv
+        ag = 0.8509139481578785*Av
+        abp = 1.0901361069987485*Av
+        arp = 0.5894794093231802*Av
+        gmag0 = data['phot_g_mean_mag'] - ag
+        bp0 = data['phot_bp_mean_mag'] - abp
+        rp0 = data['phot_rp_mean_mag'] - arp
 
         # Apply CMD cut
         bprpcut = self.parameters['bprpcut']

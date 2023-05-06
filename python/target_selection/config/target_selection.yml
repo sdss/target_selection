@@ -3346,10 +3346,10 @@
       pmdec_rough: [-3, 3]
       gaiag_rough: 18.5
       bp_rp_rough: 1
-      astro_rough: [59.5, -72.8, 30]
+      astro_rough: [59.5, -72.8, 35]
       pmdist: 1.2
-      bprpcut: [1.25, 1.433, 1.6, 2.02, 2.50, 3.58, 3.58, 2.50, 1.6, 1.25]
-      gcut: [17.50, 17.50, 16.7, 16.30, 16.20, 16.20, 15.00, 14.00, 15.2, 16.34]
+      bprpcut: [0.95, 1.2649, 1.62255, 1.9889, 2.4164, 3.1492, 4.283, 4.30, 3.3411]
+      gcut: [17.5, 15.8064, 15.2065, 14.6065, 14.0212, 14.6358, 15.6162, 16.24, 17.5]
   magnitudes:
     h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
     j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
