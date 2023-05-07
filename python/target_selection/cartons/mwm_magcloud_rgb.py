@@ -6,17 +6,16 @@
 # @Filename: mwm_magcloud_rgb.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import dustmaps.sfd
 import numpy
 import pandas
 from astropy.coordinates import SkyCoord
 from astropy.units import mas, yr
+from dustmaps.sfd import SFDQuery
 from gala.coordinates import MagellanicStreamNidever08
 from peewee import fn
-from dustmaps.sfd import SFDQuery
 
-from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3, Gaia_DR3,
-                                             Gaia_dr3_astrophysical_parameters,
-                                             Gaia_Stellar_Parameters)
+from sdssdb.peewee.sdss5db.catalogdb import CatalogToGaia_DR3, Gaia_DR3
 
 from target_selection.cartons import BaseCarton
 from target_selection.cartons.mwm_magcloud_agb import roi_cut
@@ -90,12 +89,12 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         data = pandas.read_sql(f'SELECT * from {self.path}', self.database)
 
         # Calculate Magellanic Stream coordinates
-        coords = SkyCoord(ra=data.ra,
-                          dec=data.dec,
+        coords = SkyCoord(ra=data.ra.values,
+                          dec=data.dec.values,
                           unit='deg',
                           frame='icrs',
-                          pm_ra_cosdec=data.pmra * mas / yr,
-                          pm_dec=data.pmdec * mas / yr)
+                          pm_ra_cosdec=data.pmra.values * mas / yr,
+                          pm_dec=data.pmdec.values * mas / yr)
         mcoo = coords.transform_to(MagellanicStreamNidever08)
 
         data['pml_ms'] = mcoo.pm_L_cosB.value
@@ -104,11 +103,11 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         data['mlon'] = mcoo.L.value
 
         # Calculate LMC and SMC radius
-        lmcrad = np.sqrt((data['mlon']+0.6)**2+(data['mlat']-3.6)**2)
-        smcrad = np.sqrt((data['mlon']+15.53)**2+(data['mlat']+11.58)**2)
+        lmcrad = numpy.sqrt((data['mlon'] + 0.6)**2 + (data['mlat'] - 3.6)**2)
+        smcrad = numpy.sqrt((data['mlon'] + 15.53)**2 + (data['mlat'] + 11.58)**2)
         data['lmcrad'] = lmcrad
         data['smcrad'] = smcrad
-        
+
         # Proper motion cut
         pmdist = numpy.sqrt((data['pml_ms'] - 1.8)**2 + (data['pmb_ms'] - 0.40)**2)
         gdpm = pmdist < self.parameters['pmdist']
@@ -124,21 +123,22 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         data = data[good]
 
         # Get extinction values from SFD
-        coo = SkyCoord(ra=data['ra'],dec=data['dec'],unit='degree',frame='icrs')
+        dustmaps.sfd.fetch()
+        coo = SkyCoord(ra=data['ra'], dec=data['dec'], unit='degree', frame='icrs')
         sfd = SFDQuery()
         ebv = sfd(coo)
 
         # For high-extinction regions in the inner LMC/SMC SFD is not that reliable
-        #   but we can "rescale" ebv to get something reasonable
+        # but we can "rescale" ebv to get something reasonable
         # Selection for inner LMC/SMC with high extinction
-        bd, = np.where(((data['lmcrad'] <= 4.5) | (data['smcrad'] <= 2.5)) & (ebv>=0.1))
-        ebv[bd] = ebv[bd]*0.07  # rescale
-        
+        bd, = numpy.where(((data['lmcrad'] <= 4.5) | (data['smcrad'] <= 2.5)) & (ebv >= 0.1))
+        ebv[bd] = ebv[bd] * 0.07  # rescale
+
         # Get dereddened magnitudes
-        Av = 0.86*3.1*ebv
-        ag = 0.8509139481578785*Av
-        abp = 1.0901361069987485*Av
-        arp = 0.5894794093231802*Av
+        Av = 0.86 * 3.1 * ebv
+        ag = 0.8509139481578785 * Av
+        abp = 1.0901361069987485 * Av
+        arp = 0.5894794093231802 * Av
         gmag0 = data['phot_g_mean_mag'] - ag
         bp0 = data['phot_bp_mean_mag'] - abp
         rp0 = data['phot_rp_mean_mag'] - arp
@@ -151,9 +151,15 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
 
         valid_cids = data.catalogid.values
 
-        (model
-         .update({model.selected: False})
-         .where(model.catalogid.not_in(valid_cids.tolist()))
-         .execute())
+        # This way seems faster than updating from a list of values.
+        values_cids = ','.join(f'({vc})' for vc in valid_cids)
+        self.database.execute_sql('CREATE TEMP TABLE valid_cids AS SELECT * '
+                                  f'FROM (VALUES {values_cids}) '
+                                  'AS t (catalogid)')
+        self.database.execute_sql('CREATE INDEX ON valid_cids (catalogid);')
+        self.database.execute_sql(f'UPDATE {self.path} SET selected = false')
+        self.database.execute_sql(f'UPDATE {self.path} SET selected = true '
+                                  'FROM valid_cids vc '
+                                  f'WHERE {self.path}.catalogid = vc.catalogid')
 
         return super().post_process(model, **kwargs)

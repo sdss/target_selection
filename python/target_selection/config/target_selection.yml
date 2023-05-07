@@ -3309,7 +3309,7 @@
 '1.0.0-test':
   xmatch_plan: 1.0.0
   cartons:
-    - mwm_magcloud_agb_apogee
+    # - mwm_magcloud_agb_apogee
     - mwm_magcloud_rgb_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
