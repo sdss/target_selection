@@ -2,9 +2,7 @@
   xmatch_plan: 1.0.0
   cartons:
     - mwm_cb_galex_mag
-    - mwm_cb_galex_vol
-    - mwm_cb_swiftuvot
-    - mwm_cb_xmmom
+    - mwm_snc_100pc_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
