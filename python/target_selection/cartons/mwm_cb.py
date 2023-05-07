@@ -263,7 +263,7 @@ class MWM_CB_GALEX_Vol(BaseCarton):
                  .select(temp.c.catalogid,
                          temp.c.ra,
                          temp.c.dec,
-                         temp.c.priority)
+                         temp.c.cadence)
                  .join(t2,
                        join_type=peewee.JOIN.LEFT_OUTER,
                        on=(temp.c.catalogid == t2.c.c2))
@@ -432,7 +432,7 @@ class MWM_CB_XMMOM(BaseCarton):
                  .select(temp.c.catalogid,
                          temp.c.ra,
                          temp.c.dec,
-                         temp.c.priority)
+                         temp.c.cadence)
                  .join(t2,
                        join_type=peewee.JOIN.LEFT_OUTER,
                        on=(temp.c.catalogid == t2.c.c2))
@@ -592,7 +592,7 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                  .select(temp.c.catalogid,
                          temp.c.ra,
                          temp.c.dec,
-                         temp.c.priority)
+                         temp.c.cadence)
                  .join(t2,
                        join_type=peewee.JOIN.LEFT_OUTER,
                        on=(temp.c.catalogid == t2.c.c2))
