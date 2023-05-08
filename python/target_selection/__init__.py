@@ -23,5 +23,8 @@ __version__ = get_package_version(path=__file__,
 
 manager = enlighten.get_manager()
 
+# Avoid an annoying message when importing dustmaps
+with open(os.path.expanduser('~/.dustmapsrc'), 'w') as f:
+    f.write('{}\n')
 
 from .xmatch import XMatchPlanner, XMatchModel  # isort:skip
