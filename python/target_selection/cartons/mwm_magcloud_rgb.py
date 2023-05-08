@@ -143,12 +143,16 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         bp0 = data['phot_bp_mean_mag'] - abp
         rp0 = data['phot_rp_mean_mag'] - arp
 
-        # Apply CMD cut
+        # Apply CMD cut to dereddened magnitudes
         bprpcut = self.parameters['bprpcut']
         gcut = self.parameters['gcut']
         _, cutind = roi_cut(bprpcut, gcut, bp0 - rp0, gmag0)
         data = data.iloc[cutind]
 
+        # Final magnitude cut
+        gcut, = np.where(data['phot_g_mean_mag'] <= 17.5)
+        data = data[gcut]
+        
         valid_cids = data.catalogid.values
 
         # This way seems faster than updating from a list of values.
