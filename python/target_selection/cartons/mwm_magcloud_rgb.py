@@ -150,9 +150,9 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         data = data.iloc[cutind]
 
         # Final magnitude cut
-        gcut, = np.where(data['phot_g_mean_mag'] <= 17.5)
+        gcut, = numpy.where(data['phot_g_mean_mag'] <= 17.5)
         data = data[gcut]
-        
+
         valid_cids = data.catalogid.values
 
         # This way seems faster than updating from a list of values.
