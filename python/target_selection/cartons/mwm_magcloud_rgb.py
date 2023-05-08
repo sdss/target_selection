@@ -151,7 +151,7 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
 
         # Final magnitude cut
         gcut, = numpy.where(data['phot_g_mean_mag'] <= 17.5)
-        data = data[gcut]
+        data = data.iloc[gcut]
 
         valid_cids = data.catalogid.values
 
