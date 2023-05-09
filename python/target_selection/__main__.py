@@ -22,11 +22,9 @@ from sdssdb.peewee.sdss5db.catalogdb import database
 
 import target_selection as tsmod
 from target_selection.cartons.tools import get_file_carton
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import (TargetSelectionError, TargetSelectionUserWarning)
 from target_selection.skies import create_sky_catalogue
 from target_selection.xmatch import XMatchPlanner
-
 
 # Disable warnings during import because the connection may not be working yet.
 with warnings.catch_warnings():
@@ -56,10 +54,8 @@ def connect(profile=None, dbname=None, user=None, host=None, port=None):
 @click.option('--user', '-u', type=str, default=None)
 @click.option('--host', '-h', type=str, default=None)
 @click.option('--port', '-P', type=int, default=None)
-@click.option('--verbose', '-v', is_flag=True,
-              help='outputs extra debug information')
-@click.option('--save-log', type=str, default=None,
-              help='saves the log to a file.')
+@click.option('--verbose', '-v', is_flag=True, help='outputs extra debug information')
+@click.option('--save-log', type=str, default=None, help='saves the log to a file.')
 def target_selection(profile, dbname, user, host, port, verbose, save_log):
     """Performs tasks related to target selection for SDSS-V."""
 
@@ -67,9 +63,7 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
         tsmod.log.set_level(logging.DEBUG)
 
     if save_log:
-        tsmod.log.start_file_logger(os.path.realpath(save_log),
-                                    mode='a',
-                                    rotating=False)
+        tsmod.log.start_file_logger(os.path.realpath(save_log), mode='a', rotating=False)
 
     if not connect(profile, dbname, user, host, port):
         raise TargetSelectionError('database is not connected.')
@@ -80,39 +74,47 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
 
 @target_selection.command()
 @click.argument('TARGETING-PLAN', nargs=1, type=str)
-@click.option('--config-file', type=click.Path(exists=True, dir_okay=False),
+@click.option('--config-file',
+              type=click.Path(exists=True, dir_okay=False),
               help='the file to read. Defaults to the internal '
-                   'configuration file.')
-@click.option('--overwrite', is_flag=True,
-              help='drop intermediate tables if they exist')
-@click.option('--keep', is_flag=True,
-              help='keep intermediate tables after loading')
-@click.option('--skip-query', is_flag=True,
+              'configuration file.')
+@click.option('--overwrite', is_flag=True, help='drop intermediate tables if they exist')
+@click.option('--keep', is_flag=True, help='keep intermediate tables after loading')
+@click.option('--skip-query',
+              is_flag=True,
               help='do not run the query, only load intermediate '
-                   'table if it exists')
-@click.option('--region', '-r', type=float, nargs=3, default=None,
+              'table if it exists')
+@click.option('--region',
+              '-r',
+              type=float,
+              nargs=3,
+              default=None,
               help='the region (ra, dec, radius) to query')
-@click.option('--limit', '-l', type=int, default=None,
+@click.option('--limit',
+              '-l',
+              type=int,
+              default=None,
               help='limit number of targets in the carton')
-@click.option('--load/--no-load', is_flag=True, default=True,
+@click.option('--load/--no-load',
+              is_flag=True,
+              default=True,
               help='whether to load data into targetdb.target')
-@click.option('--include', '-i', type=str,
-              help='comma-separated carton names to include')
-@click.option('--exclude', '-e', type=str,
-              help='comma-separated carton names to exclude')
-@click.option('--write-table', '-w', is_flag=True,
+@click.option('--include', '-i', type=str, help='comma-separated carton names to include')
+@click.option('--exclude', '-e', type=str, help='comma-separated carton names to exclude')
+@click.option('--write-table',
+              '-w',
+              is_flag=True,
               help='write table of loaded targets as a FITS file')
-@click.option('--exclude-open-fiber', is_flag=True,
-              help='do not process open fiber cartons')
-@click.option('--add-magnitudes/--no-add-magnitudes', '-M/-m',
-              default=True, help='Whether to add optical magnitudes during the carton run.')
-def run(targeting_plan, config_file, overwrite, keep, region, load,
-        skip_query, include, exclude, write_table, limit, exclude_open_fiber,
-        add_magnitudes):
+@click.option('--exclude-open-fiber', is_flag=True, help='do not process open fiber cartons')
+@click.option('--add-magnitudes/--no-add-magnitudes',
+              '-M/-m',
+              default=True,
+              help='Whether to add optical magnitudes during the carton run.')
+def run(targeting_plan, config_file, overwrite, keep, region, load, skip_query, include, exclude,
+        write_table, limit, exclude_open_fiber, add_magnitudes):
     """Runs target selection for all cartons."""
 
-    carton_classes = {Carton.name: Carton
-                      for Carton in all_subclasses(BaseCarton)}
+    carton_classes = {Carton.name: Carton for Carton in all_subclasses(BaseCarton)}
 
     if len(carton_classes) == 0:
         raise TargetSelectionError('no carton classes found.')
@@ -126,8 +128,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
     carton_names = config_plan['cartons']
 
     if exclude:
-        carton_names = [cn for cn in carton_names
-                        if cn not in exclude.split(',')]
+        carton_names = [cn for cn in carton_names if cn not in exclude.split(',')]
 
     if include:
         carton_names = include.split(',')
@@ -158,13 +159,11 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                     tsmod.log.info('open_fiber_path = ' + open_fiber_path)
                     open_fiber_files = glob(os.path.join(open_fiber_path, '*.fits'))
                 else:
-                    tsmod.log.info('open_fiber file_list_path = ' +
-                                   open_fiber_file_list_path)
+                    tsmod.log.info('open_fiber file_list_path = ' + open_fiber_file_list_path)
                     flist = open(open_fiber_file_list_path, 'r')
                     open_fiber_files = []
                     for fline in flist:
-                        open_fiber_files.append(os.path.join(open_fiber_path,
-                                                fline.strip()))
+                        open_fiber_files.append(os.path.join(open_fiber_path, fline.strip()))
                     flist.close()
                 # We sort open_fiber_files so that the files are processed
                 # in the same order every time.
@@ -183,8 +182,7 @@ def run(targeting_plan, config_file, overwrite, keep, region, load,
                     OpenFiberCartons[i] = get_file_carton(open_fiber_files[i])
 
                 if include:
-                    OpenFiberCartons = [OFC for OFC in OpenFiberCartons
-                                        if OFC.name in include]
+                    OpenFiberCartons = [OFC for OFC in OpenFiberCartons if OFC.name in include]
                 Cartons += OpenFiberCartons
 
                 tsmod.log.info(f'{len(OpenFiberCartons)} open fiber cartons selected.')
@@ -246,8 +244,7 @@ def load_files(plan, files, program, category):
 
 @target_selection.command()
 @click.argument('TARGETING-PLAN', type=str)
-@click.option('--tables', is_flag=True,
-              help='also remove intermediate tables')
+@click.option('--tables', is_flag=True, help='also remove intermediate tables')
 def clear(targeting_plan, tables):
     """Clear all data for a target selection plan."""
 
@@ -258,17 +255,17 @@ def clear(targeting_plan, tables):
         for Carton in Cartons:
             Carton(targeting_plan).drop_table()
     try:
-        tdb.Version.get(plan=targeting_plan,
-                        target_selection=True).delete_instance()
+        tdb.Version.get(plan=targeting_plan, target_selection=True).delete_instance()
     except peewee.DoesNotExist:
         pass
 
 
 @target_selection.command()
 @click.argument('XMATCH-PLAN', type=str)
-@click.option('--file', type=click.Path(exists=True, dir_okay=False),
+@click.option('--file',
+              type=click.Path(exists=True, dir_okay=False),
               help='the file to read. Defaults to the internal '
-                   'configuration file.')
+              'configuration file.')
 def xmatch(xmatch_plan, file):
     """Runs catalogue cross-matching from a configuration file."""
 
