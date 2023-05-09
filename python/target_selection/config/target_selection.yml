@@ -1,8 +1,6 @@
 '1.0.26':
   xmatch_plan: 1.0.0
   cartons:
-    - mwm_magcloud_agb_apogee
-    - mwm_magcloud_rgb_boss
     - mwm_monitor_apogee_n188_long
     - mwm_monitor_apogee_n188_short
     - mwm_monitor_apogee_m67_long
