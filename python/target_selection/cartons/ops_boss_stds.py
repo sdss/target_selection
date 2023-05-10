@@ -1190,8 +1190,9 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
             )
             .join(ps,
                   on=(c2ps.target_id == ps.catid_objid))
+            .switch(c2ps)
             .join(c2tic,
-                  on=(Catalog.catalogid == c2tic.catalogid))
+                  on=(c2ps.catalogid == c2tic.catalogid))
             .join(tic,
                   on=(c2tic.target_id == tic.id))
             .where(
@@ -1221,15 +1222,13 @@ class OPS_BOSS_Stds_PS1DR2_Carton(BaseCarton):
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = (
-                query.where(
-                    peewee.fn.q3c_radial_query(Catalog.ra,
-                                               Catalog.dec,
-                                               query_region[0],
-                                               query_region[1],
-                                               query_region[2]),
-                )
-            )
+            query = (query
+                     .join_from(CatalogToPanstarrs1, Catalog)
+                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
+                                                       Catalog.dec,
+                                                       query_region[0],
+                                                       query_region[1],
+                                                       query_region[2])))
 
         return query
 
