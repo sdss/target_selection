@@ -295,6 +295,18 @@ def skies(ctx, cpus=1):
     create_sky_catalogue(database, n_cpus=cpus)
 
 
+@target_selection.command()
+@click.pass_context
+def sdss_id(ctx):
+    """Updates sdss-ids."""
+
+    from target_selection.sdss_id import update_sdss_ids
+
+    database = ctx.obj['database']
+
+    update_sdss_ids(database, '1.0.20')
+
+
 if __name__ == '__main__':
 
     target_selection(obj={})
