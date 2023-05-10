@@ -17,18 +17,9 @@ from glob import glob
 import click
 import peewee
 
-from sdssdb.peewee.sdss5db import targetdb as tdb
-from sdssdb.peewee.sdss5db.catalogdb import database
-
 import target_selection as tsmod
-from target_selection.cartons.tools import get_file_carton
-from target_selection.exceptions import (TargetSelectionError, TargetSelectionUserWarning)
-from target_selection.skies import create_sky_catalogue
-from target_selection.xmatch import XMatchPlanner
-
-# Disable warnings during import because the connection may not be working yet.
-with warnings.catch_warnings():
-    from target_selection.cartons import BaseCarton
+from target_selection.exceptions import (TargetSelectionError,
+                                         TargetSelectionUserWarning)
 
 
 def all_subclasses(cls):
@@ -39,13 +30,15 @@ def all_subclasses(cls):
 def connect(profile=None, dbname=None, user=None, host=None, port=None):
     """Connects the database."""
 
+    from sdssdb.peewee.sdss5db.catalogdb import database
+
     if profile:
         database.set_profile(profile)
 
     if dbname or user or host or port:
         database.connect(dbname=dbname, user=user, host=host, port=port)
 
-    return database.connected
+    return database
 
 
 @click.group()
@@ -56,7 +49,8 @@ def connect(profile=None, dbname=None, user=None, host=None, port=None):
 @click.option('--port', '-P', type=int, default=None)
 @click.option('--verbose', '-v', is_flag=True, help='outputs extra debug information')
 @click.option('--save-log', type=str, default=None, help='saves the log to a file.')
-def target_selection(profile, dbname, user, host, port, verbose, save_log):
+@click.pass_context
+def target_selection(ctx, profile, dbname, user, host, port, verbose, save_log):
     """Performs tasks related to target selection for SDSS-V."""
 
     if verbose:
@@ -65,11 +59,11 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
     if save_log:
         tsmod.log.start_file_logger(os.path.realpath(save_log), mode='a', rotating=False)
 
-    if not connect(profile, dbname, user, host, port):
+    database = connect(profile, dbname, user, host, port)
+    if not database.connected:
         raise TargetSelectionError('database is not connected.')
 
-    # Reload the cartons now that we have a connection.
-    importlib.reload(sys.modules['target_selection.cartons'])
+    ctx.obj = {'database': database}
 
 
 @target_selection.command()
@@ -113,6 +107,12 @@ def target_selection(profile, dbname, user, host, port, verbose, save_log):
 def run(targeting_plan, config_file, overwrite, keep, region, load, skip_query, include, exclude,
         write_table, limit, exclude_open_fiber, add_magnitudes):
     """Runs target selection for all cartons."""
+
+    from target_selection.cartons import BaseCarton
+    from target_selection.cartons.tools import get_file_carton
+
+    # Reload the cartons now that we have a connection.
+    importlib.reload(sys.modules['target_selection.cartons'])
 
     carton_classes = {Carton.name: Carton for Carton in all_subclasses(BaseCarton)}
 
@@ -235,6 +235,8 @@ def run(targeting_plan, config_file, overwrite, keep, region, load, skip_query, 
 def load_files(plan, files, program, category):
     """Loads a carton from a FITS file."""
 
+    from target_selection.cartons.tools import get_file_carton
+
     for fn in files:
         Carton = get_file_carton(fn, '', category, program)
         carton = Carton(plan)
@@ -247,6 +249,10 @@ def load_files(plan, files, program, category):
 @click.option('--tables', is_flag=True, help='also remove intermediate tables')
 def clear(targeting_plan, tables):
     """Clear all data for a target selection plan."""
+
+    from sdssdb.peewee.sdss5db import targetdb as tdb
+
+    from target_selection.cartons import BaseCarton
 
     if tables:
         # Cartons = BaseCarton.__subclasses__()
@@ -266,21 +272,29 @@ def clear(targeting_plan, tables):
               type=click.Path(exists=True, dir_okay=False),
               help='the file to read. Defaults to the internal '
               'configuration file.')
-def xmatch(xmatch_plan, file):
+@click.pass_context
+def xmatch(ctx, xmatch_plan, file):
     """Runs catalogue cross-matching from a configuration file."""
 
+    from target_selection.xmatch import XMatchPlanner
+
+    database = ctx.obj['database']
     xmatch = XMatchPlanner.read(database, xmatch_plan, config_file=file)
     xmatch.run()
 
 
 @target_selection.command()
 @click.option('--cpus', type=int, default=1, help='Number of CPUs to use.')
-def skies(cpus=1):
+@click.pass_context
+def skies(ctx, cpus=1):
     """Runs the parent sky catalogue creation routine."""
 
+    from target_selection.skies import create_sky_catalogue
+
+    database = ctx.obj['database']
     create_sky_catalogue(database, n_cpus=cpus)
 
 
 if __name__ == '__main__':
 
-    target_selection()
+    target_selection(obj={})
