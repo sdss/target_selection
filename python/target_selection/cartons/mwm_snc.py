@@ -72,8 +72,7 @@ class MWM_SNC_100pc_Carton(BaseCarton):
             Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id)).where((
                 (Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut).where(
                     CatalogToGaia_DR3.version_id == version_id,
-                    CatalogToGaia_DR3.best >> True,
-                ).with_cte(cte))
+                    CatalogToGaia_DR3.best >> True).with_cte(cte))
 
         if query_region:
             query = query.join_from(CatalogToGaia_DR3, Catalog).where(
@@ -108,8 +107,7 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
                                      )).join(TwoMassPSC).where(
                                          CatalogToTwoMassPSC.version_id == version_id,
                                          CatalogToTwoMassPSC.best >> True,
-                                         TwoMassPSC.h_m < 11,
-                                     ))
+                                         TwoMassPSC.h_m < 11))
 
         return query
 
