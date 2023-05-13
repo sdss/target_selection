@@ -94,7 +94,7 @@ class MWM_WD_Gaia_Carton(BaseCarton):
     program = 'mwm_wd'
     instrument = 'BOSS'
     cadence = 'dark_2x1'
-    priority = 1400
+    priority = 1500
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
