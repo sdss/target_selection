@@ -1,118 +1,144 @@
 # Changelog
 
-# 1.0.27 - May 9, 2023
+## 1.0.28 - May 16, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.28 cartons
+
+
+## 1.0.27 - May 9, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.27 cartons
 
-# 1.0.26 - May 8, 2023
+
+## 1.0.26 - May 8, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.26 cartons
 
-# 1.0.25 - May 8, 2023
+
+## 1.0.25 - May 8, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.25 cartons
 
-# 1.0.24 - May 7, 2023
+
+## 1.0.24 - May 7, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.24 cartons
 
-# 1.0.23 - May 6, 2023
+
+## 1.0.23 - May 6, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.23 cartons
 
-# 1.0.22 - May 5, 2023
+
+## 1.0.22 - May 5, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.22 cartons
 
-# 1.0.21 - May 2, 2023
+
+## 1.0.21 - May 2, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.21 cartons
 
-# 1.0.20 - May 2, 2023
+
+## 1.0.20 - May 2, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.20 cartons
 
-# 1.0.19 - April 26, 2023
+
+## 1.0.19 - April 26, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.19 cartons
 
-# 1.0.18 - April 17, 2023
+
+## 1.0.18 - April 17, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.18 cartons
 
-# 1.0.17 - April 15, 2023
+
+## 1.0.17 - April 15, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.17 cartons
 
-# 1.0.16 - April 9, 2023
+
+## 1.0.16 - April 9, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.16 cartons
 
-# 1.0.15 - April 8, 2023
+
+## 1.0.15 - April 8, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.15 cartons
 
-# 1.0.14 - April 7, 2023
+
+## 1.0.14 - April 7, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.14 cartons
 
-# 1.0.13 - April 6, 2023
+
+## 1.0.13 - April 6, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.13 cartons
 
-# 1.0.12 - April 3, 2023
+
+## 1.0.12 - April 3, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.12 cartons
 
-# 1.0.11 - March 31, 2023
+
+## 1.0.11 - March 31, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.11 cartons
 
-# 1.0.10 - March 28, 2023
+
+## 1.0.10 - March 28, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.10 for manual cartons
 
-# 1.0.9 - March 28, 2023
+
+## 1.0.9 - March 28, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.9 cartons
+
 
 ## 1.0.8 - March 17, 2023
 
@@ -120,11 +146,13 @@
 
 * Update target_selection.yml for plan 1.0.8 cartons
 
+
 ## 1.0.7 - March 13, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.7 for manual cartons
+
 
 ## 1.0.6 - March 10, 2023
 
@@ -132,19 +160,21 @@
 
 * Update target_selection.yml for plan 1.0.6 cartons
 
+
 ## 1.0.5 - March 9, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.5 cartons
-
 * Updated code for gaia dr3 XP synthetic magnitudes
+
 
 ## 1.0.4 - March 4, 2023
 
 ### Fixed
 
 * Use gaia dr3 XP synthetic mags as supplier of griz for targets
+
 
 ## 1.0.3 - February 10, 2023
 
@@ -159,11 +189,13 @@
 
 * Update tools.py for manual cartons for Gaia DR3
 
+
 ## 1.0.1 - February 8, 2023
 
 ### Fixed
 
 * Update mwm_yso cartons for v1.0
+
 
 ## 1.0.0 - February 6, 2023
 
