@@ -261,10 +261,10 @@ class MWM_CB_GALEX_Vol(BaseCarton):
 
         log.debug(f'Gaia-Galex NUV cut returned {cb_temp1.select().count():,} rows.')
 
-        sqrt = peewee.fn.sqrt
-        pow = peewee.fn.pow
-        log10 = peewee.fn.log10
-        pabs = peewee.fn.abs
+        sqrt = fn.sqrt
+        pow = fn.pow
+        log10 = fn.log10
+        pabs = fn.abs
 
         pmra = cb_temp1.c.pmra
         pmdec = cb_temp1.c.pmdec
@@ -358,9 +358,9 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         gal_query = (cb_temp3
                      .select(cb_temp3.c.source_id)
                      .join(HECATE_1_1, join_type=peewee.JOIN.CROSS)
-                     .where(peewee.fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
-                                               cb_temp3.c.ra, cb_temp3.c.dec,
-                                               HECATE_1_1.r1 / 60.),
+                     .where(fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
+                                        cb_temp3.c.ra, cb_temp3.c.dec,
+                                        HECATE_1_1.r1 / 60.),
                             HECATE_1_1.r1 != 'NaN')
                      .cte('hecate_query', materialized=True))
 
@@ -391,7 +391,7 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         # First we create a subquery partitioned by source_id and rank each row by separation.
         gaia_ranked = (cb_temp4
                        .select(cb_temp4.c.source_id,
-                               peewee.fn.rank().over(
+                               fn.rank().over(
                                    partition_by=[cb_temp4.c.source_id],
                                    order_by=[cb_temp4.c.galex_separation.asc()])
                                .alias('sep_rank'))
@@ -408,7 +408,7 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         # Do the same for galex_objid but keep the Gaia source since that's the one we'll join on.
         galex_ranked = (cb_temp4
                         .select(cb_temp4.c.source_id,
-                                peewee.fn.rank().over(
+                                fn.rank().over(
                                     partition_by=[cb_temp4.c.galex_objid],
                                     order_by=[cb_temp4.c.galex_separation.asc()])
                                 .alias('sep_rank'))
