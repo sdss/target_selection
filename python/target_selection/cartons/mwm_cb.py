@@ -490,7 +490,7 @@ class MWM_CB_XMMOM(BaseCarton):
           the other in an UV-to-optical color-color diagram
           - UVM2_AB_MAG>-999 && UVM2_AB_MAG-5*log10(rgeo)+5>2*(UVM2_AB_MAG-phot_g_mean_mag)+0.7 ||
             (UVM2_AB_MAG-5*log10(parallax/1000)+5>2*(UVM2_AB_MAG-phot_g_mean_mag)+0.7)
-          - nuv_mag - phot_g_mean_mag < 1.6 * (bp-rp) + 1.2
+          - UVM2_AB_mag - phot_g_mean_mag < 1.6 * (bp-rp) + 1.2
         * Astrometric cut: to remove AGN contaminants:
             !(logpmdpm < 0.301 && poe > -1.75*logpmdpm - 2.8 && poe <  1.75*logpmdpm + 2.8 ||
             (logpmdpm-0.301)*(logpmdpm-0.301) / (0.33*0.33) + (poe * poe) / (3.2* 3.2)<=1)
@@ -519,6 +519,7 @@ class MWM_CB_XMMOM(BaseCarton):
         poe = G3.parallax / G3.parallax_error
 
         Gm = G3.phot_g_mean_mag
+        bp_rp = G3.bp_rp
         parallax = G3.parallax
         logpar = fn.log(fn.abs(parallax / 1000))
 
@@ -534,13 +535,14 @@ class MWM_CB_XMMOM(BaseCarton):
                  (fn.substring(XMM.uvm2_quality_flag_st, 7, 8) == 'T') |
                  (fn.substring(XMM.uvm2_quality_flag_st, 8, 9) == 'T'))
 
-        color_cuts = (((uvm2 > -999) &
-                       ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
-                       ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7))))
+        color_cuts = [(uvm2 >= -100),
+                      ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
+                      ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7)),
+                      (uvm2 - Gm < 1.6 * bp_rp + 1.2)]
 
         astro_cut = ~(((logpmdpm < 0.301) &
-                      (poe > (-1.75 * logpmdpm - 2.8)) &
-                      (poe < (1.75 * logpmdpm + 2.8))) |
+                       (poe > (-1.75 * logpmdpm - 2.8)) &
+                       (poe < (1.75 * logpmdpm + 2.8))) |
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
@@ -551,6 +553,8 @@ class MWM_CB_XMMOM(BaseCarton):
                       G3.source_id,
                       G3.ra,
                       G3.dec,
+                      CatalogToXMM_OM_SUSS_5_0.distance.alias('separation'),
+                      XMM_OM_SUSS_5_0.pk.alias('xmm_objid'),
                       cadence.alias('cadence'))
               .join_from(Gaia_DR3, BailerJonesEDR3,
                          on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
@@ -565,49 +569,99 @@ class MWM_CB_XMMOM(BaseCarton):
               .where(CatalogToGaia_DR3.version_id == version_id,
                      CatalogToGaia_DR3.best >> True,
                      CatalogToXMM_OM_SUSS_5_0.best >> True,
+                     CatalogToXMM_OM_SUSS_5_0.distance <= 1.5,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
-                     uvm2 >= -100,
                      qcut,
-                     color_cuts,
-                     astro_cut)
-              .order_by(CatalogToGaia_DR3.catalogid, CatalogToXMM_OM_SUSS_5_0.distance)
-              .distinct(CatalogToGaia_DR3.catalogid))
+                     *color_cuts,
+                     astro_cut))
 
-        q1.create_table('mwm_cb_xmmom_temp', temporary=True)
+        xmm_temp, _ = create_table_as(q1, 'mwm_cb_xmmom_temp',
+                                      temporary=True, database=self.database,
+                                      indices=['q3c_ang2ipix(ra,dec)'])
 
-        temp = peewee.Table('mwm_cb_xmmom_temp').bind(self.database)
-        t2 = (temp
-              .select(temp.c.catalogid.alias('c2'))
-              .join(HECATE_1_1,
-                    on=(fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
-                                    temp.c.ra, temp.c.dec,
-                                    HECATE_1_1.r1 / 60.) &
-                        (HECATE_1_1.r1 != peewee.SQL("'NaN'::numeric"))))
-              .distinct(temp.c.catalogid)
-              .alias('hecate_q3c_join'))
+        # Select targets without nearby galaxies. First create a list of galaxies
+        # within hecate_1_1.r1 arcmin of each of the targets.
+        gal_query = (xmm_temp
+                     .select(xmm_temp.c.source_id)
+                     .join(HECATE_1_1, join_type=peewee.JOIN.CROSS)
+                     .where(fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
+                                        xmm_temp.c.ra, xmm_temp.c.dec,
+                                        HECATE_1_1.r1 / 60.),
+                            HECATE_1_1.r1 != 'NaN')
+                     .cte('hecate_query', materialized=True))
 
-        query = (temp
-                 .select(temp.c.catalogid,
-                         temp.c.ra,
-                         temp.c.dec,
-                         temp.c.cadence)
-                 .join(t2,
-                       join_type=peewee.JOIN.LEFT_OUTER,
-                       on=(temp.c.catalogid == t2.c.c2))
-                 .where(t2.c.c2.is_null()))
+        # Now keep only targets that are not in the previous list.
+        gal_free_query = (xmm_temp
+                          .select(xmm_temp.c.catalogid,
+                                  xmm_temp.c.source_id,
+                                  xmm_temp.c.xmm_objid,
+                                  xmm_temp.c.separation,
+                                  xmm_temp.c.ra,
+                                  xmm_temp.c.dec,
+                                  xmm_temp.c.cadence)
+                          .join(gal_query,
+                                on=(gal_query.c.source_id == xmm_temp.c.source_id),
+                                join_type=peewee.JOIN.LEFT_OUTER)
+                          .where(gal_query.c.source_id.is_null())
+                          .with_cte(gal_query))
 
-        if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+        xmm_temp2, _ = create_table_as(gal_free_query, 'mwm_cb_xmmom_temp2',
+                                       temporary=True, database=self.database)
 
-        return query
+        # Get unique Gaia and XMMOM targets with minimum separaton, independently, and keep
+        # source_ids that are in both groups.
+
+        # First we create a subquery partitioned by source_id and rank each row by separation.
+        gaia_ranked = (xmm_temp2
+                       .select(xmm_temp2.c.source_id,
+                               fn.rank().over(
+                                   partition_by=[xmm_temp2.c.source_id],
+                                   order_by=[xmm_temp2.c.separation.asc()])
+                               .alias('sep_rank'))
+                       .alias('gaia_ranked'))
+
+        # Now we select only the entry with sep_rank=1 (minimum separation).
+        gaia_unique = (xmm_temp2
+                       .select(xmm_temp2.c.source_id)
+                       .join(gaia_ranked, on=(xmm_temp2.c.source_id == gaia_ranked.c.source_id))
+                       .where(gaia_ranked.c.sep_rank == 1)
+                       .distinct(xmm_temp2.c.source_id)
+                       .alias('gaia_unique'))
+
+        # Do the same for XMMOM id but keep the Gaia source since that's the one we'll join on.
+        xmm_ranked = (xmm_temp2
+                      .select(xmm_temp2.c.source_id,
+                              fn.rank().over(
+                                  partition_by=[xmm_temp2.c.xmm_objid],
+                                  order_by=[xmm_temp2.c.separation.asc()])
+                              .alias('sep_rank'))
+                      .alias('xmm_ranked'))
+
+        xmm_unique = (xmm_temp2
+                      .select(xmm_temp2.c.source_id)
+                      .join(xmm_ranked, on=(xmm_temp2.c.source_id == xmm_ranked.c.source_id))
+                      .where(xmm_ranked.c.sep_rank == 1)
+                      .distinct(xmm_temp2.c.xmm_objid)
+                      .alias('xmm_unique'))
+
+        # Now keep source_ids that exist in both subsamples. Note we need to distinct on
+        # source_id again because xmm_unique has duplicate source_ids (different xmm_objid
+        # can have the same source_id).
+        unique = (xmm_temp2
+                  .select(xmm_temp2.c.catalogid,
+                          xmm_temp2.c.source_id,
+                          xmm_temp2.c.ra,
+                          xmm_temp2.c.dec,
+                          xmm_temp2.c.xmm_objid,
+                          xmm_temp2.c.separation,
+                          xmm_temp2.c.cadence)
+                  .join(gaia_unique, on=(gaia_unique.c.source_id == xmm_temp2.c.source_id))
+                  .join(xmm_unique, on=(xmm_unique.c.source_id == xmm_temp2.c.source_id))
+                  .distinct(xmm_temp2.c.source_id))
+
+        return unique
 
 
 class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
@@ -673,6 +727,8 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
         poe = G3.parallax / G3.parallax_error
 
         Gm = G3.phot_g_mean_mag
+        bp_rp = G3.bp_rp
+
         parallax = G3.parallax
         logpar = fn.log(fn.abs(parallax / 1000))
 
@@ -694,13 +750,14 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
               (uvm2_quality_flag.bin_and(2**6) > 0))
         )
 
-        color_cuts = (((uvm2 > -999) &
-                       ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
-                       ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7))))
+        color_cuts = [uvm2 > -100,
+                      ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
+                      ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7)),
+                      (uvm2 - Gm < 1.6 * bp_rp + 1.2)]
 
-        astro_cut = ~(((logpmdpm < 0.301) &
+        astro_cut = ~((logpmdpm < 0.301) &
                       (poe > (-1.75 * logpmdpm - 2.8)) &
-                      (poe < (1.75 * logpmdpm + 2.8))) |
+                      (poe < (1.75 * logpmdpm + 2.8)) |
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
@@ -711,6 +768,8 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                       G3.source_id,
                       G3.ra,
                       G3.dec,
+                      UVOT_SSC_1.id.alias('uvot_id'),
+                      CatalogToUVOT_SSC_1.distance.alias('separation'),
                       cadence.alias('cadence'))
               .join_from(Gaia_DR3, BailerJonesEDR3,
                          on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
@@ -728,43 +787,94 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
-                     uvm2 >= -100,
                      *qcut,
-                     color_cuts,
+                     *color_cuts,
                      astro_cut)
               .order_by(CatalogToGaia_DR3.catalogid, CatalogToUVOT_SSC_1.distance)
               .distinct(CatalogToGaia_DR3.catalogid))
 
-        q1.create_table('mwm_cb_swiftuvot_temp', temporary=True)
+        uvot_temp, _ = create_table_as(q1, 'mwm_cb_uvot_temp',
+                                       temporary=True, database=self.database,
+                                       indices=['q3c_ang2ipix(ra,dec)'])
 
-        temp = peewee.Table('mwm_cb_swiftuvot_temp').bind(self.database)
-        t2 = (temp
-              .select(temp.c.catalogid.alias('c2'))
-              .join(HECATE_1_1,
-                    on=(fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
-                                    temp.c.ra, temp.c.dec,
-                                    HECATE_1_1.r1 / 60.) &
-                        (HECATE_1_1.r1 != peewee.SQL("'NaN'::numeric"))))
-              .distinct(temp.c.catalogid)
-              .alias('hecate_q3c_join'))
+        # Select targets without nearby galaxies. First create a list of galaxies
+        # within hecate_1_1.r1 arcmin of each of the targets.
+        gal_query = (uvot_temp
+                     .select(uvot_temp.c.source_id)
+                     .join(HECATE_1_1, join_type=peewee.JOIN.CROSS)
+                     .where(fn.q3c_join(HECATE_1_1.ra, HECATE_1_1.dec,
+                                        uvot_temp.c.ra, uvot_temp.c.dec,
+                                        HECATE_1_1.r1 / 60.),
+                            HECATE_1_1.r1 != 'NaN')
+                     .cte('hecate_query', materialized=True))
 
-        query = (temp
-                 .select(temp.c.catalogid,
-                         temp.c.ra,
-                         temp.c.dec,
-                         temp.c.cadence)
-                 .join(t2,
-                       join_type=peewee.JOIN.LEFT_OUTER,
-                       on=(temp.c.catalogid == t2.c.c2))
-                 .where(t2.c.c2.is_null()))
+        # Now keep only targets that are not in the previous list.
+        gal_free_query = (uvot_temp
+                          .select(uvot_temp.c.catalogid,
+                                  uvot_temp.c.source_id,
+                                  uvot_temp.c.uvot_id,
+                                  uvot_temp.c.separation,
+                                  uvot_temp.c.ra,
+                                  uvot_temp.c.dec,
+                                  uvot_temp.c.cadence)
+                          .join(gal_query,
+                                on=(gal_query.c.source_id == uvot_temp.c.source_id),
+                                join_type=peewee.JOIN.LEFT_OUTER)
+                          .where(gal_query.c.source_id.is_null())
+                          .with_cte(gal_query))
 
-        if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+        uvot_temp2, _ = create_table_as(gal_free_query, 'mwm_cb_uvotom_temp2',
+                                        temporary=True, database=self.database)
 
-        return query
+        # Get unique Gaia and UVOT targets with minimum separaton, independently, and keep
+        # source_ids that are in both groups.
+
+        # First we create a subquery partitioned by source_id and rank each row by separation.
+        gaia_ranked = (uvot_temp2
+                       .select(uvot_temp2.c.source_id,
+                               fn.rank().over(
+                                   partition_by=[uvot_temp2.c.source_id],
+                                   order_by=[uvot_temp2.c.separation.asc()])
+                               .alias('sep_rank'))
+                       .alias('gaia_ranked'))
+
+        # Now we select only the entry with sep_rank=1 (minimum separation).
+        gaia_unique = (uvot_temp2
+                       .select(uvot_temp2.c.source_id)
+                       .join(gaia_ranked, on=(uvot_temp2.c.source_id == gaia_ranked.c.source_id))
+                       .where(gaia_ranked.c.sep_rank == 1)
+                       .distinct(uvot_temp2.c.source_id)
+                       .alias('gaia_unique'))
+
+        # Do the same for UVOT id but keep the Gaia source since that's the one we'll join on.
+        uvot_ranked = (uvot_temp2
+                       .select(uvot_temp2.c.source_id,
+                               fn.rank().over(
+                                   partition_by=[uvot_temp2.c.uvot_id],
+                                   order_by=[uvot_temp2.c.separation.asc()])
+                               .alias('sep_rank'))
+                       .alias('uvot_ranked'))
+
+        uvot_unique = (uvot_temp2
+                       .select(uvot_temp2.c.source_id)
+                       .join(uvot_ranked, on=(uvot_temp2.c.source_id == uvot_ranked.c.source_id))
+                       .where(uvot_ranked.c.sep_rank == 1)
+                       .distinct(uvot_temp2.c.uvot_id)
+                       .alias('uvot_unique'))
+
+        # Now keep source_ids that exist in both subsamples. Note we need to distinct on
+        # source_id again because uvot_unique has duplicate source_ids (different uvot_objid
+        # can have the same source_id).
+        unique = (uvot_temp2
+                  .select(uvot_temp2.c.catalogid,
+                          uvot_temp2.c.source_id,
+                          uvot_temp2.c.ra,
+                          uvot_temp2.c.dec,
+                          uvot_temp2.c.uvot_id,
+                          uvot_temp2.c.separation,
+                          uvot_temp2.c.cadence)
+                  .join(gaia_unique, on=(gaia_unique.c.source_id == uvot_temp2.c.source_id))
+                  .join(uvot_unique, on=(uvot_unique.c.source_id == uvot_temp2.c.source_id))
+                  .distinct(uvot_temp2.c.source_id))
+
+        return unique
