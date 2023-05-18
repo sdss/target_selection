@@ -262,53 +262,53 @@ class BaseCarton(metaclass=abc.ABCMeta):
         log.info('Running query ...')
         version_id = self.get_version_id()
 
-        # If build_query accepts a query_region parameter, call with the query region.
-        # Otherwise will add the radial query condition later.
-        if 'query_region' in self._build_query_signature.parameters:
-            query = self.build_query(version_id, query_region=query_region)
-        else:
-            query = self.build_query(version_id)
-
-        # Make sure the catalogid column is selected.
-        if cdb.Catalog.catalogid not in query._returning:
-            raise RuntimeError('catalogid is not being returned in query.')
-
-        if query_region:
+        with Timer() as timer:
+            # If build_query accepts a query_region parameter, call with the query region.
+            # Otherwise will add the radial query condition later.
             if 'query_region' in self._build_query_signature.parameters:
-                pass
+                query = self.build_query(version_id, query_region=query_region)
             else:
-                # This may be quite inefficient depending on the query.
-                subq = query.alias('subq')
-                query = (
-                    peewee.Select(columns=[peewee.SQL('subq.*')])
-                    .from_(subq)
-                    .join(cdb.Catalog, on=(cdb.Catalog.catalogid == subq.c.catalogid))
-                    .where(
-                        peewee.fn.q3c_radial_query(
-                            cdb.Catalog.ra,
-                            cdb.Catalog.dec,
-                            query_region[0],
-                            query_region[1],
-                            query_region[2],
+                query = self.build_query(version_id)
+
+            # Make sure the catalogid column is selected.
+            if cdb.Catalog.catalogid not in query._returning:
+                raise RuntimeError('catalogid is not being returned in query.')
+
+            if query_region:
+                if 'query_region' in self._build_query_signature.parameters:
+                    pass
+                else:
+                    # This may be quite inefficient depending on the query.
+                    subq = query.alias('subq')
+                    query = (
+                        peewee.Select(columns=[peewee.SQL('subq.*')])
+                        .from_(subq)
+                        .join(cdb.Catalog, on=(cdb.Catalog.catalogid == subq.c.catalogid))
+                        .where(
+                            peewee.fn.q3c_radial_query(
+                                cdb.Catalog.ra,
+                                cdb.Catalog.dec,
+                                query_region[0],
+                                query_region[1],
+                                query_region[2],
+                            )
                         )
                     )
-                )
 
-        if limit:
-            query = query.limit(limit)
+            if limit:
+                query = query.limit(limit)
 
-        query_sql, params = self.database.get_sql_context().sql(query).query()
-        cursor = self.database.cursor()
-        query_str = cursor.mogrify(query_sql, params).decode()
+            query_sql, params = self.database.get_sql_context().sql(query).query()
+            cursor = self.database.cursor()
+            query_str = cursor.mogrify(query_sql, params).decode()
 
-        if not self._disable_query_log:
-            log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
-                                 'darkgrey'))
-        else:
-            log.debug('Not printing VERY long query.')
+            if not self._disable_query_log:
+                log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
+                                     'darkgrey'))
+            else:
+                log.debug('Not printing VERY long query.')
 
-        with self.database.atomic():
-            with Timer() as timer:
+            with self.database.atomic():
                 self.setup_transaction()
                 execute_sql(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_sql,
                             params)
