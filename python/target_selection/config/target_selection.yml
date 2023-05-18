@@ -1,3 +1,36 @@
+'1.0.29':
+  xmatch_plan: 1.0.0
+  cartons:
+    - ops_std_boss_ps1dr2
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '10GB'
+  parameters:
+    ops_std_boss_ps1dr2:
+      mag_ps_r_min: 15.95
+      mag_ps_r_max: 18.05
+      mag_gaia_g_min: 15.7
+      mag_gaia_g_max: 18.1
+      parallax_min_at_g16: 0.2
+      parallax_min_slope: -0.22
+      parallax_max: 0.7
+      dered_dist_max: 0.10
+      g_r_dered_nominal: 0.24
+      r_i_dered_nominal: 0.08
+      i_z_dered_nominal: 0.00
+      bp_rp_dered_nominal: 0.67
+      bp_g_dered_nominal: 0.24
+      tic_ebv_max: 1.50
+      bp_rp_dered_min: 0.57
+      bp_rp_dered_max: 0.77
+
 '1.0.28':
   xmatch_plan: 1.0.0
   cartons:
