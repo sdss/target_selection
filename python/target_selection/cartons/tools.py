@@ -12,13 +12,6 @@ import numpy
 import peewee
 from astropy.table import Table
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToLegacy_Survey_DR8,
-                                             CatalogToPanstarrs1,
-                                             CatalogToTIC_v8,
-                                             CatalogToTwoMassPSC, Gaia_DR2,
-                                             Gaia_DR3, Legacy_Survey_DR8,
-                                             Panstarrs1, TIC_v8, TwoMassPSC)
 from sdssdb.utils.ingest import copy_data, create_model_from_table
 
 from target_selection.cartons import BaseCarton
@@ -33,6 +26,17 @@ def get_file_carton(filename):
     The list of FITS files to be loaded is specified in the
     file open_fiber_file_list.txt which is in the directory open_fiber_path.
     """
+
+    # Import this here to prevent this module not being importable if the database
+    # connection is not ready.
+    from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+                                                 CatalogToLegacy_Survey_DR8,
+                                                 CatalogToPanstarrs1,
+                                                 CatalogToTIC_v8,
+                                                 CatalogToTwoMassPSC, Gaia_DR2,
+                                                 Gaia_DR3, Legacy_Survey_DR8,
+                                                 Panstarrs1, TIC_v8,
+                                                 TwoMassPSC)
 
     class FileCarton(BaseCarton):
 
@@ -316,23 +320,6 @@ def get_file_carton(filename):
                         CatalogToTwoMassPSC.best.is_null(),
                         Catalog.version_id == version_id))
 
-# old before v1 crossmatch
-#             query_twomass_psc = \
-#                 (query_common
-#                  .join(CatalogToTIC_v8,
-#                        on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-#                  .join(TIC_v8,
-#                        on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-#                  .join(TwoMassPSC,
-#                        on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-#                  .join(temp,
-#                        on=(temp.TwoMASS_ID == TwoMassPSC.designation))
-#                  .switch(Catalog)
-#                  .where(CatalogToTIC_v8.version_id == version_id,
-#                         (CatalogToTIC_v8.best >> True) |
-#                         CatalogToTIC_v8.best.is_null(),
-#                         Catalog.version_id == version_id))
-
             len_table = len(self._table)
 
             len_gaia_dr3 =\
@@ -431,16 +418,88 @@ def get_file_carton(filename):
                                            '(is_panstarrs_dr2 is False) and ' +
                                            '(is_twomass_psc is False)')
 
-            # if 'lambda_eff' in self._table.colnames:
-            #     query = query.select_extend(temp.lambda_eff.alias('lambda_eff'))
-
-            # Early files may not have the can_offset column. If the table has it, extend
-            # the select. Otherwise the column will be filled with the default value.
-            # if 'can_offset' in self._table.colnames:
-            #    query = query.select_extend(temp.can_offset.cast('boolean').alias('can_offset'))
-            # else:
-            #     self.can_offset = False
-
             return query
 
     return FileCarton
+
+
+def create_table_as(query, table_name, schema=None, temporary=False,
+                    database=None, execute=True, overwrite=False,
+                    indices=[], analyze=True):
+    """Creates a table from a query.
+
+    Parameters
+    ----------
+    query
+        A Peewee ``ModelSelect`` or a string with the query to create a table from.
+    table_name
+        The name of the table to create.
+    schema
+        The schema in which to create the table. If ``table_name`` is in the
+        form ``schema.table``, the schema parameter is overridden by ``table_name``.
+    temporary
+        Whether to create a temporary table instead of a persistent one.
+    database
+        The database connection to use to execute the query. If not passed and the
+        query is a ``ModelSelect``, the database will be inherited from the query
+        model.
+    execute
+        Whether to actually execute the query. Requires ``database`` to be passed.
+    overwrite
+        If `True`, the table will be create even if a table with the same name
+        already exists. Requires ``database`` or will be ignored.
+    analyze
+        Whether to ``VACUUM ANALIZE`` the new table.
+        Only relevant if ``execute=True``.
+    indices
+        List of columns to create indices on. Only relevant if ``execute=True``.
+
+    Returns
+    -------
+    create_query
+        A tuple in which the first element is a Peewee ``Table`` for the created table
+        (the table is bound to ``database`` if passed), and the ``CREATE TABLE AS``
+        query as a string.
+
+    """
+
+    if '.' in table_name:
+        schema, table_name = table_name.split('.')
+
+    if schema is None and temporary is False:
+        schema = 'public'
+    elif temporary is True:
+        schema = None
+
+    path = f"{schema}.{table_name}" if schema else table_name
+    create_sql = f'CREATE {"TEMPORARY " if temporary else ""}TABLE {path} AS '
+
+    if database is None and isinstance(query, peewee.ModelSelect):
+        database = query.model._meta.database
+
+    if overwrite and database:
+        database.execute_sql(f'DROP TABLE IF EXISTS {path};')
+
+    query_sql, params = database.get_sql_context().sql(query).query()
+    cursor = database.cursor()
+    query_str = cursor.mogrify(query_sql, params).decode()
+
+    if execute:
+        if database is None:
+            raise RuntimeError('Cannot execute query without a database.')
+
+        with database.atomic():
+            database.execute_sql(create_sql + query_sql, params)
+
+        for index in indices:
+            if isinstance(index, (list, tuple)):
+                index = ','.join(index)
+            database.execute_sql(f'CREATE INDEX ON {path} ({index})')
+
+        if analyze:
+            database.execute_sql(f'VACUUM ANALYZE {path}')
+
+    table = peewee.Table(table_name, schema=schema).bind(database)
+
+    create_str = create_sql + query_str
+    return table, create_str
