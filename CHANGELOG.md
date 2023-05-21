@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.30 - May 21, 2023
+
+### Fixed
+
+* Rerun ``mwm_cb_galex_vol``, ``mwm_cb_xmmom``, and ``mwm_cb_swiftuvot``.
+
+
 ## 1.0.29 - May 18, 2023
 
 ### Fixed
