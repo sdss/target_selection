@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.29 - May 18, 2023
+
+### Fixed
+
+* Rerun ``ops_std_boss_ps1dr2``.
+
+
 ## 1.0.28 - May 16, 2023
 
 ### Fixed
