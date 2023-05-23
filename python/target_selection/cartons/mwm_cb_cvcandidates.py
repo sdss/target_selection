@@ -8,15 +8,11 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (CataclysmicVariables,
-                                             CataclysmicVariables_Gaia_DR3, 
-                                             Catalog,
-                                             CatalogToGaia_DR3, CatalogToTIC_v8,
-                                             Gaia_DR2,
-                                             Gaia_DR3,
-                                             TIC_v8)
+from sdssdb.peewee.sdss5db.catalogdb import (CataclysmicVariables, Catalog,
+                                             CatalogToTIC_v8, TIC_v8)
 
 from target_selection.cartons import BaseCarton
+
 
 class MWM_CB_CV_Candidates_Carton(BaseCarton):
     """
@@ -98,4 +94,3 @@ class MWM_CB_CV_Candidates_BOSS_Carton(MWM_CB_CV_Candidates_Carton):
         model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
 
         return model
-
