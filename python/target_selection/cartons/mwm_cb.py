@@ -521,28 +521,28 @@ class MWM_CB_XMMOM(BaseCarton):
         Gm = G3.phot_g_mean_mag
         bp_rp = G3.bp_rp
         parallax = G3.parallax
-        logpar = fn.log(fn.abs(parallax / 1000))
+        logpar = fn.log(fn.abs(1000 / parallax))
 
         r_med_geo = BailerJonesEDR3.r_med_geo
 
         XMM = XMM_OM_SUSS_5_0
         uvm2 = XMM.uvm2_ab_mag
 
-        qcut = ~((fn.substring(XMM.uvm2_quality_flag_st, 0, 1) == 'T') |
-                 ((fn.substring(XMM.uvm2_quality_flag_st, 1, 2) == 'T') & (XMM.uvm2_signif < 10)) |
-                 ((fn.substring(XMM.uvm2_quality_flag_st, 2, 3) == 'T') & (XMM.uvm2_signif < 10)) |
-                 (fn.substring(XMM.uvm2_quality_flag_st, 6, 7) == 'T') |
-                 (fn.substring(XMM.uvm2_quality_flag_st, 7, 8) == 'T') |
-                 (fn.substring(XMM.uvm2_quality_flag_st, 8, 9) == 'T'))
+        qcut = ~((fn.substring(XMM.uvm2_quality_flag_st, 1, 1) == 'T') |
+                 ((fn.substring(XMM.uvm2_quality_flag_st, 2, 1) == 'T') & (XMM.uvm2_signif < 10)) |
+                 ((fn.substring(XMM.uvm2_quality_flag_st, 3, 1) == 'T') & (XMM.uvm2_signif < 10)) |
+                 (fn.substring(XMM.uvm2_quality_flag_st, 7, 1) == 'T') |
+                 (fn.substring(XMM.uvm2_quality_flag_st, 8, 1) == 'T') |
+                 (fn.substring(XMM.uvm2_quality_flag_st, 9, 1) == 'T'))
 
         color_cuts = [(uvm2 >= -100),
-                      ((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
-                      ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7)),
+                      (((uvm2 - 5 * fn.log10(r_med_geo) + 5) > (2 * (uvm2 - Gm) + 0.7)) |
+                       ((uvm2 - 5 * logpar + 5) > (2 * (uvm2 - Gm) + 0.7))),
                       (uvm2 - Gm < 1.6 * bp_rp + 1.2)]
 
-        astro_cut = ~(((logpmdpm < 0.301) &
-                       (poe > (-1.75 * logpmdpm - 2.8)) &
-                       (poe < (1.75 * logpmdpm + 2.8))) |
+        astro_cut = ~((logpmdpm < 0.301) &
+                      (poe > (-1.75 * logpmdpm - 2.8)) &
+                      (poe < (1.75 * logpmdpm + 2.8)) |
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
@@ -554,7 +554,7 @@ class MWM_CB_XMMOM(BaseCarton):
                       G3.ra,
                       G3.dec,
                       CatalogToXMM_OM_SUSS_5_0.distance.alias('separation'),
-                      XMM_OM_SUSS_5_0.pk.alias('xmm_objid'),
+                      XMM_OM_SUSS_5_0.srcnum.alias('srcnum'),
                       cadence.alias('cadence'))
               .join_from(Gaia_DR3, BailerJonesEDR3,
                          on=(Gaia_DR3.source_id == BailerJonesEDR3.source_id))
@@ -568,8 +568,7 @@ class MWM_CB_XMMOM(BaseCarton):
               .join(XMM_OM_SUSS_5_0)
               .where(CatalogToGaia_DR3.version_id == version_id,
                      CatalogToGaia_DR3.best >> True,
-                     CatalogToXMM_OM_SUSS_5_0.best >> True,
-                     CatalogToXMM_OM_SUSS_5_0.distance <= 1.5,
+                     CatalogToXMM_OM_SUSS_5_0.distance <= 1.5 / 3600.,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
@@ -596,7 +595,7 @@ class MWM_CB_XMMOM(BaseCarton):
         gal_free_query = (xmm_temp
                           .select(xmm_temp.c.catalogid,
                                   xmm_temp.c.source_id,
-                                  xmm_temp.c.xmm_objid,
+                                  xmm_temp.c.srcnum,
                                   xmm_temp.c.separation,
                                   xmm_temp.c.ra,
                                   xmm_temp.c.dec,
@@ -634,7 +633,7 @@ class MWM_CB_XMMOM(BaseCarton):
         xmm_ranked = (xmm_temp2
                       .select(xmm_temp2.c.source_id,
                               fn.rank().over(
-                                  partition_by=[xmm_temp2.c.xmm_objid],
+                                  partition_by=[xmm_temp2.c.srcnum],
                                   order_by=[xmm_temp2.c.separation.asc()])
                               .alias('sep_rank'))
                       .alias('xmm_ranked'))
@@ -643,18 +642,18 @@ class MWM_CB_XMMOM(BaseCarton):
                       .select(xmm_temp2.c.source_id)
                       .join(xmm_ranked, on=(xmm_temp2.c.source_id == xmm_ranked.c.source_id))
                       .where(xmm_ranked.c.sep_rank == 1)
-                      .distinct(xmm_temp2.c.xmm_objid)
+                      .distinct(xmm_temp2.c.srcnum)
                       .alias('xmm_unique'))
 
         # Now keep source_ids that exist in both subsamples. Note we need to distinct on
-        # source_id again because xmm_unique has duplicate source_ids (different xmm_objid
+        # source_id again because xmm_unique has duplicate source_ids (different srcnum
         # can have the same source_id).
         unique = (xmm_temp2
                   .select(xmm_temp2.c.catalogid,
                           xmm_temp2.c.source_id,
                           xmm_temp2.c.ra,
                           xmm_temp2.c.dec,
-                          xmm_temp2.c.xmm_objid,
+                          xmm_temp2.c.srcnum,
                           xmm_temp2.c.separation,
                           xmm_temp2.c.cadence)
                   .join(gaia_unique, on=(gaia_unique.c.source_id == xmm_temp2.c.source_id))
@@ -730,7 +729,7 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
         bp_rp = G3.bp_rp
 
         parallax = G3.parallax
-        logpar = fn.log(fn.abs(parallax / 1000))
+        logpar = fn.log(fn.abs(1000 / parallax))
 
         r_med_geo = BailerJonesEDR3.r_med_geo
 
@@ -783,9 +782,9 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
               .join(UVOT_SSC_1)
               .where(CatalogToGaia_DR3.version_id == version_id,
                      CatalogToGaia_DR3.best >> True,
-                     CatalogToUVOT_SSC_1.best >> True,
                      (CatalogToMILLIQUAS_7_7.catalogid.is_null() |
                          ((CatalogToMILLIQUAS_7_7.best >> True) & (MILLIQUAS_7_7.qpct != 100))),
+                     CatalogToUVOT_SSC_1.distance <= 1.5 / 3600.,
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      *qcut,
                      *color_cuts,

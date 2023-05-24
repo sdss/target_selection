@@ -3592,7 +3592,6 @@
 '1.0.0-test':
   xmatch_plan: 1.0.0
   cartons:
-    - mwm_cb_galex_vol
     - mwm_cb_xmmom
     - mwm_cb_swiftuvot
   schema: sandbox
