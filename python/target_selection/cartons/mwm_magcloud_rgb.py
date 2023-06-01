@@ -17,8 +17,10 @@ from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import CatalogToGaia_DR3, Gaia_DR3
 
+from target_selection import log
 from target_selection.cartons import BaseCarton
 from target_selection.cartons.mwm_magcloud_agb import roi_cut
+from target_selection.cartons.tools import create_table_as
 
 
 class MWM_MagCloud_RGB_BOSS(BaseCarton):
@@ -60,6 +62,13 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
         ra, dec, radius = self.parameters['astro_rough']
         astro_cut = fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec, ra, dec, radius)
 
+        log.info('Running Q3C query ...')
+        tmp_q3c, _ = create_table_as(
+            Gaia_DR3.select(Gaia_DR3.source_id).where(astro_cut),
+            'tmp_q3c',
+            temporary=True,
+            database=self.database)
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.ra,
@@ -74,13 +83,13 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
                          Gaia_DR3.phot_bp_mean_mag,
                          Gaia_DR3.phot_rp_mean_mag)
                  .join(Gaia_DR3)
+                 .join(tmp_q3c, on=(tmp_q3c.c.source_id == Gaia_DR3.source_id))
                  .where(CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
                         Gaia_DR3.phot_g_mean_mag < self.parameters['g_lim'],
                         parallax_cut,
                         colour_cut,
-                        pm_cut,
-                        astro_cut))
+                        pm_cut))
 
         return query
 
