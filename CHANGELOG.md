@@ -1,10 +1,18 @@
+# Changelog
+
+## 1.0.32 - June 1, 2023
+
+## Fixed
+
+* Rerun ``mwm_magcloud_agb_apogee``, ``mwm_magcloud_rgb_boss``, ``mwm_cb_galex_vol``, ``mwm_cb_xmmom``, and ``mwm_cb_swiftuvot``.
+
+
 ## 1.0.31 - May 23, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.31 cartons
 
-# Changelog
 
 ## 1.0.30 - May 21, 2023
 
