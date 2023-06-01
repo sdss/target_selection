@@ -46,7 +46,7 @@ class TargetSelectionDeprecationWarning(TargetSelectionUserWarning):
     pass
 
 
-class TargetSelectionImportWarning(TargetSelectionUserWarning, ImportWarning):
+class TargetSelectionImportWarning(TargetSelectionUserWarning):
     """Warning for import problems."""
 
     pass
