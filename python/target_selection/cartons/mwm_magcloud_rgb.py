@@ -38,6 +38,7 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
     program = 'mwm_magcloud_rgb'
     instrument = 'BOSS'
     priority = 2819
+    cadence = 'bright_1x1'
     can_offset = True
 
     def build_query(self, version_id, query_region=None):

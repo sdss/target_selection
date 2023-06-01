@@ -8,6 +8,7 @@
 
 import numpy
 import pandas
+import peewee
 from astropy.coordinates import SkyCoord
 from astropy.units import mas, yr
 from gala.coordinates import MagellanicStreamNidever08
@@ -96,6 +97,17 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
         ra, dec, radius = self.parameters['astro_rough']
         astro_cut = fn.q3c_radial_query(Gaia_DR3.ra, Gaia_DR3.dec, ra, dec, radius)
 
+        # Cadence is calculated as h2exp from mwm_tess_rgb with sn=45.
+        SN = 45.0
+        exptime = 15.0
+
+        time = 60 * (fn.POW(SN, 2) / 10000) * fn.POW(10, (0.4 * (TwoMassPSC.h_m - 11)))
+        nexp = fn.ROUND(time / exptime)
+        cadence = peewee.Case(
+            None,
+            ((nexp == 0, 'bright_1x1'),),
+            fn.CONCAT('bright_1x', nexp.cast('text')))
+
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.ra,
@@ -108,7 +120,8 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
                          Gaia_DR3.parallax_error,
                          TwoMassPSC.h_m,
                          TwoMassPSC.j_m,
-                         TwoMassPSC.k_m)
+                         TwoMassPSC.k_m,
+                         cadence.alias('cadence'))
                  .join(Gaia_DR3)
                  .join_from(CatalogToGaia_DR3, CatalogToTwoMassPSC,
                             on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
@@ -130,12 +143,12 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
         data = pandas.read_sql(f'SELECT * from {self.path}', self.database)
 
         # Calculate Magellanic Stream coordinates
-        coords = SkyCoord(ra=data.ra,
-                          dec=data.dec,
+        coords = SkyCoord(ra=data.ra.values,
+                          dec=data.dec.values,
                           unit='deg',
                           frame='icrs',
-                          pm_ra_cosdec=data.pmra * mas / yr,
-                          pm_dec=data.pmdec * mas / yr)
+                          pm_ra_cosdec=data.pmra.values * mas / yr,
+                          pm_dec=data.pmdec.values * mas / yr)
         mcoo = coords.transform_to(MagellanicStreamNidever08)
 
         data['pml_ms'] = mcoo.pm_L_cosB.value
