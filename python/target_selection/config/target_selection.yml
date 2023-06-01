@@ -41,7 +41,7 @@
     rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
-    work_mem: '10GB'
+    work_mem: '20GB'
     enable_bitmapscan: true
 
 '1.0.31':
