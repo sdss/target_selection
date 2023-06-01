@@ -548,6 +548,12 @@ class MWM_CB_XMMOM(BaseCarton):
 
         cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
+        # MC cut
+        ll = G3.l
+        bb = G3.b
+        mc_cut = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
+                   (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
+
         q1 = (Gaia_DR3
               .select(CatalogToGaia_DR3.catalogid,
                       G3.source_id,
@@ -574,7 +580,8 @@ class MWM_CB_XMMOM(BaseCarton):
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      qcut,
                      *color_cuts,
-                     astro_cut))
+                     astro_cut,
+                     mc_cut))
 
         xmm_temp, _ = create_table_as(q1, 'mwm_cb_xmmom_temp',
                                       temporary=True, database=self.database,
@@ -762,6 +769,12 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
 
         cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
 
+        # MC cut
+        ll = G3.l
+        bb = G3.b
+        mc_cut = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
+                   (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
+
         q1 = (Gaia_DR3
               .select(CatalogToGaia_DR3.catalogid,
                       G3.source_id,
@@ -788,7 +801,8 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                      (r_med_geo <= 1500) | (fn.abs(1000 / parallax) <= 1500),
                      *qcut,
                      *color_cuts,
-                     astro_cut)
+                     astro_cut,
+                     mc_cut)
               .order_by(CatalogToGaia_DR3.catalogid, CatalogToUVOT_SSC_1.distance)
               .distinct(CatalogToGaia_DR3.catalogid))
 
