@@ -1232,6 +1232,12 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
         return query
 
 
+class MWM_YSO_CMZ_APOGEE_Single_Carton(MWM_YSO_CMZ_APOGEE_Carton):
+    name = 'mwm_yso_cmz_apogee_single'
+    cadence = 'bright_1x1'
+    priority = 2706
+
+
 class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
     """YSOs - Cluster APOGEE Catalog
     Shorthand name: mwm_yso_cluster_apogee
@@ -1304,6 +1310,12 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_Cluster_APOGEE_Single_Carton(MWM_YSO_Cluster_APOGEE_Carton):
+    name = 'mwm_yso_cluster_apogee_single'
+    cadence = 'bright_1x1'
+    priority = 2706
 
 
 class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
@@ -1438,6 +1450,16 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
+class MWM_YSO_Cluster_BOSS_Single_Carton(MWM_YSO_Cluster_BOSS_Carton):
+    name = 'mwm_yso_cluster_boss_single'
+    cadence = 'bright_1x1'
+    priority = 2706
+    instrument = 'BOSS'
+
+    def post_process(self, model):
+        pass
+
+
 class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
@@ -1515,6 +1537,12 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
         return query
 
 
+class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Single_Carton(MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton):
+    name = 'mwm_yso_pms_apogee_sagitta_edr3_single'
+    cadence = 'bright_1x1'
+    priority = 2706
+
+
 class MWM_YSO_PMS_APOGEE_Zari18pms_Carton(BaseCarton):
     """
     YSOs - Pre-main sequence, APOGEE
@@ -1586,6 +1614,12 @@ class MWM_YSO_PMS_APOGEE_Zari18pms_Carton(BaseCarton):
                                                        query_region[2])))
 
         return query
+
+
+class MWM_YSO_PMS_APOGEE_Zari18pms_Single_Carton(MWM_YSO_PMS_APOGEE_Zari18pms_Carton):
+    name = 'mwm_yso_pms_apogee_zari18pms_single'
+    cadence = 'bright_1x1'
+    priority = 2701  # pms so different from other single cartons
 
 
 class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
@@ -1705,6 +1739,16 @@ class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
                     " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Single_Carton(MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton):
+    name = 'mwm_yso_pms_boss_sagitta_edr3_single'
+    cadence = 'bright_1x1'
+    priority = 2706
+    instrument = 'BOSS'
+
+    def post_process(self, model):
+        pass
 
 
 class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
@@ -1828,3 +1872,13 @@ class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
                     " update sandbox.temp_mwm_yso_pms_boss_zari18pms " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_YSO_PMS_BOSS_Zari18pms_Single_Carton(MWM_YSO_PMS_BOSS_Zari18pms_Carton):
+    name = 'mwm_yso_pms_boss_zari18pms_single'
+    cadence = 'bright_1x1'
+    priority = 2701  # pms so different from other single cartons
+    instrument = 'BOSS'
+
+    def post_process(self, model):
+        pass
