@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.33 - June 14, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.33 cartons 
+* Add mwm_yso_*_single cartons
+
 ## 1.0.32 - June 1, 2023
 
 ## Fixed
