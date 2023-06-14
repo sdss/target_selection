@@ -1315,7 +1315,7 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
 class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Single_Carton(MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton):
     name = 'mwm_yso_pms_apogee_sagitta_edr3_single'
     cadence = 'bright_1x1'
-    priority = 2701
+    priority = 2701  # pms so different from other single cartons
 
 
 class MWM_YSO_PMS_APOGEE_Zari18pms_Carton(BaseCarton):
