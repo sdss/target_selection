@@ -235,7 +235,7 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 4900   # priority is modified in post_process()
+    priority = 4900    # priority is modified in post_process()
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -280,7 +280,8 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
     program = 'mwm_snc'
     mapper = 'MWM'
     instrument = 'BOSS'
-    priority = 1800
+    cadence = 'dark_2x1'    # cadence is modified in post_process()
+    priority = 4900    # priority is modified in post_process()
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -290,12 +291,30 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
 
         return query
 
-    def post_process(self, model, **kwargs):
+    def post_process(self, model):
+        """
+        a set random seed, put 1/4 of them at priority 2705 and
+         the rest at priority 4900.
+        """
 
-        # G > 16 => cadence = dark_2x1
-        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+        cursor = self.database.execute_sql(
+            "select catalogid from " +
+            " sandbox.temp_mwm_snc_ext_boss " +
+            " order by catalogid;")
 
-        # G < 16 => cadence = bright_2x1
-        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+        output = cursor.fetchall()
 
-        return model
+        random.seed(5678)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+
+            current_random = random.randomrange(4)
+            if (current_random == 0):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if (Gaia_DR3.phot_g_mean_mag < 16):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_boss set cadence = 'bright_2x1' " +
+                    " where catalogid = " + str(current_catalogid) + ";")
