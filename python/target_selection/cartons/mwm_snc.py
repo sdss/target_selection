@@ -255,9 +255,6 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
          the rest at priority 4900.
         """
 
-        self.database.execute_sql("update sandbox.temp_mwm_snc_ext_apogee " +
-                                  "set selected = false;")
-
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_snc_ext_apogee " +
