@@ -6,6 +6,8 @@
 # @Filename: mwm_snc.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import random
+
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
@@ -233,7 +235,7 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 1805
+    priority = 4900   # priority is modified in post_process()
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -246,6 +248,31 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
                                           CatalogToTwoMassPSC.best >> True, TwoMassPSC.h_m < 11))
 
         return query
+
+    def post_process(self, model):
+        """
+        a set random seed, put 1/4 of them at priority 2705 and
+         the rest at priority 4900.
+        """
+
+        self.database.execute_sql("update sandbox.temp_mwm_snc_ext_apogee " +
+                                  "set selected = false;")
+
+        cursor = self.database.execute_sql(
+            "select catalogid from " +
+            " sandbox.temp_mwm_snc_ext_apogee " +
+            " order by catalogid;")
+
+        output = cursor.fetchall()
+
+        random.seed(1234)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_random = random.randomrange(4)
+            if (current_random == 0):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 2705 " +
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
