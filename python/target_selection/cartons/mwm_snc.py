@@ -314,7 +314,7 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
                     " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
-            if(Gaia_DR3.phot_g_mean_mag < 16):
+            if (Gaia_DR3.phot_g_mean_mag < 16):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_boss set cadence = 'bright_2x1' " +
                     " where catalogid = " + str(current_catalogid) + ";")
