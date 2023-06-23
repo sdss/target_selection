@@ -56,7 +56,6 @@ from target_selection.cartons import BaseCarton
 # Non-SQL implementation:
 
 # lead contact: Nicholas Troup
-# Target selection final for v0?: No
 
 # We associate each APOGEE target with a 2MASS source since the
 # vast majority of APOGEE targets were selected from the 2MASS PSC.
@@ -169,14 +168,13 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 
     lead contact: Nicholas Troup
 
-    Target selection final for v0?: No
     """
 
     name = 'mwm_bin_rv_long'  # old name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_rv'
+    program = 'mwm_bin'
     mapper = 'MWM'
     priority = None  # priority is set in post_process()
     can_offset = True
@@ -344,7 +342,6 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 #
 # lead contact: Nicholas Troup
 #
-# Target selection final for v0?: No
 
 mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                           ((TwoMassPSC.j_m - TwoMassPSC.k_m) -
@@ -377,7 +374,7 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                           Gaia_DR3.parallax.is_null(False))
 
 
-class MWM_bin_rv_short_Carton(BaseCarton):
+class MWM_bin_rv_short_Base_Carton(BaseCarton):
     # old class name MWM_RV_Short_FPS_Carton(BaseCarton):
     """3.2.2.3. Short Baseline Targets for FPS
 
@@ -404,19 +401,9 @@ class MWM_bin_rv_short_Carton(BaseCarton):
 
     lead contact: Nicholas Troup
 
-    Target selection final for v0?: No
     """
 
-    name = 'mwm_bin_rv_short'  # old name = 'mwm_rv_short_fps'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_rv'
-    mapper = 'MWM'
-    priority = None  # priority is set in post_process()
-    can_offset = True
-
-    # This carton i.e. mwm_bin_rv_short does not use SDSS_DR17_APOGEE_Allstarmerge.
+    # Below query does not use SDSS_DR17_APOGEE_Allstarmerge.
     # There is gaia_dr3 in the below query so we have done
     # major modification of the old query.
     def build_query(self, version_id, query_region=None):
@@ -450,9 +437,8 @@ class MWM_bin_rv_short_Carton(BaseCarton):
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        *mwm_rv_short_condition,
-                        TwoMassPSC.h_m > 7,
-                        TwoMassPSC.h_m < 10.8))
+                        *mwm_rv_short_condition))
+
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
@@ -464,6 +450,25 @@ class MWM_bin_rv_short_Carton(BaseCarton):
                                                        query_region[0],
                                                        query_region[1],
                                                        query_region[2])))
+        return query
+
+
+class MWM_bin_rv_short_Carton(MWM_bin_rv_short_Base_Carton):
+
+    name = 'mwm_bin_rv_short'  # old name = 'mwm_rv_short_fps'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = None  # priority is set in post_process()
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(TwoMassPSC.h_m > 7,
+                            TwoMassPSC.h_m < 10.8)
         return query
 
     def post_process(self, model):
@@ -507,3 +512,24 @@ class MWM_bin_rv_short_Carton(BaseCarton):
                     " update sandbox.temp_mwm_bin_rv_short " +
                     " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_bin_rv_short_faint_Carton(MWM_bin_rv_short_Base_Carton):
+
+    name = 'mwm_bin_rv_short_faint'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 2515
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(TwoMassPSC.h_m >= 10.8,
+                            TwoMassPSC.h_m < 11.5,
+                            TIC_v8.teff < 4500,
+                            TIC_v8.logg > 4.0)
+        return query
