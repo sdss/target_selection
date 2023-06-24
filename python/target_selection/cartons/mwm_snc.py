@@ -265,7 +265,7 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
         random.seed(1234)
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_random = random.randomrange(4)
+            current_random = random.randrange(4)
             if (current_random == 0):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_apogee set priority = 2705 " +
@@ -308,7 +308,7 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
 
-            current_random = random.randomrange(4)
+            current_random = random.randrange(4)
             if (current_random == 0):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
