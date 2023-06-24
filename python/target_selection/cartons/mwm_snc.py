@@ -229,13 +229,16 @@ class MWM_SNC_Ext_Carton(BaseCarton):
 class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
     """SNC extension for APOGEE. See base carton for details."""
 
+    # priority must be None here so that
+    # it can be set in post_process().
+    # If priority is not None here then it cannot be set in post_process().
     name = 'mwm_snc_ext_apogee'
     category = 'science'
     program = 'mwm_snc'
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 4900    # priority is modified in post_process()
+    priority = None    # priority is set in post_process()
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -270,18 +273,26 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_apogee set priority = 2705 " +
                     " where catalogid = " + str(current_catalogid) + ";")
+            else:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 4900 " +
+                    " where catalogid = " + str(current_catalogid) + ";")
 
 
 class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
     """SNC extension for BOSS. See base carton for details."""
 
+    # cadence and priority must be None here so that
+    # they can be set in post_process().
+    # If cadence and priority are not None here then
+    # they cannot be set in post_process().
     name = 'mwm_snc_ext_boss'
     category = 'science'
     program = 'mwm_snc'
     mapper = 'MWM'
     instrument = 'BOSS'
-    cadence = 'dark_2x1'    # cadence is modified in post_process()
-    priority = 4900    # priority is modified in post_process()
+    cadence = None    # cadence is set in post_process()
+    priority = None    # priority is set in post_process()
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -313,8 +324,16 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
                     " where catalogid = " + str(current_catalogid) + ";")
+            else:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_boss set priority = 4900 " +
+                    " where catalogid = " + str(current_catalogid) + ";")
 
             if (Gaia_DR3.phot_g_mean_mag < 16):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_boss set cadence = 'bright_2x1' " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+            else:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_boss set cadence = 'dark_2x1' " +
                     " where catalogid = " + str(current_catalogid) + ";")
