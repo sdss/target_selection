@@ -68,6 +68,8 @@ class MWM_SNC_100pc_Carton(BaseCarton):
         query = (Gaia_DR3.select(
             CatalogToGaia_DR3.catalogid,
             Gaia_DR3.source_id,
+            Gaia_DR3.ra,
+            Gaia_DR3.dec,
             Gaia_DR3.phot_g_mean_mag,
             ll,
             bb,
@@ -205,6 +207,8 @@ class MWM_SNC_Ext_Carton(BaseCarton):
         query = (Gaia_DR3.select(
             CatalogToGaia_DR3.catalogid,
             Gaia_DR3.source_id,
+            Gaia_DR3.ra,
+            Gaia_DR3.dec,
             Gaia_DR3.phot_g_mean_mag,
             ll,
             bb,
@@ -254,8 +258,8 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
 
     def post_process(self, model):
         """
-        a set random seed, put 1/4 of them at priority 2705 and
-         the rest at priority 4900.
+        a set random seed, put 1/16 of them at priority 2705 and
+         the rest at priority 6080.
         """
 
         cursor = self.database.execute_sql(
@@ -268,14 +272,14 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
         random.seed(1234)
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_random = random.randrange(4)
+            current_random = random.randrange(16)
             if (current_random == 0):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_apogee set priority = 2705 " +
                     " where catalogid = " + str(current_catalogid) + ";")
             else:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 4900 " +
+                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 6080 " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
@@ -304,8 +308,8 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
 
     def post_process(self, model):
         """
-        a set random seed, put 1/4 of them at priority 2705 and
-         the rest at priority 4900.
+        a set random seed, put 1/20 of them at priority 2705 and
+         the rest at priority 6080.
         """
 
         cursor = self.database.execute_sql(
@@ -319,14 +323,14 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
 
-            current_random = random.randrange(4)
+            current_random = random.randrange(20)
             if (current_random == 0):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
                     " where catalogid = " + str(current_catalogid) + ";")
             else:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_boss set priority = 4900 " +
+                    " update sandbox.temp_mwm_snc_ext_boss set priority = 6080 " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (Gaia_DR3.phot_g_mean_mag < 16):
