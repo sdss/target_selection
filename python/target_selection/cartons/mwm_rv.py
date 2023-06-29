@@ -10,8 +10,7 @@ import math
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
-                                             CatalogToGaia_DR3,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              CatalogToTIC_v8,
                                              CatalogToTwoMassPSC, Gaia_DR3,
                                              SDSS_DR17_APOGEE_Allstarmerge,
@@ -303,58 +302,38 @@ class MWM_bin_rv_long_Carton(BaseCarton):
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
-# 2.2.2. Short Baseline (Fresh Targets)
+# Below is from the comments for
+# MWM_bin_rv_short_Base_Carton further below.
+# It is put here for reference.
 #
-# Shorthand name: mwm_rv_short (Not an actual target class.
-# Defined as a parent sample to select from)
-#
-# Simplified Description of selection criteria:
-# 2MASS Targets between H = 7 and H=12.8 with the same
-# selection criteria as APOGEE-2 main survey
-# with the additional requirement of having a Gaia parallax.
-#
-# Wiki page: Binaries and Substellar Companions (Page Under Construction)
-#
-# Additional source catalogs needed: 2MASS, WISE, Gaia
-#
-# Additional cross-matching needed:
-# The 3 catalogs above should be cross-matched if not already
-#
-# Return columns: ra, dec, pmra, pmdec, (from Gaia); h_m (from 2MASS)
-#
-# cadence options for these targets
-# (list all options, even though no single target will
-# receive more than one):  (See entries for this in 2.2.1.x below)
-#
-# Pseudo SQL (optional):  SELECT catalog.catalogid,
-# catalog.ra, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
-# catalog.epoch, twomass_psc.h_m, FROM catalog
-# JOIN gaia_dr3_source, twomass_psc, allWise
-# WHERE h_m < 12.8 AND ((j_m-k_m) - (1.5*0.918*(h_m-w2mpro-0.05))) >= 0.5
-# AND (j_msigcom <= 0.1 AND h_msigcom<=0.1 AND k_msigcom <= 0.1) AND w2_sigmpro <=0.1
-# AND (ph_qual= 'AAA' OR ph_qual= 'AAB' OR ph_qual= 'ABA'
-# OR ph_qual= 'BAA' OR ph_qual= 'ABB' OR ph_qual= 'BAB'
-# OR ph_qual= 'BBA' OR ph_qual = 'BBB')
-# AND prox >= 6 AND cc_flag='000' AND gal_contam='000'
-# AND (rd_flg='111' OR rd_flg='112'  OR rd_flg='121'  OR rd_flg='211'
-#   OR rd_flg='122'  OR rd_flg='212'  OR rd_flg='221'  OR rd_flg='222')
-# AND ext_key=Null AS mwm_rv_short
-#
-# Implementation:
-#
-# Non-SQL implementation:
-#
-# lead contact: Nicholas Troup
-#
+# v1.0
+# AND tm.j_msigcom <= 0.1
+# AND tm.h_msigcom <= 0.1
+# AND tm.k_msigcom <= 0.1
+# AND (   tm.ph_qual='AAA'
+#      OR tm.ph_qual='AAB'
+#      OR tm.ph_qual='ABA'
+#      OR tm.ph_qual='BAA'
+#      OR tm.ph_qual='ABB'
+#      OR tm.ph_qual='BAB'
+#      OR tm.ph_qual='BBA'
+#      OR tm.ph_qual='BBB')
+# AND tm.prox >= 6
+# AND tm.cc_flg='000'
+# AND tm.gal_contam='000'
+# AND  (   tm.rd_flg='111'
+#       OR tm.rd_flg='112'
+#       OR tm.rd_flg='121'
+#       OR tm.rd_flg='211'
+#       OR tm.rd_flg='122'
+#       OR tm.rd_flg='212'
+#       OR tm.rd_flg='221'
+#       OR tm.rd_flg='222')
+# AND g.parallax_error/g.parallax < 0.2
 
-mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
-                          ((TwoMassPSC.j_m - TwoMassPSC.k_m) -
-                           (1.5 * 0.918 *
-                            (TwoMassPSC.h_m - AllWise.w2mpro - 0.05))) >= 0.5,
-                          TwoMassPSC.j_msigcom <= 0.1,
+mwm_rv_short_condition = (TwoMassPSC.j_msigcom <= 0.1,
                           TwoMassPSC.h_msigcom <= 0.1,
                           TwoMassPSC.k_msigcom <= 0.1,
-                          AllWise.w2sigmpro <= 0.1,
                           ((TwoMassPSC.ph_qual == 'AAA') |
                            (TwoMassPSC.ph_qual == 'AAB') |
                            (TwoMassPSC.ph_qual == 'ABA') |
@@ -375,56 +354,101 @@ mwm_rv_short_condition = (TwoMassPSC.h_m < 12.8,
                            (TwoMassPSC.rd_flg == '221') |
                            (TwoMassPSC.rd_flg == '222')),
                           TwoMassPSC.ext_key >> None,
-                          Gaia_DR3.parallax.is_null(False))
+                          Gaia_DR3.parallax.is_null(False),
+                          Gaia_DR3.parallax > 0,
+                          Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2)
 
 
 class MWM_bin_rv_short_Base_Carton(BaseCarton):
     # old class name MWM_RV_Short_FPS_Carton(BaseCarton):
-    """3.2.2.3. Short Baseline Targets for FPS
+    """
+    This base carton contains the first and third parts of the below query.
+    which are common to all the mmw_bin_rv_short* cartons
+    The middle part (i.e. the second part) is different for the different cartons.
 
-    Shorthand name: mwm_bin_rv_short (old name = 'mwm_rv_short_fps')
+    The below information is for 5.1.25. mwm_bin_rv_short_mdwarf.
+    It is put here for reference for MWM_bin_rv_short_Base_Carton.
+    The below information is again put further below in 5.1.25. mwm_bin_rv_short_mdwarf.
 
-    Simplified Description of selection criteria:
-     Select from short-baseline targets (above) with H brighter than 10.8
+    5.1.25. mwm_bin_rv_short_mdwarf
+    This carton contains the M Dwarf stars originally in mwm_bin_rv_short
 
-    Wiki page: Binaries and Substellar Companions (Page Under Construction)
+    Shorthand name:  mwm_bin_rv_short_mdwarf  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
 
-    Additional source catalogs needed: Select from mwm_rv_short (2.2.2)
+    Existing carton code :
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_rv.py
 
-    Additional cross-matching needed: (None)
+    Simplified Description of selection criteria :
 
-    cadence options for these targets (list all options,
-     even though no single target will receive more than one): mwm_rv_18x1
+    SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
+    g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
+    g.phot_g_mean_mag,g.phot_bp_mean_mag,
+    g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
+    FROM catalog
+    JOIN gaia_dr3_source AS g,twomass_psc AS tm
 
-    Pseudo SQL (optional): SELECT catalogid, ra, dec,
-     pmra, pmdec, epoch, h_m FROM mwm_rv_short WHERE h_m<10.8
+    WHERE tm.h_m < 11.5
+    AND tm.h_m > 7
+    AND g.parallax>0
+    AND g.phot_rp_mean_mag-tm.k_m>2 and
+    AND (g.phot_rp_mean_mag-tm.k_m)*2+0.6<tm.h_m-5*log10(1000/g.parallax)+5
 
-    Implementation:
+    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
+    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
+        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
+        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
+    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
+    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
+          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
+          OR tm.rd_flg='221'  OR tm.rd_flg='222')
+    AND g.parallax_error/g.parallax < 0.2
 
-    Non-SQL implementation:
+    Gaia DR2 parameters to be converted to Gaia DR3 :
+    coordinates, proper motions, parallax
 
-    lead contact: Nicholas Troup
+    Return columns (again ok to copy from v0.5 version) :  (See pseudo-SQL above)
 
+    Metadata:
+
+    can_offset = False
+    Cadence options: bright_18x1
+    priority: priority = 2515
+    Lead contact:  Nicholas Troup Nathan De Lee
     """
 
     # Below query does not use SDSS_DR17_APOGEE_Allstarmerge.
     # There is gaia_dr3 in the below query so we have done
-    # major modification of the old query.
-    def build_query(self, version_id, query_region=None):
+    # major modification of the old v0.5 query.
 
+    # SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
+    # g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
+    # g.phot_g_mean_mag,g.phot_bp_mean_mag,
+    # g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
+    # FROM catalog
+
+    def build_query(self, version_id, query_region=None):
         query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid,
+                 .select(Catalog.catalogid,
+                         Catalog.ra,
+                         Catalog.dec,
+                         Catalog.pmra,
+                         Catalog.pmdec,
+                         Gaia_DR3.ref_epoch,
+                         Gaia_DR3.source_id,
+                         Gaia_DR3.parallax,
+                         Gaia_DR3.parallax_error,
+                         Gaia_DR3.phot_g_mean_mag,
+                         Gaia_DR3.phot_bp_mean_mag,
+                         Gaia_DR3.phot_rp_mean_mag,
+                         Gaia_DR3.logg_gspphot,
+                         Gaia_DR3.teff_gspphot,
+                         TwoMassPSC.j_m,
+                         TwoMassPSC.h_m,
+                         TwoMassPSC.k_m,
                          Gaia_DR3.ra.alias('gaia_dr3_ra'),
                          Gaia_DR3.dec.alias('gaia_dr3_dec'),
                          Gaia_DR3.pmra.alias('gaia_dr3_pmra'),
-                         Gaia_DR3.pmdec.alias('gaia_dr3_pmdec'),
-                         TwoMassPSC.h_m.alias('twomass_h_m'),
-                         TIC_v8.teff,
-                         TIC_v8.logg)
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .switch(Catalog)
+                         Gaia_DR3.pmdec.alias('gaia_dr3_pmdec'))
                  .join(CatalogToGaia_DR3,
                        on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
                  .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
@@ -433,11 +457,7 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
                        on=(Catalog.catalogid == CatalogToTwoMassPSC.catalogid))
                  .join(TwoMassPSC,
                        on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(TIC_v8)
-                 .join(AllWise, on=(TIC_v8.allwise == AllWise.designation))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        CatalogToTwoMassPSC.version_id == version_id,
+                 .where(CatalogToTwoMassPSC.version_id == version_id,
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
@@ -457,86 +477,207 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
         return query
 
 
-class MWM_bin_rv_short_Carton(MWM_bin_rv_short_Base_Carton):
+class MWM_bin_rv_short_mdwarf_Carton(MWM_bin_rv_short_Base_Carton):
+    """ 5.1.25. mwm_bin_rv_short_mdwarf
+    This carton contains the M Dwarf stars originally in mwm_bin_rv_short
 
-    # priority must be None here so that
-    # it can be set in post_process().
-    # If priority is not None here then it cannot be set in post_process().
-    name = 'mwm_bin_rv_short'  # old name = 'mwm_rv_short_fps'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
-    priority = None  # priority is set in post_process()
-    can_offset = True
+    Shorthand name:  mwm_bin_rv_short_mdwarf  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
 
-    def build_query(self, version_id, query_region=None):
+    Existing carton code :
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_rv.py
 
-        query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m > 7,
-                            TwoMassPSC.h_m < 10.8)
-        return query
+    Simplified Description of selection criteria :
 
-    def post_process(self, model):
-        """
-        For priority:
-        IF Teff < 4500 AND logg > 4.0 THEN priority = 2515
-        ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2525
-        ELSE IF logg < 3.5 THEN priority = 2535
-        ELSE priority = 2545
-        """
+    SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
+    g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
+    g.phot_g_mean_mag,g.phot_bp_mean_mag,
+    g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
+    FROM catalog
+    JOIN gaia_dr3_source AS g,twomass_psc AS tm
 
-        default_priority = 2545
+    WHERE tm.h_m < 11.5
+    AND tm.h_m > 7
+    AND g.parallax>0
+    AND g.phot_rp_mean_mag-tm.k_m>2 and
+    AND (g.phot_rp_mean_mag-tm.k_m)*2+0.6<tm.h_m-5*log10(1000/g.parallax)+5
 
-        # teff and logg are from TIC_v8
-        cursor = self.database.execute_sql(
-            "select catalogid, teff, logg from " +
-            " sandbox.temp_mwm_bin_rv_short ;")
+    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
+    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
+        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
+        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
+    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
+    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
+          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
+          OR tm.rd_flg='221'  OR tm.rd_flg='222')
+    AND g.parallax_error/g.parallax < 0.2
 
-        output = cursor.fetchall()
+    Gaia DR2 parameters to be converted to Gaia DR3 :
+    coordinates, proper motions, parallax
 
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_teff = output[i][1]
-            current_logg = output[i][2]
+    Return columns (again ok to copy from v0.5 version) : (See pseudo-SQL above)
 
-            if (current_logg is not None):
-                if ((current_teff is not None) and (current_teff < 4500) and
-                   (current_logg > 4.0)):
-                    current_priority = 2515
-                elif ((3.5 <= current_logg) and (current_logg <= 4.0)):
-                    current_priority = 2525
-                elif (current_logg < 3.5):
-                    current_priority = 2535
-                else:
-                    current_priority = default_priority
-            else:
-                current_priority = default_priority
+    Metadata:
 
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_short " +
-                    " set priority = " + str(current_priority) +
-                    " where catalogid = " + str(current_catalogid) + ";")
+    can_offset = False
+    Cadence options: bright_18x1
+    priority: priority = 2515
+    Lead contact:  Nicholas Troup Nathan De Lee
+    """
 
-
-class MWM_bin_rv_short_faint_Carton(MWM_bin_rv_short_Base_Carton):
-
-    name = 'mwm_bin_rv_short_faint'
+    name = 'mwm_bin_rv_short_mdwarf'  # old name = 'mwm_rv_short_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_18x1'
     program = 'mwm_bin'
     mapper = 'MWM'
     priority = 2515
-    can_offset = True
+    can_offset = False
 
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m >= 10.8,
+        query = query.where(TwoMassPSC.h_m > 7,
                             TwoMassPSC.h_m < 11.5,
-                            TIC_v8.teff < 4500,
-                            TIC_v8.logg > 4.0)
+                            Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m > 2,
+                            ((Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m) * 2 + 0.6)
+                            < (TwoMassPSC.h_m -
+                               5 * peewee.fn.log10(1000 / Gaia_DR3.parallax) + 5))
+        return query
+
+
+class MWM_bin_rv_short_subgiant_Carton(MWM_bin_rv_short_Base_Carton):
+    """ 5.1.26. mwm_bin_rv_short_subgiant
+    This carton contains subgiant stars and lower red giant branch stars
+    originally in mwm_bin_rv_short
+
+    Shorthand name:  mwm_bin_rv_short_subgiant  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
+
+    Existing carton code :
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_rv.py
+
+    Simplified Description of selection criteria :
+
+    SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
+    g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
+    g.phot_g_mean_mag,g.phot_bp_mean_mag,
+    g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
+    FROM catalog
+    JOIN gaia_dr3_source AS g,twomass_psc AS tm
+
+    WHERE tm.h_m <10.8
+    AND tm.h_m > 7
+    AND g.logg_gspphot > 3.0
+    AND g.logg_gspphot < 4.1
+    AND g.teff_gspphot < 7000
+    AND g.teff_gspphot > 4500
+
+    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
+    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
+        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
+        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
+    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
+    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
+          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
+          OR tm.rd_flg='221'  OR tm.rd_flg='222')
+    AND g.parallax_error/g.parallax < 0.2
+
+    Gaia DR2 parameters to be converted to Gaia DR3 :
+    coordinates, proper motions, parallax
+
+    Return columns (again ok to copy from v0.5 version) : (See pseudo-SQL above)
+
+    Metadata:
+
+    can_offset = False
+    Cadence options: bright_18x1
+    priority: priority = 2525
+    Lead contact:  Nicholas Troup Nathan De Lee
+    """
+
+    name = 'mwm_bin_rv_short_subgiant'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 2525
+    can_offset = False
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(TwoMassPSC.h_m > 7,
+                            TwoMassPSC.h_m < 10.8,
+                            Gaia_DR3.logg_gspphot > 3.0,
+                            Gaia_DR3.logg_gspphot < 4.1,
+                            Gaia_DR3.teff_gspphot < 7000,
+                            Gaia_DR3.teff_gspphot > 4500)
+        return query
+
+
+class MWM_bin_rv_short_rgb_Carton(MWM_bin_rv_short_Base_Carton):
+    """5.1.27. mwm_bin_rv_short_rgb
+    This carton contains the red clump and higher red giant stars
+    originally in mwm_bin_rv_short
+
+    Shorthand name:  mwm_bin_rv_short_rgb  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
+
+    Existing carton code :
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_rv.py
+
+    Simplified Description of selection criteria :
+
+    SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
+    g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
+    g.phot_g_mean_mag,g.phot_bp_mean_mag,
+    g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
+    FROM catalog
+    JOIN gaia_dr3_source AS g,twomass_psc AS tm
+
+    WHERE tm.h_m<10.8
+    AND tm.h_m > 7
+    AND g.logg_gspphot > 1.2
+    AND g.logg_gspphot <= 3.0
+    AND g.teff_gspphot < 5500
+
+    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
+    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
+        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
+        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
+    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
+    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
+          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
+          OR tm.rd_flg='221'  OR tm.rd_flg='222')
+    AND g.parallax_error/g.parallax < 0.2
+
+    Gaia DR2 parameters to be converted to Gaia DR3 :
+    coordinates, proper motions, parallax
+
+    Return columns (again ok to copy from v0.5 version) : (See pseudo-SQL above)
+
+    Metadata:
+
+    can_offset = False
+    Cadence options: bright_18x1
+    priority: priority = 2535
+    Lead contact:  Nicholas Troup Nathan De Lee
+    """
+
+    name = 'mwm_bin_rv_short_rgb'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 2535
+    can_offset = False
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(TwoMassPSC.h_m > 7,
+                            TwoMassPSC.h_m < 10.8,
+                            Gaia_DR3.logg_gspphot > 1.2,
+                            Gaia_DR3.logg_gspphot <= 3.0,
+                            Gaia_DR3.teff_gspphot < 5500)
         return query
