@@ -352,11 +352,7 @@ mwm_rv_short_condition = (TwoMassPSC.j_msigcom <= 0.1,
                            (TwoMassPSC.rd_flg == '122') |
                            (TwoMassPSC.rd_flg == '212') |
                            (TwoMassPSC.rd_flg == '221') |
-                           (TwoMassPSC.rd_flg == '222')),
-                          TwoMassPSC.ext_key >> None,
-                          Gaia_DR3.parallax.is_null(False),
-                          Gaia_DR3.parallax > 0,
-                          Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2)
+                           (TwoMassPSC.rd_flg == '222')))
 
 
 class MWM_bin_rv_short_Base_Carton(BaseCarton):
@@ -461,7 +457,9 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
                         CatalogToTwoMassPSC.best >> True,
                         CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True,
-                        *mwm_rv_short_condition))
+                        TwoMassPSC.ext_key >> None,
+                        Gaia_DR3.parallax.is_null(False),
+                        Gaia_DR3.parallax > 0,))
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
@@ -611,7 +609,9 @@ class MWM_bin_rv_short_subgiant_Carton(MWM_bin_rv_short_Base_Carton):
                             Gaia_DR3.logg_gspphot > 3.0,
                             Gaia_DR3.logg_gspphot < 4.1,
                             Gaia_DR3.teff_gspphot < 7000,
-                            Gaia_DR3.teff_gspphot > 4500)
+                            Gaia_DR3.teff_gspphot > 4500,
+                            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
+                            *mwm_rv_short_condition)
         return query
 
 
@@ -679,5 +679,7 @@ class MWM_bin_rv_short_rgb_Carton(MWM_bin_rv_short_Base_Carton):
                             TwoMassPSC.h_m < 10.8,
                             Gaia_DR3.logg_gspphot > 1.2,
                             Gaia_DR3.logg_gspphot <= 3.0,
-                            Gaia_DR3.teff_gspphot < 5500)
+                            Gaia_DR3.teff_gspphot < 5500,
+                            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
+                            *mwm_rv_short_condition)
         return query
