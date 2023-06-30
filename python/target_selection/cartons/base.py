@@ -9,6 +9,7 @@
 import abc
 import datetime
 import inspect
+import re
 import warnings
 
 import numpy
@@ -1087,8 +1088,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 # improve robustness of cadence name pattern matching slightly:
                 try:
                     cadence_payload = [s for s in
-                                       self.cadence.split("_")
-                                       if 'x' in s][0].split('x')
+                                       self.cadence.split('_')
+                                       if re.match(r'[0-9]+x[0-9]+', s)][0].split('x')
                 except BaseException:
                     raise ("Uninterpretable cadence name: ", self.cadence)
 
@@ -1155,8 +1156,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
                         # *map(int, cadence.split('_')[-1].split('x'))))
                         # improve robustness of cadence name pattern matching slightly:
                         *map(int, [s for s in
-                                   cadence.split("_")
-                                   if 'x' in s][0].split('x'))))
+                                   cadence.split('_')
+                                   if re.match(r'[0-9]+x[0-9]+', s)][0].split('x'))))
                     for cadence in data[:, 1]
                 )
 
