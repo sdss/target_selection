@@ -358,9 +358,12 @@ mwm_rv_short_condition = (TwoMassPSC.j_msigcom <= 0.1,
 class MWM_bin_rv_short_Base_Carton(BaseCarton):
     # old class name MWM_RV_Short_FPS_Carton(BaseCarton):
     """
-    This base carton contains the first and third parts of the below query.
-    which are common to all the mmw_bin_rv_short* cartons
+    This base carton contains the first part of the below query.
+    which is common to all the mmw_bin_rv_short* cartons
     The middle part (i.e. the second part) is different for the different cartons.
+    The third part is not in mwm_bin_rv_short_mdwarf.
+    The third part is in mwm_bin_rv_short_subgiant and mwm_bin_rv_short_rgb.
+    The third part corresponds to mwm_rv_short_condition above.
 
     The below information is for 5.1.25. mwm_bin_rv_short_mdwarf.
     It is put here for reference for MWM_bin_rv_short_Base_Carton.
@@ -389,16 +392,6 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
     AND g.phot_rp_mean_mag-tm.k_m>2 and
     AND (g.phot_rp_mean_mag-tm.k_m)*2+0.6<tm.h_m-5*log10(1000/g.parallax)+5
 
-    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
-    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
-        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
-        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
-    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
-    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
-          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
-          OR tm.rd_flg='221'  OR tm.rd_flg='222')
-    AND g.parallax_error/g.parallax < 0.2
-
     Gaia DR2 parameters to be converted to Gaia DR3 :
     coordinates, proper motions, parallax
 
@@ -415,12 +408,6 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
     # Below query does not use SDSS_DR17_APOGEE_Allstarmerge.
     # There is gaia_dr3 in the below query so we have done
     # major modification of the old v0.5 query.
-
-    # SELECT catalog.catalogid, catalog.ra, catalog.dec, catalog.pmra, catalog.pmdec,
-    # g.ref_epoch, g.source_id, g.parallax, g.parallax_error,
-    # g.phot_g_mean_mag,g.phot_bp_mean_mag,
-    # g.phot_rp_mean_mag,g.logg_gspphot,g.teff_gspphot,tm.j_m,tm.h_m,tm.k_m
-    # FROM catalog
 
     def build_query(self, version_id, query_region=None):
         query = (Catalog
@@ -499,15 +486,10 @@ class MWM_bin_rv_short_mdwarf_Carton(MWM_bin_rv_short_Base_Carton):
     AND g.phot_rp_mean_mag-tm.k_m>2 and
     AND (g.phot_rp_mean_mag-tm.k_m)*2+0.6<tm.h_m-5*log10(1000/g.parallax)+5
 
-    AND (tm.j_msigcom <= 0.1 AND tm.h_msigcom<=0.1 AND tm.k_msigcom <= 0.1)
-    AND(tm.ph_qual= 'AAA' OR tm.ph_qual='AAB' OR tm.ph_qual='ABA'
-        OR tm.ph_qual='BAA' OR tm.ph_qual= 'ABB' OR tm.ph_qual='BAB'
-        OR tm.ph_qual='BBA' OR tm.ph_qual ='BBB')
-    AND tm.prox >= 6  AND tm.cc_flg='000' AND tm.gal_contam='000'
-    AND  (tm.rd_flg='111' OR tm.rd_flg='112'  OR tm.rd_flg='121'
-          OR tm.rd_flg='211'   OR tm.rd_flg='122'  OR tm.rd_flg='212'
-          OR tm.rd_flg='221'  OR tm.rd_flg='222')
-    AND g.parallax_error/g.parallax < 0.2
+    The mwm_bin_rv_short_mdwarf carton has the above query with only two parts.
+    The mwm_bin_rv_short_subgiant and mwm_bin_rv_short_rgb cartons
+    have queries with three parts
+    The third part corresponds to mwm_rv_short_condition above.
 
     Gaia DR2 parameters to be converted to Gaia DR3 :
     coordinates, proper motions, parallax
