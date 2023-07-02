@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.34 - June 30, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.34 cartons
+* add cartons: mwm_bin_rv_short_mdwarf, mwm_bin_rv_short_subgiant, mwm_bin_rv_short_rgb
+* remove carton mwm_bin_rv_short
+
 ## 1.0.33 - June 14, 2023
 
 ### Fixed
