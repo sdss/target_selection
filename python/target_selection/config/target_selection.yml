@@ -45,7 +45,7 @@
       fibermag_r_max_for_cadence2: 18.5
       gaia_g_mag_max_for_cadence2: 17.5
       cadence1: 'bright_1x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       priority_floor_dark: 1920
       priority_floor_bright: 2920
@@ -108,7 +108,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       spec_join_radius: 1.0
       spec_sn_thresh: 2.00
@@ -146,7 +146,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
       det_like_for_priority: 8.0
@@ -192,7 +192,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 12.0
       det_like_for_priority: 12.0
@@ -224,7 +224,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
       det_like_for_priority: 8.0
@@ -263,7 +263,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       priority_floor: 1690
     bhm_spiders_agn_sep:
@@ -281,7 +281,7 @@
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
       cadence1: 'bright_single_2x1'
-      cadence2: 'dark_flexible_1x2'
+      cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
       det_like_for_priority: 8.0
