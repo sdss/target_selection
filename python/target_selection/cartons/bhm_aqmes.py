@@ -44,7 +44,7 @@ radius_apo = 1.49  # degrees
 #  bhm_aqmes_bonus_dark
 #  bhm_aqmes_bonus_bright
 
-# how do we relate the cadence names in v0.5 to cadence names in v0?
+# how do we relate the cadence names in v0.5, 1.0 to cadence names in v0?
 
 cadence_map_v0p5_to_v0 = {
     'dark_10x4': 'bhm_aqmes_medium_10x4',
@@ -53,6 +53,15 @@ cadence_map_v0p5_to_v0 = {
     'dark_2x4': 'bhm_aqmes_wide_2x4',
     'dark_1x4': 'bhm_spiders_1x4',
     'bright_3x1': 'bhm_boss_bright_3x1',
+}
+cadence_map_v1_to_v0 = {
+    'dark_10x4': 'bhm_aqmes_medium_10x4',
+    'dark_10x4_4yr': 'bhm_aqmes_medium_10x4',
+    'dark_2x4': 'bhm_aqmes_wide_2x4',
+    'dark_1x4': 'bhm_spiders_1x4',
+    'dark_flexible_2x2': 'bhm_spiders_1x4',
+    'bright_3x1': 'bhm_boss_bright_3x1',
+    'bright_flexible_2x1': 'bhm_boss_bright_2x1',
 }
 
 
@@ -77,7 +86,7 @@ class BhmAqmesBaseCarton(BaseCarton):
     cadence_v0p5 = None
 
     # read the AQMES field centres from a fits file and convert to a list of dicts
-    def get_fieldlist(self):
+    def get_fieldlist(self, cadence_v1=None):
         stub = self.parameters.get('fieldlist', None)
         if stub is None or stub == '' or stub == 'None':
             return None
@@ -95,8 +104,8 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         # choose the correct subset of fields based on the cadence name and form a list of dicts
         # we have to use the v0 cadence names though
-        assert self.cadence_v0p5 in cadence_map_v0p5_to_v0
-        cadence_v0 = cadence_map_v0p5_to_v0[self.cadence_v0p5]
+        assert cadence_v1 in cadence_map_v1_to_v0
+        cadence_v0 = cadence_map_v1_to_v0[cadence_v1]
 
         try:
             fieldlist = [
@@ -145,8 +154,12 @@ class BhmAqmesBaseCarton(BaseCarton):
         instrument = peewee.Value(self.instrument)
         inertial = peewee.Value(self.inertial).cast('bool')
         opt_prov = peewee.Value('sdss_psfmag')
-        cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
-        cadence = peewee.Value(self.cadence_v0p5).cast('text')
+        # for v1 read cadence from param file rather than from class code
+        cadence_v1 = self.parameters.get('cadence', 'unknown')
+        cadence = peewee.Value(cadence_v1).cast('text')
+        cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[cadence_v1]).cast('text')
+        # cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
+        # cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
         priority = priority_floor
 
@@ -179,7 +192,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 inertial.alias('inertial'),
                 instrument.alias('instrument'),
                 cadence.alias('cadence'),
-                cadence_v0.alias('cadence_v0'),
+                cadence_v0.alias('cadence_v0'),  # extra
                 opt_prov.alias('optical_prov'),
                 magnitude_sdss_g.alias('g'),
                 magnitude_sdss_r.alias('r'),
@@ -223,7 +236,7 @@ class BhmAqmesBaseCarton(BaseCarton):
             .distinct([c.catalogid])   # avoid duplicates - trust the catalog
         )
 
-        query = self.append_spatial_query(query, self.get_fieldlist())
+        query = self.append_spatial_query(query, self.get_fieldlist(cadence_v1))
 
         return query
 
@@ -238,7 +251,7 @@ class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     AND   {target lies in spatial selection}
     '''
     name = 'bhm_aqmes_med'
-    cadence_v0p5 = 'dark_10x4_4yr'
+    # cadence_v0p5 = 'dark_10x4_4yr'
 
     # TD's note to self:
     # add something like the following if want to add carton-specific selections
@@ -256,7 +269,7 @@ class BhmAqmesMedFaintCarton(BhmAqmesBaseCarton):
     AND   {target lies in spatial selection}
     '''
     name = 'bhm_aqmes_med_faint'
-    cadence_v0p5 = 'dark_10x4_4yr'
+    # cadence_v0p5 = 'dark_10x4_4yr'
     program = 'bhm_filler'
 
 # -------AQMES medium section ----- #
@@ -289,7 +302,7 @@ class BhmAqmesWide2Carton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
     '''
     name = 'bhm_aqmes_wide2'
-    cadence_v0p5 = 'dark_2x4'
+    # cadence_v0p5 = 'dark_2x4'
 
 
 class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):
@@ -297,7 +310,7 @@ class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
     name = 'bhm_aqmes_wide2_faint'
-    cadence_v0p5 = 'dark_2x4'
+    # cadence_v0p5 = 'dark_2x4'
     program = 'bhm_filler'
 
 # -------AQMES wide section ------ #
@@ -311,7 +324,7 @@ class BhmAqmesBonusCoreCarton(BhmAqmesBaseCarton):
     {NO spatial constraint}
     '''
     name = 'bhm_aqmes_bonus_core'
-    cadence_v0p5 = 'dark_1x4'
+    # cadence_v0p5 = 'dark_1x4'
     program = 'bhm_filler'
 
 
@@ -320,7 +333,7 @@ class BhmAqmesBonusFaintCarton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
     '''
     name = 'bhm_aqmes_bonus_faint'
-    cadence_v0p5 = 'dark_1x4'
+    # cadence_v0p5 = 'dark_1x4'
     program = 'bhm_filler'
 
 
@@ -329,7 +342,7 @@ class BhmAqmesBonusBrightCarton(BhmAqmesBaseCarton):
     SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 14.0 AND 18.0
     '''
     name = 'bhm_aqmes_bonus_bright'
-    cadence_v0p5 = 'bright_3x1'
+    # cadence_v0p5 = 'bright_3x1'
     program = 'bhm_filler'
 
 # ------- AQMES bonus section ------ #

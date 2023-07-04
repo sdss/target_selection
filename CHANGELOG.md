@@ -1,4 +1,10 @@
 # Changelog
+## 1.0.36 - July 3, 2023
+
+### Fixed
+
+* Modify BHM cadences to be 'flexible' or 'single' equivalents.
+* Adjust method by which AQMES cartons aquire cadence choices
 
 ## 1.0.35 - July 2, 2023
 
