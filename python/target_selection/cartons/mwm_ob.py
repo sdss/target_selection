@@ -116,10 +116,10 @@ class MWM_OB_Carton(BaseCarton):
     def post_process(self, model):
         """Adjust priorities based on ``Teff_esphs``."""
 
-        (model.update({model.priority: 2700})
+        (model.update({model.priority: 1800})
          .where(model.teff_esphs > 10000)).execute()
 
-        (model.update({model.priority: 2910})
+        (model.update({model.priority: 2800})
          .where((model.teff_esphs < 10000) | (model.teff_esphs.is_null()))).execute()
 
 
@@ -145,7 +145,7 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
     instrument = 'BOSS'
     cadence = 'bright_3x1'
     program = 'mwm_ob'
-    priority = 2910
+    priority = 2700
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
