@@ -1,4 +1,4 @@
-'1.0.36':
+'1.0.37':
   xmatch_plan: 1.0.0
   cartons:
     - bhm_csc_boss
@@ -18,6 +18,9 @@
     - bhm_aqmes_bonus_core
     - bhm_aqmes_bonus_bright
     - bhm_aqmes_bonus_faint
+    - mwm_erosita_compact
+    - mwm_erosita_compact_deep
+    - mwm_erosita_stars
   parameters:
     bhm_csc_boss:
       g_psf_mag_min: 14.0
@@ -57,8 +60,8 @@
       hmag_min: 7.0
       hmag_max: 14.0
       hmag_max_for_cadence1: 12.0
-      cadence1: bright_1x1
-      cadence2: bright_single_3x1
+      cadence1: 'bright_1x1'
+      cadence2: 'bright_flexible_3x1'
       priority_floor: 2930
       value: 1.0
     bhm_gua_dark:
@@ -82,7 +85,7 @@
       spec_z_err_thresh: 0.01
       priority: 4040
       value: 0.5
-      cadence: 'bright_single_2x1'
+      cadence: 'bright_flexible_2x1'
     bhm_spiders_clusters_lsdr10:
       value_bcg: 5.0
       value_member: 1.0
@@ -107,7 +110,7 @@
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       spec_join_radius: 1.0
@@ -145,7 +148,7 @@
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
@@ -191,7 +194,7 @@
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 12.0
@@ -223,7 +226,7 @@
       gaia_rp_max_for_cadence2: 19.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
@@ -262,7 +265,7 @@
       gaia_rp_max_for_cadence1: 16.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       priority_floor: 1690
@@ -280,7 +283,7 @@
       gaia_rp_max_for_cadence2: 19.0
       gaia_g_mag_limit: 13.5
       gaia_rp_mag_limit: 13.5
-      cadence1: 'bright_single_2x1'
+      cadence1: 'bright_flexible_2x1'
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_2x2'
       det_like_min: 6.0
@@ -349,7 +352,24 @@
       fieldlist: None
       mag_i_min: 14.0
       mag_i_max: 18.0
-      cadence: 'bright_single_2x1'
+      cadence: 'bright_flexible_2x1'
+
+'1.0.36':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_ob_core
+    - mwm_ob_cepheids
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '10GB'
 
 '1.0.35':
   xmatch_plan: 1.0.0

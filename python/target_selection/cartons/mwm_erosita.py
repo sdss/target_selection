@@ -99,7 +99,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     mapper = 'MWM'
     can_offset = True
 
-    faintest_cadence = 'dark_1x2'
+    faintest_cadence = 'dark_flexible_2x1'
     faintest_priority = 1910
 
     def build_query(self, version_id, query_region=None):
@@ -108,7 +108,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             None,
             (
                 (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
-                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_1x2'),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_flexible_2x1'),
             ),
             self.faintest_cadence
         ).cast('text')
@@ -244,7 +244,7 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     program = 'mwm_erosita'
     mapper = 'MWM'
     can_offset = True
-    faintest_cadence = 'dark_1x2'
+    faintest_cadence = 'dark_flexible_2x1'
     faintest_priority = 1911
 
     def build_query(self, version_id, query_region=None):
@@ -253,7 +253,7 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
             None,
             (
                 (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
-                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_1x2'),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_flexible_2x1'),
             ),
             self.faintest_cadence
         ).cast('text')
@@ -322,5 +322,5 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
 
 class MWM_EROSITA_Compact_Deep_Carton(MWM_EROSITA_Compact_Carton):
     name = 'mwm_erosita_compact_deep'
-    faintest_cadence = 'dark_2x2'
+    faintest_cadence = 'dark_flexible_2x2'
     faintest_priority = 1910
