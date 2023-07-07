@@ -158,8 +158,8 @@ class BhmAqmesBaseCarton(BaseCarton):
         cadence_v1 = self.parameters.get('cadence', 'unknown')
         cadence = peewee.Value(cadence_v1).cast('text')
         cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[cadence_v1]).cast('text')
-        #cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
-        #cadence = peewee.Value(self.cadence_v0p5).cast('text')
+        # cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
+        # cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
         priority = priority_floor
 
