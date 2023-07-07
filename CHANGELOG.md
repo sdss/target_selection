@@ -1,10 +1,16 @@
 # Changelog
+
+## 1.0.37 - July 7, 2023
+
+### Fixed
+
+* Modify several BHM (+MWM-eROSITA) cadences to be 'flexible' equivalents.
+* Adjust method by which AQMES cartons aquire cadence choices
+
 ## 1.0.36 - July 4, 2023
 
 ### Fixed
 
-* Modify BHM cadences to be 'flexible' or 'single' equivalents.
-* Adjust method by which AQMES cartons aquire cadence choices
 * Update target_selection.yml for plan 1.0.36
 # change priority for mwm_ob_core and mwm_ob_cepheids
 
