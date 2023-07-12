@@ -6,6 +6,7 @@
 
 * Modify several BHM (+MWM-eROSITA) cadences to be 'flexible' equivalents.
 * Adjust method by which AQMES cartons aquire cadence choices
+* Update target_selection.yml for plan 1.0.37
 
 ## 1.0.36 - July 4, 2023
 
