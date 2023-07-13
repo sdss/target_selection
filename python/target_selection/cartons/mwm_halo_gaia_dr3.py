@@ -478,14 +478,14 @@ and parallax_over_error.
 Return columns:
 Metadata:
 
-mwm_halo_local_vtanhigh_apogee_single
-mwm_halo_local_vtanhigh_boss_single
-mwm_halo_local_vtanlow_boss_single
-mwm_halo_local_vtanlow_apogee_single
-mwm_halo_local_vtanhigh_apogee
-mwm_halo_local_vtanhigh_boss
-mwm_halo_local_vtanlow_boss
-mwm_halo_local_vtanlow_apogee
+mwm_halo_local_high_apogee_single
+mwm_halo_local_high_boss_single
+mwm_halo_local_low_boss_single
+mwm_halo_local_low_apogee_single
+mwm_halo_local_high_apogee
+mwm_halo_local_high_boss
+mwm_halo_local_low_boss
+mwm_halo_local_low_apogee
 Existing carton code: mwm_halo_local ← this forms the base catalog.
 The individual cartons below just change priority and cadence and instrument.
 Note: The mwm_halo_local_single and mwm_halo_local cartons differ only in cadence
@@ -501,7 +501,7 @@ absolute G mag (prioritizing MSTO stars), and parallax_over_error.
 Details here: Development of Pseudocode for v1.0 cartons#LocalHalo
 (note: consolidated the 11 priorities into 2)
 
-mwm_halo_local_vtanhigh_apogee_single
+mwm_halo_local_high_apogee_single
 vtan >= 150 and parallax_over_error >=10 OR
 vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
 G < 13
@@ -510,7 +510,7 @@ CADENCE: bright_1x1
 INSTRUMENT: APOGEE
 can_offset = True
 
-mwm_halo_local_vtanhigh_boss_single
+mwm_halo_local_high_boss_single
 vtan >= 150 and parallax_over_error >=10 OR
 vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
 G >= 13
@@ -519,7 +519,7 @@ CADENCE: bright_1x1
 INSTRUMENT: BOSS
 can_offset = True
 
-mwm_halo_local_vtanlow_apogee_single
+mwm_halo_local_low_apogee_single
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G < 13
 PRIORITY: 6501
@@ -527,7 +527,7 @@ CADENCE: bright_1x1
 INSTRUMENT: APOGEE
 can_offset = True
 
-mwm_halo_local_vtanlow_boss_single
+mwm_halo_local_low_boss_single
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G >= 13
 PRIORITY: 6501
@@ -535,7 +535,7 @@ CADENCE: bright_1x1
 INSTRUMENT: BOSS
 can_offset = True
 
-mwm_halo_local_vtanhigh_apogee
+mwm_halo_local_high_apogee
 vtan >= 150 and parallax_over_error >=10 OR
 vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
 G < 13
@@ -544,7 +544,7 @@ CADENCE: dark_flexible_2x1
 INSTRUMENT: APOGEE
 can_offset = True
 
-mwm_halo_local_vtanhigh_boss
+mwm_halo_local_high_boss
 vtan >= 150 and parallax_over_error >=10 OR
 vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
 G >= 13
@@ -553,7 +553,7 @@ CADENCE: dark_flexible_2x1
 INSTRUMENT: BOSS
 can_offset = True
 
-mwm_halo_local_vtanlow_apogee
+mwm_halo_local_low_apogee
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G < 13
 PRIORITY: 6501
@@ -561,7 +561,7 @@ CADENCE: dark_flexible_2x1
 INSTRUMENT: APOGEE
 can_offset = True
 
-mwm_halo_local_vtanlow_apogee
+mwm_halo_local_low_apogee
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G < 13
 PRIORITY: 6500
@@ -569,7 +569,7 @@ CADENCE: dark_flexible_2x1
 INSTRUMENT: APOGEE
 can_offset = True
 
-mwm_halo_local_vtanlow_boss
+mwm_halo_local_low_boss
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G >= 13
 PRIORITY: 6500
@@ -652,9 +652,9 @@ vtan > 150
         return query
 
 
-class MWM_halo_local_vtanhigh_apogee_single_Carton(MWM_halo_local_Base_Carton):
+class MWM_halo_local_high_apogee_single_Carton(MWM_halo_local_Base_Carton):
     """
-    mwm_halo_local_vtanhigh_apogee_single
+    mwm_halo_local_high_apogee_single
     vtan >= 150 and parallax_over_error >=10 OR
     vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
     G < 13
@@ -663,7 +663,7 @@ class MWM_halo_local_vtanhigh_apogee_single_Carton(MWM_halo_local_Base_Carton):
     INSTRUMENT: APOGEE
     can_offset = True
     """
-    name = 'mwm_halo_local_vtanhigh_apogee_single'
+    name = 'mwm_halo_local_high_apogee_single'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
@@ -681,13 +681,13 @@ class MWM_halo_local_vtanhigh_apogee_single_Carton(MWM_halo_local_Base_Carton):
     def post_process(self, model):
 
         cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_halo_local_vtanhigh_apogee_single " +
+            "update sandbox.temp_mwm_halo_local_high_apogee_single " +
             "set selected = false;")
 
         cursor = self.database.execute_sql(
             "select catalogid, vtan, " +
             "parallax_over_error, phot_g_mean_mag, parallax from " +
-            " sandbox.temp_mwm_halo_local_vtanhigh_apogee_single ;")
+            " sandbox.temp_mwm_halo_local_high_apogee_single ;")
 
         output = cursor.fetchall()
 
@@ -713,7 +713,7 @@ class MWM_halo_local_vtanhigh_apogee_single_Carton(MWM_halo_local_Base_Carton):
             if ((is_m_g_3to5 and (current_parallax_over_error < 10)) or
                (current_parallax_over_error >= 10)):
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_local_vtanhigh_apogee_single " +
+                    " update sandbox.temp_mwm_halo_local_high_apogee_single " +
                     " set selected = true " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
