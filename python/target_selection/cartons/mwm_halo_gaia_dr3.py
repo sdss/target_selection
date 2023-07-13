@@ -17,7 +17,6 @@ from sdssdb.peewee.sdss5db.catalogdb import (AllWise, Catalog,
                                              Xpfeh_gaia_dr3)
 
 from target_selection.cartons import BaseCarton
-# from target_selection.exceptions import TargetSelectionError
 
 
 # See catalog.py for the name of peewee model names corresponding
