@@ -556,14 +556,6 @@ can_offset = True
 mwm_halo_local_low_apogee
 vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
 G < 13
-PRIORITY: 6501
-CADENCE: dark_flexible_2x1
-INSTRUMENT: APOGEE
-can_offset = True
-
-mwm_halo_local_low_apogee
-vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
-G < 13
 PRIORITY: 6500
 CADENCE: dark_flexible_2x1
 INSTRUMENT: APOGEE
@@ -1061,7 +1053,7 @@ class MWM_halo_local_low_apogee_Carton(MWM_halo_local_Base_Carton):
     mwm_halo_local_low_apogee
     vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
     G < 13
-    PRIORITY: 6501
+    PRIORITY: 6500
     CADENCE: dark_flexible_2x1
     INSTRUMENT: APOGEE
     can_offset = True
@@ -1072,7 +1064,7 @@ class MWM_halo_local_low_apogee_Carton(MWM_halo_local_Base_Carton):
     cadence = 'dark_flexible_2x1'
     program = 'mwm_halo'
     mapper = 'MWM'
-    priority = 6501
+    priority = 6500
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
