@@ -710,13 +710,8 @@ class MWM_halo_local_vtanhigh_apogee_single_Carton(MWM_halo_local_Base_Carton):
             # We do not check for parallax_over_error > 5 since
             # the query in bas class build_query() has parallax_over_error > 5
 
-            if (is_m_g_3to5 and current_parallax_over_error < 10):
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_local_vtanhigh_apogee_single " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if (current_parallax_over_error >= 10):
+            if ((is_m_g_3to5 and (current_parallax_over_error < 10)) or
+               (current_parallax_over_error >= 10)):
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_halo_local_vtanhigh_apogee_single " +
                     " set selected = true " +
