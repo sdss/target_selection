@@ -561,7 +561,7 @@ Lead contact: Alexander Ji, Rene Andrae
 # ################# START TODO ####################
 
 # TODO
-class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_vmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_vmp_xp_boss_single
     G>13
@@ -588,7 +588,7 @@ class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
 
 
 # TODO
-class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_mp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_mp_xp_boss_single
     G>13
@@ -616,7 +616,7 @@ class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
 
 
 # TODO
-class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_nmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_nmp_xp_boss_single
     G>13
@@ -644,7 +644,7 @@ class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
 
 
 # TODO
-class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_vmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_vmp_xp_apogee_single
     G <=13
@@ -671,7 +671,7 @@ class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
 
 
 # TODO
-class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_mp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_mp_xp_apogee_single
     G <=13
@@ -699,7 +699,7 @@ class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
 
 
 # TODO
-class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_nmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
     """
     mwm_halo_nmp_xp_apogee_single
     G <=13
