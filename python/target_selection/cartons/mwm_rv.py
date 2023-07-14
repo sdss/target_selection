@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import math
+import random
 
 import peewee
 
@@ -462,9 +463,9 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
         return query
 
 
-class MWM_bin_rv_short_mdwarf_Carton(MWM_bin_rv_short_Base_Carton):
+class MWM_bin_rv_short_mdwarf_Base_Carton(MWM_bin_rv_short_Base_Carton):
     """ 5.1.25. mwm_bin_rv_short_mdwarf
-    This carton contains the M Dwarf stars originally in mwm_bin_rv_short
+    This base carton contains the M Dwarf stars originally in mwm_bin_rv_short
 
     Shorthand name:  mwm_bin_rv_short_mdwarf  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
 
@@ -504,15 +505,6 @@ class MWM_bin_rv_short_mdwarf_Carton(MWM_bin_rv_short_Base_Carton):
     Lead contact:  Nicholas Troup Nathan De Lee
     """
 
-    name = 'mwm_bin_rv_short_mdwarf'  # old name = 'mwm_rv_short_fps'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
-    priority = 2515
-    can_offset = False
-
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
@@ -525,8 +517,44 @@ class MWM_bin_rv_short_mdwarf_Carton(MWM_bin_rv_short_Base_Carton):
         return query
 
 
-class MWM_bin_rv_short_subgiant_Carton(MWM_bin_rv_short_Base_Carton):
-    """ 5.1.26. mwm_bin_rv_short_subgiant
+class MWM_bin_rv_short_mdwarf_apogee_18epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
+
+    name = 'mwm_bin_rv_short_mdwarf_apogee_18epoch'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_18x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 1305
+    can_offset = False
+
+
+class MWM_bin_rv_short_mdwarf_apogee_12epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
+
+    name = 'mwm_bin_rv_short_mdwarf_apogee_12epoch'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_12x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 1306
+    can_offset = False
+
+
+class MWM_bin_rv_short_mdwarf_apogee_08epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
+
+    name = 'mwm_bin_rv_short_mdwarf_apogee_08epoch'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_8x1'
+    program = 'mwm_bin'
+    mapper = 'MWM'
+    priority = 1307
+    can_offset = False
+
+
+class MWM_bin_rv_short_subgiant_apogee_Carton(MWM_bin_rv_short_Base_Carton):
+    """ 5.1.26. mwm_bin_rv_short_subgiant_apogee
     This carton contains subgiant stars and lower red giant branch stars
     originally in mwm_bin_rv_short
 
@@ -574,7 +602,7 @@ class MWM_bin_rv_short_subgiant_Carton(MWM_bin_rv_short_Base_Carton):
     Lead contact:  Nicholas Troup Nathan De Lee
     """
 
-    name = 'mwm_bin_rv_short_subgiant'
+    name = 'mwm_bin_rv_short_subgiant_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_18x1'
@@ -597,8 +625,8 @@ class MWM_bin_rv_short_subgiant_Carton(MWM_bin_rv_short_Base_Carton):
         return query
 
 
-class MWM_bin_rv_short_rgb_Carton(MWM_bin_rv_short_Base_Carton):
-    """5.1.27. mwm_bin_rv_short_rgb
+class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
+    """5.1.27. mwm_bin_rv_short_rgb_apogee
     This carton contains the red clump and higher red giant stars
     originally in mwm_bin_rv_short
 
@@ -645,7 +673,7 @@ class MWM_bin_rv_short_rgb_Carton(MWM_bin_rv_short_Base_Carton):
     Lead contact:  Nicholas Troup Nathan De Lee
     """
 
-    name = 'mwm_bin_rv_short_rgb'
+    name = 'mwm_bin_rv_short_rgb_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_18x1'
@@ -665,3 +693,29 @@ class MWM_bin_rv_short_rgb_Carton(MWM_bin_rv_short_Base_Carton):
                             Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
                             *mwm_rv_short_condition)
         return query
+
+    def post_process(self, model):
+        """
+        a set random seed, select 1/2 of the targets
+        """
+
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
+            "set selected = false;")
+
+        cursor = self.database.execute_sql(
+            "select catalogid from " +
+            " sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
+            " order by catalogid;")
+
+        output = cursor.fetchall()
+
+        random.seed(9123)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_random = random.randrange(2)
+            if (current_random == 0):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
+                    " set selected = true " +
+                    " where catalogid = " + str(current_catalogid) + ";")
