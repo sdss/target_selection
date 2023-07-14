@@ -210,12 +210,12 @@ G>13
 -1.5 < mh_xgboost <= -1.0
 INSTRUMENT: BOSS
 CADENCE: bright_1x1
-PRIORITY:
+PRIORITY: 6501
 
 mwm_halo_vmp_xp_apogee_single
 G <=13
 mh_xgboost <= -2.0
-INSTRUMENT: BOSS
+INSTRUMENT: APOGEE
 CADENCE: bright_1x1
 PRIORITY: 1851
 
@@ -351,7 +351,7 @@ class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
     -1.5 < mh_xgboost <= -1.0
     INSTRUMENT: BOSS
     CADENCE: bright_1x1
-    PRIORITY:
+    PRIORITY: 6501
     """
     name = 'mwm_halo_nmp_xp_boss_single'
     category = 'science'
@@ -359,7 +359,7 @@ class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
     cadence = 'bright_1x1'
     program = 'mwm_halo'
     mapper = 'MWM'
-    priority = None  # TODO
+    priority = 6501
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
