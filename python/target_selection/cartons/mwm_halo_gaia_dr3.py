@@ -558,7 +558,7 @@ Lead contact: Alexander Ji, Rene Andrae
         return query
 
 
-################## START TODO ####################
+# ################# START TODO ####################
 
 # TODO
 class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
@@ -585,6 +585,7 @@ class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
         query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
                             Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
         return query
+
 
 # TODO
 class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
@@ -613,6 +614,7 @@ class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
                             Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
         return query
 
+
 # TODO
 class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
@@ -640,6 +642,7 @@ class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
                             Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
         return query
 
+
 # TODO
 class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
@@ -665,6 +668,7 @@ class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
         query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
                             Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
         return query
+
 
 # TODO
 class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
@@ -692,6 +696,7 @@ class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
                             Xpfeh_gaia_dr3.mh_xgboost > -2,
                             Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
         return query
+
 
 # TODO
 class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
@@ -721,10 +726,9 @@ class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_dark_Base_Carton):
         return query
 
 
+# ################# END TODO ###########################
 
-################## END TODO ###########################
-
-#############################################################
+# ############################################################
 
 
 class MWM_halo_local_Base_Carton(BaseCarton):
