@@ -154,9 +154,19 @@ Lead contact: Alexander Ji
         return query
 
 
-class MWM_halo_mp_xp_Carton(BaseCarton):
+class MWM_halo_mp_xp_Base_Carton(BaseCarton):
     """  5.1.32.  mwm_halo_mp_xp
-Shorthand name: mwm_halo_mp_xp
+This base carton contains the first part of the below query.
+which is common to all the mmw_halo_mp_xp* cartons
+
+Shorthand name:
+mwm_halo_vmp_xp_boss_single
+mwm_halo_mp_xp_boss_single
+mwm_halo_nmp_xp_boss_single
+mwm_halo_vmp_xp_apogee_single
+mwm_halo_mp_xp_apogee_single
+mwm_halo_nmp_xp_apogee_single
+
 Existing carton code: N/A
 Simplified Description of selection criteria:
 XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
@@ -181,30 +191,50 @@ M_W1 > -0.01 * (5300 - teff_xgboost)
 where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
-Then there are three levels of priority based on selecting
-mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
-at three different priorities.
+mwm_halo_vmp_xp_boss_single
+G>13
+mh_xgboost <= -2.0
+INSTRUMENT: BOSS
+CADENCE: bright_1x1
+PRIORITY: 1851
 
-Return columns:
-Metadata:
-Priority: three levels
-2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
-2970 if -2.0 < mh_xgboost <= -1.5
-6090 if -1.5 < mh_xgboost <= -1.0
-Cadence: bright_1x1
-Instrument: BOSS for G>13, APOGEE for G<13
-can_offset = True
+mwm_halo_mp_xp_boss_single
+G>13
+ -2.0 < mh_xgboost <= -1.5
+INSTRUMENT: BOSS
+CADENCE: bright_1x1
+PRIORITY: 2971
+
+mwm_halo_nmp_xp_boss_single
+G>13
+-1.5 < mh_xgboost <= -1.0
+INSTRUMENT: BOSS
+CADENCE: bright_1x1
+PRIORITY: 6501
+
+mwm_halo_vmp_xp_apogee_single
+G <=13
+mh_xgboost <= -2.0
+INSTRUMENT: APOGEE
+CADENCE: bright_1x1
+PRIORITY: 1851
+
+mwm_halo_mp_xp_apogee_single
+G <=13
+-2.0 < mh_xgboost <= -1.5
+INSTRUMENT: APOGEE
+CADENCE: bright_1x1
+PRIORITY: 2971
+
+mwm_halo_nmp_xp_apogee_single
+G <=13
+-1.5 < mh_xgboost <= -1.0
+INSTRUMENT: APOGEE
+CADENCE: bright_1x1
+PRIORITY: 6501
+
 Lead contact: Alexander Ji, Rene Andrae
     """
-
-    name = 'mwm_halo_mp_xp'
-    category = 'science'
-    instrument = None  # instrument set in post_process()
-    cadence = 'bright_1x1'
-    program = 'mwm_halo'
-    mapper = 'MWM'
-    priority = None  # priority set in post_process()
-    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -214,6 +244,9 @@ Lead contact: Alexander Ji, Rene Andrae
 
         # w1mpro is of PostgreSQL numeric(5,3) type
         # Hence, below we cast it to real so that astropy can handle it.
+        #
+        # Cuts based on Gaia_DR3.phot_g_mean_mag and Xpfeh_gaia_dr3.mh_xgboost
+        # are done in the derived classes
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -243,7 +276,6 @@ Lead contact: Alexander Ji, Rene Andrae
                         Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500,
-                        Xpfeh_gaia_dr3.mh_xgboost < -1.0,
                         m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
                         m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
@@ -261,56 +293,173 @@ Lead contact: Alexander Ji, Rene Andrae
 
         return query
 
-    def post_process(self, model):
-        """
-        Priority: three levels
-        2100 if mh_xgboost <= -2.0 (TBA pending A/B test)
-        2970 if -2.0 < mh_xgboost <= -1.5
-        6090 if -1.5 < mh_xgboost <= -1.0
 
-        Instrument: BOSS for G>13, APOGEE for G<13
-        """
+class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_vmp_xp_boss_single
+    G>13
+    mh_xgboost <= -2.0
+    INSTRUMENT: BOSS
+    CADENCE: bright_1x1
+    PRIORITY: 1851
+    """
+    name = 'mwm_halo_vmp_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 1851
+    can_offset = True
 
-        cursor = self.database.execute_sql(
-            "select catalogid, mh_xgboost, phot_g_mean_mag from " +
-            " sandbox.temp_mwm_halo_mp_xp ;")
+    def build_query(self, version_id, query_region=None):
 
-        output = cursor.fetchall()
-
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_mh_xgboost = output[i][1]
-            current_phot_g_mean_mag = output[i][2]
-
-            # From query in build_query(), we have mh_xgboost < -1.0
-            if (current_mh_xgboost <= -2.0):
-                current_priority = 2100
-            elif ((current_mh_xgboost > -2.0) and
-                  (current_mh_xgboost <= -1.5)):
-                current_priority = 2970
-            else:
-                current_priority = 6090
-
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_mp_xp " +
-                    " set priority = '" + str(current_priority) + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if (current_phot_g_mean_mag < 13):
-                current_instrument = 'APOGEE'
-            else:
-                current_instrument = 'BOSS'
-
-            if current_instrument is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_mp_xp " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
+        return query
 
 
-class MWM_halo_mp_xp_dark_Carton(BaseCarton):
+class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_mp_xp_boss_single
+    G>13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: BOSS
+    CADENCE: bright_1x1
+    PRIORITY: 2971
+    """
+    name = 'mwm_halo_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 2971
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -2.0,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
+        return query
+
+
+class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_nmp_xp_boss_single
+    G>13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: BOSS
+    CADENCE: bright_1x1
+    PRIORITY: 6501
+    """
+    name = 'mwm_halo_nmp_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -1.5,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
+        return query
+
+
+class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_vmp_xp_apogee_single
+    G <=13
+    mh_xgboost <= -2.0
+    INSTRUMENT: APOGEE
+    CADENCE: bright_1x1
+    PRIORITY: 1851
+    """
+    name = 'mwm_halo_vmp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 1851
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
+        return query
+
+
+class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_mp_xp_apogee_single
+    G <=13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: APOGEE
+    CADENCE: bright_1x1
+    PRIORITY: 2971
+    """
+    name = 'mwm_halo_mp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 2971
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -2,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
+        return query
+
+
+class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
+    """
+    mwm_halo_nmp_xp_apogee_single
+    G <=13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: APOGEE
+    CADENCE: bright_1x1
+    PRIORITY: 6501
+    """
+    name = 'mwm_halo_nmp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -1.5,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
+        return query
+
+
+#######################################################
+class MWM_halo_mp_xp_dark_Base_Carton(BaseCarton):
     """   5.1.33. mwm_halo_mp_xp_dark
+This base carton contains the first part of the below query.
+which is common to all the mmw_halo_mp_xp_dark* cartons
+
 Shorthand name: mwm_halo_mp_xp_dark
 Existing carton code: N/A dark time cadence for mwm_halo_mp_xp_dark
 Simplified Description of selection criteria:
@@ -351,15 +500,6 @@ can_offset = True
 Lead contact: Alexander Ji, Rene Andrae
     """
 
-    name = 'mwm_halo_mp_xp_dark'
-    category = 'science'
-    instrument = None  # instrument set in post_process()
-    cadence = 'dark_1x2'
-    program = 'mwm_halo'
-    mapper = 'MWM'
-    priority = None  # priority set in post_process()
-    can_offset = True
-
     def build_query(self, version_id, query_region=None):
 
         # We use the lower case variable name m_w1 so that the
@@ -368,6 +508,9 @@ Lead contact: Alexander Ji, Rene Andrae
 
         # w1mpro is of PostgreSQL numeric(5,3) type
         # Hence, below we cast it to real so that astropy can handle it.
+        #
+        # Cuts based on Gaia_DR3.phot_g_mean_mag and Xpfeh_gaia_dr3.mh_xgboost
+        # are done in the derived classes
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
                          Gaia_DR3.source_id,
@@ -397,7 +540,6 @@ Lead contact: Alexander Ji, Rene Andrae
                         Gaia_DR3.parallax > 0,
                         Xpfeh_gaia_dr3.logg_xgboost < 4.0,
                         Xpfeh_gaia_dr3.teff_xgboost < 5500,
-                        Xpfeh_gaia_dr3.mh_xgboost < -1.0,
                         m_w1 > -0.3 - 0.006 * (5500 - Xpfeh_gaia_dr3.teff_xgboost),
                         m_w1 > -0.01 * (5300 - Xpfeh_gaia_dr3.teff_xgboost)))
 
@@ -415,52 +557,178 @@ Lead contact: Alexander Ji, Rene Andrae
 
         return query
 
-    def post_process(self, model):
-        """
-        Priority: three levels
-        2099 if mh_xgboost <= -2.0 (TBA pending A/B test)
-        2969 if -2.0 < mh_xgboost <= -1.5
-        6090 if -1.5 < mh_xgboost <= -1.0
 
-        Instrument: BOSS for G>13, APOGEE for G<13
-        """
+# ################# START TODO ####################
 
-        cursor = self.database.execute_sql(
-            "select catalogid, mh_xgboost, phot_g_mean_mag from " +
-            " sandbox.temp_mwm_halo_mp_xp_dark ;")
+# TODO
+class MWM_halo_vmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_vmp_xp_boss_single
+    G>13
+    mh_xgboost <= -2.0
+    INSTRUMENT: BOSS
+    CADENCE: 'dark_flexible_2x1'
+    PRIORITY: 1850
+    """
+    name = 'mwm_halo_vmp_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 1850
+    can_offset = True
 
-        output = cursor.fetchall()
+    def build_query(self, version_id, query_region=None):
 
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_mh_xgboost = output[i][1]
-            current_phot_g_mean_mag = output[i][2]
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
+        return query
 
-            # From query in build_query(), we have mh_xgboost < -1.0
-            if (current_mh_xgboost <= -2.0):
-                current_priority = 2099
-            elif ((current_mh_xgboost > -2.0) and
-                  (current_mh_xgboost <= -1.5)):
-                current_priority = 2969
-            else:
-                current_priority = 6090
 
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_mp_xp_dark " +
-                    " set priority = '" + str(current_priority) + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+# TODO
+class MWM_halo_mp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_mp_xp_boss_single
+    G>13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: BOSS
+    CADENCE: dark_flexible_2x1
+    PRIORITY: 2970
+    """
+    name = 'mwm_halo_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'dark_flexible_2x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 2970
+    can_offset = True
 
-            if (current_phot_g_mean_mag < 13):
-                current_instrument = 'APOGEE'
-            else:
-                current_instrument = 'BOSS'
+    def build_query(self, version_id, query_region=None):
 
-            if current_instrument is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_halo_mp_xp_dark " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -2.0,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
+        return query
+
+
+# TODO
+class MWM_halo_nmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_nmp_xp_boss_single
+    G>13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: BOSS
+    CADENCE: dark_flexible_2x1
+    PRIORITY: 6500
+    """
+    name = 'mwm_halo_nmp_xp_boss_single'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'dark_flexible_2x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 6500
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag > 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -1.5,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
+        return query
+
+
+# TODO
+class MWM_halo_vmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_vmp_xp_apogee_single
+    G <=13
+    mh_xgboost <= -2.0
+    INSTRUMENT: APOGEE
+    CADENCE: dark_flexible_2x1
+    PRIORITY: 1850
+    """
+    name = 'mwm_halo_vmp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'dark_flexible_2x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 1850
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
+        return query
+
+
+# TODO
+class MWM_halo_mp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_mp_xp_apogee_single
+    G <=13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: APOGEE
+    CADENCE: dark_flexible_2x1
+    PRIORITY: 2970
+    """
+    name = 'mwm_halo_mp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'dark_flexible_2x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 2970
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -2,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.5)
+        return query
+
+
+# TODO
+class MWM_halo_nmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+    """
+    mwm_halo_nmp_xp_apogee_single
+    G <=13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: APOGEE
+    CADENCE: dark_flexible_2x1
+    PRIORITY: 6500
+    """
+    name = 'mwm_halo_nmp_xp_apogee_single'
+    category = 'science'
+    instrument = 'APOGEE'
+    cadence = 'dark_flexible_2x1'
+    program = 'mwm_halo'
+    mapper = 'MWM'
+    priority = 6500
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_DR3.phot_g_mean_mag <= 13,
+                            Xpfeh_gaia_dr3.mh_xgboost > -1.5,
+                            Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
+        return query
+
+
+# ################# END TODO ###########################
+
+# ############################################################
 
 
 class MWM_halo_local_Base_Carton(BaseCarton):
