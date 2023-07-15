@@ -170,10 +170,10 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
 
     """
 
-    # cadence and priority must be None here so that
-    # they can be set in post_process().
-    # If cadence and priority are not None here then
-    # they cannot be set in post_process().
+    # cadence must be None here so that
+    # it can be set in post_process().
+    # If cadence is not None here then
+    # it cannot be set in post_process().
     name = 'mwm_bin_rv_long_apogee'  # old name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
