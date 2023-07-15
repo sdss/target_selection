@@ -135,10 +135,10 @@ mwm_rv_long_condition = (SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
 
 
 # old class name MWM_RV_Long_FPS_Carton(BaseCarton):
-class MWM_bin_rv_long_Carton(BaseCarton):
+class MWM_bin_rv_long_apogee_Carton(BaseCarton):
     """3.2.1.3. Long Baseline Targets for FPS
 
-    Shorthand name: mwm_bin_rv_long (old name mwm_rv_long_fps)
+    Shorthand name: mwm_bin_rv_long_apogee (old name mwm_rv_long_fps)
 
     Simplified Description of selection criteria:
      Select from long-baseline targets (above) with H brighter than 11.5
@@ -174,13 +174,13 @@ class MWM_bin_rv_long_Carton(BaseCarton):
     # they can be set in post_process().
     # If cadence and priority are not None here then
     # they cannot be set in post_process().
-    name = 'mwm_bin_rv_long'  # old name = 'mwm_rv_long_fps'
+    name = 'mwm_bin_rv_long_apogee'  # old name = 'mwm_rv_long_fps'
     category = 'science'
     instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
     program = 'mwm_bin'
     mapper = 'MWM'
-    priority = None  # priority is set in post_process()
+    priority = 1810
     can_offset = True
 
     # peewee Model name ---> postgres table name
@@ -242,22 +242,13 @@ class MWM_bin_rv_long_Carton(BaseCarton):
         if <nn> is less than 6 then
             set <nn> = 6
 
-        Teff means teff_avg of SDSS_DR17_APOGEE_Allstarmerge.
-        logg measn logg_avg of SDSS_DR17_APOGEE_Allstarmerge.
-        For priority:
-        IF Teff < 4500 AND logg > 4.0 THEN priority = 2510
-        ELSE IF 3.5 <= logg <= 4.0 THEN priority = 2520
-        ELSE IF logg < 3.5 THEN priority = 2530
-        ELSE priority = 2540
         """
-
-        default_priority = 2540
 
         # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
         # old name was teff, logg
         cursor = self.database.execute_sql(
             "select catalogid, nvisits, h, teff_avg, logg_avg from " +
-            " sandbox.temp_mwm_bin_rv_long ;")
+            " sandbox.temp_mwm_bin_rv_long_apogee ;")
 
         output = cursor.fetchall()
 
@@ -265,8 +256,8 @@ class MWM_bin_rv_long_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_nvisits = output[i][1]
             current_h = output[i][2]
-            current_teff_avg = output[i][3]
-            current_logg_avg = output[i][4]
+            # current_teff_avg = output[i][3]
+            # current_logg_avg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
             if (nn < 6):
@@ -279,27 +270,8 @@ class MWM_bin_rv_long_Carton(BaseCarton):
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_long " +
+                    " update sandbox.temp_mwm_bin_rv_long_apogee " +
                     " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
-
-            if (current_logg_avg is not None):
-                if ((current_teff_avg is not None) and (current_teff_avg < 4500) and
-                   (current_logg_avg > 4.0)):
-                    current_priority = 2510
-                elif ((3.5 <= current_logg_avg) and (current_logg_avg <= 4.0)):
-                    current_priority = 2520
-                elif (current_logg_avg < 3.5):
-                    current_priority = 2530
-                else:
-                    current_priority = default_priority
-            else:
-                current_priority = default_priority
-
-            if current_priority is not None:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_long " +
-                    " set priority = " + str(current_priority) +
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
