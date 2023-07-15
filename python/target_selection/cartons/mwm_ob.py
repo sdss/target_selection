@@ -24,8 +24,42 @@ from target_selection.cartons import BaseCarton
 TMBN = Gaia_DR2_TwoMass_Best_Neighbour
 
 
-class MWM_OB_Carton(BaseCarton):
-    """Milky Way OB stars.
+class MWM_OB_Core_Base_Carton(BaseCarton):
+    """
+    This base carton contains the part of the below query.
+    which is common to all the mmw_ob_core cartons
+
+    The derived cartons are as below.
+
+    mwm_ob_core_boss
+    Teff_esphs > = 10000
+    CADENCE: bright_3x1
+    PRIORITY: 1800
+    INSTRUMENT:BOSS
+    can_offset=True
+
+    mwm_ob_core_boss_single
+    Teff_esphs > = 10000
+    CADENCE: bright_1x1
+    PRIORITY: 1801
+    INSTRUMENT:BOSS
+    can_offset=True
+
+    mwm_astar_core_boss
+    Teff_esphs < 10000
+    CADENCE: bright_3x1
+    PRIORITY: 2800
+    INSTRUMENT:BOSS
+    can_offset=True
+
+    mwm_astar_core_boss_single
+    Teff_esphs < 10000
+    CADENCE: bright_1x1
+    PRIORITY: 2801
+    INSTRUMENT:BOSS
+    can_offset=True
+
+    Milky Way OB stars.
 
     Definition: Select all the hot, young stars in Gaia and 2MASS  with M_K < 0
     mag (M ~ 4 M_Sun) with Gaia G < 16 mag in the Milky Way, then subsampled
@@ -54,15 +88,6 @@ class MWM_OB_Carton(BaseCarton):
         - ks_m is the same as twomass_psc.h_m.
 
     """
-
-    name = 'mwm_ob_core'
-    mapper = 'MWM'
-    category = 'science'
-    instrument = 'BOSS'
-    cadence = 'bright_3x1'
-    program = 'mwm_ob'
-    priority = None
-    can_offset = True
 
     def build_query(self, version_id, query_region=None):
 
@@ -113,17 +138,112 @@ class MWM_OB_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, model):
-        """Adjust priorities based on ``Teff_esphs``."""
 
-        (model.update({model.priority: 1800})
-         .where(model.teff_esphs > 10000)).execute()
+class MWM_OB_Core_boss_Carton(MWM_OB_Core_Base_Carton):
+    """
+    mwm_ob_core_boss
+    Teff_esphs > = 10000
+    CADENCE: bright_3x1
+    PRIORITY: 1800
+    INSTRUMENT:BOSS
+    can_offset=True
+    """
 
-        (model.update({model.priority: 2800})
-         .where((model.teff_esphs < 10000) | (model.teff_esphs.is_null()))).execute()
+    name = 'mwm_ob_core_boss'
+    mapper = 'MWM'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
+    program = 'mwm_ob'
+    priority = 1800
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs >= 10000)
+        return query
 
 
-class MWM_OB_Cepheids_Carton(BaseCarton):
+class MWM_OB_Core_boss_single_Carton(MWM_OB_Core_Base_Carton):
+    """
+    mwm_ob_core_boss_single
+    Teff_esphs > = 10000
+    CADENCE: bright_1x1
+    PRIORITY: 1801
+    INSTRUMENT:BOSS
+    can_offset=True
+    """
+
+    name = 'mwm_ob_core_boss_single'
+    mapper = 'MWM'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_ob'
+    priority = 1801
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs >= 10000)
+        return query
+
+
+class MWM_astar_Core_boss_Carton(MWM_OB_Core_Base_Carton):
+    """
+    mwm_astar_core_boss
+    Teff_esphs < 10000
+    CADENCE: bright_3x1
+    PRIORITY: 2800
+    INSTRUMENT:BOSS
+    can_offset=True
+    """
+
+    name = 'mwm_astar_core_boss'
+    mapper = 'MWM'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_3x1'
+    program = 'mwm_ob'
+    priority = 2800
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs < 10000)
+        return query
+
+
+class MWM_astar_Core_boss_single_Carton(MWM_OB_Core_Base_Carton):
+    """
+    mwm_astar_core_boss_single
+    Teff_esphs < 10000
+    CADENCE: bright_1x1
+    PRIORITY: 2801
+    INSTRUMENT:BOSS
+    can_offset=True
+    """
+
+    name = 'mwm_astar_core_boss_single'
+    mapper = 'MWM'
+    category = 'science'
+    instrument = 'BOSS'
+    cadence = 'bright_1x1'
+    program = 'mwm_ob'
+    priority = 2801
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+
+        query = super().build_query(version_id, query_region)
+        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs < 10000)
+        return query
+
+
+class MWM_OB_Cepheids_boss_Carton(BaseCarton):
     """Milky Way Cepheids.
 
     Definition: List of Cepheids compiled by Inno et al. (in prep). The
@@ -139,13 +259,13 @@ class MWM_OB_Cepheids_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_ob_cepheids'
+    name = 'mwm_ob_cepheids_boss'
     mapper = 'MWM'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_3x1'
     program = 'mwm_ob'
-    priority = 2700
+    priority = 1800
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
