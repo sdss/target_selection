@@ -1,3 +1,51 @@
+'1.0.39':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_ob_core_boss
+    - mwm_ob_core_boss_single
+    - mwm_astar_core_boss
+    - mwm_astar_core_boss_single
+    - mwm_ob_cepheids_boss
+    - mwm_bin_rv_long_apogee
+    - mwm_bin_rv_short_mdwarf_apogee_18epoch
+    - mwm_bin_rv_short_mdwarf_apogee_12epoch
+    - mwm_bin_rv_short_mdwarf_apogee_08epoch
+    - mwm_bin_rv_short_subgiant_apogee
+    - mwm_bin_rv_short_rgb_apogee
+    - mwm_halo_distant_rrl_single
+    - mwm_halo_distant_rrl
+    - mwm_halo_vmp_xp_boss_single
+    - mwm_halo_xp_boss_single
+    - mwm_halo_nmp_xp_boss_single
+    - mwm_halo_vmp_xp_apogee_single
+    - mwm_halo_mp_xp_apogee_single
+    - mwm_halo_nmp_xp_apogee_single
+    - mwm_halo_vmp_xp_boss
+    - mwm_halo_mp_xp_boss
+    - mwm_halo_nmp_xp_boss
+    - mwm_halo_vmp_xp_apogee
+    - mwm_halo_mp_xp_apogee
+    - mwm_halo_nmp_xp_apogee
+    - mwm_halo_local_high_apogee_single
+    - mwm_halo_local_high_boss_single
+    - mwm_halo_local_low_apogee_single
+    - mwm_halo_local_low_boss_single
+    - mwm_halo_local_high_apogee
+    - mwm_halo_local_high_boss
+    - mwm_halo_local_low_apogee
+    - mwm_halo_local_low_boss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '10GB'
+
 '1.0.38':
   xmatch_plan: 1.0.0
   cartons:

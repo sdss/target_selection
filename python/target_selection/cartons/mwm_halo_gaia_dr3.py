@@ -24,9 +24,9 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-class MWM_halo_distant_rrl_single_Carton(BaseCarton):
-    """ 5.1.33. mwm_halo_distant_rrl_single
-Shorthand name: mwm_halo_distant_rrl_single
+class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
+    """ 5.1.33. mwm_halo_distant_rrl_boss_single
+Shorthand name: mwm_halo_distant_rrl_boss_single
 Existing carton code: replaces open fiber 2020 28c
 Simplified Description of selection criteria:
 all Gaia DR3 RRLs with BP < 18.8.
@@ -44,7 +44,7 @@ can_offset = True
 Lead contact: Alexander Ji
     """
 
-    name = 'mwm_halo_distant_rrl_single'
+    name = 'mwm_halo_distant_rrl_boss_single'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_1x1'
@@ -89,9 +89,9 @@ Lead contact: Alexander Ji
         return query
 
 
-class MWM_halo_distant_rrl_Carton(BaseCarton):
-    """  5.1.34. mwm_halo_distant_rrl
-Shorthand name: mwm_halo_distant_rrl
+class MWM_halo_distant_rrl_boss_Carton(BaseCarton):
+    """  5.1.34. mwm_halo_distant_rrl_boss
+Shorthand name: mwm_halo_distant_rrl_boss
 Existing carton code:
 Simplified Description of selection criteria:
 all Gaia DR3 RRLs with BP < 18.8.
@@ -109,7 +109,7 @@ can_offset = True
 Lead contact: Alexander Ji
     """
 
-    name = 'mwm_halo_distant_rrl'
+    name = 'mwm_halo_distant_rrl_boss'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'dark_flexible_2x1'
