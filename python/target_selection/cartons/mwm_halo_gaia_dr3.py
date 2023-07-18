@@ -24,9 +24,9 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-class MWM_halo_distant_rrl_Carton(BaseCarton):
-    """ 5.1.30. mwm_halo_distant_rrl
-Shorthand name: mwm_halo_distant_rrl
+class MWM_halo_distant_rrl_single_Carton(BaseCarton):
+    """ 5.1.33. mwm_halo_distant_rrl_single
+Shorthand name: mwm_halo_distant_rrl_single
 Existing carton code: replaces open fiber 2020 28c
 Simplified Description of selection criteria:
 all Gaia DR3 RRLs with BP < 18.8.
@@ -37,20 +37,20 @@ INNER JOIN gaiadr3.gaia_source_lite as b ON a.source_id = b.source_id
 WHERE b.phot_bp_mean_mag < 18.8
 Return columns:
 Metadata:
-Priority: 3050 (may change after A/B tests)
+Priority: 3051
 Cadence: bright_1x1
 Instrument: BOSS
 can_offset = True
 Lead contact: Alexander Ji
     """
 
-    name = 'mwm_halo_distant_rrl'
+    name = 'mwm_halo_distant_rrl_single'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_1x1'
     program = 'mwm_halo'
     mapper = 'MWM'
-    priority = 3050
+    priority = 3051
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -89,9 +89,9 @@ Lead contact: Alexander Ji
         return query
 
 
-class MWM_halo_distant_rrl_dark_Carton(BaseCarton):
-    """  5.1.31. mwm_halo_distant_rrl_dark
-Shorthand name: mwm_halo_distant_rrl_dark
+class MWM_halo_distant_rrl_Carton(BaseCarton):
+    """  5.1.34. mwm_halo_distant_rrl
+Shorthand name: mwm_halo_distant_rrl
 Existing carton code:
 Simplified Description of selection criteria:
 all Gaia DR3 RRLs with BP < 18.8.
@@ -102,20 +102,20 @@ INNER JOIN gaiadr3.gaia_source_lite as b ON a.source_id = b.source_id
 WHERE b.phot_bp_mean_mag < 18.8
 Return columns:
 Metadata:
-Priority: 3049 (may change after A/B tests)
-Cadence: dark_1x2
+Priority: 3050
+Cadence: dark_flexible_2x1
 Instrument: BOSS
 can_offset = True
 Lead contact: Alexander Ji
     """
 
-    name = 'mwm_halo_distant_rrl_dark'
+    name = 'mwm_halo_distant_rrl'
     category = 'science'
     instrument = 'BOSS'
-    cadence = 'dark_1x2'
+    cadence = 'dark_flexible_2x1'
     program = 'mwm_halo'
     mapper = 'MWM'
-    priority = 3049
+    priority = 3050
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
