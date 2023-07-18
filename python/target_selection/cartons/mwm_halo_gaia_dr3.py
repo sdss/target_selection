@@ -155,7 +155,7 @@ Lead contact: Alexander Ji
 
 
 class MWM_halo_mp_xp_Base_Carton(BaseCarton):
-    """  5.1.32.  mwm_halo_mp_xp
+    """  5.1.35  mwm_halo_mp_xp
 This base carton contains the first part of the below query.
 which is common to all the mmw_halo_mp_xp* cartons
 
@@ -232,6 +232,8 @@ G <=13
 INSTRUMENT: APOGEE
 CADENCE: bright_1x1
 PRIORITY: 6501
+
+can_offset = True
 
 Lead contact: Alexander Ji, Rene Andrae
     """
@@ -454,13 +456,19 @@ class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
         return query
 
 
-#######################################################
 class MWM_halo_mp_xp_dark_Base_Carton(BaseCarton):
-    """   5.1.33. mwm_halo_mp_xp_dark
+    """   5.1.36. mwm_halo_mp_xp_dark
 This base carton contains the first part of the below query.
 which is common to all the mmw_halo_mp_xp_dark* cartons
 
-Shorthand name: mwm_halo_mp_xp_dark
+Shorthand name:
+mwm_halo_vmp_xp_boss
+mwm_halo_mp_xp_boss
+mwm_halo_nmp_xp_boss
+mwm_halo_vmp_xp_apogee
+mwm_halo_mp_xp_apogee
+mwm_halo_nmp_xp_apogee
+
 Existing carton code: N/A dark time cadence for mwm_halo_mp_xp_dark
 Simplified Description of selection criteria:
 XG Boost on XP spectra + WISE photometry to determine red giant metallicities.
@@ -485,18 +493,50 @@ M_W1 > -0.01 * (5300 - teff_xgboost)
 where M_W1 = w1mpro + 5 log10(parallax/100)
 (note: solve these equations so that this is a cut on parallax).
 
-Then there are three levels of priority based on selecting
-mh_xgboost <= -2.0, -2.0 < mh_xgboost <= -1.5, -1.5 < mh_xgboost <= -1.0
-at three different priorities.
-Return columns:
-Metadata:
-Priority:
-2099 if mh_xgboost <= -2.0 (TBA pending A/B test)
-2969 if -2.0 < mh_xgboost <= -1.5
-6090 if -1.5 < mh_xgboost <= -1.0
-Cadence: dark_1x2
-Instrument: BOSS for G>13, APOGEE for G<13
+mwm_halo_vmp_xp_boss
+G>13
+mh_xgboost <= -2.0
+INSTRUMENT: BOSS
+CADENCE: dark_flexible_2x1
+PRIORITY: 1850
+
+mwm_halo_mp_xp_boss
+G>13
+ -2.0 < mh_xgboost <= -1.5
+INSTRUMENT: BOSS
+CADENCE: dark_flexible_2x1
+PRIORITY: 2970
+
+mwm_halo_nmp_xp_boss
+G>13
+-1.5 < mh_xgboost <= -1.0
+INSTRUMENT: BOSS
+CADENCE: dark_flexible_2x1
+PRIORITY: 6500
+
+mwm_halo_vmp_xp_apogee
+G <=13
+mh_xgboost <= -2.0
+INSTRUMENT: APOGEE
+CADENCE: dark_flexible_2x1
+PRIORITY: 1850
+
+mwm_halo_mp_xp_apogee
+G <=13
+-2.0 < mh_xgboost <= -1.5
+INSTRUMENT: APOGEE
+CADENCE: dark_flexible_2x1
+PRIORITY: 2970
+
+mwm_halo_nmp_xp_apogee
+G <=13
+-1.5 < mh_xgboost <= -1.0
+INSTRUMENT: APOGEE
+CADENCE: dark_flexible_2x1
+PRIORITY: 6500
+
 can_offset = True
+
 Lead contact: Alexander Ji, Rene Andrae
     """
 
@@ -558,22 +598,19 @@ Lead contact: Alexander Ji, Rene Andrae
         return query
 
 
-# ################# START TODO ####################
-
-# TODO
-class MWM_halo_vmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_vmp_xp_boss_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_vmp_xp_boss_single
+    mwm_halo_vmp_xp_boss
     G>13
     mh_xgboost <= -2.0
     INSTRUMENT: BOSS
-    CADENCE: 'dark_flexible_2x1'
+    CADENCE: dark_flexible_2x1
     PRIORITY: 1850
     """
-    name = 'mwm_halo_vmp_xp_boss_single'
+    name = 'mwm_halo_vmp_xp_boss'
     category = 'science'
     instrument = 'BOSS'
-    cadence = 'bright_1x1'
+    cadence = 'dark_flexible_2x1'
     program = 'mwm_halo'
     mapper = 'MWM'
     priority = 1850
@@ -587,17 +624,16 @@ class MWM_halo_vmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
         return query
 
 
-# TODO
-class MWM_halo_mp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_mp_xp_boss_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_mp_xp_boss_single
+    mwm_halo_mp_xp_boss
     G>13
     -2.0 < mh_xgboost <= -1.5
     INSTRUMENT: BOSS
     CADENCE: dark_flexible_2x1
     PRIORITY: 2970
     """
-    name = 'mwm_halo_xp_boss_single'
+    name = 'mwm_halo_mp_xp_boss'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'dark_flexible_2x1'
@@ -615,17 +651,16 @@ class MWM_halo_mp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
         return query
 
 
-# TODO
-class MWM_halo_nmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_nmp_xp_boss_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_nmp_xp_boss_single
+    mwm_halo_nmp_xp_boss
     G>13
     -1.5 < mh_xgboost <= -1.0
     INSTRUMENT: BOSS
     CADENCE: dark_flexible_2x1
     PRIORITY: 6500
     """
-    name = 'mwm_halo_nmp_xp_boss_single'
+    name = 'mwm_halo_nmp_xp_boss'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'dark_flexible_2x1'
@@ -643,17 +678,16 @@ class MWM_halo_nmp_xp_boss_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
         return query
 
 
-# TODO
-class MWM_halo_vmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_vmp_xp_apogee_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_vmp_xp_apogee_single
+    mwm_halo_vmp_xp_apogee
     G <=13
     mh_xgboost <= -2.0
     INSTRUMENT: APOGEE
     CADENCE: dark_flexible_2x1
     PRIORITY: 1850
     """
-    name = 'mwm_halo_vmp_xp_apogee_single'
+    name = 'mwm_halo_vmp_xp_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'dark_flexible_2x1'
@@ -670,17 +704,16 @@ class MWM_halo_vmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton)
         return query
 
 
-# TODO
-class MWM_halo_mp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_mp_xp_apogee_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_mp_xp_apogee_single
+    mwm_halo_mp_xp_apogee
     G <=13
     -2.0 < mh_xgboost <= -1.5
     INSTRUMENT: APOGEE
     CADENCE: dark_flexible_2x1
     PRIORITY: 2970
     """
-    name = 'mwm_halo_mp_xp_apogee_single'
+    name = 'mwm_halo_mp_xp_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'dark_flexible_2x1'
@@ -698,17 +731,16 @@ class MWM_halo_mp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
         return query
 
 
-# TODO
-class MWM_halo_nmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton):
+class MWM_halo_nmp_xp_apogee_Carton(MWM_halo_mp_xp_dark_Base_Carton):
     """
-    mwm_halo_nmp_xp_apogee_single
+    mwm_halo_nmp_xp_apogee
     G <=13
     -1.5 < mh_xgboost <= -1.0
     INSTRUMENT: APOGEE
     CADENCE: dark_flexible_2x1
     PRIORITY: 6500
     """
-    name = 'mwm_halo_nmp_xp_apogee_single'
+    name = 'mwm_halo_nmp_xp_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'dark_flexible_2x1'
@@ -724,11 +756,6 @@ class MWM_halo_nmp_xp_apogee_single_Carton_todo(MWM_halo_mp_xp_dark_Base_Carton)
                             Xpfeh_gaia_dr3.mh_xgboost > -1.5,
                             Xpfeh_gaia_dr3.mh_xgboost <= -1.0)
         return query
-
-
-# ################# END TODO ###########################
-
-# ############################################################
 
 
 class MWM_halo_local_Base_Carton(BaseCarton):
