@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.39 - July 18, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.39
+* Update mwm_bin_rv*, mwm_ob*, mwm_halo* cartons
+
 ## 1.0.38 - July 12, 2023
 
 ### Fixed
