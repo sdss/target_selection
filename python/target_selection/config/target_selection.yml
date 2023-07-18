@@ -12,8 +12,8 @@
     - mwm_bin_rv_short_mdwarf_apogee_08epoch
     - mwm_bin_rv_short_subgiant_apogee
     - mwm_bin_rv_short_rgb_apogee
-    - mwm_halo_distant_rrl_single
-    - mwm_halo_distant_rrl
+    - mwm_halo_distant_rrl_boss_single
+    - mwm_halo_distant_rrl_boss
     - mwm_halo_vmp_xp_boss_single
     - mwm_halo_xp_boss_single
     - mwm_halo_nmp_xp_boss_single
