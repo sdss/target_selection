@@ -139,7 +139,7 @@ class MWM_Galactic_Core_Dist_apogee_Carton(BaseCarton):
     plane and bulge). Select sources brighter than H<11 AND ((G-H) > 5 OR
     Gaia non-detection).
 
-    v0.5 only had mwm_galactic_core 
+    v0.5 only had mwm_galactic_core
     (there was no mwm_galactic_core_dist_apogee in v0.5)
 
     v1.0

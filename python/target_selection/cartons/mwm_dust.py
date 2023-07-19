@@ -369,7 +369,8 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
 class MWM_Dust_Core_Dist_apogee_Carton(MWM_Dust_Core_apogee_Carton):
     """MWM Dust Core Dist apogee Carton.
 
-    Same definition as the MWM_Dust_Core_apogee_Carton carton but subsampling using the mwm_galactic_core_dist_apogee.
+    Same definition as the MWM_Dust_Core_apogee_Carton carton but
+     subsampling using the mwm_galactic_core_dist_apogee.
 
     """
 

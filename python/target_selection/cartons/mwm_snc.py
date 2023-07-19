@@ -142,7 +142,7 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
 
         # G > 16 => cadence = dark_flexible_1x2
         model.update(cadence='dark_flexible_1x2').where(model.phot_g_mean_mag > 16).execute()
-        
+
         return model
 
 
