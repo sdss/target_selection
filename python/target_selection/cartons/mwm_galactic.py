@@ -15,6 +15,10 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
 from target_selection.cartons import BaseCarton
 
 
+# The below MWM_Galactic_Core_apogee_Carton carton is obsolete.
+# Do not run this carton for v1.0.
+# However, do not delete this carton since
+# this carton is referred to by the MWM_Galactic_Core_Dist_apogee_Carton
 class MWM_Galactic_Core_apogee_Carton(BaseCarton):
     """Galactic Genesis carton.
 

@@ -129,6 +129,13 @@ def ghselect(data):
     )
 
 
+# The below MWM_Dust_Core_apogee_Carton carton is obsolete.
+# Do not run this carton for v1.0.
+# However, do not delete this carton since
+# this carton is the base carton for MWM_Dust_Core_Dist_apogee_Carton.
+# This carton requires that the MWM_Galatic_Core_apogee_Carton
+# has been run before it in the same target_selection_plan
+# in target_selection.yml
 class MWM_Dust_Core_apogee_Carton(BaseCarton):
     """MWM Dust Core apogee Carton.
 
@@ -366,6 +373,10 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         return
 
 
+# The below MWM_Dust_Core_Dist_apogee_Carton carton requires
+# that the MWM_Galatic_Core_Dist_apogee_Carton
+# has been run before this carton in the same target_selection_plan
+# in target_selection.yml
 class MWM_Dust_Core_Dist_apogee_Carton(MWM_Dust_Core_apogee_Carton):
     """MWM Dust Core Dist apogee Carton.
 
