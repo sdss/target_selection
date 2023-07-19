@@ -101,7 +101,7 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 1805
+    priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -125,7 +125,7 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     program = 'mwm_snc'
     mapper = 'MWM'
     instrument = 'BOSS'
-    priority = 1800
+    priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -137,12 +137,12 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
 
     def post_process(self, model, **kwargs):
 
-        # G > 16 => cadence = dark_2x1
-        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+        # G < 16 => cadence = bright_flexible_1x2
+        model.update(cadence='bright_flexible_1x2').where(model.phot_g_mean_mag < 16).execute()
 
-        # G < 16 => cadence = bright_2x1
-        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
-
+        # G > 16 => cadence = dark_flexible_1x2
+        model.update(cadence='dark_flexible_1x2').where(model.phot_g_mean_mag > 16).execute()
+        
         return model
 
 

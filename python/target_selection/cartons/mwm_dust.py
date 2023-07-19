@@ -129,8 +129,8 @@ def ghselect(data):
     )
 
 
-class MWM_Dust_Carton(BaseCarton):
-    """MWM Dust Carton.
+class MWM_Dust_Core_apogee_Carton(BaseCarton):
+    """MWM Dust Core apogee Carton.
 
     Definition:
 
@@ -163,7 +163,7 @@ class MWM_Dust_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_dust_core'
+    name = 'mwm_dust_core_apogee'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_dust'
@@ -176,11 +176,11 @@ class MWM_Dust_Carton(BaseCarton):
     mwm_galactic_plan = None
 
     def build_query(self, version_id, query_region=None):
-        # Get the plan used to run mwm_galactic_core.
-        if self.name == 'mwm_dust_core':
-            self.mwm_galactic_carton = 'mwm_galactic_core'
-        elif self.name == 'mwm_dust_core_dist':
-            self.mwm_galactic_carton = 'mwm_galactic_core_dist'
+        # Get the plan used to run mwm_galactic_core_apogee.
+        if self.name == 'mwm_dust_core_apogee':
+            self.mwm_galactic_carton = 'mwm_galactic_core_apogee'
+        elif self.name == 'mwm_dust_core_dist_apogee':
+            self.mwm_galactic_carton = 'mwm_galactic_core_dist_apogee'
         else:
             raise ValueError(f'Invalid carton {self.name}.')
 
@@ -194,14 +194,14 @@ class MWM_Dust_Carton(BaseCarton):
             targetdb.Carton.select()
             .join(targetdb.Version)
             .where(
-                targetdb.Carton.carton == 'mwm_galactic_core',
+                targetdb.Carton.carton == 'mwm_galactic_core_apogee',
                 targetdb.Version.plan == self.mwm_galactic_plan,
                 targetdb.Version.target_selection >> True,
             )
             .exists()
         )
         if not gg_exists:
-            raise RuntimeError('mwm_galactic has not been loaded yet.')
+            raise RuntimeError('mwm_galactic_core_apogee has not been loaded yet.')
 
         fn = peewee.fn
 
@@ -366,11 +366,11 @@ class MWM_Dust_Carton(BaseCarton):
         return
 
 
-class MWM_Dust_Dist_Carton(MWM_Dust_Carton):
-    """MWM Dust Dist Carton.
+class MWM_Dust_Core_Dist_apogee_Carton(MWM_Dust_Core_apogee_Carton):
+    """MWM Dust Core Dist apogee Carton.
 
-    Same definition as the dust carton but subsampling using the mwm_galactic_core_dist.
+    Same definition as the MWM_Dust_Core_apogee_Carton carton but subsampling using the mwm_galactic_core_dist_apogee.
 
     """
 
-    name = 'mwm_dust_core_dist'
+    name = 'mwm_dust_core_dist_apogee'

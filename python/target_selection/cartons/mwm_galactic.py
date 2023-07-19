@@ -15,7 +15,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
 from target_selection.cartons import BaseCarton
 
 
-class MWM_Galactic_Core_Carton(BaseCarton):
+class MWM_Galactic_Core_apogee_Carton(BaseCarton):
     """Galactic Genesis carton.
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
@@ -39,7 +39,7 @@ class MWM_Galactic_Core_Carton(BaseCarton):
             AND [(phot_g_mean_mag-h_m) > 3.5  OR NOT_EXISTS(phot_g_mean_mag)]
 
     v1.0
-    Shorthand name: mwm_galactic_core
+    Shorthand name: mwm_galactic_core_apogee
     Existing carton code:
     https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_galactic.py
 
@@ -76,7 +76,7 @@ class MWM_Galactic_Core_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_galactic_core'
+    name = 'mwm_galactic_core_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
@@ -131,7 +131,7 @@ class MWM_Galactic_Core_Carton(BaseCarton):
         return query
 
 
-class MWM_Galactic_Core_Dist_Carton(BaseCarton):
+class MWM_Galactic_Core_Dist_apogee_Carton(BaseCarton):
     """Galactic Genesis carton.
 
     Definition: Selection of all IR-bright, red stars – vast majority are red
@@ -139,10 +139,11 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
     plane and bulge). Select sources brighter than H<11 AND ((G-H) > 5 OR
     Gaia non-detection).
 
-    v0.5 only had mwm_galactic_core (there was no mwm_galactic_core_dist in v0.5)
+    v0.5 only had mwm_galactic_core 
+    (there was no mwm_galactic_core_dist_apogee in v0.5)
 
     v1.0
-    Shorthand name: mwm_galactic_core_dist
+    Shorthand name: mwm_galactic_core_dist_apogee
     This is a new carton. Code should be put in mwm_galactic.py.
     https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_galactic.py
 
@@ -165,8 +166,8 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
     cc_flg[1]=0 AND
     (rd_flg[1] > 0 AND rd_flg[1] <= 3)
 
-    Above  is same as for v1.0 mwm_galactic_core.
-    Below is additional for v1.0 mwm_galactic_core_dist.
+    Above  is same as for v1.0 mwm_galactic_core_apogee.
+    Below is additional for v1.0 mwm_galactic_core_dist_apogee.
     The below condition on g.phot_g_mean_mag is different from the condition
     in the mwm_galactic_core carton.
 
@@ -191,7 +192,7 @@ class MWM_Galactic_Core_Dist_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_galactic_core_dist'
+    name = 'mwm_galactic_core_dist_apogee'
     category = 'science'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
