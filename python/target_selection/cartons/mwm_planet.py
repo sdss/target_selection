@@ -31,7 +31,7 @@ def h2exp(hmag, sn=100, exptime=15.0):
     return (nexp)
 
 
-class MWM_TESS_2min_Carton(BaseCarton):
+class MWM_TESS_2min_apogee_Carton(BaseCarton):
     """TESS Planets.
     Definition:
         All planet-candidate TOIs + Community TOIs (CTIOs), TESS
@@ -47,13 +47,13 @@ class MWM_TESS_2min_Carton(BaseCarton):
     The old name of this cartoon is 'mwm_tess_planet'.
     """
 
-    name = 'mwm_tess_2min'
+    name = 'mwm_tess_2min_apogee'
     program = 'mwm_planet'
     category = 'science'
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = None  # cadence is set in post_process()
-    priority = 2610
+    priority = 2810
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -89,7 +89,7 @@ class MWM_TESS_2min_Carton(BaseCarton):
 
         cursor = self.database.execute_sql(
             "select catalogid, hmag from " +
-            " sandbox.temp_mwm_tess_2min ;")
+            " sandbox.temp_mwm_tess_2min_apogee ;")
 
         output = cursor.fetchall()
 
@@ -104,6 +104,6 @@ class MWM_TESS_2min_Carton(BaseCarton):
                 current_cadence = "bright_1x" + str(int(numexp))
 
             self.database.execute_sql(
-                " update sandbox.temp_mwm_tess_2min " +
+                " update sandbox.temp_mwm_tess_2min_apogee " +
                 " set cadence = '" + current_cadence + "'"
                 " where catalogid = " + str(current_catalogid) + ";")

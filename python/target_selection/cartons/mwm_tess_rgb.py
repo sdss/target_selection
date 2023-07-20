@@ -35,8 +35,8 @@ def h2exp(hmag, sn=100, exptime=15.0):
     return (nexp)
 
 
-class MWM_TESS_RGB_Carton(BaseCarton):
-    """MWM TESS RGB Carton.
+class MWM_TESS_RGB_apogee_Carton(BaseCarton):
+    """MWM TESS RGB apogee Carton.
 
     Definition:
 
@@ -78,7 +78,7 @@ class MWM_TESS_RGB_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_tess_rgb'  # there is an underscore between tess and rgb
+    name = 'mwm_tess_rgb_apogee'  # there is an underscore between tess and rgb
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_tessrgb'  # there is no underscore between tess and rgb
