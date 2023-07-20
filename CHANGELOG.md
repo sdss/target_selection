@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.39 - July 18, 2023
+## 1.0.39 - July 20, 2023
 
 ### Fixed
 
