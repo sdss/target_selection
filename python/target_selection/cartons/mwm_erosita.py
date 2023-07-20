@@ -102,7 +102,7 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
 
     faintest_cadence = 'dark_flexible_2x1'
     # faintest_priority = 1910
-    flat_priority = 1450
+    flat_priority = 1920
 
     def build_query(self, version_id, query_region=None):
         bright_bright_limit = 13
@@ -250,7 +250,7 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     can_offset = True
     faintest_cadence = 'dark_flexible_2x1'
     # faintest_priority = 1911
-    flat_priority = 1451
+    flat_priority = 1811
 
     def build_query(self, version_id, query_region=None):
 
@@ -331,4 +331,4 @@ class MWM_EROSITA_Compact_Deep_Carton(MWM_EROSITA_Compact_Carton):
     name = 'mwm_erosita_compact_boss_deep'
     faintest_cadence = 'dark_flexible_2x2'
     # faintest_priority = 1910
-    faintest_priority = 1450
+    faintest_priority = 1810
