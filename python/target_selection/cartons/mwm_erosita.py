@@ -92,7 +92,8 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     In the query below we use xmatch_metric > 0.0 - i.e. no cut on this param
     """
 
-    name = 'mwm_erosita_stars'
+    # name = 'mwm_erosita_stars'
+    name = 'mwm_erosita_stars_boss'
     category = 'science'
     instrument = 'BOSS'
     program = 'mwm_erosita'
@@ -100,7 +101,8 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
     can_offset = True
 
     faintest_cadence = 'dark_flexible_2x1'
-    faintest_priority = 1910
+    # faintest_priority = 1910
+    flat_priority = 1920
 
     def build_query(self, version_id, query_region=None):
         bright_bright_limit = 13
@@ -113,16 +115,17 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
             self.faintest_cadence
         ).cast('text')
 
-        priority = (
-            EROSITASupersetv1Stars.xmatch_flags - 1 +
-            peewee.Case(
-                None,
-                (
-                    (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
-                ),
-                self.faintest_priority
-            ).cast('integer')
-        )
+        # priority = (
+        #     EROSITASupersetv1Stars.xmatch_flags - 1 +
+        #     peewee.Case(
+        #         None,
+        #         (
+        #             (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
+        #         ),
+        #         self.faintest_priority
+        #     ).cast('integer')
+        # )
+        priority = peewee.Value(self.flat_priority).cast('integer')
 
         query = (CatalogToGaia_DR3
                  .select(
@@ -238,14 +241,16 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     limit 10;
     """
 
-    name = 'mwm_erosita_compact'
+    # name = 'mwm_erosita_compact'
+    name = 'mwm_erosita_compact_boss_shallow'
     category = 'science'
     instrument = 'BOSS'
     program = 'mwm_erosita'
     mapper = 'MWM'
     can_offset = True
     faintest_cadence = 'dark_flexible_2x1'
-    faintest_priority = 1911
+    # faintest_priority = 1911
+    flat_priority = 1811
 
     def build_query(self, version_id, query_region=None):
 
@@ -258,13 +263,14 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
             self.faintest_cadence
         ).cast('text')
 
-        priority = peewee.Case(
-            None,
-            (
-                (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
-            ),
-            self.faintest_priority
-        ).cast('integer')
+        # priority = peewee.Case(
+        #     None,
+        #     (
+        #         (Gaia_DR3.phot_g_mean_mag < 17.0, 2400),
+        #     ),
+        #     self.faintest_priority
+        # ).cast('integer')
+        priority = peewee.Value(self.flat_priority).cast('integer')
 
         query = (
             CatalogToGaia_DR3
@@ -321,6 +327,8 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
 
 
 class MWM_EROSITA_Compact_Deep_Carton(MWM_EROSITA_Compact_Carton):
-    name = 'mwm_erosita_compact_deep'
+    # name = 'mwm_erosita_compact_deep'
+    name = 'mwm_erosita_compact_boss_deep'
     faintest_cadence = 'dark_flexible_2x2'
-    faintest_priority = 1910
+    # faintest_priority = 1910
+    faintest_priority = 1810
