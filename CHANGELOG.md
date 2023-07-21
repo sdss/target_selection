@@ -1,13 +1,13 @@
 # Changelog
 
-## 1.0.40 - July 20, 2023
+## 1.0.40 - July 21, 2023
 
 ### Fixed
 
 * Update target_selection.yml for plan 1.0.40
 * Update mwm_erosita_* carton names + priorities
 
-## 1.0.39 - July 18, 2023
+## 1.0.39 - July 20, 2023
 
 ### Fixed
 

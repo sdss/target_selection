@@ -101,7 +101,7 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     mapper = 'MWM'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 1805
+    priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -125,7 +125,7 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     program = 'mwm_snc'
     mapper = 'MWM'
     instrument = 'BOSS'
-    priority = 1800
+    priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -137,11 +137,11 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
 
     def post_process(self, model, **kwargs):
 
-        # G > 16 => cadence = dark_2x1
-        model.update(cadence='dark_2x1').where(model.phot_g_mean_mag > 16).execute()
+        # G < 16 => cadence = bright_flexible_1x2
+        model.update(cadence='bright_flexible_1x2').where(model.phot_g_mean_mag < 16).execute()
 
-        # G < 16 => cadence = bright_2x1
-        model.update(cadence='bright_2x1').where(model.phot_g_mean_mag < 16).execute()
+        # G > 16 => cadence = dark_flexible_1x2
+        model.update(cadence='dark_flexible_1x2').where(model.phot_g_mean_mag > 16).execute()
 
         return model
 
@@ -230,20 +230,12 @@ class MWM_SNC_Ext_Carton(BaseCarton):
         return query
 
 
-class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
-    """SNC extension for APOGEE. See base carton for details."""
-
-    # priority must be None here so that
-    # it can be set in post_process().
-    # If priority is not None here then it cannot be set in post_process().
-    name = 'mwm_snc_ext_apogee'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
-    priority = None    # priority is set in post_process()
-    can_offset = True
+class MWM_SNC_Ext_APOGEE_Base_Carton(MWM_SNC_Ext_Carton):
+    """SNC extension for APOGEE. See base carton for details.
+    This is a base carton. The derived cartons are
+    mwm_snc_ext_main_apogee: priority = 2705
+    mwm_snc_ext_filler_apogee: priority = 7200
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -256,48 +248,90 @@ class MWM_SNC_Ext_APOGEE_Carton(MWM_SNC_Ext_Carton):
 
         return query
 
+
+class MWM_SNC_Ext_main_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
+    """See base carton for details."""
+
+    name = 'mwm_snc_ext_main_apogee'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 2705
+    can_offset = True
+
     def post_process(self, model):
         """
-        a set random seed, put 1/16 of them at priority 2705 and
-         the rest at priority 6080.
+        a set random seed, select 1/16 of the targets
         """
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_snc_ext_main_apogee " +
+            "set selected = false;")
 
         cursor = self.database.execute_sql(
             "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_apogee " +
+            " sandbox.temp_mwm_snc_ext_main_apogee " +
             " order by catalogid;")
 
         output = cursor.fetchall()
 
+        # This random seed must be the same as in mwm_snc_ext_filler_apogee
         random.seed(1234)
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_random = random.randrange(16)
             if (current_random == 0):
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 2705 " +
-                    " where catalogid = " + str(current_catalogid) + ";")
-            else:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_apogee set priority = 6080 " +
+                    " update sandbox.temp_mwm_snc_ext_main_apogee " +
+                    " set selected = true " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
 
-class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
-    """SNC extension for BOSS. See base carton for details."""
+class MWM_SNC_Ext_filler_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
+    """See base carton for details."""
 
-    # cadence and priority must be None here so that
-    # they can be set in post_process().
-    # If cadence and priority are not None here then
-    # they cannot be set in post_process().
-    name = 'mwm_snc_ext_boss'
+    name = 'mwm_snc_ext_filler_apogee'
     category = 'science'
     program = 'mwm_snc'
     mapper = 'MWM'
-    instrument = 'BOSS'
-    cadence = None    # cadence is set in post_process()
-    priority = None    # priority is set in post_process()
+    instrument = 'APOGEE'
+    cadence = 'bright_1x1'
+    priority = 7200
     can_offset = True
+
+    def post_process(self, model):
+        """
+        a set random seed, select 15/16 of the targets
+        """
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_snc_ext_filler_apogee " +
+            "set selected = false;")
+
+        cursor = self.database.execute_sql(
+            "select catalogid from " +
+            " sandbox.temp_mwm_snc_ext_filler_apogee " +
+            " order by catalogid;")
+
+        output = cursor.fetchall()
+
+        # This random seed must be the same as in mwm_snc_ext_main_apogee
+        random.seed(1234)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            current_random = random.randrange(16)
+            if (current_random != 0):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_filler_apogee " +
+                    " set selected = true " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_SNC_Ext_BOSS_Base_Carton(MWM_SNC_Ext_Carton):
+    """SNC extension for BOSS. See base carton for details.
+    This is a base carton. The derived cartons are
+    mwm_snc_ext_main_boss: priority = 2705
+    mwm_snc_ext_filler_boss: priority = 7200"""
 
     def build_query(self, version_id, query_region=None):
 
@@ -306,19 +340,40 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
 
         return query
 
+
+class MWM_SNC_Ext_main_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
+    """See base carton for details."""
+
+    # cadence must be None here so that
+    # it can be set in post_process().
+    # If cadence is not None here then
+    # it cannot be set in post_process().
+    name = 'mwm_snc_ext_main_boss'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'BOSS'
+    cadence = None    # cadence is set in post_process()
+    priority = 2705
+    can_offset = True
+
     def post_process(self, model):
         """
-        a set random seed, put 1/20 of them at priority 2705 and
-         the rest at priority 6080.
+        a set random seed, select 1/20 of the targets
         """
 
         cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_snc_ext_main_boss " +
+            "set selected = false;")
+
+        cursor = self.database.execute_sql(
             "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_boss " +
+            " sandbox.temp_mwm_snc_ext_main_boss " +
             " order by catalogid;")
 
         output = cursor.fetchall()
 
+        # This random seed must be the same as in mwm_snc_ext_filler_boss
         random.seed(5678)
         for i in range(len(output)):
             current_catalogid = output[i][0]
@@ -326,18 +381,73 @@ class MWM_SNC_Ext_BOSS_Carton(MWM_SNC_Ext_Carton):
             current_random = random.randrange(20)
             if (current_random == 0):
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_boss set priority = 2705 " +
-                    " where catalogid = " + str(current_catalogid) + ";")
-            else:
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_boss set priority = 6080 " +
+                    " update sandbox.temp_mwm_snc_ext_main_boss " +
+                    " set selected = true " +
                     " where catalogid = " + str(current_catalogid) + ";")
 
             if (Gaia_DR3.phot_g_mean_mag < 16):
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_boss set cadence = 'bright_2x1' " +
+                    " update sandbox.temp_mwm_snc_ext_main_boss " +
+                    " set cadence = 'bright_flexible_2x1' " +
                     " where catalogid = " + str(current_catalogid) + ";")
             else:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_boss set cadence = 'dark_2x1' " +
+                    " update sandbox.temp_mwm_snc_ext_main_boss " +
+                    " set cadence = 'dark_flexible_2x1' " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+
+class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
+    """See base carton for details."""
+
+    # cadence must be None here so that
+    # it can be set in post_process().
+    # If cadence is not None here then
+    # it cannot be set in post_process().
+    name = 'mwm_snc_ext_filler_boss'
+    category = 'science'
+    program = 'mwm_snc'
+    mapper = 'MWM'
+    instrument = 'BOSS'
+    cadence = None    # cadence is set in post_process()
+    priority = 7200
+    can_offset = True
+
+    def post_process(self, model):
+        """
+        a set random seed, select 19/20 of the targets
+        """
+
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_snc_ext_filler_boss " +
+            "set selected = false;")
+
+        cursor = self.database.execute_sql(
+            "select catalogid from " +
+            " sandbox.temp_mwm_snc_ext_filler_boss " +
+            " order by catalogid;")
+
+        output = cursor.fetchall()
+
+        # This random seed must be the same as in mwm_snc_ext_main_boss
+        random.seed(5678)
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+
+            current_random = random.randrange(20)
+            if (current_random != 0):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
+                    " set selected = true " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+
+            if (Gaia_DR3.phot_g_mean_mag < 16):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
+                    " set cadence = 'bright_flexible_2x1' " +
+                    " where catalogid = " + str(current_catalogid) + ";")
+            else:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
+                    " set cadence = 'dark_flexible_2x1' " +
                     " where catalogid = " + str(current_catalogid) + ";")

@@ -16,7 +16,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
 from target_selection.cartons import BaseCarton
 
 
-class MWM_WD_PWD_Carton(BaseCarton):
+class MWM_WD_PWD_boss_Carton(BaseCarton):
     """MWM White Dwarfs.
 
     Definition:
@@ -31,7 +31,7 @@ class MWM_WD_PWD_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_wd_pwd'
+    name = 'mwm_wd_pwd_boss'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
@@ -66,7 +66,7 @@ class MWM_WD_PWD_Carton(BaseCarton):
         return query
 
 
-class MWM_WD_Gaia_Carton(BaseCarton):
+class MWM_WD_Gaia_boss_Carton(BaseCarton):
     """MWM Gaia White Dwarfs.
 
     Definition:
@@ -88,13 +88,13 @@ class MWM_WD_Gaia_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_wd_gaia'
+    name = 'mwm_wd_gaia_boss'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_wd'
     instrument = 'BOSS'
     cadence = 'dark_2x1'
-    priority = 1500
+    priority = 1401
     can_offset = True
 
     def build_query(self, version_id, query_region=None):

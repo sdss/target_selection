@@ -63,7 +63,7 @@ class MWM_CB_CV_Candidates_APOGEE_Carton(MWM_CB_CV_Candidates_Carton):
     program = 'mwm_cb'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 1400
+    priority = 1500
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -82,7 +82,7 @@ class MWM_CB_CV_Candidates_BOSS_Carton(MWM_CB_CV_Candidates_Carton):
     program = 'mwm_cb'
     instrument = 'BOSS'
     cadence = None
-    priority = 1400
+    priority = 1500
     can_offset = True
 
     def post_process(self, model, **kwargs):

@@ -74,10 +74,10 @@ from target_selection.cartons import BaseCarton
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
 #
 
-class MWM_Legacy_ir2opt_Carton(BaseCarton):
+class MWM_Legacy_ir2opt_apogee_Carton(BaseCarton):
     """MWM APOGEE targets.
 
-Shorthand name: mwm_legacy_ir2opt
+Shorthand name: mwm_legacy_ir2opt_apogee
 
 What is it?: APOGEE targets to be observed with BOSS fibres.
 To be used as a filler for MWM-led plates.
@@ -100,7 +100,7 @@ cadence options for these targets
 NA
     """
 
-    name = 'mwm_legacy_ir2opt'
+    name = 'mwm_legacy_ir2opt_apogee'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_1x1'
