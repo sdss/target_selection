@@ -28,7 +28,7 @@ from target_selection.exceptions import (TargetSelectionError,
 from target_selection.utils import Timer
 
 
-EPOCH = 2015.5
+EPOCH = 2016.0
 
 
 class BaseCarton(metaclass=abc.ABCMeta):
