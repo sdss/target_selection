@@ -34,11 +34,11 @@ from target_selection.cartons import BaseCarton
 # TwoMassPSC --->'catalogdb.twomass_psc'
 
 
-class MWM_EROSITA_Stars_Carton(BaseCarton):
+class MWM_EROSITA_Stars_Boss_Carton(BaseCarton):
     """MWM eROSITA Stars
     Owner: Lead by MWM (with assistance from BHM?)?? Jennifer Johnson, Tom Dwelly
 
-    Shorthand name: mwm_erosita_stars
+    Shorthand name: mwm_erosita_stars_boss
 
     What is it?: Optical counterparts to eROSITA sources with
     a high likelihood to be stars. Stellar identification are
@@ -178,12 +178,12 @@ class MWM_EROSITA_Stars_Carton(BaseCarton):
         return query
 
 
-class MWM_EROSITA_Compact_Carton(BaseCarton):
+class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
     """MWM eROSITA Compact-Objects (unified for v1)
 
     Owner: eROSITA Compact objects WG Axel Schwope
 
-    Shorthand name: mwm_erosita_compact
+    Shorthand name: mwm_erosita_compact_boss
 
     What is it?: eROSITA selected pointlike X-ray sources with
     likely Gaia counterpart (currently drawn from DR3),
@@ -241,16 +241,14 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
     limit 10;
     """
 
-    # name = 'mwm_erosita_compact'
-    name = 'mwm_erosita_compact_boss_shallow'
+    name = 'mwm_erosita_compact_boss'
     category = 'science'
     instrument = 'BOSS'
     program = 'mwm_erosita'
     mapper = 'MWM'
     can_offset = True
-    faintest_cadence = 'dark_flexible_2x1'
-    # faintest_priority = 1911
-    flat_priority = 1811
+    faintest_cadence = 'dark_flexible_2x2'
+    flat_priority = 1810
 
     def build_query(self, version_id, query_region=None):
 
@@ -326,9 +324,7 @@ class MWM_EROSITA_Compact_Carton(BaseCarton):
         return query
 
 
-class MWM_EROSITA_Compact_Deep_Carton(MWM_EROSITA_Compact_Carton):
-    # name = 'mwm_erosita_compact_deep'
-    name = 'mwm_erosita_compact_boss_deep'
-    faintest_cadence = 'dark_flexible_2x2'
-    # faintest_priority = 1910
-    faintest_priority = 1810
+class MWM_EROSITA_Compact_Boss_Shallow_Carton(MWM_EROSITA_Compact_Boss_Carton):
+    name = 'mwm_erosita_compact_boss_shallow'
+    faintest_cadence = 'dark_flexible_2x1'
+    faintest_priority = 1811
