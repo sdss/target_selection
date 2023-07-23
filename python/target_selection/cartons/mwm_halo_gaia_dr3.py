@@ -331,7 +331,7 @@ class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
     CADENCE: bright_1x1
     PRIORITY: 2971
     """
-    name = 'mwm_halo_xp_boss_single'
+    name = 'mwm_halo_mp_xp_boss_single'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_1x1'

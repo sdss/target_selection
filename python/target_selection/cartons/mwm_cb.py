@@ -24,7 +24,7 @@ from target_selection.cartons import BaseCarton
 from target_selection.cartons.tools import create_table_as
 
 
-class MWM_CB_GALEX_Mag(BaseCarton):
+class MWM_CB_GALEX_Mag_boss_Carton(BaseCarton):
     """Magnitude-limited GALEX FUV / Gaia selection.
 
     Simplified Description of selection criteria:
@@ -51,15 +51,19 @@ class MWM_CB_GALEX_Mag(BaseCarton):
 
     """
 
-    name = 'mwm_cb_galex_mag'
+    name = 'mwm_cb_galex_mag_boss'
     mapper = 'MWM'
     category = 'science'
     instrument = 'BOSS'
-    cadence = None
+    cadence = None  # cadence is set in peewee.Case() below
     program = 'mwm_cb'
-    priority = 1400
+    priority = 1820
     can_offset = True
 
+    # cadence is set in peewee.Case() below
+    # For cadence:
+    # G < =16, bright_flexible_2x1
+    # G > 16, dark_flexible_2x1
     def build_query(self, version_id, query_region=None):
 
         G3 = Gaia_DR3
@@ -88,7 +92,8 @@ class MWM_CB_GALEX_Mag(BaseCarton):
         astro_cut2 = ~((fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8) |
                        (fn.sqrt(0.5 * fn.pow(ll - 301, 2) + 2 * fn.pow(bb + 43.3, 2)) < 5))
 
-        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_flexible_2x1'),
+                                     (Gm > 16, 'dark_flexible_2x1')))
 
         query = (Gaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
@@ -126,7 +131,7 @@ class MWM_CB_GALEX_Mag(BaseCarton):
         return query
 
 
-class MWM_CB_GALEX_Vol(BaseCarton):
+class MWM_CB_GALEX_Vol_boss_Carton(BaseCarton):
     """Volume-limited GALEX FUV / Gaia selection.
 
     Simplified Description of selection criteria:
@@ -199,15 +204,19 @@ class MWM_CB_GALEX_Vol(BaseCarton):
 
     """
 
-    name = 'mwm_cb_galex_vol'
+    name = 'mwm_cb_galex_vol_boss'
     mapper = 'MWM'
     category = 'science'
     instrument = 'BOSS'
-    cadence = None
+    cadence = None  # cadence is set in peewee.Case() below
     program = 'mwm_cb'
-    priority = 1400
+    priority = 1820
     can_offset = True
 
+    # cadence is set in peewee.Case() below
+    # For cadence:
+    # G <= 16, bright_flexible_2x1
+    # G > 16, dark_flexible_2x1
     def build_query(self, version_id, query_region=None):
 
         self.database.execute_sql('SET work_mem = "10GB";')
@@ -227,7 +236,8 @@ class MWM_CB_GALEX_Vol(BaseCarton):
                    .cte('nuv_cut'))
 
         Gm = G3.phot_g_mean_mag
-        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_flexible_2x1'),
+                                     (Gm > 16, 'dark_flexible_2x1')))
 
         gaia_query = (G3
                       .select(G3.source_id,
@@ -441,7 +451,7 @@ class MWM_CB_GALEX_Vol(BaseCarton):
         return unique
 
 
-class MWM_CB_XMMOM(BaseCarton):
+class MWM_CB_XMMOM_boss_Carton(BaseCarton):
     """Volume-limited XMM-OM / Gaia selection.
 
     Simplified Description of selection criteria:
@@ -500,15 +510,19 @@ class MWM_CB_XMMOM(BaseCarton):
 
     """
 
-    name = 'mwm_cb_xmmom'
+    name = 'mwm_cb_xmmom_boss'
     mapper = 'MWM'
     category = 'science'
     instrument = 'BOSS'
-    cadence = None
+    cadence = None  # cadence is set in peewee.Case() below
     program = 'mwm_cb'
-    priority = 1400
+    priority = 1820
     can_offset = True
 
+    # cadence is set in peewee.Case() below
+    # For cadence:
+    # G <= 16, bright_flexible_2x1
+    # G > 16, dark_flexible_2x1
     def build_query(self, version_id, query_region=None):
 
         G3 = Gaia_DR3
@@ -546,7 +560,8 @@ class MWM_CB_XMMOM(BaseCarton):
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
-        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_flexible_2x1'),
+                                     (Gm > 16, 'dark_flexible_2x1')))
 
         # MC cut
         ll = G3.l
@@ -670,7 +685,7 @@ class MWM_CB_XMMOM(BaseCarton):
         return unique
 
 
-class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
+class MWM_CB_SWIFTUVOT_boss_Carton(BaseCarton):
     """MWM Compact Binaries UV excess 4.
 
     Simplified Description of selection criteria:
@@ -715,14 +730,18 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_cb_swiftuvot'
+    name = 'mwm_cb_swiftuvot_boss'
     mapper = 'MWM'
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = None
-    priority = 1400
+    cadence = None  # cadence is set in peewee.Case() below
+    priority = 1820
 
+    # cadence is set in peewee.Case() below
+    # For cadence:
+    # G <= 16, bright_flexible_2x1
+    # G > 16, dark_flexible_2x1
     def build_query(self, version_id, query_region=None):
 
         G3 = Gaia_DR3
@@ -767,7 +786,8 @@ class MWM_CB_SWIFTUVOT_Carton(BaseCarton):
                       (((logpmdpm - 0.301) * (logpmdpm - 0.301) / (0.33 * 0.33) +
                         (poe * poe) / (3.2 * 3.2)) <= 1))
 
-        cadence = peewee.Case(None, ((Gm <= 16, 'bright_2x1'), (Gm > 16, 'dark_2x1')))
+        cadence = peewee.Case(None, ((Gm <= 16, 'bright_flexible_2x1'),
+                                     (Gm > 16, 'dark_flexible_2x1')))
 
         # MC cut
         ll = G3.l

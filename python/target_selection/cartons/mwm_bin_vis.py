@@ -192,6 +192,7 @@ class MWM_Wide_Binaries_APOGEE_Carton(MWM_Wide_Binaries_Base_Carton):
 
     name = 'mwm_bin_vis_apogee'
     instrument = 'APOGEE'
+    priority = 2999
 
 
 class MWM_Wide_Binaries_BOSS_Carton(MWM_Wide_Binaries_Base_Carton):
@@ -199,3 +200,4 @@ class MWM_Wide_Binaries_BOSS_Carton(MWM_Wide_Binaries_Base_Carton):
 
     name = 'mwm_bin_vis_boss'
     instrument = 'BOSS'
+    priority = 2999
