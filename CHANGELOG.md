@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.41 - July 23, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.41
+* Update mwm_cb_*, mwm_bin_vis* carton names + priorities
+
 ## 1.0.40 - July 21, 2023
 
 ### Fixed
