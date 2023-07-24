@@ -9,16 +9,6 @@
     - mwm_tess_2min_apogee
     - mwm_tess_rgb_apogee
     - mwm_legacy_ir2opt_apogee
-    - mwm_galactic_core_dist_apogee
-    - mwm_dust_core_dist_apogee
-    - mwm_wd_pwd_boss
-    - mwm_wd_gaia_boss
-    - mwm_cb_galex_mag_boss
-    - mwm_cb_galex_vol_boss
-    - mwm_cb_xmmom_boss
-    - mwm_cb_swiftuvot_boss
-    - mwm_bin_vis_apogee
-    - mwm_bin_vis_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
