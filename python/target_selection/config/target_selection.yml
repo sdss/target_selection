@@ -1,3 +1,30 @@
+'1.0.42':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_monitor_n188_apogee_long
+    - mwm_monitor_n188_apogee_short
+    - mwm_monitor_m67_apogee_long
+    - mwm_monitor_m67_apogee_short
+    - mwm_monitor_m15_apogee_long
+    - mwm_monitor_m15_apogee_short
+    - mwm_wd_pwd_boss
+    - mwm_wd_gaia_boss
+    - mwm_cb_galex_mag_boss
+    - mwm_cb_galex_vol_boss
+    - mwm_cb_xmmom_boss
+    - mwm_cb_swiftuvot_boss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '10GB'
+
 '1.0.41':
   xmatch_plan: 1.0.0
   cartons:
