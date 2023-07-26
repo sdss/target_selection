@@ -46,14 +46,14 @@ class MWM_OB_Core_Base_Carton(BaseCarton):
     can_offset=True
 
     mwm_astar_core_boss
-    Teff_esphs < 10000
+    (Teff_esphs < 10000) or (Teff_esphs is NULL)
     CADENCE: bright_3x1
     PRIORITY: 2800
     INSTRUMENT:BOSS
     can_offset=True
 
     mwm_astar_core_boss_single
-    Teff_esphs < 10000
+    (Teff_esphs < 10000) or (Teff_esphs is NULL)
     CADENCE: bright_1x1
     PRIORITY: 2801
     INSTRUMENT:BOSS
@@ -194,7 +194,7 @@ class MWM_OB_Core_boss_single_Carton(MWM_OB_Core_Base_Carton):
 class MWM_astar_Core_boss_Carton(MWM_OB_Core_Base_Carton):
     """
     mwm_astar_core_boss
-    Teff_esphs < 10000
+    (Teff_esphs < 10000) or (Teff_esphs is NULL)
     CADENCE: bright_3x1
     PRIORITY: 2800
     INSTRUMENT:BOSS
@@ -213,14 +213,15 @@ class MWM_astar_Core_boss_Carton(MWM_OB_Core_Base_Carton):
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
-        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs < 10000)
+        query = query.where((Gaia_dr3_astrophysical_parameters.teff_esphs < 10000) |
+                            (Gaia_dr3_astrophysical_parameters.teff_esphs.is_null()))
         return query
 
 
 class MWM_astar_Core_boss_single_Carton(MWM_OB_Core_Base_Carton):
     """
     mwm_astar_core_boss_single
-    Teff_esphs < 10000
+    (Teff_esphs < 10000) or (Teff_esphs is NULL)
     CADENCE: bright_1x1
     PRIORITY: 2801
     INSTRUMENT:BOSS
@@ -239,7 +240,8 @@ class MWM_astar_Core_boss_single_Carton(MWM_OB_Core_Base_Carton):
     def build_query(self, version_id, query_region=None):
 
         query = super().build_query(version_id, query_region)
-        query = query.where(Gaia_dr3_astrophysical_parameters.teff_esphs < 10000)
+        query = query.where((Gaia_dr3_astrophysical_parameters.teff_esphs < 10000) |
+                            (Gaia_dr3_astrophysical_parameters.teff_esphs.is_null()))
         return query
 
 
