@@ -28,7 +28,7 @@
       class_b_priority: 2596
       rest_priority: 2597
     mwm_dust_core_dist_apogee:
-      mwm_galactic_core_dist_apogee_plan: 1.0.44
+      mwm_galactic_core_dist_apogee_plan: 1.0.43
   database_options:
     work_mem: '10GB'
 
