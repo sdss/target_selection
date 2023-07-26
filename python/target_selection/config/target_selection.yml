@@ -5,6 +5,8 @@
     - mwm_astar_core_boss_single
     - mwm_bin_vis_apogee
     - mwm_bin_vis_boss
+    - mwm_galactic_core_dist_apogee
+    - mwm_dust_core_dist_apogee
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
@@ -25,6 +27,8 @@
       class_a_priority: 2595
       class_b_priority: 2596
       rest_priority: 2597
+    mwm_dust_core_dist_apogee:
+      mwm_galactic_core_dist_apogee_plan: 1.0.44
   database_options:
     work_mem: '10GB'
 
