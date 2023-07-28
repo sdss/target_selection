@@ -22,13 +22,12 @@ from target_selection.cartons import BaseCarton
 
 
 class MWM_Wide_Binaries_Base_Carton(BaseCarton):
-    """MWM wide binaries carton."""
-
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_filler'
-    cadence = 'bright_1x1'
-    priority = None
+    """
+    This is the MWM wide binaries base carton.
+    The derived cartons are
+    mwm_bin_vis_apogee
+    mwm_bin_vis_boss
+    """
 
     def build_query(self, version_id, query_region=None):
 
@@ -100,96 +99,13 @@ class MWM_Wide_Binaries_Base_Carton(BaseCarton):
 
         return query
 
-    def post_process(self, model, **kwargs):
-        """Deselect targets that have been observed spectroscopically and set priorities."""
-
-        # Create some indexes.
-        for col in ['source_id', 'source_id1', 'source_id2', 'sep_au',
-                    'dr2_parallax1', 'dr2_parallax2', 'priority']:
-            self.database.execute_sql(f'CREATE INDEX ON {self.path} ({col});')
-
-        self.database.execute_sql(f'ANALYZE {self.path};')
-
-        # We begin by unselecting targets that have spectroscopic data.
-
-        has_spec = (model.apogee_id.is_null(False) |
-                    model.galah_dr3_source_id.is_null(False) |
-                    model.lamost_dr6_source_id.is_null(False) |
-                    model.rave_obs_id.is_null(False))
-
-        model.update({model.selected: False}).where(has_spec).execute()
-
-        # For stars with spectroscopic data but without APOGEE data, assign priority B.
-        (model
-         .update({model.selected: True,
-                  model.priority: self.parameters['class_b_priority']})
-         .where(has_spec, model.apogee_id.is_null(True))
-         .execute())
-
-        # For class A targets (those that have an associated target with spectroscopic data)
-        # with sep > 3, assign the highest priority.
-        class_a_priority = self.parameters['class_a_priority']
-
-        alias = model.alias()
-        alias_has_spec = (alias.apogee_id.is_null(False) |
-                          alias.galah_dr3_source_id.is_null(False) |
-                          alias.lamost_dr6_source_id.is_null(False) |
-                          alias.rave_obs_id.is_null(False))
-
-        theta = model.sep_au * (model.dr2_parallax1 + model.dr2_parallax2) / 2000
-
-        (model
-         .update({model.priority: class_a_priority})
-         .where(model.selected >> True,
-                theta > 3,
-                model.priority.is_null(),
-                (((model.source_id == model.source_id1) &
-                  (alias
-                   .select(True)
-                   .where(alias.source_id == model.source_id2, alias_has_spec))) |
-                 ((model.source_id == model.source_id2) &
-                  (alias
-                   .select(True)
-                   .where(alias.source_id == model.source_id1, alias_has_spec)))))
-         .execute())
-
-        # For class B targets we select those whose associated source does not have
-        # spectroscopic data and are the brightest source in the pair.
-        class_b_priority = self.parameters['class_b_priority']
-
-        (model
-         .update({model.priority: class_b_priority})
-         .where(model.selected >> True,
-                theta > 3,
-                model.priority.is_null(),
-                (((model.source_id == model.source_id1) &
-                  (alias
-                   .select(True)
-                   .where(alias.source_id == model.source_id2,
-                          alias_has_spec >> False,
-                          model.h_m < alias.h_m))) |
-                 ((model.source_id == model.source_id2) &
-                  (alias
-                   .select(True)
-                   .where(alias.source_id == model.source_id1,
-                          alias_has_spec >> False,
-                          model.h_m < alias.h_m)))))
-         .execute())
-
-        # For the remaining targets, we use the lowest priority.
-        rest_priority = self.parameters['rest_priority']
-        (model
-         .update({model.priority: rest_priority})
-         .where(model.selected >> True,
-                model.priority.is_null())
-         .execute())
-
-        return super().post_process(model, **kwargs)
-
 
 class MWM_Wide_Binaries_APOGEE_Carton(MWM_Wide_Binaries_Base_Carton):
     """Wide binaries APOGEE carton."""
-
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_filler'
+    cadence = 'bright_1x1'
     name = 'mwm_bin_vis_apogee'
     instrument = 'APOGEE'
     priority = 2999
@@ -197,7 +113,10 @@ class MWM_Wide_Binaries_APOGEE_Carton(MWM_Wide_Binaries_Base_Carton):
 
 class MWM_Wide_Binaries_BOSS_Carton(MWM_Wide_Binaries_Base_Carton):
     """Wide binaries BOSS carton."""
-
+    mapper = 'MWM'
+    category = 'science'
+    program = 'mwm_filler'
+    cadence = 'bright_1x1'
     name = 'mwm_bin_vis_boss'
     instrument = 'BOSS'
     priority = 2999
