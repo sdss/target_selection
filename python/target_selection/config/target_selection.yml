@@ -3,10 +3,6 @@
   cartons:
     - mwm_astar_core_boss
     - mwm_astar_core_boss_single
-    - mwm_bin_vis_apogee
-    - mwm_bin_vis_boss
-    - mwm_galactic_core_dist_apogee
-    - mwm_dust_core_dist_apogee
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
@@ -16,21 +12,8 @@
     bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
     rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
-  parameters:
-    mwm_bin_vis_apogee:
-      h_m_limit: 11
-      class_a_priority: 2590
-      class_b_priority: 2591
-      rest_priority: 2592
-    mwm_bin_vis_boss:
-      h_m_limit: 11
-      class_a_priority: 2595
-      class_b_priority: 2596
-      rest_priority: 2597
-    mwm_dust_core_dist_apogee:
-      mwm_galactic_core_dist_apogee_plan: 1.0.43
   database_options:
-    work_mem: '10GB'
+    work_mem: '5GB'
 
 '1.0.42':
   xmatch_plan: 1.0.0
