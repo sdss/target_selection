@@ -135,7 +135,8 @@ def ghselect(data):
 # this carton is the base carton for MWM_Dust_Core_Dist_apogee_Carton.
 # This carton requires that the MWM_Galatic_Core_apogee_Carton
 # has been run before it in the same target_selection_plan
-# in target_selection.yml
+# in target_selection.yml or in an earlier target_selection_plan.
+# See target_selection.yml for example for mwm_dust_core_apogee.
 class MWM_Dust_Core_apogee_Carton(BaseCarton):
     """MWM Dust Core apogee Carton.
 
@@ -376,7 +377,8 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
 # The below MWM_Dust_Core_Dist_apogee_Carton carton requires
 # that the MWM_Galatic_Core_Dist_apogee_Carton
 # has been run before this carton in the same target_selection_plan
-# in target_selection.yml
+# in target_selection.yml or in an earlier target_selection_plan.
+# See target_selection.yml for example for mwm_dust_core_dist_apogee.
 class MWM_Dust_Core_Dist_apogee_Carton(MWM_Dust_Core_apogee_Carton):
     """MWM Dust Core Dist apogee Carton.
 
