@@ -1946,7 +1946,7 @@ class XMatchPlanner(object):
 
         if query_params:
             for ind in range(len(query_params)):
-                if type(query_params[ind]) == str:
+                if type(query_params[ind]) is str:
                     query_params[ind] = '\'' + query_params[ind] + '\''
 
             query_str = query_str % tuple(query_params)
