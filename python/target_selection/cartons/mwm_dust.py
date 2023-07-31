@@ -202,14 +202,14 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
             targetdb.Carton.select()
             .join(targetdb.Version)
             .where(
-                targetdb.Carton.carton == 'mwm_galactic_core_apogee',
+                targetdb.Carton.carton == self.mwm_galactic_carton,
                 targetdb.Version.plan == self.mwm_galactic_plan,
                 targetdb.Version.target_selection >> True,
             )
             .exists()
         )
         if not gg_exists:
-            raise RuntimeError('mwm_galactic_core_apogee has not been loaded yet.')
+            raise RuntimeError(self.mwm_galactic_carton + ' has not been loaded yet.')
 
         fn = peewee.fn
 
