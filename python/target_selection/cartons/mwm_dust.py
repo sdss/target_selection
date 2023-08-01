@@ -312,7 +312,11 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
                 rd_flag_1 > 0,
                 rd_flag_1 <= 3,
             )
+            .order_by(CatalogToGaia_DR3.catalogid)
         )
+
+        # The above order_by() ensures that the random selection in
+        # post_process() gives the same result every time we run this carton.
 
         if query_region:
             query = query.join_from(CatalogToAllWise, Catalog).where(
