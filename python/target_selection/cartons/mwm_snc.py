@@ -269,6 +269,8 @@ class MWM_SNC_Ext_main_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
             "update sandbox.temp_mwm_snc_ext_main_apogee " +
             "set selected = false;")
 
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_snc_ext_main_apogee " +
@@ -308,6 +310,8 @@ class MWM_SNC_Ext_filler_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
             "update sandbox.temp_mwm_snc_ext_filler_apogee " +
             "set selected = false;")
 
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_snc_ext_filler_apogee " +
@@ -366,6 +370,8 @@ class MWM_SNC_Ext_main_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
             "update sandbox.temp_mwm_snc_ext_main_boss " +
             "set selected = false;")
 
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_snc_ext_main_boss " +
@@ -422,6 +428,8 @@ class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
             "update sandbox.temp_mwm_snc_ext_filler_boss " +
             "set selected = false;")
 
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_snc_ext_filler_boss " +
