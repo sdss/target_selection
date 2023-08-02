@@ -33,6 +33,12 @@ def lbp2xyz(ll, bb, pp):
 
     return x, y, z
 
+# subselect() is used in post_process() to randomly select a subset
+# from the results of the  query in build_query().
+# Hence, the query in build_query() uses order_by().
+# The order_by() in the query ensures that the random selection in
+# post_process() gives the same result every time we run this carton.
+
 
 def subselect(data, othersel, downsampledby=1):
     """Turn x, y, z into pixel; bin up to see where we are missing."""
@@ -360,6 +366,12 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         gg_catids = tuple(zip(*mwm_galactic.tuples()))[0]
         gg_mask = numpy.in1d(data.catalogid, gg_catids)
 
+        # subselect() is used below to randomly select a subset
+        # from the results of the  query in build_query().
+        # Hence, the query in build_query() uses order_by().
+        # The order_by() in the query ensures that the random selection in
+        # subselect() gives the same result every time we run this carton.
+        #
         # Subsample based on GG and update DB.
         dust_gg_subsel = subselect(data, gg_mask)
         dust_gg_cid = peewee.ValuesList(
