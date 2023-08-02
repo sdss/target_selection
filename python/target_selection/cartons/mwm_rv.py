@@ -675,6 +675,8 @@ class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
             "update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
             "set selected = false;")
 
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
             "select catalogid from " +
             " sandbox.temp_mwm_bin_rv_short_rgb_apogee " +

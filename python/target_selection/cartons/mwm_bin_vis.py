@@ -35,8 +35,7 @@ class MWM_Wide_Binaries_Base_Carton(BaseCarton):
         # actually two targets (source_id1, source_id2) that may need to be observed.
         # In the main query what we do is, for each one of those sources, collect all the
         # information about whether they have been observed with APOGEE, LAMOST, etc. while
-        # keeping the visual_binary_gaia_dr3 information. In post-process we'll reject
-        # targets that have been observed and set priorities for the rest.
+        # keeping the visual_binary_gaia_dr3 information.
 
         query = None
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.45 - July 31, 2023
+
+### Fixed
+
+* Update target_selection.yml for plan 1.0.45
+
 ## 1.0.44 - July 28, 2023
 
 ### Fixed
