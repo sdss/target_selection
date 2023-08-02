@@ -1,7 +1,6 @@
 '1.0.46':
   xmatch_plan: 1.0.0
   cartons:
-    - mwm_dust_core_dist_apogee
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft/
   schema: sandbox
   magnitudes:
