@@ -74,12 +74,11 @@ from target_selection.cartons import BaseCarton
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
 #
 
-class MWM_Legacy_ir2opt_apogee_Carton(BaseCarton):
-    """MWM APOGEE targets.
+class MWM_Legacy_ir2opt_boss_Carton(BaseCarton):
+    """
+Shorthand name: mwm_legacy_ir2opt_boss
 
-Shorthand name: mwm_legacy_ir2opt_apogee
-
-What is it?: APOGEE targets to be observed with BOSS fibres.
+APOGEE targets to be observed with BOSS fibres.
 To be used as a filler for MWM-led plates.
 
 Simplified Description of selection criteria: Select all Gaia targets that
@@ -94,13 +93,9 @@ Additional cross-matching needed: NA
 
 Return columns: catalog_id, source_id, apogee_id, phot_g_mean_mag,
 phot_rp_mean_mag, phot_bp_mean_mag
-
-cadence options for these targets
-(list all options, even though no single target will receive more than one):
-NA
     """
 
-    name = 'mwm_legacy_ir2opt_apogee'
+    name = 'mwm_legacy_ir2opt_boss'
     category = 'science'
     instrument = 'BOSS'
     cadence = 'bright_1x1'
