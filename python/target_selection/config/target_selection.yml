@@ -3,6 +3,7 @@
   cartons:
     - mwm_cb_cvcandidates_apogee
     - mwm_cb_cvcandidates_boss
+    - mwm_legacy_ir2opt_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
