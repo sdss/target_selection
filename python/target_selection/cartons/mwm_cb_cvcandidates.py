@@ -31,6 +31,8 @@ class MWM_CB_CV_Candidates_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
 
+        # The column CataclysmicVariables.source_id
+        # corresponds to Gaia_DR2 source_id.
         query = (CatalogToTIC_v8
                  .select(CatalogToTIC_v8.catalogid,
                          CataclysmicVariables.source_id,
@@ -63,7 +65,7 @@ class MWM_CB_CV_Candidates_APOGEE_Carton(MWM_CB_CV_Candidates_Carton):
     program = 'mwm_cb'
     instrument = 'APOGEE'
     cadence = 'bright_1x1'
-    priority = 1500
+    priority = 1820
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -81,8 +83,8 @@ class MWM_CB_CV_Candidates_BOSS_Carton(MWM_CB_CV_Candidates_Carton):
     category = 'science'
     program = 'mwm_cb'
     instrument = 'BOSS'
-    cadence = None
-    priority = 1500
+    cadence = None  # cadence is set in post_process()
+    priority = 1820
     can_offset = True
 
     def post_process(self, model, **kwargs):
