@@ -16,7 +16,7 @@ from peewee import fn
 from target_selection.cartons.base import BaseCarton
 from sdssdb.peewee.sdss5db.catalogdb import (
     Catalog,
-    BHM_RM_v1_1,
+    BHM_RM_v1_3,
     CatalogToLegacy_Survey_DR8,
     CatalogToLegacy_Survey_DR10,
     CatalogToGaia_DR2,
@@ -83,7 +83,7 @@ class BhmRmBaseCarton(BaseCarton):
         c2g3 = CatalogToGaia_DR3.alias()
         c2g2 = CatalogToGaia_DR2.alias()
         c2ps = CatalogToPanstarrs1.alias()
-        t = BHM_RM_v1_1.alias()
+        t = BHM_RM_v1_3.alias()
         self.alias_c = c
         self.alias_t = t
 
@@ -225,13 +225,22 @@ class BhmRmBaseCarton(BaseCarton):
                          == c.catalogid))
             .where(
                 c.version_id == version_id,
-                fn.coalesce(c2ls10.version_id, version_id) == version_id,
-                fn.coalesce(c2g3.version_id, version_id) == version_id,
-                fn.coalesce(c2ls8.version_id, version_id) == version_id,
-                fn.coalesce(c2g2.version_id, version_id) == version_id,
-                fn.coalesce(c2ps.version_id, version_id) == version_id,
-                # fn.coalesce(c2ls10.best,True) >> True   # TODO check if this is dropping RM
-                #                                         # targets like it does for AQMES
+                (
+                    ((route_taken == 'lsdr10') & (c2ls10.version_id == version_id)) |
+                    ((route_taken == 'gdr3') & (c2g3.version_id == version_id)) |
+                    ((route_taken == 'lsdr8') & (c2ls8.version_id == version_id)) |
+                    ((route_taken == 'gdr2') & (c2g2.version_id == version_id)) |
+                    ((route_taken == 'ps1dr2') & (c2ps.version_id == version_id))
+                ),
+                # the method below was throwing out ~20 cases where the lsdr8 ls_id
+                # was unexpectedly unmatched to a catalogid in the v1 crossmatch
+                # fn.coalesce(c2ls10.version_id, version_id) == version_id,
+                # fn.coalesce(c2g3.version_id, version_id) == version_id,
+                # fn.coalesce(c2ls8.version_id, version_id) == version_id,
+                # fn.coalesce(c2g2.version_id, version_id) == version_id,
+                # fn.coalesce(c2ps.version_id, version_id) == version_id,
+                # ## fn.coalesce(c2ls10.best,True) >> True   # TODO check if this is dropping RM
+                # ##                                         # targets like it does for AQMES
             )
             .where
             (

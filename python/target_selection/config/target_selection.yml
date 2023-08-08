@@ -1,3 +1,70 @@
+'1.0.48':
+  xmatch_plan: 1.0.0
+  cartons:
+    - bhm_rm_core
+    - bhm_rm_known_spec
+    - bhm_rm_var
+    - bhm_rm_ancillary
+    - bhm_rm_xrayqso
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+  parameters:
+    bhm_rm_base:
+      fieldlist:
+        - { name: SDSS-RM,  racen: 213.7042, deccen: 53.08333,  radius: 1.49 }
+        - { name: COSMOS,   racen: 150.0,    deccen: 2.2,       radius: 1.49 }
+        - { name: XMM-LSS,  racen: 35.70833, deccen: -5.05000,  radius: 1.49 }
+        - { name: S-CVZ,    racen: 90.0,     deccen: -66.56056, radius: 1.00 }
+        - { name: CDFS,     racen: 52.65,    deccen: -28.1,     radius: 1.00 }
+        - { name: ELIAS-S1, racen: 9.450,    deccen: -44.00,    radius: 1.00 }
+    bhm_rm_core:
+      priority: 1002
+      value: 1000.0
+      mag_i_min: 17.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_known_spec:
+      priority: 1001
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.7
+      mag_i_max_sdss_rm: 21.7
+      mag_i_max_cosmos: 21.5
+      mag_i_max_xmm_lss: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_var:
+      priority: 1003
+      value: 1000.0
+      mag_i_min: 17.0
+      mag_i_max: 20.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_ancillary:
+      priority: 1004
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+    bhm_rm_xrayqso:
+      priority: 1005
+      value: 1000.0
+      mag_i_min: 15.0
+      mag_i_max: 21.5
+      mag_g_min_cvz_s: 16.0
+      mag_g_max_cvz_s: 21.7
+
 '1.0.47':
   xmatch_plan: 1.0.0
   cartons:
