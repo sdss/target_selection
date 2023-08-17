@@ -153,10 +153,28 @@ class MWM_TESS_RGB_apogee_Carton(BaseCarton):
                                   ('hmag', numpy.float32)])
         n_exp = h2exp(data['hmag'], sn=80)
 
-        values = ((int(data['catalogid'][ii]), 'bright_1x' + str(int(n_exp[ii]))
-                   if not numpy.isnan(n_exp[ii]) else None)
-                  for ii in range(len(data)))
-        vl = peewee.ValuesList(values, columns=('catalogid', 'cadence'), alias='vl')
+        # values1 = ((int(data['catalogid'][ii]),
+        #          'bright_flexible_' + str(int(n_exp[ii])) + 'x1'
+        #           if not numpy.isnan(n_exp[ii]) else None)
+        #          for ii in range(len(data)))
+
+        # We use values1 instead of values since values() is a Python built-in function.
+        #
+        # For n_exp[ii]) == 1, we use bright_1x1 since
+        # there is no cadence bright_flexible_1x1
+        values1 = [None] * len(data)
+        for ii in range(len(data)):
+            if (not numpy.isnan(n_exp[ii])):
+                if (int(n_exp[ii]) == 1):
+                    current_cadence = 'bright_1x1'
+                else:
+                    current_cadence = 'bright_flexible_' + str(int(n_exp[ii])) + 'x1'
+                values1[ii] = (int(data['catalogid'][ii]), current_cadence)
+            else:
+                values1[ii] = None
+
+        values1 = tuple(values1)
+        vl = peewee.ValuesList(values1, columns=('catalogid', 'cadence'), alias='vl')
 
         (model
          .update(cadence=vl.c.cadence)

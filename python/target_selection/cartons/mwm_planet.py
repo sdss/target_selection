@@ -98,10 +98,13 @@ class MWM_TESS_2min_apogee_Carton(BaseCarton):
             current_hmag = float(output[i][1])
 
             numexp = h2exp(current_hmag, sn=80)
+
+            # for numexp == 1, we use bright_1x1 since
+            # there is no cadence bright_flexible_1x1
             if numexp == 1:
-                current_cadence = 'bright_1x1'
+                current_cadence = "bright_1x1"
             else:
-                current_cadence = "bright_1x" + str(int(numexp))
+                current_cadence = "bright_flexible_" + str(int(numexp)) + "x1"
 
             self.database.execute_sql(
                 " update sandbox.temp_mwm_tess_2min_apogee " +

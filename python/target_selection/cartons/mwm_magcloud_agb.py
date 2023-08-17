@@ -103,10 +103,13 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
 
         time = 60 * (fn.POW(SN, 2) / 10000) * fn.POW(10, (0.4 * (TwoMassPSC.h_m - 11)))
         nexp = fn.ROUND(time / exptime)
+        # for nexp == 1, we use bright_1x1 since
+        # there is no cadence bright_flexible_1x1
         cadence = peewee.Case(
             None,
             ((nexp == 0, 'bright_1x1'),),
-            fn.CONCAT('bright_1x', nexp.cast('text')))
+            ((nexp == 1, 'bright_1x1'),),
+            fn.CONCAT('bright_flexible_', nexp.cast('text'), 'x1'))
 
         query = (CatalogToGaia_DR3
                  .select(CatalogToGaia_DR3.catalogid,
