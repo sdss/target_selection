@@ -103,12 +103,18 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
 
         time = 60 * (fn.POW(SN, 2) / 10000) * fn.POW(10, (0.4 * (TwoMassPSC.h_m - 11)))
         nexp = fn.ROUND(time / exptime)
-        # for nexp == 1, we use bright_1x1 since
-        # there is no cadence bright_flexible_1x1
+        # We use bright_1x1 for both nexp=0 and nexp=1.
+        #
+        # For nexp == 1, we use bright_1x1 since
+        # there is no cadence bright_flexible_1x1.
+        #
+        # For syntax of peewee.Case(), search for 'CASE statement'
+        # in the below link.
+        # https://docs.peewee-orm.com/en/latest/peewee/api.html
         cadence = peewee.Case(
             None,
-            ((nexp == 0, 'bright_1x1'),),
-            ((nexp == 1, 'bright_1x1'),),
+            ((nexp == 0, 'bright_1x1'),
+             (nexp == 1, 'bright_1x1'),),
             fn.CONCAT('bright_flexible_', nexp.cast('text'), 'x1'))
 
         query = (CatalogToGaia_DR3

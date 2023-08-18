@@ -153,15 +153,20 @@ class MWM_TESS_RGB_apogee_Carton(BaseCarton):
                                   ('hmag', numpy.float32)])
         n_exp = h2exp(data['hmag'], sn=80)
 
+        # Below old code is for historical reference.
+        # Below values1 is a generator.
         # values1 = ((int(data['catalogid'][ii]),
         #          'bright_flexible_' + str(int(n_exp[ii])) + 'x1'
         #           if not numpy.isnan(n_exp[ii]) else None)
         #          for ii in range(len(data)))
 
-        # We use values1 instead of values since values() is a Python built-in function.
+        # We use name 'values1' instead of 'values' since values()
+        # is a Python built-in function.
         #
-        # For n_exp[ii]) == 1, we use bright_1x1 since
+        # For int(n_exp[ii]) == 1, we use bright_1x1 since
         # there is no cadence bright_flexible_1x1
+        #
+        # Below values1 is a list and then later we convert it to a tuple.
         values1 = [None] * len(data)
         for ii in range(len(data)):
             if (not numpy.isnan(n_exp[ii])):
