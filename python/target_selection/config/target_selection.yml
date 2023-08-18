@@ -1,3 +1,36 @@
+'1.0.49':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_tess_2min_apogee
+    - mwm_tess_rgb_apogee
+    - mwm_magcloud_agb_apogee
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+  parameters:
+    mwm_magcloud_agb_apogee:
+      h_lim: 13
+      pmra_rough: [-3, 3]
+      pmdec_rough: [-3, 3]
+      gaiag_rough: 18
+      bp_rp_rough: 1
+      astro_rough: [59.5, -72.8, 30]
+      pmdist: 1.2
+      jkcut_lmc: [0.96, 1.240, 1.70, 1.42]
+      hcut_lmc: [12.35, 12.35, 8.0, 8.0]
+      mlon_a: -1.5728745
+      mlon_b: -19.292601
+      jkcut_smc_off: -0.06
+      hcut_smc_off: 0.4
+
 '1.0.48':
   xmatch_plan: 1.0.0
   cartons:
