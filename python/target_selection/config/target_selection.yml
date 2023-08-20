@@ -2,7 +2,7 @@
   xmatch_plan: 1.0.0
   cartons:
     - mwm_magcloud_agb_apogee
-    - mwm_magcloud_rgb_apogee
+    - mwm_magcloud_rgb_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
   schema: sandbox
   magnitudes:
@@ -29,7 +29,7 @@
       mlon_b: -19.292601
       jkcut_smc_off: -0.06
       hcut_smc_off: 0.4
-    mwm_magcloud_rgb_apogee:
+    mwm_magcloud_rgb_boss:
       g_lim: 18.5
       pmra_rough: [-3, 3]
       pmdec_rough: [-3, 3]
