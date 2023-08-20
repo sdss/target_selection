@@ -73,7 +73,7 @@ class MWM_MagCloud_AGB_APOGEE(BaseCarton):
     name = 'mwm_magcloud_agb_apogee'
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_magcloud_agb'
+    program = 'mwm_magcloud'
     instrument = 'APOGEE'
     priority = 2818
     can_offset = True

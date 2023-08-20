@@ -37,7 +37,7 @@ class MWM_MagCloud_RGB_BOSS(BaseCarton):
     name = 'mwm_magcloud_rgb_boss'
     mapper = 'MWM'
     category = 'science'
-    program = 'mwm_magcloud_rgb'
+    program = 'mwm_magcloud'
     instrument = 'BOSS'
     priority = 2819
     cadence = 'bright_1x1'
