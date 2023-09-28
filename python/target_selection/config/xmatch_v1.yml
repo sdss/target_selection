@@ -1,3 +1,40 @@
+'1.1.0':
+    run_id: 8
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'gaia_dr3_source'
+        - 'catalog_to_gaia_dr3_source'
+        - 'twomass_psc'
+        - 'catalog_to_twomass_psc'
+    version_id: 31
+    order:
+        - allstar_dr17_synspec_rev1
+    tables:
+        allstar_dr17_synspec_rev1:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: gaiaedr3_pmra
+            pmdec_column: gaiaedr3_pmdec
+            is_pmra_cos: true
+            parallax_column: gaiaedr3_parallax
+            has_missing_coordinates: true
+            epoch: 2016.0
+    join_paths:
+        - ['allstar_dr17_synspec_rev1', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allstar_dr17_synspec_rev1', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
 '1.0.0':
     run_id: 7
     query_radius: 1.0
