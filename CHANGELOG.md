@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - September 28, 2023
+
+### New
+
+* Added support in the cross-match code to run "addendum" cross-match runs.
+* Configuration for cross-match run 1.1.0.
+
 ## 1.0.50 - August 20, 2023
 
 ### Fixed
