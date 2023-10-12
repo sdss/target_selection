@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 - October 13, 2023
+
+### Fixed
+
+* mwm_rv.py: mwm_bin_rv_short_rgb_apogee: remove downsampling.
+* Update target_selection.yml for target_selection_plan 1.0.51.
+
 ## 1.1.0 - September 28, 2023
 
 ### New
