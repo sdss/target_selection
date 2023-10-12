@@ -7,7 +7,6 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import math
-import random
 
 import peewee
 
@@ -665,31 +664,3 @@ class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
                             Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
                             *mwm_rv_short_condition)
         return query
-
-    def post_process(self, model):
-        """
-        a set random seed, select 1/2 of the targets
-        """
-
-        cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-            "set selected = false;")
-
-        # The below "order by catalogid" ensures that the random selection
-        # further below gives the same result every time we run this carton.
-        cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-            " order by catalogid;")
-
-        output = cursor.fetchall()
-
-        random.seed(9123)
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_random = random.randrange(2)
-            if (current_random == 0):
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
