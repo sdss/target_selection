@@ -562,7 +562,7 @@ class XMatchPlanner(object):
             attribute.
         plan : str
             The cross-matching plan.
-        config_file : str
+        config_file : str or dict
             The path to the configuration file to use. Defaults to
             ``config/xmatch.yml``. The file must contain a hash with the
             cross-match plan.
@@ -641,7 +641,10 @@ class XMatchPlanner(object):
     def _read_config(file_, plan):
         """Reads the configuration file, recursively."""
 
-        config = yaml.load(open(file_, 'r'), Loader=yaml.SafeLoader)
+        if isinstance(file_, dict):
+            config = file_
+        else:
+            config = yaml.load(open(file_, 'r'), Loader=yaml.SafeLoader)
 
         assert plan in config, f'plan {plan!r} not found in configuration.'
 
