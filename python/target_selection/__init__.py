@@ -13,7 +13,7 @@ config = get_config('target_selection',
                     os.path.join(os.path.dirname(__file__),
                                  'config/target_selection.yml'))
 
-log = get_logger(NAME)
+log = get_logger(NAME, use_rich_handler=True)
 
 
 __version__ = get_package_version(path=__file__,
