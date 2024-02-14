@@ -17,6 +17,7 @@ import warnings
 import networkx
 import numpy
 import peewee
+import rich.markup
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, Case, Model, fn
@@ -1721,65 +1722,34 @@ class XMatchPlanner(object):
                 # 1. Run link query and create temporary table with results.
 
                 self._setup_transaction(model, phase=3)
-                inter_name3 = 'phase3_content'
-                model_pk_class = model_pk.__class__
 
-                class Intermediate3(peewee.Model):
-                    """Model for the intermediate results of phase_3."""
-
-                    catalogid = peewee.BigIntegerField(index=True, null=False)
-                    target_id = model_pk_class(null=False, index=True)
-                    version_id = peewee.SmallIntegerField(null=False, index=True)
-                    best = peewee.BooleanField(null=False)
-                    distance = peewee.DoubleField(null=True)
-
-                    class Meta:
-                        database = self.database
-                        schema = TEMP_SCHEMA
-                        table_name = inter_name3
-                        primary_key = False
-
-                unmatched_query_str = self._get_sql(unmatched, return_string=True)
+                temp_model = self._get_relational_model(model, temp=True)
+                temp_model_name = temp_model._meta.table_name
 
                 self.log.debug(f'Selecting unique targets '
-                               f'into table '
-                               f'{self.schema}.{inter_name3!r}'
-                               f' in PSLQ: {self._get_sql(unmatched)}')
+                               f'into temporary table '
+                               f'{temp_model_name!r}{self._get_sql(unmatched)}')
 
-                sql_file = open('phase3_query.sql', 'w')
-
-                if self._options['database_options']:
-                    options = self._options['database_options'].copy()
-                    for param in options:
-                        if param == 'maintenance_work_mem':
-                            continue
-                        value = options[param]
-                        sql_file.write(f'SET {param}={value!r};\n')
-
-                sql_file.write(f'DROP TABLE IF EXISTS {TEMP_SCHEMA}.{inter_name3};')
-                sql_file.write(f'CREATE TABLE {TEMP_SCHEMA}.{inter_name3} AS (')
-                sql_file.write(unmatched_query_str + ');')
-                sql_file.close()
-
-                os.system('psql -U sdss -d sdss5db -f phase3_query.sql -o phase3_output.log')
+                unmatched.create_table(temp_model_name, temporary=True)
 
                 # Analyze the temporary table to gather stats.
                 # self.log.debug('Running ANALYZE on temporary table.')
-                # self.database.execute_sql(f'ANALYZE "{temp_table}";')
+                # self.database.execute_sql(f'ANALYZE "{temp_model_name}";')
 
                 # 2. Copy data from temporary table to relational table. Add
                 #    catalogid at this point.
 
-                fields = [Intermediate3.catalogid, Intermediate3.target_id,
-                          Intermediate3.version_id, Intermediate3.best,
-                          rel_model.plan_id]
+                fields = [temp_model.catalogid, temp_model.target_id,
+                          temp_model.version_id, temp_model.best,
+                          rel_model.plan_id, rel_model.added_by_phase]
 
                 rel_insert_query = rel_model.insert_from(
-                    Intermediate3.select(Intermediate3.catalogid,
-                                         Intermediate3.target_id,
-                                         self.version_id,
-                                         peewee.SQL('true'),
-                                         self.plan if self.is_addendum else None),
+                    temp_model.select(temp_model.catalogid,
+                                      temp_model.target_id,
+                                      self.version_id,
+                                      peewee.SQL('true'),
+                                      self.plan if self.is_addendum else None,
+                                      peewee.Value(3).alias('added_by_phase')),
                     fields).returning()
 
                 self.log.debug(f'Copying data into relational model '
@@ -1796,7 +1766,7 @@ class XMatchPlanner(object):
                 # 3. Fill out the temporary catalog table with the information
                 #    from the unique targets.
 
-                temp_table = peewee.Table(inter_name3, schema=TEMP_SCHEMA)
+                temp_table = peewee.Table(temp_model_name)
 
                 fields = [TempCatalog.catalogid,
                           TempCatalog.lead,
@@ -1894,6 +1864,8 @@ class XMatchPlanner(object):
         query_str = query_str.replace('None', 'Null')
         if return_string:
             return query_str
+        elif self.log.rich_console:
+            return f': {rich.markup.escape(query_str)}'
         elif self._options['show_sql']:
             return f': {color_text(query_str, "blue")}'
         else:
