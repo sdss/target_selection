@@ -1470,15 +1470,25 @@ class XMatchPlanner(object):
             if nids.rowcount > 0:
                 self._analyze(rel_model)
 
-    def _run_phase_2(self, model):
-        """Associates existing targets in Catalog with entries in the model."""
+    def _run_phase_2(self, model, source=TempCatalog):
+        """Associates existing targets in Catalog with entries in the model.
+
+        Here ``source`` is the catalogue with which we are spatially cross-matching.
+        Normally this is the temporary catalog table which we are building for this
+        cross-match run. But when we are doing an addendum, that table is going to be
+        empty (at least of the first table in the addeundum), so we need to also have
+        the option of using the real ``catalog`` table as the source. This method will
+        call itself recursively with ``source=Catalog`` if this is an addendum run.
+
+        """
 
         meta = model._meta
         xmatch = meta.xmatch
 
         table_name = meta.table_name
 
-        self.log.info('Phase 2: cross-matching against existing targets.')
+        self.log.info('Phase 2: cross-matching against existing targets '
+                      f'({source._meta.table_name}).')
 
         if 2 in xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
@@ -1520,10 +1530,7 @@ class XMatchPlanner(object):
 
             max_delta_epoch += .1  # Add .1 yr to be sure it's an upper bound
 
-            self.log.debug(f'Maximum epoch delta: '
-                           f'{max_delta_epoch:.3f} (+ 0.1 year).')
-
-        self.log.debug('Cross-matching model against temporary table.')
+            self.log.debug(f'Maximum epoch delta: {max_delta_epoch:.3f} (+ 0.1 year).')
 
         if use_pm:
 
@@ -1534,28 +1541,29 @@ class XMatchPlanner(object):
             q3c_dist = fn.q3c_dist_pm(model_ra, model_dec,
                                       model_pmra, model_pmdec,
                                       model_is_pmra_cos, model_epoch,
-                                      TempCatalog.ra, TempCatalog.dec,
+                                      source.ra, source.dec,
                                       catalog_epoch)
             q3c_join = fn.q3c_join_pm(model_ra, model_dec,
                                       model_pmra, model_pmdec,
                                       model_is_pmra_cos, model_epoch,
-                                      TempCatalog.ra, TempCatalog.dec,
+                                      source.ra, source.dec,
                                       catalog_epoch, max_delta_epoch,
                                       query_radius / 3600.)
         else:
 
             q3c_dist = fn.q3c_dist(model_ra, model_dec,
-                                   TempCatalog.ra, TempCatalog.dec)
+                                   source.ra, source.dec)
             q3c_join = fn.q3c_join(model_ra, model_dec,
-                                   TempCatalog.ra, TempCatalog.dec,
+                                   source.ra, source.dec,
                                    query_radius / 3600.)
 
         # Get the cross-matched catalogid and model target pk (target_id),
         # and their distance.
-        xmatched = (TempCatalog
-                    .select(TempCatalog.catalogid,
+        xmatched = (source
+                    .select(source.catalogid,
                             model_pk.alias('target_id'),
-                            q3c_dist.alias('distance'))
+                            q3c_dist.alias('distance'),
+                            source.version_id)
                     .join(model, peewee.JOIN.CROSS)
                     .where(q3c_join)
                     .where(self._get_sample_where(model_ra, model_dec)))
@@ -1594,20 +1602,18 @@ class XMatchPlanner(object):
                             peewee.Value(self.version_id).alias('version_id'),
                             xmatched.c.distance.alias('distance'),
                             best.alias('best'),
-                            self.plan if self.is_addendum else None))
+                            self.plan if self.is_addendum else None,
+                            peewee.Value(2).alias('added_by_phase')))
 
         # We only need to care about already linked targets if phase 1 run.
         if 1 in self._phases_run:
             in_query = (
-                in_query .where(
-                    ~fn.EXISTS(
-                        rel_model .select(
-                            SQL('1')) .where(
-                            (rel_model.version_id == self.version_id) & (
-                                (rel_model.catalogid ==
-                                 xmatched.c.catalogid) | (
-                                    (rel_model.target_id ==
-                                     xmatched.c.target_id)))))))
+                in_query.where(
+                    xmatched.c.version_id == self.version_id,
+                    ~fn.EXISTS(rel_model.select(SQL('1'))
+                               .where((rel_model.version_id == self.version_id) &
+                                      ((rel_model.catalogid == xmatched.c.catalogid) |
+                                       ((rel_model.target_id == xmatched.c.target_id)))))))
 
         with Timer() as timer:
 
@@ -1624,44 +1630,30 @@ class XMatchPlanner(object):
 
                 fields = [rel_model.target_id, rel_model.catalogid,
                           rel_model.version_id, rel_model.distance,
-                          rel_model.best, rel_model.plan_id]
+                          rel_model.best, rel_model.plan_id, rel_model.added_by_phase]
 
-                in_query = (rel_model
-                            .insert_from(in_query.with_cte(xmatched),
-                                         fields).returning())
+                in_query = rel_model.insert_from(in_query.with_cte(xmatched), fields).returning()
 
-                self.log.debug(f'Inserting cross-matched data into '
-                               f'relational model {rel_table_name!r} in PSQL: '
+                self.log.debug(f'Running Q3C query and inserting cross-matched data into '
+                               f'relational table {rel_table_name!r}: '
                                f'{self._get_sql(in_query)}')
 
-                in_query_str = self._get_sql(in_query, return_string=True)
+                n_catalogid = in_query.execute().rowcount
 
-                sql_file = open('phase2_query.sql', 'w')
-
-                if self._options['database_options']:
-                    options = self._options['database_options'].copy()
-                    for param in options:
-                        if param == 'maintenance_work_mem':
-                            continue
-                        value = options[param]
-                        sql_file.write(f'SET {param}={value!r};\n')
-
-                sql_file.write(in_query_str + ';')
-                sql_file.close()
-
-                os.system('psql -U sdss -d sdss5db -f phase2_query.sql -o phase2_output.log')
-                out_file = open('phase2_output.log', 'r')
-                lines = out_file.readlines()
-                out_file.close()
-                n_catalogid = int(lines[-1].split()[-1])
-
-        self.log.debug(f'Cross-matched {TempCatalog._meta.table_name} with '
+        self.log.debug(f'Cross-matched {source._meta.table_name} with '
                        f'{n_catalogid:,} targets in {table_name}. '
                        f'Run in {timer.interval:.3f} s.')
 
         if n_catalogid > 0:
             self._phases_run.add(2)
             self._analyze(rel_model)
+
+        # For addenda it's not sufficient to cross-match with the temporary table, because that
+        # does not contain all the cumulated targets from this cross-match version. We need to
+        # also spatially cross-match with the real catalog table (but only for the targets with
+        # version_id=<this-version-id>).
+        if self.is_addendum and source != Catalog:
+            self._run_phase_2(model, source=Catalog)
 
     def _run_phase_3(self, model):
         """Add non-matched targets to Catalog and the relational table."""
