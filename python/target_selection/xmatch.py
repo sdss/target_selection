@@ -364,6 +364,9 @@ class XMatchPlanner(object):
         will be created.
     output_table : str
         The name of the output table. Defaults to ``catalog``.
+    log
+        A logger to which to log messages. If not provided the ``target_selection``
+        logger is used.
     log_path : str
         The path to which to log or `False` to disable file logging.
     debug : bool or int
@@ -416,11 +419,11 @@ class XMatchPlanner(object):
                  extra_nodes=[], order='hierarchical', key='row_count',
                  epoch=EPOCH, start_node=None, query_radius=None,
                  schema='catalogdb', output_table='catalog',
-                 log_path='./xmatch_{plan}.log', debug=False, show_sql=False,
+                 log=None, log_path='./xmatch_{plan}.log', debug=False, show_sql=False,
                  sample_region=None, database_options=None, path_mode='full',
                  join_paths=None, phase1_range=[]):
 
-        self.log = target_selection.log
+        self.log = log or target_selection.log
         self.log.header = ''
 
         if log_path:
