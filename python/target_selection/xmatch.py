@@ -1308,6 +1308,7 @@ class XMatchPlanner(object):
             distance = peewee.DoubleField(null=True)
             best = peewee.BooleanField(null=False)
             plan_id = peewee.TextField(null=True)
+            added_by_phase = peewee.SmallIntegerField(null=True)
 
             class Meta:
                 database = meta.database
