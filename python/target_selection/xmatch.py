@@ -1408,21 +1408,10 @@ class XMatchPlanner(object):
             # a sequential scan.
             join_rel_model = join_models[-1]
 
-            # We can have join catalogues that produce more than
-            # one result for each target or different targets that
-            # are joined to the same catalogid. In the future we may
-            # want to order by something that selects the best
-            # candidate.
-
-            partition = (fn.first_value(model_pk)
-                         .over(partition_by=[join_rel_model.catalogid],
-                               order_by=[model_pk.asc()]))
-            best = peewee.Value(partition == model_pk)
-
             query = (self._build_join(join_models)
                      .select(model_pk.alias('target_id'),
                              join_rel_model.catalogid,
-                             best.alias('best'))
+                             peewee.Value(True).alias('best'))
                      .where(join_rel_model.version_id == self.version_id,
                             join_rel_model.best >> True)
                      .where(~fn.EXISTS(
@@ -1430,10 +1419,9 @@ class XMatchPlanner(object):
                          .select(SQL('1'))
                          .where(rel_model.version_id == self.version_id,
                                 ((rel_model.target_id == model_pk) |
-                                 (rel_model.catalogid ==
-                                  join_rel_model.catalogid)))))
-                     # To avoid breaking the unique constraint in rel tables
-                     .distinct(model_pk, join_rel_model.catalogid))
+                                 (rel_model.catalogid == join_rel_model.catalogid)))))
+                     # Select only one match per target in the catalogue with are cross-matching.
+                     .distinct(model_pk))
 
             # Deal with duplicates in LS8
             if table_name == 'legacy_survey_dr8':
