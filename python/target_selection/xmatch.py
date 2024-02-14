@@ -1055,9 +1055,9 @@ class XMatchPlanner(object):
 
             try:
                 self._temp_count = int(get_row_count(self.database,
-                                                    self._temp_table,
-                                                    schema=self.schema,
-                                                    approximate=True))
+                                                     self._temp_table,
+                                                     schema=self.schema,
+                                                     approximate=True))
             except ValueError:
                 self._temp_count = 0
 
