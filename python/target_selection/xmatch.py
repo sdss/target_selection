@@ -1955,8 +1955,7 @@ class XMatchPlanner(object):
         if db_opts:
             work_mem = db_opts.get('maintenance_work_mem', None)
             if work_mem:
-                self.database.execute_sql(f'SET maintenance_work_mem'
-                                          f' = {work_mem!r}')
+                self.database.execute_sql(f'SET maintenance_work_mem = {work_mem!r}')
 
         self.log.debug(f'Running ANALYZE on {table_name}.')
         vacuum_table(self.database, f'{schema}.{table_name}',
