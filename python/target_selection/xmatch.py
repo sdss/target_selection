@@ -1692,7 +1692,8 @@ class XMatchPlanner(object):
                         rel_model .select(
                             SQL('1')) .where(
                             rel_model.version_id == self.version_id,
-                            rel_model.target_id == model_pk))))
+                            rel_model.target_id == model_pk,
+                            rel_model.best >> True))))
 
         if xmatch.has_missing_coordinates:
             unmatched = unmatched.where(model_ra.is_null(False),
