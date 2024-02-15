@@ -6,6 +6,7 @@
 # @Filename: xmatch.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import copy
 import hashlib
 import inspect
 import os
@@ -640,7 +641,7 @@ class XMatchPlanner(object):
         """Reads the configuration file, recursively."""
 
         if isinstance(file_, dict):
-            config = file_
+            config = copy.deepcopy(file_)
         else:
             config = yaml.load(open(file_, 'r'), Loader=yaml.SafeLoader)
 
