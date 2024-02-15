@@ -393,11 +393,6 @@ class XMatchPlanner(object):
     join_paths : list
         When using path_mode=``config_list`` is the list of paths to link
         tables to output catalog table in phase_1.
-    phase1_range : list
-        List to indicate which tables will be ingested in phase_1 with multiple
-        queries split by pk range instead of using a single query.
-        Each element of this list is a list with the name of the table the
-        minimum pk value, the maximum pk value and the bin width.
     database_options : dict
         A dictionary of database configuration parameters to be set locally
         during each phase transaction, temporarily overriding the default
@@ -422,7 +417,7 @@ class XMatchPlanner(object):
                  schema='catalogdb', output_table='catalog',
                  log=None, log_path='./xmatch_{plan}.log', debug=False, show_sql=False,
                  sample_region=None, database_options=None, path_mode='full',
-                 join_paths=None, phase1_range=[]):
+                 join_paths=None):
 
         self.log = log or target_selection.log
         self.log.header = ''
@@ -490,7 +485,6 @@ class XMatchPlanner(object):
 
         self._max_cid = self.run_id << RUN_ID_BIT_SHIFT
         self.path_mode = path_mode
-        self.phase1_range = phase1_range
 
         if path_mode == 'config_list':
             join_paths_warning = 'join_paths needed for path_mode=config_list'
