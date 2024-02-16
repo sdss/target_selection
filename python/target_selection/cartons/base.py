@@ -380,12 +380,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if any([mag in Model._meta.columns for mag in magnitudes]):
             if not all([mag in Model._meta.columns for mag in magnitudes]):
                 raise TargetSelectionError(
-                    'Some optical magnitudes are defined in the query '
-                    'but not all of them.')
+                    'Some optical magnitudes are defined in the query but not all of them.')
             if 'optical_prov' not in Model._meta.columns:
                 raise TargetSelectionError('optical_prov column does not exist.')
-            warnings.warn('All optical magnitude columns are defined in the query.',
-                          TargetSelectionUserWarning)
+            self.log.warning('All optical magnitude columns are defined in the query.')
             return
 
         # First create the columns. Also create z to speed things up. We won't
@@ -793,11 +791,30 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return carton_table
 
-    def load(self, overwrite=False):
-        """Loads the output of the intermediate table into targetdb."""
+    def load(self, mode='fail', overwrite=False):
+        """Loads the output of the intermediate table into targetdb.
+
+        Parameters
+        ----------
+        mode : str
+            The mode to use when loading the targets. If ``'fail'``, raises an
+            error if the carton already exist. If ``'overwrite'``, overwrites
+            the targets. If ``'append'``, appends the targets.
+        overwrite : bool
+            Equivalent to setting ``mode='overwrite'``. This option is deprecated and
+            will raise a warning.
+
+        """
+
+        if overwrite:
+            mode = 'overwrite'
+            warnings.warn(
+                'The `overwrite` option is deprecated and will be removed in a future version. '
+                'Use `mode="overwrite"` instead.',
+                TargetSelectionUserWarning)
 
         if self.check_targets():
-            if overwrite:
+            if mode == 'overwrite':
                 warnings.warn(
                     f'Carton {self.name!r} with plan {self.plan!r} '
                     f'already has targets loaded. '
@@ -805,12 +822,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     TargetSelectionUserWarning,
                 )
                 self.drop_carton()
-            else:
+            elif mode == 'append':
+                pass
+            elif mode == 'fail':
                 raise TargetSelectionError(
                     f'Found existing targets for '
                     f'carton {self.name!r} with plan '
                     f'{self.plan!r}.'
                 )
+            else:
+                raise ValueError(f'Invalid mode {mode!r}. Use "fail", "overwrite", or "append".')
 
         if self.RModel is None:
             RModel = self.get_model()
