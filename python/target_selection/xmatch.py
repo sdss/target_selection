@@ -1060,7 +1060,7 @@ class XMatchPlanner(object):
         else:
 
             # Add Q3C index for TempCatalog
-            TempCatalog.add_index(SQL(f'CREATE INDEX '
+            TempCatalog.add_index(SQL(f'CREATE INDEX IF NOT EXISTS '
                                       f'{self._temp_table}_q3c_idx ON '
                                       f'{TEMP_SCHEMA}.{self._temp_table} '
                                       f'(q3c_ang2ipix(ra, dec))'))
