@@ -8,8 +8,7 @@
 
 from __future__ import annotations
 
-from sdssdb.peewee.sdss5db.catalogdb import (CatalogToToO_Target,
-                                             ToO_Metadata, ToO_Target)
+from sdssdb.peewee.sdss5db.catalogdb import ToO_Metadata, ToO_Target
 from sdssdb.peewee.sdss5db.targetdb import (Carton, CartonToTarget,
                                             Target, Version)
 
@@ -35,6 +34,8 @@ class ToO_Carton(BaseCarton):
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
+        from sdssdb.peewee.sdss5db.catalogdb import CatalogToToO_Target as C2TT
+
         too_in_carton = (Target
                          .select(Target.catalogid)
                          .join(CartonToTarget)
@@ -43,18 +44,18 @@ class ToO_Carton(BaseCarton):
                          .where(Version.plan == self.plan,
                                 Carton.carton == self.name)).alias('too_in_carton')
 
-        query = (ToO_Target.select(CatalogToToO_Target.catalogid,
+        query = (ToO_Target.select(C2TT.catalogid,
                                    ToO_Target.fiber_type.alias('instrument'),
                                    ToO_Metadata.g_mag.alias('g'),
                                    ToO_Metadata.r_mag.alias('r'),
                                    ToO_Metadata.i_mag.alias('i'),
                                    ToO_Metadata.z_mag.alias('z'),
                                    ToO_Metadata.optical_prov)
-                 .join(CatalogToToO_Target)
+                 .join(C2TT, on=(ToO_Target.too_id == C2TT.target_id))
                  .switch(ToO_Target)
                  .join(ToO_Metadata, on=(ToO_Target.too_id == ToO_Metadata.too_id))
-                 .where(CatalogToToO_Target.version_id == version_id,
-                        CatalogToToO_Target.best >> True,
-                        CatalogToToO_Target.catalogid.not_in(too_in_carton)))
+                 .where(C2TT.version_id == version_id,
+                        C2TT.best >> True,
+                        C2TT.catalogid.not_in(too_in_carton)))
 
         return query
