@@ -8,7 +8,8 @@
 
 from __future__ import annotations
 
-from sdssdb.peewee.sdss5db.catalogdb import ToO_Metadata, ToO_Target
+from sdssdb.peewee.sdss5db.catalogdb import (CatalogToToO_Target,
+                                             ToO_Metadata, ToO_Target)
 from sdssdb.peewee.sdss5db.targetdb import (Carton, CartonToTarget,
                                             Target, Version)
 
@@ -34,7 +35,8 @@ class ToO_Carton(BaseCarton):
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-        from sdssdb.peewee.sdss5db.catalogdb import CatalogToToO_Target as C2TT
+
+        C2TT = CatalogToToO_Target
 
         too_in_carton = (Target
                          .select(Target.catalogid)
