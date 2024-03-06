@@ -24,7 +24,7 @@ from astropy.table import Column, Table, vstack
 from pydl.pydlutils.yanny import yanny
 
 
-__version__ = 'v0.0.1'
+__version__ = 'v0.0.2'
 
 
 if __name__ == '__main__':
@@ -53,6 +53,9 @@ if __name__ == '__main__':
     # Check that the output dir exists, create if not
     outstem = os.path.expanduser(args.outstem)
     outdir = os.path.dirname(outstem)
+
+    if (outdir is None) or (outdir == ''):
+        outdir = './'
 
     try:
         os.makedirs(outdir, exist_ok=True)
