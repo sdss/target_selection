@@ -35,7 +35,7 @@ if __name__ == '__main__':
         prog=os.path.basename(sys.argv[0]),
         description=('Scrape content out of a set of input yanny files and '
                      'write concatenated content to an alternative format. '
-                     'Metadata (key-value pairs) is extracted from input files '
+                     'Metadata (key-value pairs) are extracted from input files '
                      'and collated as a separate output table.'))
 
     parser.add_argument('-i', '--infiles', required=True, default='.par',
@@ -76,7 +76,10 @@ if __name__ == '__main__':
     # now generate the list of input files
     infiles = glob.glob(args.infiles)
     print('Globbing for input files using expression: ' + args.infiles)
-    print(f'Found {len(infiles)} input files')
+    print(f'Found {len(infiles)} input files', flush=True)
+    if len(infiles) == 0:
+        print('...and so giving up')
+        exit(0)
 
     for i, f in enumerate(infiles):
         try:
