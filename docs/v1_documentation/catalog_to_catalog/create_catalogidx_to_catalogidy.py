@@ -1,4 +1,3 @@
-
 import os
 import time
 from itertools import combinations
@@ -21,6 +20,7 @@ database.connect(dbname='sdss5db', user="sdss_user")  # Use 'sdss' to get read/w
 
 class TempMatch(peewee.Model):
     """Model for the first output table with all the matches."""
+    pk = peewee.PrimaryKeyField()
     lead = peewee.TextField(null=False)
     catalogidx = peewee.BigIntegerField(index=True, null=False)
     catalogidy = peewee.BigIntegerField(index=True, null=False)
@@ -34,6 +34,7 @@ class TempMatch(peewee.Model):
 
 class UniqueMatch(peewee.Model):
     """Model for the final table with unique pairs of catalogids"""
+    pk = peewee.PrimaryKeyField()
     catalogidx = peewee.BigIntegerField(index=True, null=False)
     catalogidy = peewee.BigIntegerField(index=True, null=False)
     version_idx = peewee.SmallIntegerField(index=True, null=False)
@@ -80,30 +81,27 @@ class MetaXMatch:
         log_file, and split_inrest_number.
     """
 
-    def __init__(self, config_filename, database):
+    def __init__(self, config_filename, database, from_yaml=True, config=None):
         self.database = database
-        config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
-        #self.first_plan = config['xmatch_plans'][0]
-        #self.second_plan = config['xmatch_plans'][1]
+        if from_yaml==True:
+            config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
+        else:
+            if type(config) != dict:
+                raise ValueError("config must be a dict")
+            config = config
+
         log_filename = config['log_file']
         self.log = target_selection.log
         log_path_and_name = os.path.realpath('./' + log_filename)
         self.log.start_file_logger(log_path_and_name, rotating=False, mode='a')
         self.log.sh.setLevel(0)
 
-        #self.log.info(f'Matching Plans: {self.first_plan} '
-        #              f'with {self.second_plan}')
         ind_xmatch_info_filename = config['individual_xmatch_config']
         ind_xmatch_config = yaml.load(open(ind_xmatch_info_filename, 'r'),
                                       Loader=yaml.SafeLoader)
-        #first_plan_config = ind_xmatch_config[self.first_plan]
-        #second_plan_config = ind_xmatch_config[self.second_plan]
-        #self.first_version = first_plan_config['version_id']
-        #self.second_version = second_plan_config['version_id']
-        #self.log.info(f'Corresponding to versions {self.first_version}, and {self.second_version}')
         self.version_ids_to_match = config['version_ids_to_match']
 
-        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query', 'ra_region']
+        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query', 'ra_region', 'individual_table']
 
         # All the optional parameters present in the configuration file are stored directly
         # As attributes of the MetaXMatch object and for the ones that are not the attribute
@@ -133,11 +131,28 @@ class MetaXMatch:
             if ra_start >= ra_stop:
                 raise ValueError("Starting RA must be smaller than stopping RA!")
             output_name = (f'catalogidx_to_catalogidy'
-                               f'_ra{ra_start}_ra{ra_stop}')
+                               f'_ra{int(ra_start)}_ra{int(ra_stop)}')
             log_message = f'###  Using ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}               ###'
+        elif self.individual_table:
+            ind_table = self.individual_table
+            if "." in ind_table:
+                ind_table = ind_table.split(".")[-1]
+            output_name = (f'catalogidx_to_catalogidy'
+                               f'_{ind_table}')
+            log_message = f'###  Using catalogids from file  {ind_table}              ###'
         else:
             output_name = f'catalogidx_to_catalogidy_all'
             log_message = '###            Using Full SKY             ###'
+
+        if self.ra_region and self.individual_table:
+            ra_start, ra_stop = self.ra_region
+            ind_table = self.individual_table
+            if "." in ind_table:
+                ind_table = ind_table.split(".")[-1]
+            output_name = (f'catalogidx_to_catalogidy'
+                               f'_{ind_table}'
+                               f'_ra{int(ra_start)}_ra{int(ra_stop)}')
+            log_message = f'###  Using catalogids from file  {ind_table}  in ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}          ###'
 
         self.output_name = output_name
         self.log.info(' ')
@@ -212,14 +227,36 @@ class MetaXMatch:
         table = tables[index]
         rel_table = rel_tables[index]
         tablename = table._meta.table_name
-        
-        cte_targetids = (Target.select(rel_table.target_id, 
-                                        #rel_table.catalogid.alias("best_catalogid"), 
+
+        if self.individual_table:
+            try:
+            	ind_table = db_models[self.individual_table]
+            except:
+                raise ValueError("Could not find the table in database model: "+self.individual_table)
+            
+            if self.individual_table=='catalogdb.catalog_to_' + name:
+                cte_targetids = (Catalog.select(rel_table.target_id,
+                                        Catalog.ra, Catalog.dec)
+                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                        .where((rel_table.version << self.version_ids_to_match) &
+                                (rel_table.best == True))
+                        .distinct(rel_table.target_id))
+
+            else:
+                cte_targetids = (Catalog.select(rel_table.target_id,
+                                        Catalog.ra, Catalog.dec)
+                        .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
+                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                        .where((rel_table.version << self.version_ids_to_match) &
+                                (rel_table.best == True))
+                        .distinct(rel_table.target_id))
+
+        else:
+            cte_targetids = (Target.select(rel_table.target_id, 
                                         Target.ra, Target.dec)
                         .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
                         .where((rel_table.version << self.version_ids_to_match) &
                                 (rel_table.best == True))
-                        #.order_by(rel_table.target_id, rel_table.distance.asc(nulls="FIRST"))
                         .distinct(rel_table.target_id))
 
         # If sample_region is included in the configuration file, then the entire process
@@ -231,6 +268,9 @@ class MetaXMatch:
             cte_targetids = cte_targetids.where(fn.q3c_radial_query(Target.ra,
                                                 Target.dec,
                                                 racen, deccen, radius))
+        elif self.ra_region and self.individual_table:
+            ra_start, ra_stop = self.ra_region
+            cte_targetids = cte_targetids.where(Catalog.ra.between(ra_start, ra_stop))
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             cte_targetids = cte_targetids.where(Target.ra.between(ra_start, ra_stop))
@@ -241,7 +281,6 @@ class MetaXMatch:
         query = (rel_table
                  .select(rel_table.target_id,
                          peewee.Value(tablename).alias('table'),
-                         #cte_targetids.best_catalogid,
                          fn.array_agg(rel_table.catalogid)
                            .over(partition_by=rel_table.target_id).alias('catalogids'),
                          fn.array_agg(rel_table.version_id)
@@ -272,7 +311,6 @@ class MetaXMatch:
             nres += 1
             catids = entry['catalogids']
             verids = entry['version_ids']
-            #best_catid = entry['best_catalogid']
             catid_combs = list(combinations(catids, 2))  # Check all the pairs of catalogid's
             verid_combs = list(combinations(verids, 2))  # Check all the pairs of version_id's
             ind_valid = [ind for ind in range(len(catid_combs))
@@ -305,13 +343,7 @@ class MetaXMatch:
                 first_el = npart * self.split_insert_nunmber
                 last_el = (npart + 1) * self.split_insert_nunmber
                 curr_results = results_list[first_el:last_el]
-                #try:
                 TempMatch.insert_many(curr_results, fields=temp_fields).execute()
-                #except:
-                #    print("failed!")
-                #    with open('reults_dump.txt', 'w') as fp:
-                #        fp.write('\n'.join('%s %s %s %s %s' %x for x in curr_results))
-                #    exit()
 
         return nres, npair
 
@@ -435,5 +467,6 @@ def create_unique_from_region(input_tablename):
 EXAMPLE OF USAGE
 metax = MetaXMatch('cat_to_cat.yml', database)
 metax.run()
-create_unique_table(25,31)
+create_unique_table("output_name")
+Where "output_name" is the catalogidx_to_catalogidy_* output name from metax.run()
 """
