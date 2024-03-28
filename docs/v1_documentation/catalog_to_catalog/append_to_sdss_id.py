@@ -164,14 +164,27 @@ def duplicate_sdss_id_stacked():
 class append_to_tables:
     """foobar"""
 
-    def __init__(self, individual_table, database):
+    def __init__(self, database, individual_table=None, catalogid_list=None):
         self.database = database
         self.individual_table = individual_table
         self.ind_table_clean = self.individual_table
-        if "." in self.individual_table:
-            self.ind_table_clean = self.individual_table.split(".")[-1]
+        self.catalogid_list = catalogid_list
 
-        config = {"version_ids_to_match" : [21,25,31],
+        if self.catalogid_list is not None:
+            config = {"version_ids_to_match" : [21,25,31],
+                         "individual_xmatch_config" : "individual_crossmatches.yml",
+                         "log_file" : f"catalogidx_to_catalogidy_from_list.log",
+                         "show_first" : 20,
+                         "split_insert_nunmber" : 100000,
+                         "database_options" : {"enable_hashjoin" : "false"},
+                         #"split_query" : [['panstarrs1',522000000000000,5000000000000]],
+                         "catalogid_list" : catalogid_list}
+
+        else:
+            if "." in self.individual_table:
+                self.ind_table_clean = self.individual_table.split(".")[-1]
+
+            config = {"version_ids_to_match" : [21,25,31],
                          "individual_xmatch_config" : "individual_crossmatches.yml",
                          "log_file" : f"catalogidx_to_catalogidy_{self.ind_table_clean}.log",
                          "show_first" : 20,
@@ -179,14 +192,15 @@ class append_to_tables:
                          "database_options" : {"enable_hashjoin" : "false"},
                          "split_query" : [['panstarrs1',522000000000000,5000000000000]],
                          "individual_table" : individual_table}
+        self.config = config
     
-    def run_MetaXMatch(self, database, config_dict):
+    def run_MetaXMatch(self, database):
         """ This takes in an individual catalog_to_? table (labeled 'individual_table') and
         creates the catalogidx_to_catalogidy_? and catalogidx_to_catalogidy_?_unique tables
         in the sandox.
 
         """
-        metax = MetaXMatch(config_filename=None, database=database, from_yaml=False, config_dict=config_dict)
+        metax = MetaXMatch(config_filename=None, database=database, from_yaml=False, from_dict=True, config_dict=self.config)
     
         metax.run()
         create_unique_from_region(metax.output_name)
@@ -250,6 +264,8 @@ class append_to_tables:
         for table in [temp_catalogid_v21, temp_catalogid_v25, temp_catalogid_v31]:
             if table.table_exists():
                 self.database.drop_tables([table])
+
+        self.database.create_tables([temp_catalogid_v21, temp_catalogid_v25, temp_catalogid_v31])
             
         temp_catalogid_v21.insert_from(v21_cid_query_x, [temp_catalogid_v21.catalogid21]).execute()
         temp_catalogid_v21.insert_from(v21_cid_query_y, [temp_catalogid_v21.catalogid21]).execute()    
@@ -257,46 +273,79 @@ class append_to_tables:
         temp_catalogid_v25.insert_from(v25_cid_query_y, [temp_catalogid_v25.catalogid25]).execute()
         temp_catalogid_v31.insert_from(v31_cid_query_x, [temp_catalogid_v31.catalogid31]).execute()
         temp_catalogid_v31.insert_from(v31_cid_query_y, [temp_catalogid_v31.catalogid31]).execute()
+
+        if self.catalogid_list is not None:
+            catid_input_query = Catalog.select(Catalog.catalogid, Catalog.version_id).where(Catalog.catalogid << self.catalogid_list)
+            for row in catid_input_query:
+                if row.version_id==21:
+                    temp_catalogid_v21.insert(catalogid21=row.catalogid).execute()
+                elif row.version_id==25:
+                    temp_catalogid_v25.insert(catalogid25=row.catalogid).execute()
+                elif row.version_id==31:
+                    temp_catalogid_v31.insert(catalogid31=row.catalogid).execute()
+        else:
+            try:
+                ind_table = self.database.models[self.individual_table]
+            except:
+                raise ValueError("Could not find the table in database model: "+self.individual_table)
+                
+            ind_table_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
+                                         .join(ind_table, on=(Catalog.catalogid==ind_table.catalogid)))
+            for row in ind_table_input_query:
+                if row.version_id==21:
+                    temp_catalogid_v21.insert(catalogid21=row.catalogid).execute()
+                elif row.version_id==25:
+                    temp_catalogid_v25.insert(catalogid25=row.catalogid).execute()
+                elif row.version_id==31:
+                    temp_catalogid_v31.insert(catalogid31=row.catalogid).execute()
         
-    def create_sdss_id_stacked_to_add(self, database):
+    def create_sdss_id_stacked_to_add(self, database, output_name):
         """ foobar """
 
-        cat_ids21 = (temp_catalogid_v21.select(temp_catalogid_v21.catalogid21, Catalog.lead).distinct()
-                                         .join(Catalog, on=(Catalog.catalogid==temp_catalogid_v21.catalogid21)))
-        cat_ids25 = (temp_catalogid_v25.select(temp_catalogid_v25.catalogid25, Catalog.lead).distinct()
-                                         .join(Catalog, on=(Catalog.catalogid==temp_catalogid_v25.catalogid25)))
-        cat_ids31 = (temp_catalogid_v31.select(temp_catalogid_v31.catalogid31, Catalog.lead).distinct()
-                                         .join(Catalog, on=(Catalog.catalogid==temp_catalogid_v31.catalogid31)))
+#        large_cte_query = """DROP TABLE sandbox.sdss_id_stacked_to_add;
+#        CREATE TABLE sandbox.sdss_id_stacked_to_add as (
+#                with cat_ids21 as (select distinct tc.catalogid21, cat.lead from sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
+#                cat_ids25 as (select distinct tc.catalogid25, cat.lead from sandbox.temp_catalogid_v25 tc join catalog cat on cat.catalogid=tc.catalogid25),
+#                cat_ids31 as (select distinct tc.catalogid31, cat.lead from sandbox.temp_catalogid_v31 tc join catalog cat on cat.catalogid=tc.catalogid31),
+#                sq21_25 as (select cc.catalogidx, cc.catalogidy from sandbox.catalogidx_to_catalogidy_catalog_to_allstar_dr17_synspec_rev1 cc 
+#                            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+#                            where cc.version_idx=21 and cc.version_idy=25),
+#	 sq25_31 as (select cc.catalogidx, cc.catalogidy from sandbox.catalogidx_to_catalogidy_catalog_to_allstar_dr17_synspec_rev1 cc
+#                        join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+#                        where cc.version_idx=25 and cc.version_idy=31),
+#                left21_to_25 as (select cat_ids21.catalogid21, sq21_25.catalogidy as catalogid25 from cat_ids21 left join sq21_25 on cat_ids21.catalogid21=sq21_25.catalogidx),
+#                add_outer25 as (select left21_to_25.catalogid21, cat_ids25.catalogid25 as catalogid25 from left21_to_25 full outer join cat_ids25 on left21_to_25.catalogid25=cat_ids25.catalogid25),
+#                left_25_to_31 as (select add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy as catalogid31 from add_outer25 left join sq25_31 on add_outer25.catalogid25=sq25_31.catalogidx),
+#                add_outer31 as (select left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31 from left_25_to_31 full outer join cat_ids31 on left_25_to_31.catalogid31=cat_ids31.catalogid31)
+#                select * from add_outer31); """
+        large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_to_add;
+CREATE TABLE sandbox.sdss_id_stacked_to_add as (
+    with cat_ids21 as (select distinct tc.catalogid21, cat.lead from sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
+     cat_ids25 as (select distinct tc.catalogid25, cat.lead from sandbox.temp_catalogid_v25 tc join catalog cat on cat.catalogid=tc.catalogid25),
+     cat_ids31 as (select distinct tc.catalogid31, cat.lead from sandbox.temp_catalogid_v31 tc join catalog cat on cat.catalogid=tc.catalogid31),
+     sq21_25 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
+            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+            where cc.version_idx=21 and cc.version_idy=25),
+     sq25_31 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
+            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+            where cc.version_idx=25 and cc.version_idy=31),
+     left21_to_25 as (select cat_ids21.catalogid21, sq21_25.catalogidy as catalogid25 from cat_ids21 left join sq21_25 on cat_ids21.catalogid21=sq21_25.catalogidx),
+     add_outer25 as (select left21_to_25.catalogid21, cat_ids25.catalogid25 as catalogid25 from left21_to_25 full outer join cat_ids25 on left21_to_25.catalogid25=cat_ids25.catalogid25),
+     left_25_to_31 as (select add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy as catalogid31 from add_outer25 left join sq25_31 on add_outer25.catalogid25=sq25_31.catalogidx),
+     add_outer31 as (select left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31 from left_25_to_31 full outer join cat_ids31 on left_25_to_31.catalogid31=cat_ids31.catalogid31)
+    select * from add_outer31);"""        
+        database.execute_sql(large_cte_query)
         
-        sq21_25 = (TempMatch.select(TempMatch.catalogidx, TempMatch.catalogidy)
-                                .join(Catalog, on=((Catalog.catalogid==TempMatch.catalogidx)&(Catalog.lead==TempMatch.lead)))
-                                .where((TempMatch.version_idx==21)&(TempMatch.version_idy==25)))
-        sq25_31 = (TempMatch.select(TempMatch.catalogidx, TempMatch.catalogidy)
-                                .join(Catalog, on=((Catalog.catalogid==TempMatch.catalogidx)&(Catalog.lead==TempMatch.lead)))
-                                .where((TempMatch.version_idx==25)&(TempMatch.version_idy==31)))
-
-        left21_to_25 = (cat_ids21.select(cat_ids21.catalogid21, sq21_25.catalogidy.alias("catalogid25"))
-                                .join(sq21_25, join_type = JOIN.LEFT_OUTER, on=(cat_ids21.catalogid21==sq21_25.catalogidx))
-                                .with_cte(cat_ids21, sq21_25))
-        
-        add_outer25 = (left21_to_25.select(left21_to_25.catalogid21, cat_ids25.catalogid25.alias("catalogid25"))
-                                .join(cat_ids25, join_type = JOIN.FULL_OUTER, on=(left21_to_25.catalogid25==cat_ids25.catalogid25))
-                                .with_cte(cat_ids25, left21_to_25))
-        
-        left_25_to_31 = (add_outer25.select(add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy.alias("catalogid31"))
-                                .join(sq25_31, join_typye = JOIN.LEFT_OUTER, on=(add_outer25.catalogid25==sq25_31.catalogidx))
-                                .with_cte(add_outer25, sq25_31))
-        
-        add_outer31 = (left_25_to_31.select(left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31)
-                                .join(cat_ids31, join_type=JOIN.FULL_OUTER, on=(left_25_to_31.catalogid31==cat_ids31.catalogid31)))
-
-        sdss_id_stacked_to_add._meta.table_name = "sdss_id_stacked_to_add" 
-        insert_all = (sdss_id_stacked_to_add.insert_from(add_outer31, 
-                                    [sdss_id_stacked_to_add.catalogid21, 
-                                     sdss_id_stacked_to_add.catalogid25, 
-                                     sdss_id_stacked_to_add.catalogi31])
-                                .with_cte(add_outer31))
-        insert_all.execute()
+        add_ra_dec_columns = """ ALTER TABLE sandbox.sdss_id_stacked_to_add ADD COLUMN ra_sdss_id double precision;
+                                 ALTER TABLE sandbox.sdss_id_stacked_to_add ADD COLUMN dec_sdss_id double precision; """
+        database.execute_sql(add_ra_dec_columns)
+        sdss_id_stacked_to_add._meta.table_name = "sdss_id_stacked_to_add"
+#        insert_all = (sdss_id_stacked_to_add.insert_from(add_outer31_results, 
+#                                    [sdss_id_stacked_to_add.catalogid21, 
+#                                     sdss_id_stacked_to_add.catalogid25, 
+#                                     sdss_id_stacked_to_add.catalogid31]))
+#                                #.with_cte(add_outer31))
+#        insert_all.execute()
         
         ra_dec_update31 = (sdss_id_stacked_to_add
                                .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
@@ -329,7 +378,7 @@ class append_to_tables:
         if sdss_id_stacked_new.table_exists():
             self.database.drop_tables([sdss_id_stacked_new])
             duplicate_sdss_id_stacked()
-        
+       # This doesn't work for some reason 
         sid_stacked_to_add_f = [sdss_id_stacked_to_add.catalogid21, 
                                 sdss_id_stacked_to_add.catalogid25, 
                                 sdss_id_stacked_to_add.catalogid31,
@@ -340,7 +389,7 @@ class append_to_tables:
                                 sdss_id_stacked_new.catalogid31,
                                 sdss_id_stacked_new.ra_sdss_id,
                                 sdss_id_stacked_new.dec_sdss_id]
-        insert_stacked_to_add = (sdss_id_stacked_new.
+        insert_stacked_to_add = (sdss_id_stacked_new
                                      .insert_from(sdss_id_stacked_to_add.select(sid_stacked_to_add_f),
                                          fields=sid_stacked_new_f)
                                      .execute())
@@ -384,7 +433,7 @@ class append_to_tables:
                         .group_by(sdss_id_flat_new.catalogid))
 
         query = (sdss_id_flat_new
-                     .update(sdss_id_flat_new.n_associated=with_cte.ct)
+                     .update(n_associated=with_cte.ct)
                      .from_(with_cte)
                      .where(sdss_id_flat_new.catalogid == with_cte.c.catalogid)
                      .execute())

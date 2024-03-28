@@ -13,3 +13,5 @@ sample_region:
     [50, 50 , 1]
 ra_region:
     [270, 280]
+individual_table:
+    "catalog_to_allwise"

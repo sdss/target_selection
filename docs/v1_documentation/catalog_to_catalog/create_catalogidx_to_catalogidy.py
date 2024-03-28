@@ -46,6 +46,7 @@ class UniqueMatch(peewee.Model):
         database = database
         schema = 'sandbox'
 
+
 class MetaXMatch:
     """Correlates two crossmatch runs.
 
@@ -81,14 +82,14 @@ class MetaXMatch:
         log_file, and split_inrest_number.
     """
 
-    def __init__(self, config_filename, database, from_yaml=True, config=None):
+    def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False, config_dict=None):
         self.database = database
         if from_yaml==True:
             config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
-        else:
-            if type(config) != dict:
+        elif from_dict==True:
+            if type(config_dict) != dict:
                 raise ValueError("config must be a dict")
-            config = config
+            config = config_dict
 
         log_filename = config['log_file']
         self.log = target_selection.log
@@ -101,7 +102,7 @@ class MetaXMatch:
                                       Loader=yaml.SafeLoader)
         self.version_ids_to_match = config['version_ids_to_match']
 
-        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query', 'ra_region', 'individual_table']
+        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query', 'ra_region', 'individual_table', 'catalogid_list']
 
         # All the optional parameters present in the configuration file are stored directly
         # As attributes of the MetaXMatch object and for the ones that are not the attribute
@@ -140,6 +141,9 @@ class MetaXMatch:
             output_name = (f'catalogidx_to_catalogidy'
                                f'_{ind_table}')
             log_message = f'###  Using catalogids from file  {ind_table}              ###'
+        elif self.catalogid_list:
+            output_name = (f'catalogidx_to_catalogidy_from_catalogid_list')
+            log_message = f'### Using catalogids from a given list                    ###'
         else:
             output_name = f'catalogidx_to_catalogidy_all'
             log_message = '###            Using Full SKY             ###'
@@ -249,6 +253,15 @@ class MetaXMatch:
                         .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
                         .where((rel_table.version << self.version_ids_to_match) &
                                 (rel_table.best == True))
+                        .distinct(rel_table.target_id))
+
+        elif self.catalogid_list:
+            cte_targetids = (Catalog.select(rel_table.target_id,
+                                        Catalog.ra, Catalog.dec)
+                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                        .where(((rel_table.version << self.version_ids_to_match) &
+                                (rel_table.best == True)))
+                        .where(Catalog.catalogid << self.catalogid_list)
                         .distinct(rel_table.target_id))
 
         else:
