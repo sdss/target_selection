@@ -95,7 +95,7 @@ class sdss_id_stacked_to_add(peewee.Model):
         database = database
         schema = "sandbox"
 
-class sdss_id_stacked_new(peewee.Model):
+class sdss_id_stacked_(peewee.Model):
     """ Model for new sdss_id_stacked """
 
     sdss_id = peewee.BigAutoField(primary_key=True)
@@ -108,9 +108,27 @@ class sdss_id_stacked_new(peewee.Model):
     class Meta:
         database = database
         schema = "sandbox"
-        table_name = "sdss_id_stacked_new"
+        table_name = "sdss_id_stacked"
 
-class sdss_id_flat_new(peewee.Model):
+class sdss_id_flat_to_add(peewee.Model):
+    """ Model for rows to be added to sdss_id_flat """
+
+    sdss_id = peewee.BigIntegerField()
+    catalogid = peewee.BigIntegerField()
+    version_id = peewee.SmallIntegerField()
+    ra_sdss_id = peewee.DoubleField()
+    dec_sdss_id = peewee.DoubleField()
+    n_associated = peewee.SmallIntegerField(null=True)
+    ra_catalogid = peewee.DoubleField(null=True)
+    dec_catalogid = peewee.DoubleField(null=True)
+    #pk = peewee.BigAutoField(primary_key=True)
+
+    class Meta:
+        database = database
+        schema = "sandbox"
+        table_name = "sdss_id_flat_to_add"
+
+class sdss_id_flat_(peewee.Model):
     """ Model for new sdss_id_flat"""
 
     sdss_id = peewee.BigIntegerField()
@@ -118,48 +136,18 @@ class sdss_id_flat_new(peewee.Model):
     version_id = peewee.SmallIntegerField()
     ra_sdss_id = peewee.DoubleField()
     dec_sdss_id = peewee.DoubleField()
-    n_associated = peewee.SmallIntegerField()
-    ra_catalogid = peewee.DoubleField()
-    dec_catalogid = peewee.DoubleField()
+    n_associated = peewee.SmallIntegerField(null=True)
+    ra_catalogid = peewee.DoubleField(null=True)
+    dec_catalogid = peewee.DoubleField(null=True)
     pk = peewee.BigAutoField(primary_key=True)
 
     class Meta:
         database = database
         schema = "sandbox"
-        table_name = "sdss_id_flat_new"
-
-#class sdss_id_flat_to_add(peewee.Model):
-#    """ Model for addendum to sdss_id_flat"""
-#
-#    sdss_id = peewee.BigIntegerField(index=True)
-#    catalogid = peewee.BigIntegerField(index=True)
-#    version_id = peewee.SmallIntegerField(index=True)
-#    ra_sdss_id = peewee.DoubleField()
-#    dec_sdss_id = peewee.DoubleField()
-#    n_associated = peewee.SmallIntegerField(index=True)
-#    ra_catalogid = peewee.DoubleField()
-#    dec_catalogid = peewee.DoubleField()
-#    pk = peewee.BigIntegerField(primary_key=True)
-#
-#    class Meta:
-#        database = database
-#        schema = "sandbox"
+        table_name = "sdss_id_flat"
 
 
-def duplicate_sdss_id_stacked():
-    """ Method to duplicate sdss_id_stacked to the
-    sandbox.
-    """
-    
-    #fields = [f.name for f in sdss_id_stacked._meta.fields]
-    
-    with database:
-        database.execute_sql('CREATE TABLE IF NOT EXISTS sandbox.sdss_id_stacked_new AS SELECT * FROM catalogdb.sdss_id_stacked')
-        database.execute_sql('ALTER TABLE sandbox.sdss_id_stacked_new ALTER COLUMN sdss_id set not null')
-        database.execute_sql('CREATE SEQUENCE sandbox.sdss_id_stacked_new_sdss_id__seq')
-        database.execute_sql('ALTER TABLE sandbox.sdss_id_stacked_new ALTER COLUMN sdss_id SET DEFAULT nextval(\'sandbox.sdss_id_stacked_new_sdss_id__seq\')')
-        database.execute_sql('ALTER SEQUENCE sandbox.sdss_id_stacked_new_sdss_id__seq OWNED BY sandbox.sdss_id_stacked_new.sdss_id')
-        database.execute_sql('SELECT setval(\'sandbox.sdss_id_stacked_new_sdss_id__seq\', (SELECT MAX(sdss_id) FROM sandbox.sdss_id_stacked_new))')
+
 
 class append_to_tables:
     """foobar"""
@@ -263,7 +251,7 @@ class append_to_tables:
 
         for table in [temp_catalogid_v21, temp_catalogid_v25, temp_catalogid_v31]:
             if table.table_exists():
-                self.database.drop_tables([table])
+                database.drop_tables([table])
 
         self.database.create_tables([temp_catalogid_v21, temp_catalogid_v25, temp_catalogid_v31])
             
@@ -302,43 +290,27 @@ class append_to_tables:
     def create_sdss_id_stacked_to_add(self, database, output_name):
         """ foobar """
 
-#        large_cte_query = """DROP TABLE sandbox.sdss_id_stacked_to_add;
-#        CREATE TABLE sandbox.sdss_id_stacked_to_add as (
-#                with cat_ids21 as (select distinct tc.catalogid21, cat.lead from sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
-#                cat_ids25 as (select distinct tc.catalogid25, cat.lead from sandbox.temp_catalogid_v25 tc join catalog cat on cat.catalogid=tc.catalogid25),
-#                cat_ids31 as (select distinct tc.catalogid31, cat.lead from sandbox.temp_catalogid_v31 tc join catalog cat on cat.catalogid=tc.catalogid31),
-#                sq21_25 as (select cc.catalogidx, cc.catalogidy from sandbox.catalogidx_to_catalogidy_catalog_to_allstar_dr17_synspec_rev1 cc 
-#                            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
-#                            where cc.version_idx=21 and cc.version_idy=25),
-#	 sq25_31 as (select cc.catalogidx, cc.catalogidy from sandbox.catalogidx_to_catalogidy_catalog_to_allstar_dr17_synspec_rev1 cc
-#                        join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
-#                        where cc.version_idx=25 and cc.version_idy=31),
-#                left21_to_25 as (select cat_ids21.catalogid21, sq21_25.catalogidy as catalogid25 from cat_ids21 left join sq21_25 on cat_ids21.catalogid21=sq21_25.catalogidx),
-#                add_outer25 as (select left21_to_25.catalogid21, cat_ids25.catalogid25 as catalogid25 from left21_to_25 full outer join cat_ids25 on left21_to_25.catalogid25=cat_ids25.catalogid25),
-#                left_25_to_31 as (select add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy as catalogid31 from add_outer25 left join sq25_31 on add_outer25.catalogid25=sq25_31.catalogidx),
-#                add_outer31 as (select left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31 from left_25_to_31 full outer join cat_ids31 on left_25_to_31.catalogid31=cat_ids31.catalogid31)
-#                select * from add_outer31); """
         large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_to_add;
-CREATE TABLE sandbox.sdss_id_stacked_to_add as (
-    with cat_ids21 as (select distinct tc.catalogid21, cat.lead from sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
-     cat_ids25 as (select distinct tc.catalogid25, cat.lead from sandbox.temp_catalogid_v25 tc join catalog cat on cat.catalogid=tc.catalogid25),
-     cat_ids31 as (select distinct tc.catalogid31, cat.lead from sandbox.temp_catalogid_v31 tc join catalog cat on cat.catalogid=tc.catalogid31),
-     sq21_25 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
-            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
-            where cc.version_idx=21 and cc.version_idy=25),
-     sq25_31 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
-            join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
-            where cc.version_idx=25 and cc.version_idy=31),
-     left21_to_25 as (select cat_ids21.catalogid21, sq21_25.catalogidy as catalogid25 from cat_ids21 left join sq21_25 on cat_ids21.catalogid21=sq21_25.catalogidx),
-     add_outer25 as (select left21_to_25.catalogid21, cat_ids25.catalogid25 as catalogid25 from left21_to_25 full outer join cat_ids25 on left21_to_25.catalogid25=cat_ids25.catalogid25),
-     left_25_to_31 as (select add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy as catalogid31 from add_outer25 left join sq25_31 on add_outer25.catalogid25=sq25_31.catalogidx),
-     add_outer31 as (select left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31 from left_25_to_31 full outer join cat_ids31 on left_25_to_31.catalogid31=cat_ids31.catalogid31)
-    select * from add_outer31);"""        
-        database.execute_sql(large_cte_query)
+        CREATE TABLE sandbox.sdss_id_stacked_to_add as (
+             with cat_ids21 as (select distinct tc.catalogid21, cat.lead from sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
+             cat_ids25 as (select distinct tc.catalogid25, cat.lead from sandbox.temp_catalogid_v25 tc join catalog cat on cat.catalogid=tc.catalogid25),
+             cat_ids31 as (select distinct tc.catalogid31, cat.lead from sandbox.temp_catalogid_v31 tc join catalog cat on cat.catalogid=tc.catalogid31),
+             sq21_25 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
+                    join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+                    where cc.version_idx=21 and cc.version_idy=25),
+             sq25_31 as (select cc.catalogidx, cc.catalogidy from sandbox.{output_name} cc 
+                    join catalog cat on cat.catalogid=cc.catalogidx and cat.lead=cc.lead
+                    where cc.version_idx=25 and cc.version_idy=31),
+             left21_to_25 as (select cat_ids21.catalogid21, sq21_25.catalogidy as catalogid25 from cat_ids21 left join sq21_25 on cat_ids21.catalogid21=sq21_25.catalogidx),
+             add_outer25 as (select left21_to_25.catalogid21, cat_ids25.catalogid25 as catalogid25 from left21_to_25 full outer join cat_ids25 on left21_to_25.catalogid25=cat_ids25.catalogid25),
+             left_25_to_31 as (select add_outer25.catalogid21, add_outer25.catalogid25, sq25_31.catalogidy as catalogid31 from add_outer25 left join sq25_31 on add_outer25.catalogid25=sq25_31.catalogidx),
+             add_outer31 as (select left_25_to_31.catalogid21, left_25_to_31.catalogid25, cat_ids31.catalogid31 from left_25_to_31 full outer join cat_ids31 on left_25_to_31.catalogid31=cat_ids31.catalogid31)
+             select * from add_outer31);"""        
+        self.database.execute_sql(large_cte_query)
         
         add_ra_dec_columns = """ ALTER TABLE sandbox.sdss_id_stacked_to_add ADD COLUMN ra_sdss_id double precision;
                                  ALTER TABLE sandbox.sdss_id_stacked_to_add ADD COLUMN dec_sdss_id double precision; """
-        database.execute_sql(add_ra_dec_columns)
+        self.database.execute_sql(add_ra_dec_columns)
         sdss_id_stacked_to_add._meta.table_name = "sdss_id_stacked_to_add"
 #        insert_all = (sdss_id_stacked_to_add.insert_from(add_outer31_results, 
 #                                    [sdss_id_stacked_to_add.catalogid21, 
@@ -375,66 +347,112 @@ CREATE TABLE sandbox.sdss_id_stacked_to_add as (
     def add_to_sdss_id_stacked(self, database):
         """ foobar """
         
-        if sdss_id_stacked_new.table_exists():
-            self.database.drop_tables([sdss_id_stacked_new])
-            duplicate_sdss_id_stacked()
-       # This doesn't work for some reason 
-        sid_stacked_to_add_f = [sdss_id_stacked_to_add.catalogid21, 
-                                sdss_id_stacked_to_add.catalogid25, 
-                                sdss_id_stacked_to_add.catalogid31,
-                                sdss_id_stacked_to_add.ra_sdss_id,
-                                sdss_id_stacked_to_add.dec_sdss_id]
-        sid_stacked_new_f = [sdss_id_stacked_new.catalogid21,
-                                sdss_id_stacked_new.catalogid25,
-                                sdss_id_stacked_new.catalogid31,
-                                sdss_id_stacked_new.ra_sdss_id,
-                                sdss_id_stacked_new.dec_sdss_id]
-        insert_stacked_to_add = (sdss_id_stacked_new
-                                     .insert_from(sdss_id_stacked_to_add.select(sid_stacked_to_add_f),
-                                         fields=sid_stacked_new_f)
-                                     .execute())
-        
-    def create_sdss_id_flat_new(self, database):
+        #if sdss_id_stacked_new.table_exists() and duplicate_stacked_table:
+        #    self.database.drop_tables([sdss_id_stacked_new])
+        #    duplicate_sdss_id_stacked()
+        #else:
+        #    duplicate_sdss_id_stacked()
+
+        sid_stacked_f = [sdss_id_stacked_.catalogid21,
+                                sdss_id_stacked_.catalogid25,
+                                sdss_id_stacked_.catalogid31,
+                                sdss_id_stacked_.ra_sdss_id,
+                                sdss_id_stacked_.dec_sdss_id]
+
+        to_add = sdss_id_stacked_to_add.select(sdss_id_stacked_to_add.catalogid21,
+                                               sdss_id_stacked_to_add.catalogid25,
+                                               sdss_id_stacked_to_add.catalogid31,
+                                               sdss_id_stacked_to_add.ra_sdss_id,
+                                               sdss_id_stacked_to_add.dec_sdss_id).tuples()
+        with self.database.atomic():
+            sdss_id_stacked_.insert_many(to_add, fields=sid_stacked_f).execute()
+                
+    def create_sdss_id_flat_to_add(self, database):
         """ foobar """
+       
+        if sdss_id_flat_to_add.table_exists():
+            self.database.drop_tables([sdss_id_flat_to_add])
+            self.database.create_tables([sdss_id_flat_to_add])
+        else:
+            self.database.create_tables([sdss_id_flat_to_add]) 
+       
+        sid_flat_fields = [sdss_id_flat_to_add.sdss_id,
+                           sdss_id_flat_to_add.catalogid,
+                           sdss_id_flat_to_add.version_id,
+                           sdss_id_flat_to_add.ra_sdss_id,
+                           sdss_id_flat_to_add.dec_sdss_id]
+
+        max_sdss_id = sdss_id_flat_.select(fn.MAX(sdss_id_flat_.sdss_id)).scalar()
+
+        sid_flat_add_v21 = (sdss_id_stacked_.select(sdss_id_stacked_.sdss_id,
+                                                              sdss_id_stacked_.catalogid21,
+                                                              peewee.Value(21),
+                                                              sdss_id_stacked_.ra_sdss_id,
+                                                              sdss_id_stacked_.dec_sdss_id)
+                                               .where(sdss_id_stacked_.catalogid21.is_null(False))
+                                               .where(sdss_id_stacked_.sdss_id > max_sdss_id).tuples())
+        with self.database.atomic():
+            sdss_id_flat_to_add.insert_many(sid_flat_add_v21, fields=sid_flat_fields).execute()
+
+        sid_flat_add_v25 = (sdss_id_stacked_.select(sdss_id_stacked_.sdss_id,
+                                                              sdss_id_stacked_.catalogid25,
+                                                              peewee.Value(25),
+                                                              sdss_id_stacked_.ra_sdss_id,
+                                                              sdss_id_stacked_.dec_sdss_id)
+                                               .where(sdss_id_stacked_.catalogid25.is_null(False))
+                                               .where(sdss_id_stacked_.sdss_id > max_sdss_id).tuples())
+        with self.database.atomic():
+            sdss_id_flat_to_add.insert_many(sid_flat_add_v25, fields=sid_flat_fields).execute()
+
+        sid_flat_add_v31 = (sdss_id_stacked_.select(sdss_id_stacked_.sdss_id,
+                                                              sdss_id_stacked_.catalogid31,
+                                                              peewee.Value(31),
+                                                              sdss_id_stacked_.ra_sdss_id,
+                                                              sdss_id_stacked_.dec_sdss_id)
+                                               .where(sdss_id_stacked_.catalogid31.is_null(False))
+                                               .where(sdss_id_stacked_.sdss_id > max_sdss_id).tuples())
+        with self.database.atomic():
+            sdss_id_flat_to_add.insert_many(sid_flat_add_v31, fields=sid_flat_fields).execute()
+
+        cte = (sdss_id_flat_to_add
+                        .select(sdss_id_flat_to_add.catalogid, fn.COUNT("*").alias('ct'))
+                        .group_by(sdss_id_flat_to_add.catalogid)
+                        .cte('catid_n_associated', columns=("catalogid", "ct")))
+
+        query = (sdss_id_flat_to_add
+                     .update(n_associated=cte.c.ct)
+                     .from_(cte)
+                     .where(sdss_id_flat_to_add.catalogid == cte.c.catalogid)
+                     .with_cte(cte)
+                     .execute()) 
         
-        if sdss_id_flat_new.table_exists():
-            self.database.drop_tables([sdss_id_flat_new])
-            self.database.create_tables([sdss_id_flat_new])
-
-        query = (sdss_id_flat_new
-                     .insert_from(sdss_id_stacked_new.select([sdss_id_stacked_new.sdss_id,
-                                                              sdss_id_stacked_new.catalogid21.alias('catalogid'),
-                                                              peewee.Value(21).alias('version_id'),
-                                                              sdss_id_stacked_new.ra_sdss_id,
-                                                              sdss_id_stacked_new.dec_sdss_id])
-                                                     .where(sdss_id_stacked_new.catalogid21.is_null(False)))
-                     .execute())
-        
-        query = (sdss_id_flat_new
-                     .insert_from(sdss_id_stacked_new.select([sdss_id_stacked_new.sdss_id,
-                                                              sdss_id_stacked_new.catalogid25.alias('catalogid'),
-                                                              peewee.Value(25).alias('version_id'),
-                                                              sdss_id_stacked_new.ra_sdss_id,
-                                                              sdss_id_stacked_new.dec_sdss_id])
-                                                     .where(sdss_id_stacked_new.catalogid25.is_null(False)))
-                     .execute())
-        
-        query = (sdss_id_flat_new
-                     .insert_from(sdss_id_stacked_new.select([sdss_id_stacked_new.sdss_id,
-                                                              sdss_id_stacked_new.catalogid31.alias('catalogid'),
-                                                              peewee.Value(31).alias('version_id'),
-                                                              sdss_id_stacked_new.ra_sdss_id,
-                                                              sdss_id_stacked_new.dec_sdss_id])
-                                                     .where(sdss_id_stacked_new.catalogid31.is_null(False)))
+        query = (sdss_id_flat_to_add
+                     .update(ra_catalogid=Catalog.ra, 
+                             dec_catalogid=Catalog.dec)
+                     .from_(Catalog)
+                     .where(sdss_id_flat_to_add.catalogid == Catalog.catalogid)
                      .execute())
 
-        with_cte = (sdss_id_flat_new
-                        .select(sdss_id_flat_new.catalogid, fn.COUNT().alias('ct'))
-                        .group_by(sdss_id_flat_new.catalogid))
+    def add_to_sdss_id_flat(self, database):
+        """ foobar """
 
-        query = (sdss_id_flat_new
-                     .update(n_associated=with_cte.ct)
-                     .from_(with_cte)
-                     .where(sdss_id_flat_new.catalogid == with_cte.c.catalogid)
-                     .execute())
+        sid_flat_f = [sdss_id_flat_.sdss_id,
+                      sdss_id_flat_.catalogid,
+                      sdss_id_flat_.version_id,
+                      sdss_id_flat_.ra_sdss_id,
+                      sdss_id_flat_.dec_sdss_id,
+                      sdss_id_flat_.n_associated,
+                      sdss_id_flat_.ra_catalogid,
+                      sdss_id_flat_.dec_catalogid]
 
+        to_add = sdss_id_flat_to_add.select(sdss_id_flat_to_add.sdss_id,
+                                            sdss_id_flat_to_add.catalogid,
+                                            sdss_id_flat_to_add.version_id,
+                                            sdss_id_flat_to_add.ra_sdss_id,
+                                            sdss_id_flat_to_add.dec_sdss_id,
+                                            sdss_id_flat_to_add.n_associated,
+                                            sdss_id_flat_to_add.ra_catalogid,
+                                            sdss_id_flat_to_add.dec_catalogid).tuples()
+
+        with self.database.atomic():
+            sdss_id_flat_.insert_many(to_add, fields=sid_flat_f).execute()
