@@ -157,10 +157,11 @@ class append_to_tables:
         self.individual_table = individual_table
         self.ind_table_clean = self.individual_table
         self.catalogid_list = catalogid_list
+        self.dir_path = os.path.dirname(__file__)
 
         if self.catalogid_list is not None:
             config = {"version_ids_to_match" : [21,25,31],
-                         "individual_xmatch_config" : "individual_crossmatches.yml",
+                         "individual_xmatch_config" : self.dir_path+"/config/individual_crossmatches.yml",
                          "log_file" : f"catalogidx_to_catalogidy_from_list.log",
                          "show_first" : 20,
                          "split_insert_nunmber" : 100000,
@@ -173,7 +174,7 @@ class append_to_tables:
                 self.ind_table_clean = self.individual_table.split(".")[-1]
 
             config = {"version_ids_to_match" : [21,25,31],
-                         "individual_xmatch_config" : "individual_crossmatches.yml",
+                         "individual_xmatch_config" : self.dir_path+"/config/individual_crossmatches.yml",
                          "log_file" : f"catalogidx_to_catalogidy_{self.ind_table_clean}.log",
                          "show_first" : 20,
                          "split_insert_nunmber" : 100000,
@@ -263,7 +264,12 @@ class append_to_tables:
         temp_catalogid_v31.insert_from(v31_cid_query_y, [temp_catalogid_v31.catalogid31]).execute()
 
         if self.catalogid_list is not None:
-            catid_input_query = Catalog.select(Catalog.catalogid, Catalog.version_id).where(Catalog.catalogid << self.catalogid_list)
+            catid_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
+                                               .join(sdss_id_flat, join_type = JOIN.LEFT_OUTER,
+                                                     on=(sdss_id_flat.catalogid==Catalog.catalogid))
+                                               .where(Catalog.catalogid << self.catalogid_list)
+                                               .where(sdss_id_flat.catalogid.is_null()))
+                                               
             for row in catid_input_query:
                 if row.version_id==21:
                     temp_catalogid_v21.insert(catalogid21=row.catalogid).execute()
@@ -278,7 +284,10 @@ class append_to_tables:
                 raise ValueError("Could not find the table in database model: "+self.individual_table)
                 
             ind_table_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
-                                         .join(ind_table, on=(Catalog.catalogid==ind_table.catalogid)))
+                                         .join(ind_table, on=(Catalog.catalogid==ind_table.catalogid))
+                                         .join(sdss_id_flat, join_type = JOIN.LEFT_OUTER,
+                                               on=(sdss_id_flat.catalogid==Catalog.catalogid))
+                                         .where(sdss_id_flat.catalogid.is_null()))
             for row in ind_table_input_query:
                 if row.version_id==21:
                     temp_catalogid_v21.insert(catalogid21=row.catalogid).execute()
@@ -370,7 +379,7 @@ class append_to_tables:
                            sdss_id_flat_to_add.ra_sdss_id,
                            sdss_id_flat_to_add.dec_sdss_id]
 
-        max_sdss_id = sdss_id_flat_.select(fn.MAX(sdss_id_flat_.sdss_id)).scalar()
+        max_sdss_id = sdss_id_flat.select(fn.MAX(sdss_id_flat.sdss_id)).scalar()
         
         sid_flat_add_v21 = (sdss_id_stacked.select(sdss_id_stacked.sdss_id,
                                                               sdss_id_stacked.catalogid21,
