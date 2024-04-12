@@ -426,7 +426,7 @@ class MetaXMatch:
         self.log.info(f'The entire match took {(t3-t0):.2f} seconds')
 
 
-def create_unique_from_region(input_tablename):
+def create_unique_from_region(input_tablename, save_log_output=False):
     """Function to create the final output table with unlist of unique pairs of catalogid.
     For a regional match.
 
@@ -444,8 +444,9 @@ def create_unique_from_region(input_tablename):
     UniqueMatch._meta.table_name = output_tablename
     database.bind([UniqueMatch])
     log = target_selection.log
-    log_path_and_name = os.path.realpath("./"+input_tablename+"_unique_table_creation.log")
-    log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+    if save_log_output:
+        log_path_and_name = os.path.realpath("./"+input_tablename+"_unique_table_creation.log")
+        log.start_file_logger(log_path_and_name, rotating=False, mode='a')
 
     if UniqueMatch.table_exists():
         database.drop_tables([UniqueMatch])
