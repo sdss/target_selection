@@ -60,7 +60,7 @@ class sdss_id_stacked(peewee.Model):
     
     class Meta:
         database = database
-        schema = "catalogdb" #"sandbox"
+        schema = "sandbox"
         table_name = "sdss_id_stacked"
 
 class sdss_id_flat(peewee.Model):
@@ -78,7 +78,7 @@ class sdss_id_flat(peewee.Model):
     
     class Meta:
         database = database
-        schema = "catalogdb" #"sandbox"
+        schema = "sandbox"
         table_name = "sdss_id_flat"
 
 class sdss_id_stacked_to_add(peewee.Model):
