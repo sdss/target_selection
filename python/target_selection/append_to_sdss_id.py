@@ -60,7 +60,7 @@ class sdss_id_stacked(peewee.Model):
     
     class Meta:
         database = database
-        schema = "sandbox"
+        schema = "catalogdb" #"sandbox"
         table_name = "sdss_id_stacked"
 
 class sdss_id_flat(peewee.Model):
@@ -78,13 +78,12 @@ class sdss_id_flat(peewee.Model):
     
     class Meta:
         database = database
-        schema = "sandbox"
+        schema = "catalogdb" #"sandbox"
         table_name = "sdss_id_flat"
 
 class sdss_id_stacked_to_add(peewee.Model):
     """ Model for addendum to sdss_id_stacked"""
 
-    #sdss_id = peewee.BigAutoField(index=True, primary_key=True)
     catalogid21 = peewee.BigIntegerField(index=True)
     catalogid25 = peewee.BigIntegerField(index=True)
     catalogid31 = peewee.BigIntegerField(index=True)
@@ -94,21 +93,6 @@ class sdss_id_stacked_to_add(peewee.Model):
     class Meta:
         database = database
         schema = "sandbox"
-
-#class sdss_id_stacked_(peewee.Model):
-#    """ Model for new sdss_id_stacked """
-#
-#    sdss_id = peewee.BigAutoField(primary_key=True)
-#    catalogid21 = peewee.BigIntegerField()
-#    catalogid25 = peewee.BigIntegerField()
-#    catalogid31 = peewee.BigIntegerField()
-#    ra_sdss_id = peewee.DoubleField()
-#    dec_sdss_id = peewee.DoubleField()
-#
-#    class Meta:
-#        database = database
-#        schema = "sandbox"
-#        table_name = "sdss_id_stacked"
 
 class sdss_id_flat_to_add(peewee.Model):
     """ Model for rows to be added to sdss_id_flat """
@@ -121,32 +105,11 @@ class sdss_id_flat_to_add(peewee.Model):
     n_associated = peewee.SmallIntegerField(null=True)
     ra_catalogid = peewee.DoubleField(null=True)
     dec_catalogid = peewee.DoubleField(null=True)
-    #pk = peewee.BigAutoField(primary_key=True)
 
     class Meta:
         database = database
         schema = "sandbox"
         table_name = "sdss_id_flat_to_add"
-
-#class sdss_id_flat_(peewee.Model):
-#    """ Model for new sdss_id_flat"""
-#
-#    sdss_id = peewee.BigIntegerField()
-#    catalogid = peewee.BigIntegerField()
-#    version_id = peewee.SmallIntegerField()
-#    ra_sdss_id = peewee.DoubleField()
-#    dec_sdss_id = peewee.DoubleField()
-#    n_associated = peewee.SmallIntegerField(null=True)
-#    ra_catalogid = peewee.DoubleField(null=True)
-#    dec_catalogid = peewee.DoubleField(null=True)
-#    pk = peewee.BigAutoField(primary_key=True)
-#
-#    class Meta:
-#        database = database
-#        schema = "sandbox"
-#        table_name = "sdss_id_flat"
-
-
 
 
 class append_to_tables:
