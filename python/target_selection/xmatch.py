@@ -22,20 +22,26 @@ import rich.markup
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, Case, Model, fn
-
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
 from sdsstools._vendor.color_print import color_text
 
 import target_selection
-from target_selection.exceptions import (TargetSelectionNotImplemented,
-                                         TargetSelectionUserWarning,
-                                         XMatchError)
-from target_selection.utils import (Timer, get_configuration_values,
-                                    get_epoch, is_view, sql_apply_pm,
-                                    vacuum_outputs, vacuum_table)
-
+from target_selection.exceptions import (
+    TargetSelectionNotImplemented,
+    TargetSelectionUserWarning,
+    XMatchError,
+)
+from target_selection.utils import (
+    Timer,
+    get_configuration_values,
+    get_epoch,
+    is_view,
+    sql_apply_pm,
+    vacuum_outputs,
+    vacuum_table,
+)
 
 EPOCH = 2016.0
 QUERY_RADIUS = 1.
@@ -362,10 +368,12 @@ class XMatchPlanner(object):
         Used in phase 2. Defaults to 1 arcsec.
     schema : str
         The schema in which all the tables to cross-match live (multiple
-        schemas are not supported), and the schema in which the output table
+        schemas are not supported), and the schema in which the output tables
         will be created.
     output_table : str
         The name of the output table. Defaults to ``catalog``.
+    temp_schema
+        The schema where the temporary ``catalog`` table will be initially created.
     log
         A logger to which to log messages. If not provided the ``target_selection``
         logger is used.
@@ -415,7 +423,7 @@ class XMatchPlanner(object):
     def __init__(self, database, models, plan, run_id, version_id=None,
                  extra_nodes=[], order='hierarchical', key='row_count',
                  epoch=EPOCH, start_node=None, query_radius=None,
-                 schema='catalogdb', output_table='catalog',
+                 schema='catalogdb', temp_schema=TEMP_SCHEMA, output_table='catalog',
                  log=None, log_path='./xmatch_{plan}.log', debug=False, show_sql=False,
                  sample_region=None, database_options=None, path_mode='full',
                  join_paths=None):
@@ -439,6 +447,7 @@ class XMatchPlanner(object):
             self.log.sh.setLevel(debug)
 
         self.schema = schema
+        self.temp_schema = temp_schema
 
         self.output_table = output_table
         self.md5 = hashlib.md5(plan.encode()).hexdigest()[0:16]
@@ -723,7 +732,7 @@ class XMatchPlanner(object):
             log_str = f'{parameter} = {values[parameter]}'
             self.log.debug(log_str)
 
-    def update_model_graph(self, silent=False):
+    def update_model_graph(self):
         """Updates the model graph using models as nodes and fks as edges."""
 
         self.model_graph = networkx.Graph()
@@ -761,7 +770,7 @@ class XMatchPlanner(object):
                                           join_weight=join_weight)
 
             if model in self.models.values():
-                rel_model = self._get_relational_model(model)
+                rel_model = self.get_relational_model(model, sandboxed=False)
                 rel_model._meta.schema = self.schema
                 rel_model_tname = rel_model._meta.table_name
                 self.model_graph.add_node(rel_model_tname, model=rel_model)
@@ -970,7 +979,7 @@ class XMatchPlanner(object):
         Catalog._meta.table_name = self.output_table
         Catalog._meta.set_database(self.database)
 
-        TempCatalog._meta.schema = TEMP_SCHEMA
+        TempCatalog._meta.schema = self.temp_schema
         TempCatalog._meta.table_name = self._temp_table
         TempCatalog._meta.set_database(self.database)
 
@@ -1062,7 +1071,7 @@ class XMatchPlanner(object):
             # Add Q3C index for TempCatalog
             TempCatalog.add_index(SQL(f'CREATE INDEX IF NOT EXISTS '
                                       f'{self._temp_table}_q3c_idx ON '
-                                      f'{TEMP_SCHEMA}.{self._temp_table} '
+                                      f'{self.temp_schema}.{self._temp_table} '
                                       f'(q3c_ang2ipix(ra, dec))'))
 
             self.database.create_tables([TempCatalog])
@@ -1072,7 +1081,7 @@ class XMatchPlanner(object):
             self._temp_count = 0
 
     def run(self, vacuum=False, analyze=False, from_=None,
-            force=False, load_catalog=True, keep_temp=False):
+            force=False, dry_run=False, keep_temp=False):
         """Runs the cross-matching process.
 
         Parameters
@@ -1088,14 +1097,23 @@ class XMatchPlanner(object):
             Allows to continue even if the temporary table exists or the
             output table contains records for this version. ``force=True`` is
             assumed if ``from_`` is defined.
-        load_catalog : bool
-            If `True`, loads the temporary table into ``Catalog``. `False` implies
-            ``keep_temp=True``.
+        dry_run : bool
+            If `False`, loads the temporary tables into ``Catalog`` and ``CatalogToXXX``.
+            `True` implies ``keep_temp=True``; all the cross-matching steps will be run
+            but the original tables won't be modified. A dry run can only be executed for
+            a plan with a single catalogue since processing multiple catalogue requires the
+            final tables to have been updated for successive catalogues.
         keep_temp : bool
             Whether to keep the temporary table or to drop it after the cross
             matching is done.
 
         """
+
+        if len(self.process_order) > 1 and dry_run is True:
+            raise RuntimeError('Cannot dry run with a plan that includes more than one catalogue.')
+
+        if dry_run:
+            keep_temp = True
 
         if vacuum or analyze:
             cmd = ' '.join(('VACUUM' if vacuum else '',
@@ -1130,20 +1148,22 @@ class XMatchPlanner(object):
 
         with Timer() as timer:
             p_order = self.process_order
-            for table_name in p_order:
-                if (from_ and
-                        p_order.index(table_name) < p_order.index(from_)):
+            for norder, table_name in enumerate(p_order):
+                if dry_run and norder > 0:
+                    raise RuntimeError('Cannot dry run more than one catalogue.')
+
+                if (from_ and p_order.index(table_name) < p_order.index(from_)):
                     self.log.warning(f'Skipping table {table_name}.')
                     continue
                 model = self.models[table_name]
-                self.process_model(model)
+                self.process_model(model, force=force)
 
-            if load_catalog:
-                self._load_output_table(keep_temp=keep_temp)
+                if not dry_run:
+                    self.load_output_tables(model, keep_temp=keep_temp)
 
         self.log.info(f'Cross-matching completed in {timer.interval:.3f} s.')
 
-    def process_model(self, model):
+    def process_model(self, model, force=False):
         """Processes a model, loading it into the output table."""
 
         table_name = model._meta.table_name
@@ -1155,6 +1175,16 @@ class XMatchPlanner(object):
         if model._meta.xmatch.has_duplicates:
             raise TargetSelectionNotImplemented(
                 'handling of tables with duplicates is not implemented.')
+
+        rel_model = self.get_relational_model(model, sandboxed=True, create=False)
+        rel_model_table_name = rel_model._meta.table_name
+        if rel_model.table_exists():
+            if force is False:
+                raise RuntimeError(
+                    f'Sandboxed relational table {rel_model_table_name} exists. '
+                    'Delete it manually before continuing.')
+            else:
+                self.log.warning(f'Sandboxed relational table {rel_model_table_name} exists.')
 
         # Check if there are already records in catalog for this version.
         if self.process_order.index(model._meta.table_name) == 0 and not self.is_addendum:
@@ -1172,8 +1202,7 @@ class XMatchPlanner(object):
                 self._run_phase_2(model)
                 self._run_phase_3(model)
 
-        self.log.info(f'Fully processed {table_name} '
-                      f'in {timer.elapsed:.0f} s.')
+        self.log.info(f'Fully processed {table_name} in {timer.elapsed:.0f} s.')
 
         self.update_model_graph()
 
@@ -1269,11 +1298,19 @@ class XMatchPlanner(object):
 
         return model_fields
 
-    def _get_relational_model(self, model, temp=False, create=False):
+    def get_output_model(self, temporary=False):
+        """Returns the temporary or final output model (``catalog``)."""
+
+        if temporary:
+            return TempCatalog
+
+        return Catalog
+
+    def get_relational_model(self, model, sandboxed=False, temp=False, create=False):
         """Gets or creates a relational table for a given model.
 
-        Returns the relational model and `True` if the table was created or
-        `False` if it already existed.
+        When the relational model is ``sandboxed``, the table is created in the
+        temporary schema and suffixed with the same MD5 used for the run.
 
         """
 
@@ -1308,7 +1345,7 @@ class XMatchPlanner(object):
 
             class Meta:
                 database = meta.database
-                schema = meta.schema
+                schema = self.temp_schema if sandboxed else meta.schema
                 primary_key = False
 
         model_prefix = ''.join(x.capitalize() or '_'
@@ -1323,10 +1360,10 @@ class XMatchPlanner(object):
             RelationalModel._meta.schema = None
             return RelationalModel
 
-        if meta.xmatch.relational_table is not None:
-            RelationalModel._meta.table_name = meta.xmatch.relational_table
-        else:
-            RelationalModel._meta.table_name = prefix + meta.table_name
+        table_name = prefix + meta.table_name
+        if sandboxed:
+            table_name += f'_{self.md5}'
+        RelationalModel._meta.table_name = table_name
 
         if create and not RelationalModel.table_exists():
             RelationalModel.create_table()
@@ -1369,7 +1406,9 @@ class XMatchPlanner(object):
         """Runs the linking against matched catalogids stage."""
 
         table_name = model._meta.table_name
-        rel_model = self._get_relational_model(model, create=True)
+        rel_model_sb = self.get_relational_model(model, create=True, sandboxed=True)
+
+        rel_model = self.get_relational_model(model, create=False, sandboxed=False)
 
         model_pk = model._meta.primary_key
 
@@ -1411,11 +1450,11 @@ class XMatchPlanner(object):
                      .where(join_rel_model.version_id == self.version_id,
                             join_rel_model.best >> True)
                      .where(~fn.EXISTS(
-                         rel_model
+                         rel_model_sb
                          .select(SQL('1'))
-                         .where(rel_model.version_id == self.version_id,
-                                ((rel_model.target_id == model_pk) |
-                                 (rel_model.catalogid == join_rel_model.catalogid)))))
+                         .where(rel_model_sb.version_id == self.version_id,
+                                ((rel_model_sb.target_id == model_pk) |
+                                 (rel_model_sb.catalogid == join_rel_model.catalogid)))))
                      # Select only one match per target in the catalogue with are cross-matching.
                      .distinct(model_pk))
 
@@ -1428,6 +1467,14 @@ class XMatchPlanner(object):
                 query = query.where(model.survey_primary >> True,
                                     fn.coalesce(model.ref_cat, '') != 'T2')
 
+            # If the real relational model exists, exclude any matches that already exist there.
+            if rel_model.table_exists():
+                query = query.where(
+                    ~fn.EXISTS(rel_model
+                               .select(SQL('1'))
+                               .where(rel_model.version_id == self.version_id,
+                                      rel_model.target_id == model_pk)))
+
             # In query we do not include a Q3C where for the sample region because
             # TempCatalog for this plan should already be sample region limited.
 
@@ -1435,7 +1482,7 @@ class XMatchPlanner(object):
 
                 with self.database.atomic():
 
-                    temp_model = self._get_relational_model(model, temp=True)
+                    temp_model = self.get_relational_model(model, temp=True, sandboxed=True)
                     temp_table = temp_model._meta.table_name
 
                     self._setup_transaction(model, phase=1)
@@ -1445,13 +1492,13 @@ class XMatchPlanner(object):
                     query.create_table(temp_table, temporary=True)
 
                     self.log.debug(f'Copying data into relational model '
-                                   f'{rel_model._meta.table_name!r}.')
+                                   f'{rel_model_sb._meta.table_name!r}.')
 
                     fields = [temp_model.target_id, temp_model.catalogid,
                               temp_model.version_id, temp_model.best,
                               temp_model.plan_id, temp_model.added_by_phase]
 
-                    nids = rel_model.insert_from(
+                    nids = rel_model_sb.insert_from(
                         temp_model.select(temp_model.target_id,
                                           temp_model.catalogid,
                                           peewee.Value(self.version_id),
@@ -1464,7 +1511,7 @@ class XMatchPlanner(object):
             self._phases_run.add(1)
 
             if nids.rowcount > 0:
-                self._analyze(rel_model)
+                self._analyze(rel_model_sb)
 
     def _run_phase_2(self, model, source=TempCatalog):
         """Associates existing targets in Catalog with entries in the model.
@@ -1490,8 +1537,10 @@ class XMatchPlanner(object):
             self.log.warning('Skipping due to configuration.')
             return
 
-        rel_model = self._get_relational_model(model, create=True)
-        rel_table_name = rel_model._meta.table_name
+        rel_model_sb = self.get_relational_model(model, create=True, sandboxed=True)
+        rel_sb_table_name = rel_model_sb._meta.table_name
+
+        rel_model = self.get_relational_model(model, create=False, sandboxed=False)
 
         model_pk = meta.primary_key
         model_ra = meta.fields[xmatch.ra_column]
@@ -1606,10 +1655,20 @@ class XMatchPlanner(object):
             in_query = (
                 in_query.where(
                     xmatched.c.version_id == self.version_id,
+                    ~fn.EXISTS(rel_model_sb.select(SQL('1'))
+                               .where((rel_model_sb.version_id == self.version_id) &
+                                      ((rel_model_sb.catalogid == xmatched.c.catalogid) |
+                                       ((rel_model_sb.target_id == xmatched.c.target_id))))
+                               )))
+
+        if rel_model.table_exists():
+            in_query = (
+                in_query.where(
                     ~fn.EXISTS(rel_model.select(SQL('1'))
                                .where((rel_model.version_id == self.version_id) &
                                       ((rel_model.catalogid == xmatched.c.catalogid) |
-                                       ((rel_model.target_id == xmatched.c.target_id)))))))
+                                       ((rel_model.target_id == xmatched.c.target_id))))
+                               )))
 
         with Timer() as timer:
 
@@ -1624,14 +1683,15 @@ class XMatchPlanner(object):
 
                 # 2. Run cross-match and insert data into relational model.
 
-                fields = [rel_model.target_id, rel_model.catalogid,
-                          rel_model.version_id, rel_model.distance,
-                          rel_model.best, rel_model.plan_id, rel_model.added_by_phase]
+                fields = [rel_model_sb.target_id, rel_model_sb.catalogid,
+                          rel_model_sb.version_id, rel_model_sb.distance,
+                          rel_model_sb.best, rel_model_sb.plan_id, rel_model_sb.added_by_phase]
 
-                in_query = rel_model.insert_from(in_query.with_cte(xmatched), fields).returning()
+                in_query = rel_model_sb.insert_from(in_query.with_cte(xmatched),
+                                                    fields).returning()
 
                 self.log.debug(f'Running Q3C query and inserting cross-matched data into '
-                               f'relational table {rel_table_name!r}: '
+                               f'relational table {rel_sb_table_name!r}: '
                                f'{self._get_sql(in_query)}')
 
                 n_catalogid = in_query.execute().rowcount
@@ -1642,7 +1702,7 @@ class XMatchPlanner(object):
 
         if n_catalogid > 0:
             self._phases_run.add(2)
-            self._analyze(rel_model)
+            self._analyze(rel_model_sb)
 
         # For addenda it's not sufficient to cross-match with the temporary table, because that
         # does not contain all the cumulated targets from this cross-match version. We need to
@@ -1659,8 +1719,10 @@ class XMatchPlanner(object):
 
         self.log.info('Phase 3: adding non cross-matched targets.')
 
-        rel_model = self._get_relational_model(model, create=True)
-        rel_table_name = rel_model._meta.table_name
+        rel_model_sb = self.get_relational_model(model, create=True, sandboxed=True)
+        rel_sb_table_name = rel_model_sb._meta.table_name
+
+        rel_model = self.get_relational_model(model, create=False, sandboxed=False)
 
         if 3 in xmatch.skip_phases:
             self.log.warning('Skipping due to configuration.')
@@ -1685,11 +1747,19 @@ class XMatchPlanner(object):
             unmatched = (
                 unmatched.where(
                     ~fn.EXISTS(
-                        rel_model .select(
-                            SQL('1')) .where(
-                            rel_model.version_id == self.version_id,
-                            rel_model.target_id == model_pk,
-                            rel_model.best >> True))))
+                        rel_model_sb.select(SQL('1')).where(
+                            rel_model_sb.version_id == self.version_id,
+                            rel_model_sb.target_id == model_pk,
+                            rel_model_sb.best >> True))))
+
+        if rel_model.table_exists():
+            print('Im here', rel_model)
+            unmatched =  unmatched.where(
+                ~fn.EXISTS(
+                    rel_model.select(SQL('1')).where(
+                        rel_model.version_id == self.version_id,
+                        rel_model.target_id == model_pk,
+                        rel_model.best >> True)))
 
         if xmatch.has_missing_coordinates:
             unmatched = unmatched.where(model_ra.is_null(False),
@@ -1718,7 +1788,7 @@ class XMatchPlanner(object):
 
                 self._setup_transaction(model, phase=3)
 
-                temp_model = self._get_relational_model(model, temp=True)
+                temp_model = self.get_relational_model(model, temp=True, sandboxed=True)
                 temp_model_name = temp_model._meta.table_name
 
                 self.log.debug(f'Selecting unique targets '
@@ -1736,9 +1806,9 @@ class XMatchPlanner(object):
 
                 fields = [temp_model.catalogid, temp_model.target_id,
                           temp_model.version_id, temp_model.best,
-                          rel_model.plan_id, rel_model.added_by_phase]
+                          rel_model_sb.plan_id, rel_model_sb.added_by_phase]
 
-                rel_insert_query = rel_model.insert_from(
+                rel_insert_query = rel_model_sb.insert_from(
                     temp_model.select(temp_model.catalogid,
                                       temp_model.target_id,
                                       self.version_id,
@@ -1748,13 +1818,13 @@ class XMatchPlanner(object):
                     fields).returning()
 
                 self.log.debug(f'Copying data into relational model '
-                               f'{rel_table_name!r}'
+                               f'{rel_sb_table_name!r}'
                                f'{self._get_sql(rel_insert_query)}')
 
                 cursor = rel_insert_query.execute()
                 n_rows = cursor.rowcount
 
-                self.log.debug(f'Insertion into {rel_table_name} completed '
+                self.log.debug(f'Insertion into {rel_sb_table_name} completed '
                                f'with {n_rows:,} rows in '
                                f'{timer.elapsed:.3f} s.')
 
@@ -1807,28 +1877,40 @@ class XMatchPlanner(object):
         if n_rows > 0.5 * self._temp_count:  # Cluster if > 50% of rows are new
             self.log.debug(f'Running CLUSTER on {self._temp_table} '
                            f'with q3c index.')
-            self.database.execute_sql(f'CLUSTER {TEMP_SCHEMA}.{self._temp_table} '
+            self.database.execute_sql(f'CLUSTER {self.temp_schema}.{self._temp_table} '
                                       f'using {self._temp_table}_q3c_idx;')
             self.log.debug(f'Running ANALYZE on {self._temp_table}.')
-            self.database.execute_sql(f'ANALYZE {TEMP_SCHEMA}.{self._temp_table};')
+            self.database.execute_sql(f'ANALYZE {self.temp_schema}.{self._temp_table};')
 
-        self._analyze(rel_model, catalog=False)
+        self._analyze(rel_model_sb, catalog=False)
 
-    def _load_output_table(self, keep_temp=False):
+    def load_output_tables(self, model, keep_temp=False):
+        """Loads the temporary tables into the output tables."""
+
+        self._load_output_table(TempCatalog, Catalog, keep_temp=keep_temp)
+
+        rel_model_sb = self.get_relational_model(model, sandboxed=True, create=False)
+        rel_model = self.get_relational_model(model, sandboxed=False, create=True)
+        self._load_output_table(rel_model_sb, rel_model, keep_temp=keep_temp)
+
+    def _load_output_table(self, from_model, to_model, keep_temp=False):
         """Copies the temporary table to the real output table."""
 
-        self.log.info('Copying temporary table to output table.')
+        to_table = f'{to_model._meta.schema}.{to_model._meta.table_name}'
+        from_table = f'{from_model._meta.schema}.{from_model._meta.table_name}'
+
+        self.log.info(f'Copying {from_table} to {to_table}.')
 
         with Timer() as timer:
             with self.database.atomic():
 
                 self._setup_transaction()
 
-                insert_query = Catalog.insert_from(
-                    TempCatalog.select(),
-                    TempCatalog.select()._returning).returning()
+                insert_query = to_model.insert_from(
+                    from_model.select(),
+                    from_model.select()._returning).returning()
 
-                self.log.debug(f'Running INSERT query into {self.output_table}'
+                self.log.debug(f'Running INSERT query into {to_table}'
                                f'{self._get_sql(insert_query)}')
 
                 cursor = insert_query.execute()
@@ -1837,15 +1919,14 @@ class XMatchPlanner(object):
         self.log.debug(f'Inserted {n_rows:,} rows in {timer.elapsed:.3f} s.')
 
         if not keep_temp:
-            self.database.drop_tables([TempCatalog])
-            self.log.info(f'Dropped temporary table {self._temp_table}')
+            self.database.drop_tables([from_model])
+            self.log.info(f'Dropped temporary table {from_table}.')
 
-        self.log.debug(f'Running VACUUM ANALYZE on {self.output_table}.')
-        vacuum_table(self.database, f'{self.schema}.{self.output_table}',
-                     vacuum=True, analyze=True)
+        self.log.debug(f'Running VACUUM ANALYZE on {to_table}.')
+        vacuum_table(self.database, to_table, vacuum=True, analyze=True)
 
     def _get_sql(self, query, return_string=False):
-        """Returns coulourised SQL text for logging."""
+        """Returns colourised SQL text for logging."""
 
         query_str, query_params = query.sql()
 
