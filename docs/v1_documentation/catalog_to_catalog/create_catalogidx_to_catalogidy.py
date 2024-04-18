@@ -82,27 +82,30 @@ class MetaXMatch:
         log_file, and split_inrest_number.
     """
 
-    def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False, config_dict=None):
+    def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False,
+                 config_dict=None, save_log_output=False):
         self.database = database
-        if from_yaml==True:
+        if from_yaml:
             config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
-        elif from_dict==True:
-            if type(config_dict) != dict:
+        elif from_dict:
+            if type(config_dict) is not dict:
                 raise ValueError("config must be a dict")
             config = config_dict
 
         log_filename = config['log_file']
         self.log = target_selection.log
-        log_path_and_name = os.path.realpath('./' + log_filename)
-        self.log.start_file_logger(log_path_and_name, rotating=False, mode='a')
-        self.log.sh.setLevel(0)
+        if save_log_output:
+            log_path_and_name = os.path.realpath('./' + log_filename)
+            self.log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+            self.log.sh.setLevel(0)
 
         ind_xmatch_info_filename = config['individual_xmatch_config']
         ind_xmatch_config = yaml.load(open(ind_xmatch_info_filename, 'r'),
                                       Loader=yaml.SafeLoader)
         self.version_ids_to_match = config['version_ids_to_match']
 
-        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query', 'ra_region', 'individual_table', 'catalogid_list']
+        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query',
+                               'ra_region', 'individual_table', 'catalogid_list']
 
         # All the optional parameters present in the configuration file are stored directly
         # As attributes of the MetaXMatch object and for the ones that are not the attribute
@@ -125,27 +128,27 @@ class MetaXMatch:
             else:
                 st_dec = st_dec.replace('-', 'neg')
             output_name = (f'catalogidx_to_catalogidy'
-                               f'_ra{racen}_dec{st_dec}_rad{int(radius)}')
+                           f'_ra{racen}_dec{st_dec}_rad{int(radius)}')
             log_message = f'###  Using ra={racen:5.1f}  dec={deccen:5.1f}  rad={radius:04.1f}  ###'
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             if ra_start >= ra_stop:
                 raise ValueError("Starting RA must be smaller than stopping RA!")
             output_name = (f'catalogidx_to_catalogidy'
-                               f'_ra{int(ra_start)}_ra{int(ra_stop)}')
+                           f'_ra{int(ra_start)}_ra{int(ra_stop)}')
             log_message = f'###  Using ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}               ###'
         elif self.individual_table:
             ind_table = self.individual_table
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
             output_name = (f'catalogidx_to_catalogidy'
-                               f'_{ind_table}')
+                           f'_{ind_table}')
             log_message = f'###  Using catalogids from file  {ind_table}              ###'
         elif self.catalogid_list:
-            output_name = (f'catalogidx_to_catalogidy_from_catalogid_list')
-            log_message = f'### Using catalogids from a given list                    ###'
+            output_name = ('catalogidx_to_catalogidy_from_catalogid_list')
+            log_message = '### Using catalogids from a given list                    ###'
         else:
-            output_name = f'catalogidx_to_catalogidy_all'
+            output_name = 'catalogidx_to_catalogidy_all'
             log_message = '###            Using Full SKY             ###'
 
         if self.ra_region and self.individual_table:
@@ -154,9 +157,9 @@ class MetaXMatch:
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
             output_name = (f'catalogidx_to_catalogidy'
-                               f'_{ind_table}'
-                               f'_ra{int(ra_start)}_ra{int(ra_stop)}')
-            log_message = f'###  Using catalogids from file  {ind_table}  in ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}          ###'
+                           f'_{ind_table}'
+                           f'_ra{int(ra_start)}_ra{int(ra_stop)}')
+            log_message = f'###  Using catalogids from file  {ind_table}  in ra={ra_start:5.1f} to  ra={ra_stop:5.1f}          ###'
 
         self.output_name = output_name
         self.log.info(' ')
@@ -164,11 +167,12 @@ class MetaXMatch:
         self.log.info(log_message)
         self.log.info('#' * 45)
 
-        
         all_tables = [set(ind_xmatch_config[k]['order']) for k in ind_xmatch_config.keys()]
         intersecting_tables = set()
         for i_comb in list(combinations([i for i in range(len(all_tables))], 2)):
-            intersecting_tables = intersecting_tables | (all_tables[i_comb[0]] & all_tables[i_comb[1]])
+            intersecting_tables = intersecting_tables | \
+                (all_tables[i_comb[0]] & all_tables[i_comb[1]])
+
         intersecting_tables = list(intersecting_tables)
         intersecting_tables.sort()
         self.intersecting_tables = intersecting_tables
@@ -218,8 +222,8 @@ class MetaXMatch:
                 self.database.execute_sql(setting_message)
                 self.log.info(setting_message)
 
-        temp_fields = [TempMatch.lead, TempMatch.catalogidx, TempMatch.catalogidy, 
-                                       TempMatch.version_idx, TempMatch.version_idy]
+        temp_fields = [TempMatch.lead, TempMatch.catalogidx, TempMatch.catalogidy,
+                       TempMatch.version_idx, TempMatch.version_idy]
 
         db_models = self.database.models
 
@@ -234,43 +238,44 @@ class MetaXMatch:
 
         if self.individual_table:
             try:
-            	ind_table = db_models[self.individual_table]
+                ind_table = db_models[self.individual_table]
             except:
-                raise ValueError("Could not find the table in database model: "+self.individual_table)
-            
-            if self.individual_table=='catalogdb.catalog_to_' + name:
+                raise ValueError("Could not find the table in database model: " +
+                                 self.individual_table)
+
+            if self.individual_table == 'catalogdb.catalog_to_' + name:
                 cte_targetids = (Catalog.select(rel_table.target_id,
-                                        Catalog.ra, Catalog.dec)
-                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                        .where((rel_table.version << self.version_ids_to_match) &
-                                (rel_table.best == True))
-                        .distinct(rel_table.target_id))
+                                                Catalog.ra, Catalog.dec)
+                                 .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                                 .where((rel_table.version << self.version_ids_to_match) &
+                                        (rel_table.best == True))
+                                 .distinct(rel_table.target_id))
 
             else:
                 cte_targetids = (Catalog.select(rel_table.target_id,
-                                        Catalog.ra, Catalog.dec)
-                        .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
-                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                        .where((rel_table.version << self.version_ids_to_match) &
-                                (rel_table.best == True))
-                        .distinct(rel_table.target_id))
+                                                Catalog.ra, Catalog.dec)
+                                 .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
+                                 .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                                 .where((rel_table.version << self.version_ids_to_match) &
+                                        (rel_table.best == True))
+                                 .distinct(rel_table.target_id))
 
         elif self.catalogid_list:
             cte_targetids = (Catalog.select(rel_table.target_id,
-                                        Catalog.ra, Catalog.dec)
-                        .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                        .where(((rel_table.version << self.version_ids_to_match) &
-                                (rel_table.best == True)))
-                        .where(Catalog.catalogid << self.catalogid_list)
-                        .distinct(rel_table.target_id))
+                                            Catalog.ra, Catalog.dec)
+                             .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                             .where(((rel_table.version << self.version_ids_to_match) &
+                                     (rel_table.best == True)))
+                             .where(Catalog.catalogid << self.catalogid_list)
+                             .distinct(rel_table.target_id))
 
         else:
-            cte_targetids = (Target.select(rel_table.target_id, 
-                                        Target.ra, Target.dec)
-                        .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
-                        .where((rel_table.version << self.version_ids_to_match) &
-                                (rel_table.best == True))
-                        .distinct(rel_table.target_id))
+            cte_targetids = (Target.select(rel_table.target_id,
+                                           Target.ra, Target.dec)
+                             .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
+                             .where((rel_table.version << self.version_ids_to_match) &
+                                    (rel_table.best == True))
+                             .distinct(rel_table.target_id))
 
         # If sample_region is included in the configuration file, then the entire process
         # restricted to a (single) sample region where the tuple in the configuration file
@@ -287,7 +292,6 @@ class MetaXMatch:
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             cte_targetids = cte_targetids.where(Target.ra.between(ra_start, ra_stop))
-            
 
         cte_targetids = cte_targetids.cte('cte_targets')
 
@@ -300,10 +304,9 @@ class MetaXMatch:
                            .over(partition_by=rel_table.target_id).alias('version_ids'))
                  .join(cte_targetids, on=(rel_table.target_id == cte_targetids.c.target_id))
                  .where((rel_table.version << self.version_ids_to_match) &
-                            (rel_table.best == True))
+                        (rel_table.best == True))
                  .distinct(rel_table.target_id)
                  .with_cte(cte_targetids))
-
 
         if split:
             query = query.where(rel_table.target_id >= min_targetid,
@@ -332,8 +335,8 @@ class MetaXMatch:
                 npair += 1
                 sorted_catids = np.sort(catid_combs[ind_comb])
                 sorted_verids = np.sort(verid_combs[ind_comb])
-                curr_tuple = (entry['table'], sorted_catids[0], sorted_catids[1], 
-                                              sorted_verids[0], sorted_verids[1])
+                curr_tuple = (entry['table'], sorted_catids[0], sorted_catids[1],
+                              sorted_verids[0], sorted_verids[1])
                 results_list.append(curr_tuple)
                 if self.show_first and npair <= self.show_first and not split:
                     tuple_log = str(npair) + '  ' + '  '.join([str(el) for el in curr_tuple])
@@ -425,7 +428,7 @@ class MetaXMatch:
         self.log.info(f'The entire match took {(t3-t0):.2f} seconds')
 
 
-def create_unique_from_region(input_tablename):
+def create_unique_from_region(input_tablename, save_log_output=False):
     """Function to create the final output table with unlist of unique pairs of catalogid.
     For a regional match.
 
@@ -443,8 +446,9 @@ def create_unique_from_region(input_tablename):
     UniqueMatch._meta.table_name = output_tablename
     database.bind([UniqueMatch])
     log = target_selection.log
-    log_path_and_name = os.path.realpath("./"+input_tablename+"_unique_table_creation.log")
-    log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+    if save_log_output:
+        log_path_and_name = os.path.realpath("./" + input_tablename + "_unique_table_creation.log")
+        log.start_file_logger(log_path_and_name, rotating=False, mode='a')
 
     if UniqueMatch.table_exists():
         database.drop_tables([UniqueMatch])
@@ -473,7 +477,6 @@ def create_unique_from_region(input_tablename):
     tf = time.time()
     log.info(f'Created unique pairs table with {n_unique} '
              f'entries in {(tf-ti):.2f} seconds')
-
 
 
 """
