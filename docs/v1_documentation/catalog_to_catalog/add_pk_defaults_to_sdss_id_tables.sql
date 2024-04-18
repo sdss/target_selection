@@ -1,4 +1,5 @@
 -- This script creates sequences for the primary keys (sdss_id and pk) in the two sdss_id tables
+-- This should be run after the sdss_id tables are created so that the sdss_ids can be automatically assigned
 
 CREATE SEQUENCE catalogdb.sdss_id_stacked_sdss_id__seq;
 ALTER TABLE catalogdb.sdss_id_stacked ALTER COLUMN sdss_id SET DEFAULT nextval('catalogdb.sdss_id_stacked_sdss_id__seq');
