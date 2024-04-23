@@ -1,5 +1,19 @@
 # Changelog
 
+## Next version
+
+### Improved
+
+This version makes several improvements to `XMatch`:
+
+- Removes some hard-coded use of SQL files. These should not be necessary and if they were, we should get to the bottom of why they are ...
+- Store intermediate results in a sandboxed `catalog_to_XXX` table. This allows to run a full dry-run cross-match for a single catalogue.
+- Phase 1: distinct only on `model_pk`.
+- Phase 3: Require using only best matches.
+
+Additionally, this version adds the `too` carton.
+
+
 ## 1.1.1 - October 13, 2023
 
 ### Fixed
