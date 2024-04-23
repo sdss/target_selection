@@ -7,12 +7,15 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import os
-import peewee
-from peewee import fn, JOIN
 
-from sdssdb.peewee.sdss5db.catalogdb import database, Catalog
-from create_catalogidx_to_catalogidy import MetaXMatch, create_unique_from_region
-from create_catalogidx_to_catalogidy import TempMatch, UniqueMatch
+import peewee
+from create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
+                                             UniqueMatch,
+                                             create_unique_from_region)
+from peewee import JOIN, fn
+
+from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
+
 
 database.connect(dbname="sdss5db", user="sdss_user")
 

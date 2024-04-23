@@ -16,9 +16,11 @@ import yaml
 from peewee import fn
 from playhouse.postgres_ext import ArrayField
 
-from sdssdb.peewee.sdss5db.catalogdb import database, Catalog
+from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
 from sdssdb.peewee.sdss5db.targetdb import Target
+
 import target_selection
+
 
 database.connect(dbname='sdss5db', user="sdss_user")  # Use 'sdss' to get read/write permissions
 
