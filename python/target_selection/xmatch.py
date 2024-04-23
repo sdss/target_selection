@@ -22,26 +22,20 @@ import rich.markup
 import yaml
 from networkx.algorithms import shortest_path
 from peewee import SQL, Case, Model, fn
+
 from sdssdb.connection import PeeweeDatabaseConnection
 from sdssdb.utils.internals import get_row_count
 from sdsstools import merge_config
 from sdsstools._vendor.color_print import color_text
 
 import target_selection
-from target_selection.exceptions import (
-    TargetSelectionNotImplemented,
-    TargetSelectionUserWarning,
-    XMatchError,
-)
-from target_selection.utils import (
-    Timer,
-    get_configuration_values,
-    get_epoch,
-    is_view,
-    sql_apply_pm,
-    vacuum_outputs,
-    vacuum_table,
-)
+from target_selection.exceptions import (TargetSelectionNotImplemented,
+                                         TargetSelectionUserWarning,
+                                         XMatchError)
+from target_selection.utils import (Timer, get_configuration_values,
+                                    get_epoch, is_view, sql_apply_pm,
+                                    vacuum_outputs, vacuum_table)
+
 
 EPOCH = 2016.0
 QUERY_RADIUS = 1.
@@ -1754,7 +1748,7 @@ class XMatchPlanner(object):
 
         if rel_model.table_exists():
             print('Im here', rel_model)
-            unmatched =  unmatched.where(
+            unmatched = unmatched.where(
                 ~fn.EXISTS(
                     rel_model.select(SQL('1')).where(
                         rel_model.version_id == self.version_id,
