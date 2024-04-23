@@ -255,12 +255,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if self.database.table_exists(self.table_name, schema=self.schema):
             if overwrite:
-                log.info(f'Dropping table {path!r}.')
+                self.log.info(f'Dropping table {path!r}.')
                 self.drop_table()
             else:
                 raise RuntimeError(f'Temporary table {path!r} already exists.')
 
-        log.info('Running query ...')
+        self.log.info('Running query ...')
         version_id = self.get_version_id()
 
         with Timer() as timer:
@@ -304,21 +304,24 @@ class BaseCarton(metaclass=abc.ABCMeta):
             query_str = cursor.mogrify(query_sql, params).decode()
 
             if not self._disable_query_log:
-                log.debug(color_text(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str,
-                                     'darkgrey'))
+                log_message = f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_str
+                if self.log.rich_console:
+                    self.log.debug(log_message, extra={"highlighter": None})
+                else:
+                    self.log.debug(color_text(log_message, 'darkgrey'))
             else:
-                log.debug('Not printing VERY long query.')
+                self.log.debug('Not printing VERY long query.')
 
             with self.database.atomic():
                 self.setup_transaction()
                 execute_sql(f'CREATE TABLE IF NOT EXISTS {path} AS ' + query_sql,
                             params)
 
-        log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
+        self.log.info(f'Created table {path!r} in {timer.interval:.3f} s.')
 
         self.RModel = self.get_model()
 
-        log.debug('Adding columns and indexes.')
+        self.log.debug('Adding columns and indexes.')
 
         columns = [
             col.name for col in self.database.get_columns(self.table_name, self.schema)
@@ -345,18 +348,18 @@ class BaseCarton(metaclass=abc.ABCMeta):
         execute_sql(f'ANALYZE {path};')
 
         n_rows = self.RModel.select().count()
-        log.debug(f'Table {path!r} contains {n_rows:,} rows.')
+        self.log.debug(f'Table {path!r} contains {n_rows:,} rows.')
 
-        log.debug('Running post-process.')
+        self.log.debug('Running post-process.')
         with self.database.atomic():
             self.setup_transaction()
             self.post_process(self.RModel, **post_process_kawrgs)
 
         n_selected = self.RModel.select().where(self.RModel.selected >> True).count()
-        log.debug(f'Selected {n_selected:,} rows after post-processing.')
+        self.log.debug(f'Selected {n_selected:,} rows after post-processing.')
 
         if add_optical_magnitudes:
-            log.debug('Adding optical magnitude columns.')
+            self.log.debug('Adding optical magnitude columns.')
             self.add_optical_magnitudes()
 
         self.has_run = True
@@ -380,12 +383,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
         if any([mag in Model._meta.columns for mag in magnitudes]):
             if not all([mag in Model._meta.columns for mag in magnitudes]):
                 raise TargetSelectionError(
-                    'Some optical magnitudes are defined in the query '
-                    'but not all of them.')
+                    'Some optical magnitudes are defined in the query but not all of them.')
             if 'optical_prov' not in Model._meta.columns:
                 raise TargetSelectionError('optical_prov column does not exist.')
-            warnings.warn('All optical magnitude columns are defined in the query.',
-                          TargetSelectionUserWarning)
+            self.log.warning('All optical magnitude columns are defined in the query.')
             return
 
         # First create the columns. Also create z to speed things up. We won't
@@ -716,7 +717,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             else:
                 filename = f'{self.name}_{self.plan}_targetdb.fits.gz'
 
-        log.debug(f'Writing table to {filename}.')
+        self.log.debug(f'Writing table to {filename}.')
 
         if not self.RModel:
             self.RModel = self.get_model()
@@ -793,11 +794,30 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         return carton_table
 
-    def load(self, overwrite=False):
-        """Loads the output of the intermediate table into targetdb."""
+    def load(self, mode='fail', overwrite=False):
+        """Loads the output of the intermediate table into targetdb.
+
+        Parameters
+        ----------
+        mode : str
+            The mode to use when loading the targets. If ``'fail'``, raises an
+            error if the carton already exist. If ``'overwrite'``, overwrites
+            the targets. If ``'append'``, appends the targets.
+        overwrite : bool
+            Equivalent to setting ``mode='overwrite'``. This option is deprecated and
+            will raise a warning.
+
+        """
+
+        if overwrite:
+            mode = 'overwrite'
+            warnings.warn(
+                'The `overwrite` option is deprecated and will be removed in a future version. '
+                'Use `mode="overwrite"` instead.',
+                TargetSelectionUserWarning)
 
         if self.check_targets():
-            if overwrite:
+            if mode == 'overwrite':
                 warnings.warn(
                     f'Carton {self.name!r} with plan {self.plan!r} '
                     f'already has targets loaded. '
@@ -805,12 +825,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
                     TargetSelectionUserWarning,
                 )
                 self.drop_carton()
-            else:
+            elif mode == 'append':
+                pass
+            elif mode == 'fail':
                 raise TargetSelectionError(
                     f'Found existing targets for '
                     f'carton {self.name!r} with plan '
                     f'{self.plan!r}.'
                 )
+            else:
+                raise ValueError(f'Invalid mode {mode!r}. Use "fail", "overwrite", or "append".')
 
         if self.RModel is None:
             RModel = self.get_model()
@@ -872,7 +896,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         version_pk = version.pk
 
         if created:
-            log.info(
+            self.log.info(
                 f'Created record in targetdb.version for '
                 f'{self.plan!r} with tag {self.tag!r}.'
             )
@@ -889,13 +913,13 @@ class BaseCarton(metaclass=abc.ABCMeta):
             mapper, created_pk = tdb.Mapper.get_or_create(label=self.mapper)
             mapper_pk = mapper.pk
             if created:
-                log.debug(f'Created mapper {self.mapper!r}')
+                self.log.debug(f'Created mapper {self.mapper!r}')
 
         if self.category:
             category, created = tdb.Category.get_or_create(label=self.category)
             category_pk = category.pk
             if created:
-                log.debug(f'Created category {self.category!r}')
+                self.log.debug(f'Created category {self.category!r}')
 
         tdb.Carton.create(
             carton=self.name,
@@ -906,12 +930,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
             run_on=datetime.datetime.now().isoformat().split('T')[0]
         ).save()
 
-        log.debug(f'Created carton {self.name!r}')
+        self.log.debug(f'Created carton {self.name!r}')
 
     def _load_targets(self, RModel):
         """Load data from the intermediate table tp targetdb.target."""
 
-        log.debug('loading data into targetdb.target.')
+        self.log.debug('loading data into targetdb.target.')
 
         n_inserted = (  # noqa: 841
             tdb.Target.insert_from(
@@ -947,14 +971,14 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info('Inserted new rows into targetdb.target.')
+        self.log.info('Inserted new rows into targetdb.target.')
 
         return
 
     def _load_magnitudes(self, RModel):
         """Load magnitudes into targetdb.magnitude."""
 
-        log.debug('Loading data into targetdb.magnitude.')
+        self.log.debug('Loading data into targetdb.magnitude.')
 
         Magnitude = tdb.Magnitude
 
@@ -1035,12 +1059,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         n_inserted = Magnitude.insert_from(select_from, fields).returning().execute()  # noqa: 841
 
-        log.info('Inserted new rows into targetdb.magnitude.')
+        self.log.info('Inserted new rows into targetdb.magnitude.')
 
     def _load_carton_to_target(self, RModel):
         """Populate targetdb.carton_to_target."""
 
-        log.debug('Loading data into targetdb.carton_to_target.')
+        self.log.debug('Loading data into targetdb.carton_to_target.')
 
         version_pk = tdb.Version.get(
             plan=self.plan,
@@ -1228,7 +1252,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             .execute()
         )
 
-        log.info('Inserted rows into targetdb.carton_to_target.')
+        self.log.info('Inserted rows into targetdb.carton_to_target.')
 
     def drop_carton(self):
         """Drops the entry in ``targetdb.carton``."""
