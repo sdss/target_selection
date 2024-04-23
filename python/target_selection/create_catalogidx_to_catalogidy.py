@@ -58,12 +58,12 @@ class UniqueMatch(peewee.Model):
 class MetaXMatch:
     """Correlates crossmatch runs.
 
-    This class correlates the catalogdb crossmatch runs by taking all the catalogids from a 
-    specified list (either with a table or in the config) and searches for all of the 
+    This class correlates the catalogdb crossmatch runs by taking all the catalogids from a
+    specified list (either with a table or in the config) and searches for all of the
     overlapping matches between versions. To do this it searches all
     the catalogids linked to the targetid associated to the target catalogid.
 
-    To instantiate the object we need either the name of the configarion file or a 
+    To instantiate the object we need either the name of the configarion file or as
     configuration dictionary.
 
     The configuration file/dict contains the xmatch plans to be matched, the name of the log file,
@@ -72,9 +72,9 @@ class MetaXMatch:
     each crossmatch run, and 7 optional parameters. These parameters are sample_region to test
     the code in a single region, database options, show first to display the first N results
     in the log for each table, split_query to indicate the tables in which the main query
-    is split into sub queries restricted to target_id ranges, ra_region to test the code in a 
+    is split into sub queries restricted to target_id ranges, ra_region to test the code in a
     range of right ascensions, individual_table to limit the code to a specific set of catalogids
-    in the database, and catalogid_list to limit the code to a set of provided catalogids. 
+    in the database, and catalogid_list to limit the code to a set of provided catalogids.
     By default, the code will run on all of Target. The individual crossmatch run
     config file indicates the version_id and tables of each xmatch run,
     mainly to calculate the intersecting tables between the 2 runs, to look for the matches
@@ -461,7 +461,7 @@ def create_unique_from_region(input_tablename, save_log_output=False):
         Save the output log to a file?
     """
     ti = time.time()
-    output_tablename = input_tablename + "_unique" 
+    output_tablename = input_tablename + "_unique"
     UniqueMatch._meta.table_name = output_tablename
     database.bind([UniqueMatch])
     log = target_selection.log

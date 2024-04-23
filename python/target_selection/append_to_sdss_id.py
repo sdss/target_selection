@@ -154,8 +154,8 @@ class append_to_tables:
         self.config = config
 
     def run_MetaXMatch(self, database):
-        """ This takes in an individual catalog_to_? table (labeled 'individual_table') or a 
-         list of catalogids and creates the catalogidx_to_catalogidy_? 
+        """ This takes in an individual catalog_to_? table (labeled 'individual_table') or a
+         list of catalogids and creates the catalogidx_to_catalogidy_?
          and catalogidx_to_catalogidy_?_unique tables.
         """
         metax = MetaXMatch(config_filename=None, database=database, from_yaml=False,
