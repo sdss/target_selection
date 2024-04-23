@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Author: Zach Way (zway1@gsu.edu)
+# @Date: 2024-04-23
+# @Filename: append_to_sdss_id.py
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
 import os
 import peewee
 from peewee import fn, JOIN
@@ -146,10 +154,9 @@ class append_to_tables:
         self.config = config
 
     def run_MetaXMatch(self, database):
-        """ This takes in an individual catalog_to_? table (labeled 'individual_table') and
-        creates the catalogidx_to_catalogidy_? and catalogidx_to_catalogidy_?_unique tables
-        in the sandox.
-
+        """ This takes in an individual catalog_to_? table (labeled 'individual_table') or a 
+         list of catalogids and creates the catalogidx_to_catalogidy_? 
+         and catalogidx_to_catalogidy_?_unique tables.
         """
         metax = MetaXMatch(config_filename=None, database=database, from_yaml=False,
                            from_dict=True, config_dict=self.config)
@@ -159,7 +166,11 @@ class append_to_tables:
         return metax.output_name
 
     def create_temp_catalogid_lists(self, database, output_name):
-        """ foobar """
+        """ This method takes the newly created catalogidx_to_catalogidy table and
+        creates three aggregate tables in the sandbox containing all of the possible
+        catalogids to be matched. This is also where the process restricts the matching of
+        catalogids to 1) those which are labeled a 'best' match and 2) catalogids which have an
+        inter-crossmatch match on that catalogid's lead catalog """
 
         TempMatch._meta.table_name = output_name
         UniqueMatch._meta.table_name = output_name + "_unique"
@@ -274,7 +285,10 @@ class append_to_tables:
                     temp_catalogid_v31.insert(catalogid31=row.catalogid).execute()
 
     def create_sdss_id_stacked_to_add(self, database, output_name):
-        """ foobar """
+        """ This method matches the previous catalogids with the 'sdss_id' process
+        and places them in a temporary table in the sandbox (to be added later). At
+        this point, the ra/dec_sdss_id are assigned, which are just the coordinates of
+        the most recent catalogid in the match. """
 
         large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_to_add;
         CREATE TABLE sandbox.sdss_id_stacked_to_add as (
@@ -339,7 +353,7 @@ class append_to_tables:
         ra_dec_update21.execute()
 
     def add_to_sdss_id_stacked(self, database):
-        """ foobar """
+        """ This method adds the previously made sdss_id_stached_to_add to sdss_id_stacked """
 
         sid_stacked_f = [sdss_id_stacked.catalogid21,
                          sdss_id_stacked.catalogid25,
@@ -356,7 +370,10 @@ class append_to_tables:
             sdss_id_stacked.insert_many(to_add, fields=sid_stacked_f).execute()
 
     def create_sdss_id_flat_to_add(self, database):
-        """ foobar """
+        """ This method takes the new sdss_id rows in sdss_id_stacked and
+        adds them to a temporary table in the sandbox in the sdss_id_flat format.
+        Here, the ra/dec_catalogid are populated with the specific values associated
+        with the catalogid. """
 
         if sdss_id_flat_to_add.table_exists():
             self.database.drop_tables([sdss_id_flat_to_add])
@@ -409,22 +426,20 @@ class append_to_tables:
                .group_by(sdss_id_flat_to_add.catalogid)
                .cte('catid_n_associated', columns=("catalogid", "ct")))
 
-        query = (sdss_id_flat_to_add
-                 .update(n_associated=cte.c.ct)
-                 .from_(cte)
-                 .where(sdss_id_flat_to_add.catalogid == cte.c.catalogid)
-                 .with_cte(cte)
-                 .execute())
+        (sdss_id_flat_to_add.update(n_associated=cte.c.ct)
+                            .from_(cte)
+                            .where(sdss_id_flat_to_add.catalogid == cte.c.catalogid)
+                            .with_cte(cte)
+                            .execute())
 
-        query = (sdss_id_flat_to_add
-                 .update(ra_catalogid=Catalog.ra,
-                         dec_catalogid=Catalog.dec)
-                 .from_(Catalog)
-                 .where(sdss_id_flat_to_add.catalogid == Catalog.catalogid)
-                 .execute())
+        (sdss_id_flat_to_add.update(ra_catalogid=Catalog.ra,
+                                    dec_catalogid=Catalog.dec)
+                            .from_(Catalog)
+                            .where(sdss_id_flat_to_add.catalogid == Catalog.catalogid)
+                            .execute())
 
     def add_to_sdss_id_flat(self, database):
-        """ foobar """
+        """ This method adds sdss_id_flat_to_add to sdss_id_flat """
 
         sid_flat_f = [sdss_id_flat.sdss_id,
                       sdss_id_flat.catalogid,
@@ -446,3 +461,15 @@ class append_to_tables:
 
         with self.database.atomic():
             sdss_id_flat.insert_many(to_add, fields=sid_flat_f).execute()
+
+
+"""
+EXAMPLE OF USAGE
+foo = append_to_tables(database, catalogid_list=[list, of, integer, catalogids])
+output_name = foo.run_MetaXMatch(database)
+foo.create_temp_catalogid_lists(database, output_name)
+foo.create_sdss_id_stacked_to_add(database, output_name)
+foo.add_to_sdss_id_stacked(database)
+foo.create_sdss_id_flat_to_add(database)
+foo.add_to_sdss_id_flat(database)
+"""

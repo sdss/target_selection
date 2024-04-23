@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Author: Zach Way (zway1@gsu.edu)
+# @Date: 2024-04-23
+# @Filename: create_catalogidx_to_catalogidy.py
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+
 import os
 import time
 from itertools import combinations
@@ -48,27 +56,27 @@ class UniqueMatch(peewee.Model):
 
 
 class MetaXMatch:
-    """Correlates two crossmatch runs.
+    """Correlates crossmatch runs.
 
-    This class correlates to catalogdb crossmatch runs by taking all the catalogids from the
-    older run restricting to the ones used in target selection and giving for each the
-    corresponding catalogid(s) from the second run, independent if the catalogid from the
-    second run has been included in target selection or not. To do this it searches all
-    the catalogids linked to the targetid associated to the target catalogid from the
-    first run in the relational table.
+    This class correlates the catalogdb crossmatch runs by taking all the catalogids from a 
+    specified list (either with a table or in the config) and searches for all of the 
+    overlapping matches between versions. To do this it searches all
+    the catalogids linked to the targetid associated to the target catalogid.
 
-    To instantiate the object we need the name of the configarion file and the database
-    with which we will work.
+    To instantiate the object we need either the name of the configarion file or a 
+    configuration dictionary.
 
-
-    The configuration file contains the xmatch plans to be matched, the name of the log file,
+    The configuration file/dict contains the xmatch plans to be matched, the name of the log file,
     split_insert_number to indicate how many entries are ingested simultaneously to the first
     output table, the name of another configuration file indicating details about
-    each crossmatch run, and 4 optional parameters. There parameters are sample_region to test
+    each crossmatch run, and 7 optional parameters. These parameters are sample_region to test
     the code in a single region, database options, show first to display the first N results
-    in the log for each table, and split_query to indicate the tables in which the main query
-    is split into sub queries restricted to target_id ranges. The individual crossmatch run
-    config file on the other hand indicates the version_id and tables of each xmatch run,
+    in the log for each table, split_query to indicate the tables in which the main query
+    is split into sub queries restricted to target_id ranges, ra_region to test the code in a 
+    range of right ascensions, individual_table to limit the code to a specific set of catalogids
+    in the database, and catalogid_list to limit the code to a set of provided catalogids. 
+    By default, the code will run on all of Target. The individual crossmatch run
+    config file indicates the version_id and tables of each xmatch run,
     mainly to calculate the intersecting tables between the 2 runs, to look for the matches
     in those tables.
 
@@ -80,6 +88,15 @@ class MetaXMatch:
     config_filename : str
         Configuration file containing at least parameters xmatch_plans, individual_xmatch_config
         log_file, and split_inrest_number.
+    from_yaml : bool
+        Load config from a yaml file? If True, parameter config_filename must also be specified.
+    from_dict : bool
+        Load config from a dictionary? If True, config_dict must be specified
+    config_dict : dict
+        Configuration dict containing at least parameters xmatch_plans, individual_xmatch_config
+        log_file, and split_inrest_number.
+    save_log_output : bool
+        Save output to a file? Default is False.
     """
 
     def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False,
@@ -159,7 +176,8 @@ class MetaXMatch:
             output_name = (f'catalogidx_to_catalogidy'
                            f'_{ind_table}'
                            f'_ra{int(ra_start)}_ra{int(ra_stop)}')
-            log_message = f'###  Using catalogids from file  {ind_table}  in ra={ra_start:5.1f} to  ra={ra_stop:5.1f}          ###'
+            log_message = f'###  Using catalogids from file  {ind_table} ' + \
+                          f' in ra={ra_start:5.1f} to ra={ra_stop:5.1f} ###'
 
         self.output_name = output_name
         self.log.info(' ')
@@ -191,7 +209,7 @@ class MetaXMatch:
         in both crossmatch runs the main query starts by creating a cte querying the target
         table and storing the target_id in the relational table associated with the catalogids
         from the target table that belong to the older crossmatch run version_id.
-        Then the other query takes the target_ids from the cte and checks which catalogid’s from
+        Then the other query takes the target_ids from the cte and checks which catalogid's from
         both versions are associated with that target_id. Then for each target_id from the query
         it looks for all the possible pairs of catalogids in which one catalogid comes from the
         first crossmatch run and the other comes from the second crossmatch run.
@@ -248,7 +266,7 @@ class MetaXMatch:
                                                 Catalog.ra, Catalog.dec)
                                  .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
                                  .where((rel_table.version << self.version_ids_to_match) &
-                                        (rel_table.best == True))
+                                        (rel_table.best))
                                  .distinct(rel_table.target_id))
 
             else:
@@ -257,7 +275,7 @@ class MetaXMatch:
                                  .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
                                  .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
                                  .where((rel_table.version << self.version_ids_to_match) &
-                                        (rel_table.best == True))
+                                        (rel_table.best))
                                  .distinct(rel_table.target_id))
 
         elif self.catalogid_list:
@@ -265,7 +283,7 @@ class MetaXMatch:
                                             Catalog.ra, Catalog.dec)
                              .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
                              .where(((rel_table.version << self.version_ids_to_match) &
-                                     (rel_table.best == True)))
+                                     (rel_table.best)))
                              .where(Catalog.catalogid << self.catalogid_list)
                              .distinct(rel_table.target_id))
 
@@ -274,12 +292,11 @@ class MetaXMatch:
                                            Target.ra, Target.dec)
                              .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
                              .where((rel_table.version << self.version_ids_to_match) &
-                                    (rel_table.best == True))
+                                    (rel_table.best))
                              .distinct(rel_table.target_id))
 
-        # If sample_region is included in the configuration file, then the entire process
-        # restricted to a (single) sample region where the tuple in the configuration file
-        # indicates the ra center, the dec center, and the radius to use
+        # If sample_region or ra_region is included in the configuration file,
+        # then the entire process is restricted to that region
 
         if self.sample_region:
             racen, deccen, radius = self.sample_region
@@ -304,7 +321,7 @@ class MetaXMatch:
                            .over(partition_by=rel_table.target_id).alias('version_ids'))
                  .join(cte_targetids, on=(rel_table.target_id == cte_targetids.c.target_id))
                  .where((rel_table.version << self.version_ids_to_match) &
-                        (rel_table.best == True))
+                        (rel_table.best))
                  .distinct(rel_table.target_id)
                  .with_cte(cte_targetids))
 
@@ -440,6 +457,8 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     ----------
     input_tablename : string
         Table name of crossmatch run
+    save_log_output : bool
+        Save the output log to a file?
     """
     ti = time.time()
     output_tablename = input_tablename + "_unique" 
