@@ -422,10 +422,6 @@ class XMatchPlanner(object):
                  sample_region=None, database_options=None, path_mode='full',
                  join_paths=None):
 
-        # HACK: this ensures that the catalogdb.models are populated. In principle thos would not
-        # work if schema != catalogdb but anyway many other things would fail in that case.
-        from sdssdb.peewee.sdss5db import catalogdb  # noqa
-
         self.log = log or target_selection.log
         self.log.header = ''
 
@@ -576,6 +572,11 @@ class XMatchPlanner(object):
             User arguments that will override the configuration file values.
 
         """
+
+        # HACK: this ensures that the catalogdb.models are populated. In principle thos would not
+        # work if schema != catalogdb but anyway many other things would fail in that case.
+        from sdssdb.peewee.sdss5db import catalogdb  # noqa
+
         if isinstance(in_models, (list, tuple)):
             models = in_models
         elif inspect.isclass(in_models) and issubclass(in_models, Model):
