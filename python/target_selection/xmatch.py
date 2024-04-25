@@ -422,6 +422,8 @@ class XMatchPlanner(object):
                  sample_region=None, database_options=None, path_mode='full',
                  join_paths=None):
 
+        from sdssdb.peewee.sdss5db import catalogdb  # noqa
+
         self.log = log or target_selection.log
         self.log.header = ''
 
@@ -1917,8 +1919,9 @@ class XMatchPlanner(object):
             self.database.drop_tables([from_model])
             self.log.info(f'Dropped temporary table {from_table}.')
 
-        self.log.debug(f'Running VACUUM ANALYZE on {to_table}.')
-        vacuum_table(self.database, to_table, vacuum=True, analyze=True)
+        if n_rows > 0:
+            self.log.debug(f'Running VACUUM ANALYZE on {to_table}.')
+            vacuum_table(self.database, to_table, vacuum=True, analyze=True)
 
     def _get_sql(self, query, return_string=False):
         """Returns colourised SQL text for logging."""
