@@ -983,12 +983,13 @@ class XMatchPlanner(object):
     def _check_version(self, model, force=False):
         """Checks if a model contains a plan version."""
 
-        vexists = (peewee.Select(
-            columns=[fn.EXISTS(model
-                               .select(SQL('1'))
-                               .where(model.version_id == self.version_id))])
-                   .tuples()
-                   .execute(self.database))[0][0]
+        with self.database.atomic():
+            self.database.execute_sql('SET LOCAL enable_seqscan = off;')
+            vexists = (peewee.Select(
+                columns=[fn.EXISTS(model
+                                   .select(SQL('1'))
+                                   .where(model.version_id == self.version_id))]).tuples()
+                       .execute(self.database))[0][0]
 
         if vexists:
 
