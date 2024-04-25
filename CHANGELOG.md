@@ -1,15 +1,23 @@
 # Changelog
 
+## 1.2.1 - April 25, 2024
+
+### New
+
+* Added cross-match plan `1.1.1` for `marvels_dr11_star`.
+* A few additional improvements to the `XMatchPlanner` code.
+
+
 ## 1.2.0 - April 23, 2024
 
 ### Improved
 
 This version makes several improvements to `XMatch`:
 
-- Removes some hard-coded use of SQL files. These should not be necessary and if they were, we should get to the bottom of why they are ...
-- Store intermediate results in a sandboxed `catalog_to_XXX` table. This allows to run a full dry-run cross-match for a single catalogue.
-- Phase 1: distinct only on `model_pk`.
-- Phase 3: Require using only best matches.
+* *Removes some hard-coded use of SQL files. These should not be necessary and if they were, we should get to the bottom of why they are ...
+* *Store intermediate results in a sandboxed `catalog_to_XXX` table. This allows to run a full dry-run cross-match for a single catalogue.
+* *Phase 1: distinct only on `model_pk`.
+* *Phase 3: Require using only best matches.
 
 Additionally, this version adds the `too` carton.
 
