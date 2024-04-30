@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.2 - April 30, 2024
+
+### Improved
+
+* Changed some warning to log messages.
+
+### Fixed
+
+* Removed leftover print message.
+
+
 ## 1.2.1 - April 25, 2024
 
 ### New
