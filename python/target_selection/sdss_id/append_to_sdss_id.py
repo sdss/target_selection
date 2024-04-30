@@ -9,7 +9,7 @@
 import os
 
 import peewee
-from create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
+from .create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
                                              UniqueMatch,
                                              create_unique_from_region)
 from peewee import JOIN, fn
