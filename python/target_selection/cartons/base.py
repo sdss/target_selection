@@ -23,8 +23,7 @@ from sdsstools import read_yaml_file
 from sdsstools._vendor.color_print import color_text
 
 from target_selection import __version__, config, log
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import Timer
 
 
@@ -632,8 +631,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                    .count())
 
         if n_empty > 0:
-            warnings.warn(f'Found {n_empty} entries with empty magnitudes.',
-                          TargetSelectionUserWarning)
+            log.warning(f'Found {n_empty} entries with empty magnitudes.')
 
     def post_process(self, model, **kwargs):
         """Post-processes the temporary table.
@@ -811,19 +809,16 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         if overwrite:
             mode = 'overwrite'
-            warnings.warn(
+            log.warning(
                 'The `overwrite` option is deprecated and will be removed in a future version. '
-                'Use `mode="overwrite"` instead.',
-                TargetSelectionUserWarning)
+                'Use `mode="overwrite"` instead.')
 
         if self.check_targets():
             if mode == 'overwrite':
-                warnings.warn(
+                log.warning(
                     f'Carton {self.name!r} with plan {self.plan!r} '
                     f'already has targets loaded. '
-                    'Dropping carton-to-target entries.',
-                    TargetSelectionUserWarning,
-                )
+                    'Dropping carton-to-target entries.')
                 self.drop_carton()
             elif mode == 'append':
                 pass
@@ -849,8 +844,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         has_targets = RModel.select().where(RModel.selected >> True).exists()
 
         if not has_targets:
-            warnings.warn('No targets found in intermediate table.',
-                          TargetSelectionUserWarning)
+            log.warning('No targets found in intermediate table.')
 
         with self.database.atomic():
             self.setup_transaction()
@@ -860,7 +854,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if self.load_magnitudes:
                 self._load_magnitudes(RModel)
             else:
-                warnings.warn('Skipping magnitude load.', TargetSelectionUserWarning)
+                log.warning('Skipping magnitude load.')
 
             self.log.debug('Committing records and checking constraints.')
 
