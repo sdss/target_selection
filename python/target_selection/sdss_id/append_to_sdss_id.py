@@ -9,12 +9,13 @@
 import os
 
 import peewee
-from .create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
-                                             UniqueMatch,
-                                             create_unique_from_region)
 from peewee import JOIN, fn
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
+
+from .create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
+                                              UniqueMatch,
+                                              create_unique_from_region)
 
 
 database.connect(dbname="sdss5db", user="sdss_user")
