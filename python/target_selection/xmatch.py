@@ -1753,7 +1753,6 @@ class XMatchPlanner(object):
                             rel_model_sb.best >> True))))
 
         if rel_model.table_exists():
-            print('Im here', rel_model)
             unmatched = unmatched.where(
                 ~fn.EXISTS(
                     rel_model.select(SQL('1')).where(
