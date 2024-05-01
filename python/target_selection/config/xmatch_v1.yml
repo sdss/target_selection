@@ -1,3 +1,34 @@
+'1.1.2':
+    run_id: 10
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'tycho2'
+        - 'catalog_to_tycho2'
+        - 'twomass_psc'
+        - 'catalog_to_twomass_psc'
+    version_id: 31
+    order:
+        - marvels_dr12_star
+    tables:
+        marvels_dr12_star:
+            ra_column: ra_final
+            dec_column: dec_final
+    join_paths:
+        - ['marvels_dr12_star', 'tycho2', 'catalog_to_tycho2', 'catalog']
+        - ['marvels_dr12_star', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
 '1.1.1':
     run_id: 9
     query_radius: 1.0
