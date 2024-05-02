@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3 - May 2, 2024
+
+### New
+
+* Added cross-match plan `1.1.2` for `marvels_dr12_star`
+
+
 ## 1.2.2 - April 30, 2024
 
 ### Improved
