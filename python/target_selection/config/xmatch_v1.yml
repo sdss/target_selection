@@ -17,8 +17,8 @@
         - sdss_dr17_specobj
     tables:
         sdss_dr17_specobj:
-            ra_column: ra
-            dec_column: dec
+            ra_column: plug_ra
+            dec_column: plug_dec
     join_paths:
         - ['sdss_dr17_specobj', 'sdss_dr13_photoobj', 'sdss_dr13_photoobj_primary', 'catalog_to_sdss_dr13_photoobj_primary', 'catalog']
     database_options:
