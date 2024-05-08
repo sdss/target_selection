@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.4 - May 7, 2024
+
+### New
+
+* Added cross-match plan `1.1.3` for `sdss_dr17_specobj`
+
 ## 1.2.3 - May 2, 2024
 
 ### New
