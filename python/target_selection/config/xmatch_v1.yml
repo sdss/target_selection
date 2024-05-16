@@ -38,7 +38,7 @@
         - 'catalog_to_sdss_dr17_specobj'
     version_id: 31
     order:
-        - managtarget
+        - mangatarget
     tables:
         mangatarget:
             ra_column: catalog_ra
