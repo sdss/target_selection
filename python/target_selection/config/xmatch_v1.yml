@@ -8,7 +8,6 @@
     debug: true
     log_path: xmatch_{plan}.log
     path_mode: config_list
-    extra_nodes:
     version_id: 31
     order:
         - mastar_goodstars
@@ -16,7 +15,6 @@
         mastar_goodstars:
             ra_column: ra
             dec_column: dec
-    join_paths:
     database_options:
         work_mem: '10GB'
         temp_buffers: '5GB'
