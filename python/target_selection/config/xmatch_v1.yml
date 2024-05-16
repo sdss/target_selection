@@ -7,7 +7,7 @@
     start_node: gaia_dr3_source
     debug: true
     log_path: xmatch_{plan}.log
-    path_mode: config_list
+    path_mode: full
     version_id: 31
     order:
         - mastar_goodstars
