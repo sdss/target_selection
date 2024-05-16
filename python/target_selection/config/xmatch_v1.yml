@@ -45,7 +45,7 @@
             dec_column: catalog_dec
             skip_phases: [2]
     join_paths:
-        - ['sdss_dr17_specobj', 'catalog_to_sdss_dr17_specobj', 'catalog']
+        - ['mangatarget', 'sdss_dr17_specobj', 'catalog_to_sdss_dr17_specobj', 'catalog']
     database_options:
         work_mem: '10GB'
         temp_buffers: '5GB'
