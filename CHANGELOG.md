@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.5 - May 17, 2024
+
+### New
+
+* Added cross-match plan `1.1.4` for `mangatarget`
+* Added cross-match plan `1.1.5` for `mastar_goodstars`
+
 ## 1.2.4 - May 7, 2024
 
 ### New
