@@ -1,3 +1,20 @@
+'1.0.52':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_bin_gaia_astb_apogee
+    - mwm_bin_gaia_astb_boss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/1.0.0/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
+
 '1.1.0': # This is a dedicated plan for ToO
   xmatch_plan: 1.0.0
   cartons:
