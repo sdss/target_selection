@@ -44,7 +44,7 @@ Priority: 2550-2559
 Cadence: 2 visits separated by at least 100 days
  – new cadence    cadence assessed to be incompatible with existing set.
   Plan to test implementation with simplified cadence
-  (bright_2x1_long  - and allow partial completion / extra epoch eligibility)
+  (bright_2x1_long_v2  - and allow partial completion / extra epoch eligibility)
 Instrument: APOGEE
 can_offset = True
 Lead contact: Kareem El-Badry
@@ -53,7 +53,7 @@ Lead contact: Kareem El-Badry
     name = 'mwm_bin_gaia_astb_apogee'
     category = 'science'
     instrument = 'APOGEE'
-    cadence = 'bright_2x1_long'
+    cadence = 'bright_2x1_long_v2'
     program = 'mwm_bin'
     mapper = 'MWM'
     priority = 2550
@@ -125,7 +125,7 @@ Lead contact: Kareem El-Badry
     name = 'mwm_bin_gaia_astb_boss'
     category = 'science'
     instrument = 'BOSS'
-    cadence = 'bright_2x1_long'
+    cadence = 'bright_2x1_long_v2'
     program = 'mwm_bin'
     mapper = 'MWM'
     priority = 2560

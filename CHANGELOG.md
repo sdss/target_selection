@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.6 - June 3, 2024
+
+### New
+
+* changed the cadence to bright_2x1_long for the cartons mwm_bin_gaia_astb_apogee and mwm_bin_gaia_astb_boss.
+
 ## 1.2.5 - May 17, 2024
 
 ### New
