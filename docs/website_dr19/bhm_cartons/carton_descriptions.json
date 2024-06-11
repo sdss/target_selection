@@ -372,17 +372,6 @@
             "code" : "bhm_spiders_clusters.py",
             "ntargets": "15"
         },
-
-
-
-
-
-#####################################
-
-
-
-
-
         {
             "name": "bhm_aqmes_med",
             "plan": "0.1.0",
@@ -393,7 +382,7 @@
             "cadences" : "bhm_aqmes_medium_10x4",
             "priority" : "1100",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "2663"
         },
         {
             "name": "bhm_aqmes_med-faint",
@@ -405,7 +394,7 @@
             "cadences" : "bhm_aqmes_medium_10x4",
             "priority" : "3100",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "16853"
         },
         {
             "name": "bhm_aqmes_wide2",
@@ -417,7 +406,7 @@
             "cadences" : "bhm_aqmes_wide_2x4",
             "priority" : "1210",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "18376"
         },
         {
             "name": "bhm_aqmes_wide2-faint",
@@ -429,7 +418,7 @@
             "cadences" : "bhm_aqmes_wide_2x4",
             "priority" : "3210",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "63816"
         },
         {
             "name": "bhm_aqmes_wide3",
@@ -439,9 +428,9 @@
             "selection": "Select all objects from SDSS DR16 QSO catalogue that have 16.0&lt;sdss_psfmag_i&lt;19.1&nbsp;AB, and that lie within 1.49&nbsp;degrees of at least one AQMES-wide3 field location.",
             "tables" : "sdss_dr16_qso, sdss_dr16_specobj",
             "cadences" : "bhm_aqmes_wide_3x4",
-            "priority" : "1210",
+            "priority" : "1200",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "5785"
         },
         {
             "name": "bhm_aqmes_wide3-faint",
@@ -451,9 +440,9 @@
             "selection": "Select all objects from SDSS DR16 QSO catalogue that have 19.1&lt;sdss_psfmag_i&lt;21.0&nbsp;AB, and that lie within 1.49&nbsp;degrees of at least one AQMES-wide2 field location.",
             "tables" : "sdss_dr16_qso, sdss_dr16_specobj",
             "cadences" : "dark_2x4",
-            "priority" : "3210",
+            "priority" : "3200",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "35803"
         },
         {
             "name": "bhm_aqmes_bonus-dark",
@@ -465,7 +454,7 @@
             "cadences" : "dark_spiders_1x4",
             "priority" : "3300",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "579590"
         },
         {
             "name": "bhm_aqmes_bonus-bright",
@@ -477,7 +466,7 @@
             "cadences" : "bhm_boss_bright_3x1",
             "priority" : "4040",
             "code" : "bhm_aqmes.py",
-            "ntargets": ""
+            "ntargets": "10848"
         },
         {
             "name": "bhm_rm_ancillary",
@@ -489,7 +478,7 @@
             "cadences" : "bhm_rm_174x8",
             "priority" : "1004-1050",
             "code" : "bhm_rm.py",
-            "ntargets": ""
+            "ntargets": "948"
         },
         {
             "name": "bhm_rm_core",
@@ -501,7 +490,7 @@
             "cadences" : "bhm_rm_174x8",
             "priority" : "1002-1050",
             "code" : "bhm_rm.py",
-            "ntargets": ""
+            "ntargets": "3811"
         },
         {
             "name": "bhm_rm_var",
@@ -513,7 +502,7 @@
             "cadences" : "bhm_rm_174x8",
             "priority" : "1003-1050",
             "code" : "bhm_rm.py",
-            "ntargets": ""
+            "ntargets": "992"
         },
         {
             "name": "bhm_rm_known_spec",
@@ -525,7 +514,7 @@
             "cadences" : "bhm_rm_174x8",
             "priority" : "1001-1050",
             "code" : "bhm_rm.py",
-            "ntargets": ""
+            "ntargets": "2992"
         },
         {
             "name": "bhm_csc_apogee",
@@ -537,7 +526,7 @@
             "cadences" : "bhm_csc_apogee_3x1",
             "priority" : "4000",
             "code" : "bhm_csc.py",
-            "ntargets": ""
+            "ntargets": "10633"
         },
         {
             "name": "bhm_csc_boss_dark",
@@ -549,7 +538,7 @@
             "cadences" : "bhm_csc_boss_1x4",
             "priority" : "3000",
             "code" : "bhm_csc.py",
-            "ntargets": ""
+            "ntargets": "65350"
         },
         {
             "name": "bhm_csc_boss-bright",
@@ -561,7 +550,7 @@
             "cadences" : "bhm_csc_boss_1x1",
             "priority" : "4000",
             "code" : "bhm_csc.py",
-            "ntargets": ""
+            "ntargets": "22173"
         },
         {
             "name": "bhm_gua_dark",
@@ -573,7 +562,7 @@
             "cadences" : "bhm_spiders_1x4",
             "priority" : "3400",
             "code" : "bhm_gua.py",
-            "ntargets": ""
+            "ntargets": "2085729"
         },
         {
             "name": "bhm_gua_bright",
@@ -585,7 +574,7 @@
             "cadences" : "bhm_boss_bright_3x1",
             "priority" : "4040",
             "code" : "bhm_gua.py",
-            "ntargets": ""
+            "ntargets": "237236"
         },
         {
             "name": "",

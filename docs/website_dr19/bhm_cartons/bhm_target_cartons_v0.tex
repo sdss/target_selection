@@ -1,0 +1,774 @@
+% 
+% \hypertarget{bhm_spiders_agn-efeds_plan0.1.0}{%
+% \subsection{bhm\_spiders\_agn-efeds}\label{bhm_spiders_agn-efeds_plan0.1.0}}
+% 
+% \noindent\textbf{target\_selection plan:} 0.1.0
+% 
+% \noindent\textbf{target\_selection tag:}
+% \href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+% 
+% \noindent\textbf{Summary:} A carton used during SDSS-V plate-mode observations,
+% that contains candidate AGN targets found in the eROSITA/eFEDS X-ray
+% survey field. This carton provides optical counterparts to point-like
+% (unresolved) X-ray sources detected in early reductions ('c940/V2T') of
+% the eROSITA/eFEDS performance validation field. The sample is expected
+% to contain a mixture of QSOs, AGN, stars and compact objects. The X-ray
+% sources have been cross-matched by the eROSITA-DE team to
+% \href{https://www.legacysurvey.org/dr8/}{legacysurvey.org/dr8}
+% optical/IR counterparts. All targets in this carton are located within
+% the eFEDS field (approx 126\textless RA\textless146,
+% -3\textless Dec\textless+6~deg).
+% 
+% \noindent\textbf{Simplified description of selection criteria:} Starting from a
+% parent catalogue of eFEDS point source $\rightarrow$
+% \href{https://www.legacysurvey.org/dr8}{legacysurvey.org/dr8}
+% associations (primarily via NWAY assisted by optical/IR priors computed
+% via a pre-trained Random Forest, see
+% \citealt{Salvato2022}, supplemented by counterparts selected via a Likelihood
+% Ratio using r-band magnitudes), select targets which meet all of the
+% following criteria: i) have eROSITA detection likelihood\textgreater6.0,
+% ii) have an X-ray $\rightarrow$ optical/IR cross-match probability of either
+% p\_any\textgreater0.1 (NWAY associations) or LR\textgreater0.2
+% (Likelihood Ratio associations), iii) have fibermag\_r\&gt16.5 and
+% fibermag\_r\&lt22.0 or fibermag\_z\textless21.0, and iv) did not receive
+% high quality spectroscopy during the SDSS-IV= observations of the eFEDS
+% field
+% (\citealt{Abdurrouf_2021_sdssDR17}). We deprioritise targets if any of the following criteria
+% are met: a) the target already has existing good quality SDSS
+% spectroscopy in SDSS DR16, b) the X-ray detection likelihood is
+% \textless8.0, c) the target is a secondary X-ray$\rightarrow$optical/IR association,
+% or d) if the optical/IR counterpart was only chosen by the LR method.
+% All targets were assigned a nominal cadence of: bhm\_spiders\_1x8
+% (8x15mins dark time).
+% 
+% 
+% \noindent\textbf{Target priority options:} 1510-1519
+% 
+% \noindent\textbf{Cadence options:} bhm\_spiders\_1x8
+% 
+% \noindent\textbf{Implementation:}
+% \href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_spiders_agn.py}{bhm\_spiders\_agn.py}
+% 
+% \noindent\textbf{Number of targets:} 12459
+% 
+% \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+% 
+% \hypertarget{bhm_spiders_clusters-efeds-sdss-redmapper_plan0.1.0}{%
+% \subsection{bhm\_spiders\_clusters-efeds-sdss-redmapper}\label{bhm_spiders_clusters-efeds-sdss-redmapper_plan0.1.0}}
+% 
+% \noindent\textbf{target\_selection plan:} 0.1.0
+% 
+% \noindent\textbf{target\_selection tag:}
+% \href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+% 
+% \noindent\textbf{Summary:} A carton used during SDSS-V plate-mode observations,
+% that contains galaxy cluster targets found in the eROSITA/eFEDS X-ray
+% survey field. The carton provides a list of galaxies which are candidate
+% members of clusters selected from early reductions ('c940') of the
+% eROSITA performance verification survey in the eFEDS field. The parent
+% sample of galaxy clusters and their member galaxies have been selected
+% via a joint analysis of X-ray and (several) optical/IR datasets using
+% the eROMAPPER red-sequence finder algorithm
+% (\citealt{Rykoff2014};
+% \citealt{IderChitham2020}). This particular carton relies on optical/IR data
+% from \href{https://www.sdss.org/dr13/}{SDSS/dr13}. All targets in this
+% carton are located within the eFEDS field (approx
+% 126\textless RA\textless146, -3\textless Dec\textless+6~deg).
+% 
+% \noindent\textbf{Simplified description of selection criteria:} Starting from a
+% parent catalogue of eFEDS $\rightarrow$ optical/IR cluster associations, select
+% targets which meet all of the following criteria: i) are selected by
+% eROMAPPER applied to \href{https://www.sdss.org/dr13/}{SDSS/dr13}
+% photometric data, ii) have eROSITA X-ray detection likelihood
+% \textgreater{} 8.0, iii) have fibermag\_r\textgreater16.5 and
+% fibermag\_r\textless21.0 or fibermag\_z\textless20.0, iv) do not have
+% existing good quality (SDSS or external) spectroscopy. We assign a range
+% of priorities to targets in this carton, with BCGs top ranked, followed
+% by candidate member galaxies according their probability of membership.
+% All targets were assigned a nominal cadence of: bhm\_spiders\_1x8
+% (8x15mins dark time).
+% 
+% 
+% \noindent\textbf{Target priority options:} 1500, 1511-1610
+% 
+% \noindent\textbf{Cadence options:} dark\_1x8
+% 
+% \noindent\textbf{Implementation:}
+% \href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_spiders_clusters.py}{bhm\_spiders\_clusters.py}
+% 
+% \noindent\textbf{Number of targets:} 4304
+% 
+% \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+% 
+% \hypertarget{bhm_spiders_clusters-efeds-hsc-redmapper_plan0.1.0}{%
+% \subsection{bhm\_spiders\_clusters-efeds-hsc-redmapper}\label{bhm_spiders_clusters-efeds-hsc-redmapper_plan0.1.0}}
+% 
+% \noindent\textbf{target\_selection plan:} 0.1.0
+% 
+% \noindent\textbf{target\_selection tag:}
+% \href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+% 
+% \noindent\textbf{Summary:} A carton used during SDSS-V plate-mode observations,
+% that contains galaxy cluster targets found in the eROSITA/eFEDS X-ray
+% survey field. The carton provides a list of galaxies which are candidate
+% members of clusters selected from early reductions ('c940') of the
+% eROSITA performance verification survey in the eFEDS field. The parent
+% sample of galaxy clusters and their member galaxies have been selected
+% via a joint analysis of X-ray and (several) optical/IR datasets using
+% the eROMAPPER red-sequence finder algorithm
+% (\citealt{Rykoff2014};
+% \citealt{IderChitham2020}). This particular carton relies on optical/IR data
+% from the \href{https://hsc.mtk.nao.ac.jp/ssp/}{Hyper Suprime-Cam Subaru
+% Strategic Program (HSC-SSP)}. All targets in this carton are located
+% within the eFEDS field (approx 126\textless RA\textless146,
+% -3\textless Dec\textless+6~deg).
+% 
+% \noindent\textbf{Simplified description of selection criteria:} Starting from a
+% parent catalogue of eFEDS $\rightarrow$ optical/IR cluster associations, select
+% targets which meet all of the following criteria: i) are selected by
+% eROMAPPER applied to \href{https://hsc.mtk.nao.ac.jp/ssp/}{HSC-SSP}
+% photometric data, ii) have eROSITA X-ray detection likelihood
+% \textgreater{} 8.0, iii) have fibermag\_r\textgreater16.5 and
+% fibermag\_r\textless21.0 or fibermag\_z\textless20.0, iv) do not have
+% existing good quality (SDSS or external) spectroscopy. We assign a range
+% of priorities to targets in this carton, with BCGs top ranked, followed
+% by candidate member galaxies according their probability of membership.
+% All targets were assigned a nominal cadence of: bhm\_spiders\_1x8
+% (8x15mins dark time).
+% 
+% 
+% \noindent\textbf{Target priority options:} 1500, 1511-1610
+% 
+% \noindent\textbf{Cadence options:} dark\_1x8
+% 
+% \noindent\textbf{Implementation:}
+% \href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_spiders_clusters.py}{bhm\_spiders\_clusters.py}
+% 
+% \noindent\textbf{Number of targets:} 924
+% 
+% \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+% 
+% \hypertarget{bhm_spiders_clusters-efeds-erosita_plan0.1.0}{%
+% \subsection{bhm\_spiders\_clusters-efeds-erosita}\label{bhm_spiders_clusters-efeds-erosita_plan0.1.0}}
+% 
+% \noindent\textbf{target\_selection plan:} 0.1.0
+% 
+% \noindent\textbf{target\_selection tag:}
+% \href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+% 
+% \noindent\textbf{Summary:} A carton used during SDSS-V plate-mode observations,
+% that contains galaxy cluster targets found in the eROSITA/eFEDS X-ray
+% survey field. The carton provides a list of galaxies which are candidate
+% members of clusters selected from early reductions ('c940') of the
+% eROSITA performance verification survey in the eFEDS field. The parent
+% sample of galaxy clusters and their member galaxies have been selected
+% via a joint analysis of X-ray and (several) optical/IR datasets. This
+% particular carton includes counterparts to X-ray extended sources that
+% were not selected by the eROMAPPER red seuence finder algorithm when
+% applied to any of the legacysurvey/dr8, SDSS/dr13 or HSC-SSP datasets
+% (i.e. complementary to the cartons:
+% bhm\_spiders\_clusters-efeds-ls-redmapper,
+% bhm\_spiders\_clusters-efeds-sdss-redmapper and
+% bhm\_spiders\_clusters-efeds-hsc-redmapper). All targets in this carton
+% are located within the eFEDS field (approx 126\textless RA\textless146,
+% -3\textless Dec\textless+6~deg).
+% 
+% \noindent\textbf{Simplified description of selection criteria:} Starting from a
+% parent catalogue of eFEDS $\rightarrow$ optical/IR cluster associations, select
+% targets which meet all of the following criteria: i) are identified as
+% being X-ray extended but not selected via the eROMAPPER algorithm, ii)
+% have eROSITA X-ray detection likelihood \textgreater{} 8.0, iii) have
+% fibermag\_r\textgreater16.5 and fibermag\_r\textless21.0 or
+% fibermag\_z\textless20.0, iv) do not have existing good quality (SDSS or
+% external) spectroscopy. We assign a range of priorities to targets in
+% this carton, with BCGs top ranked, followed by candidate member galaxies
+% according their probability of membership. All targets were assigned a
+% nominal cadence of: bhm\_spiders\_1x8 (8x15mins dark time).
+% 
+% 
+% \noindent\textbf{Target priority options:} 1500, 1511-1535
+% 
+% \noindent\textbf{Cadence options:} dark\_1x8
+% 
+% \noindent\textbf{Implementation:}
+% \href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_spiders_clusters.py}{bhm\_spiders\_clusters.py}
+% 
+% \noindent\textbf{Number of targets:} 15
+
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_med_plan0.1.0}{%
+\subsection{bhm\_aqmes\_med}\label{bhm_aqmes_med_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically bright SDSS
+QSOs, selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 36 mostly disjoint fields within the SDSS QSO
+footprint that were pre-selected to contain higher than average numbers
+of bright QSOs and CSC targets. The list of field centres can be found
+within
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits}{the
+target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+16.0\textless sdss\_psfmag\_i\textless19.1~AB, that lie within
+1.49~degrees of at least one AQMES-medium field location.
+
+
+\noindent\textbf{Target priority options:} 1100
+
+\noindent\textbf{Cadence options:} bhm\_aqmes\_medium\_10x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 2663
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_med-faint_plan0.1.0}{%
+\subsection{bhm\_aqmes\_med-faint}\label{bhm_aqmes_med-faint_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically faint SDSS QSOs,
+selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 36 mostly disjoint fields within the SDSS QSO
+footprint that were pre-selected to contain higher than average numbers
+of bright QSOs and CSC targets. The list of field centres can be found
+within
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_med_v0.2.1.fits}{the
+target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+19.1\textless sdss\_psfmag\_i\textless21.0~AB, that lie within
+1.49~degrees of at least one AQMES-medium field location.
+
+
+\noindent\textbf{Target priority options:} 3100
+
+\noindent\textbf{Cadence options:} bhm\_aqmes\_medium\_10x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 16853
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_wide2_plan0.1.0}{%
+\subsection{bhm\_aqmes\_wide2}\label{bhm_aqmes_wide2_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically bright SDSS
+QSOs, selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 330 fields within the SDSS QSO footprint,
+where the choice of survey area prioritized fields that overlapped with
+the SPIDERS footprint (approx 180\textless b\textless360~deg), and/or
+had higher than average numbers of bright QSOs and CSC targets. The list
+of field centres can be found
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits}{within
+the target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+16.0\textless sdss\_psfmag\_i\textless19.1~AB, and that lie within
+1.49~degrees of at least one AQMES-wide2 field location.
+
+
+\noindent\textbf{Target priority options:} 1210
+
+\noindent\textbf{Cadence options:} bhm\_aqmes\_wide\_2x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 18376
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_wide2-faint_plan0.1.0}{%
+\subsection{bhm\_aqmes\_wide2-faint}\label{bhm_aqmes_wide2-faint_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically faint SDSS QSOs,
+selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 330 fields within the SDSS QSO footprint,
+where the choice of survey area prioritized field that overlapped with
+the SPIDERS footprint (approx 180\textless b\textless360~deg), and/or
+had higher than average numbers of bright QSOs and CSC targets. The list
+of field centres can be found
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits}{within
+the target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+19.1\textless sdss\_psfmag\_i\textless21.0~AB, and that lie within
+1.49~degrees of at least one AQMES-wide2 field location.
+
+
+\noindent\textbf{Target priority options:} 3210
+
+\noindent\textbf{Cadence options:} bhm\_aqmes\_wide\_2x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 63816
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_wide3_plan0.1.0}{%
+\subsection{bhm\_aqmes\_wide3}\label{bhm_aqmes_wide3_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically bright SDSS
+QSOs, selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 95 fields within the SDSS QSO footprint,
+where the choice of survey area prioritized fields having higher than
+average numbers of bright QSOs and CSC targets. The list of field
+centres can be found
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits}{within
+the target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+16.0\textless sdss\_psfmag\_i\textless19.1~AB, and that lie within
+1.49~degrees of at least one AQMES-wide3 field location.
+
+
+\noindent\textbf{Target priority options:} 1200
+
+\noindent\textbf{Cadence options:} bhm\_aqmes\_wide\_3x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 5785
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_wide3-faint_plan0.1.0}{%
+\subsection{bhm\_aqmes\_wide3-faint}\label{bhm_aqmes_wide3-faint_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed optically faint SDSS QSOs,
+selected from the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located in 95 fields within the SDSS QSO footprint,
+where the choice of survey area prioritized fields having higher than
+average numbers of bright QSOs and CSC targets. The list of field
+centres can be found
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/masks/candidate_target_fields_bhm_aqmes_wide_v0.2.1.fits}{within
+the target\_selection repository}.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+19.1\textless sdss\_psfmag\_i\textless21.0~AB, and that lie within
+1.49~degrees of at least one AQMES-wide2 field location.
+
+
+\noindent\textbf{Target priority options:} 3200
+
+\noindent\textbf{Cadence options:} dark\_2x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 35803
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_bonus-dark_plan0.1.0}{%
+\subsection{bhm\_aqmes\_bonus-dark}\label{bhm_aqmes_bonus-dark_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed SDSS QSOs, with magnitudes
+in the range appropriate for observations in dark time, selected from
+the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located anywhere within the SDSS DR16Q footprint.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+16.5\textless sdss\_psfmag\_i\textless21.5~AB
+
+
+\noindent\textbf{Target priority options:} 3300
+
+\noindent\textbf{Cadence options:} dark\_spiders\_1x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 579590
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_aqmes_bonus-bright_plan0.1.0}{%
+\subsection{bhm\_aqmes\_bonus-bright}\label{bhm_aqmes_bonus-bright_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} Spectroscopically confirmed SDSS QSOs, with magnitudes
+in the range appropriate for observations in bright time, selected from
+the SDSS QSO catalogue (DR16Q,
+\citealt{Lyke2020}). Located anywhere within the SDSS DR16Q footprint.
+
+\noindent\textbf{Simplified description of selection criteria:} Select all
+objects from SDSS DR16 QSO catalogue that have
+14.0\textless sdss\_psfmag\_i\textless18.0~AB
+
+
+\noindent\textbf{Target priority options:} 4040
+
+\noindent\textbf{Cadence options:} bhm\_boss\_bright\_3x1
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_aqmes.py}{bhm\_aqmes.py}
+
+\noindent\textbf{Number of targets:} 10848
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_rm_ancillary_plan0.1.0}{%
+\subsection{bhm\_rm\_ancillary}\label{bhm_rm_ancillary_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A supporting sample of candidate QSOs which have been
+selected by the Gaia-unWISE AGN catalog
+(\citealt{Shu2019}) and/or the SDSS XDQSO catalog
+(\citealt{Bovy2011}). These targets are located within five (+1 backup) well
+known survey fields (SDSS-RM, COSMOS, XMM-LSS, ECDFS, CVZ-S/SEP, and
+ELIAS-S1).
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from a
+parent catalogue of optically selected objects in the RM fields (as
+presented by
+\citealt{Yang2022}), select candidate QSOs that satisfy all of the
+following: i) are identified via external ancillary methods
+(photo\_bitmask \& 3 != 0); ii) have
+15\textless psfmag\_i\textless21.5~AB; iii) do not have significant
+detections (\textgreater3$\sigma$) of parallax and/or proper motion in Gaia
+DR2; iv) are not classified as a STAR in SDSS DR16 spectroscopy; and v)
+do not lie in the SDSS-RM field
+
+
+\noindent\textbf{Target priority options:} 1004-1050
+
+\noindent\textbf{Cadence options:} bhm\_rm\_174x8
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_rm.py}{bhm\_rm.py}
+
+\noindent\textbf{Number of targets:} 948
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_rm_core_plan0.1.0}{%
+\subsection{bhm\_rm\_core}\label{bhm_rm_core_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A sample of candidate QSOs selected via the methods
+presented by
+\citet{Yang2022}. These targets are located within five (+1 backup) well
+known survey fields (SDSS-RM, COSMOS, XMM-LSS, ECDFS, CVZ-S/SEP, and
+ELIAS-S1).
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from a
+parent catalogue of optically selected objects in the RM fields (as
+presented by
+\citealt{Yang2022}), select candidate QSOs that satisfy all of the
+following: i) are identified via the Skew-T algorithm (skewt\_qso == 1,
+and skewt\_qso\_prior == 1 for targets in the CVZ-S/SEP field); ii) have
+17\textless psfmag\_i\textless21.5~AB; iii) do not have significant
+detections (\textgreater3$\sigma$) of parallax and/or proper motion in Gaia
+DR2; iv) are not classified as a STAR in SDSS DR16 spectroscopy; vi)
+have detections in all of the gri bands (a Gaia detection is sufficient
+in the CVZ-S/SEP field); and vii) do not lie in the SDSS-RM field
+
+
+\noindent\textbf{Target priority options:} 1002-1050
+
+\noindent\textbf{Cadence options:} bhm\_rm\_174x8
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_rm.py}{bhm\_rm.py}
+
+\noindent\textbf{Number of targets:} 3811
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_rm_var_plan0.1.0}{%
+\subsection{bhm\_rm\_var}\label{bhm_rm_var_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A sample of candidate QSOs selected via their optical
+variability properties, as presented by
+\citet{Yang2022}. These targets are located within five (+1 backup) well
+known survey fields (SDSS-RM, COSMOS, XMM-LSS, ECDFS, CVZ-S/SEP, and
+ELIAS-S1).
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from a
+parent catalogue of optically selected objects in the RM fields (as
+presented by
+\citealt{Yang2022}), select candidate QSOs that satisfy all of the
+following: i) have significant variability in the DES or PanSTARRS1
+multi-epoch photometry (var\_sn{[}g{]}\textgreater3 and
+var\_rms{[}g{]}\textgreater0.05); ii) have
+17\textless psfmag\_i\textless20.5~AB; iii) do not have significant
+detections (\textgreater3$\sigma$) of parallax and/or proper motion in Gaia
+DR2; iv) are not classified as a STAR in SDSS DR16 spectroscopy; and vi)
+do not lie in the SDSS-RM field
+
+
+\noindent\textbf{Target priority options:} 1003-1050
+
+\noindent\textbf{Cadence options:} bhm\_rm\_174x8
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_rm.py}{bhm\_rm.py}
+
+\noindent\textbf{Number of targets:} 992
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_rm_known_spec_plan0.1.0}{%
+\subsection{bhm\_rm\_known\_spec}\label{bhm_rm_known_spec_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A sample of known QSOs identified through optical
+spectroscopy from various projects, as collated by
+\citet{Yang2022}. These targets are located within five (+1 backup) well
+known survey fields (SDSS-RM, COSMOS, XMM-LSS, ECDFS, CVZ-S/SEP, and
+ELIAS-S1).
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from a
+parent catalogue of optically selected objects in the RM fields (as
+presented by
+\citealt{Yang2022}), select targets which satisfy all of the following: i)
+are flagged as having a spectroscopic identification in the parent
+catalogue; ii) have 15\textless psfmag\_i\textless21.7~AB (SDSS-RM,
+CDFS, ELIAS-S1, CVZ-S/SEP fields), or
+15\textless psfmag\_i\textless21.5~AB (COSMOS and XMM-LSS fields); iii)
+have a spectroscopic redshift in the range 0.005\textless z\textless7;
+iv) are not classified as a STAR in SDSS DR16 spectroscopy;
+
+
+\noindent\textbf{Target priority options:} 1001-1050
+
+\noindent\textbf{Cadence options:} bhm\_rm\_174x8
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_rm.py}{bhm\_rm.py}
+
+\noindent\textbf{Number of targets:} 2992
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_csc_apogee_plan0.1.0}{%
+\subsection{bhm\_csc\_apogee}\label{bhm_csc_apogee_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} X-ray sources from the CSC2.0 source catalogue with
+NIR counterparts in 2MASS PSC
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from the
+parent catalogue of CSC2.0 sources with optical/IR counterparts
+(bhm\_csc). Select entries satisfying the following criteria: i)
+counterpart is from the 2MASS catalogue, ii) 2MASS H-band magnitude
+measurement is in the accepted range for SDSS-V:
+10.0\textless H\textless15.0.
+
+
+\noindent\textbf{Target priority options:} 4000
+
+\noindent\textbf{Cadence options:} bhm\_csc\_apogee\_3x1
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_csc.py}{bhm\_csc.py}
+
+\noindent\textbf{Number of targets:} 10633
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_csc_boss_dark_plan0.1.0}{%
+\subsection{bhm\_csc\_boss\_dark}\label{bhm_csc_boss_dark_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} X-ray sources from the CSC2.0 source catalogue with
+counterparts in Panstarrs1-DR1
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from the
+parent catalogue of CSC sources with optical/IR counterparts (bhm\_csc).
+Select entries satisfying the following criteria: i) counterpart is from
+the PanSTARRS1 catalogue, ii) optical flux/magnitude is in a range
+suited to SDSS-V dark time observations:
+16.0\textgreater psfmag\_i\textgreater22.0~AB .
+
+
+\noindent\textbf{Target priority options:} 3000
+
+\noindent\textbf{Cadence options:} bhm\_csc\_boss\_1x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_csc.py}{bhm\_csc.py}
+
+\noindent\textbf{Number of targets:} 65350
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_csc_boss-bright_plan0.1.0}{%
+\subsection{bhm\_csc\_boss-bright}\label{bhm_csc_boss-bright_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} X-ray sources from the CSC2.0 source catalogue with
+counterparts in Panstarrs1-DR1
+
+\noindent\textbf{Simplified description of selection criteria:} Starting from the
+parent catalogue of CSC sources with optical/IR counterparts (bhm\_csc).
+Select entries satisfying the following criteria: i) counterpart is from
+the PanSTARRS1 catalogue, ii) optical flux/magnitude is in a range
+suited to SDSS-V bright time observations:
+13.0\textgreater psfmag\_i\textgreater18.0~AB .
+
+
+\noindent\textbf{Target priority options:} 4000
+
+\noindent\textbf{Cadence options:} bhm\_csc\_boss\_1x1
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_csc.py}{bhm\_csc.py}
+
+\noindent\textbf{Number of targets:} 22173
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_gua_dark_plan0.1.0}{%
+\subsection{bhm\_gua\_dark}\label{bhm_gua_dark_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A sample of optically faint candidate AGN lacking
+spectroscopic confirmations, derived from the parent sample presented by
+\citet{Shu2019}, who applied a machine-learning approach to select QSO
+candidates from a combination of the Gaia DR2 and unWISE catalogues.
+
+\noindent\textbf{Simplified description of selection criteria:} Starting with the
+\citet{Shu2019} catalogue, select targets which satisfy the following
+criteria: i) have a Random Forest probability of being a QSO
+of\textgreater0.8, ii) are in the (dereddened) magnitude range suitable
+for BOSS spectroscopy in dark time
+(G\textsubscript{dered}\textgreater16.5 and
+RP\textsubscript{dered}\textgreater16.5, as well as
+G\textsubscript{dered}\textless21.2 or
+RP\textsubscript{dered}\textless21.0,~Vega mag), iii) do not have good
+quality optical spectroscopic measurements in SDSS DR16
+
+
+\noindent\textbf{Target priority options:} 3400
+
+\noindent\textbf{Cadence options:} bhm\_spiders\_1x4
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_gua.py}{bhm\_gua.py}
+
+\noindent\textbf{Number of targets:} 2085729
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{bhm_gua_bright_plan0.1.0}{%
+\subsection{bhm\_gua\_bright}\label{bhm_gua_bright_plan0.1.0}}
+
+\noindent\textbf{target\_selection plan:} 0.1.0
+
+\noindent\textbf{target\_selection tag:}
+\href{https://github.com/sdss/target_selection/tree/0.1.0/}{0.1.0}
+
+\noindent\textbf{Summary:} A sample of optically bright candidate AGN lacking
+spectroscopic confirmations, derived from the parent sample presented by
+\citet{Shu2019}, who applied a machine-learning approach to select QSO
+candidates from a combination of the Gaia DR2 and unWISE catalogues.
+
+\noindent\textbf{Simplified description of selection criteria:} Starting with the
+\citet{Shu2019} catalogue, select targets which satisfy the following
+criteria: i) have a Random Forest probability of being a QSO
+of\textgreater0.8, ii) are in the (dereddened) magnitude range suitable
+for BOSS spectroscopy in bright time
+(G\textsubscript{dered}\textgreater13.0 and
+RP\textsubscript{dered}\textgreater13.5, as well as
+G\textsubscript{dered}\textless18.5 or
+RP\textsubscript{dered}\textless18.5,~Vega mags), iii) do not have good
+quality optical spectroscopic measurements in SDSS DR16.
+
+
+\noindent\textbf{Target priority options:} 4040
+
+\noindent\textbf{Cadence options:} bhm\_boss\_bright\_3x1
+
+\noindent\textbf{Implementation:}
+\href{https://github.com/sdss/target_selection/blob/0.1.0/python/target_selection/cartons/bhm_gua.py}{bhm\_gua.py}
+
+\noindent\textbf{Number of targets:} 237236
