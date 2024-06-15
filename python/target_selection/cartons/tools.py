@@ -31,10 +31,12 @@ def get_file_carton(filename):
     # connection is not ready.
     from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                                  CatalogToLegacy_Survey_DR8,
+                                                 CatalogToLegacy_Survey_DR10,
                                                  CatalogToPanstarrs1,
                                                  CatalogToTIC_v8,
                                                  CatalogToTwoMassPSC, Gaia_DR2,
                                                  Gaia_DR3, Legacy_Survey_DR8,
+                                                 Legacy_Survey_DR10,
                                                  Panstarrs1, TIC_v8,
                                                  TwoMassPSC)
 
@@ -231,6 +233,7 @@ def get_file_carton(filename):
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
+            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR10_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_ID")')
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
@@ -240,11 +243,16 @@ def get_file_carton(filename):
                 ((temp.inertial.cast('boolean').is_null(), False),),
                 temp.inertial.cast('boolean'))
 
+            # Below we make aliases for the temp table column names.
+            # For example, column temp.Gaia_DR3_Source_ID has alias 'gaia_source_id'.
+            # However, we do not use the column name aliases later.
+            # i.e. later we use the full column name temp.Gaia_DR3_Source_ID.
             query_common = (Catalog
                             .select(Catalog.catalogid,
                                     temp.Gaia_DR3_Source_ID.alias('gaia_dr3_source_id'),
                                     temp.Gaia_DR2_Source_ID.alias('gaia_source_id'),
-                                    temp.LegacySurvey_DR8_ID.alias('ls_id'),
+                                    temp.LegacySurvey_DR8_ID.alias('ls_id8'),
+                                    temp.LegacySurvey_DR10_ID.alias('ls_id10'),
                                     temp.PanSTARRS_DR2_ID.alias('catid_objid'),
                                     temp.TwoMASS_ID.alias('designation'),
                                     Catalog.ra,
@@ -296,6 +304,18 @@ def get_file_carton(filename):
                         CatalogToLegacy_Survey_DR8.best.is_null(),
                         Catalog.version_id == version_id))
 
+            query_legacysurvey_dr10 = \
+                (query_common
+                 .join(CatalogToLegacy_Survey_DR10)
+                 .join(Legacy_Survey_DR10)
+                 .join(temp,
+                       on=(temp.LegacySurvey_DR10_ID == Legacy_Survey_DR10.ls_id))
+                 .switch(Catalog)
+                 .where(CatalogToLegacy_Survey_DR10.version_id == version_id,
+                        (CatalogToLegacy_Survey_DR10.best >> True) |
+                        CatalogToLegacy_Survey_DR10.best.is_null(),
+                        Catalog.version_id == version_id))
+
             query_panstarrs_dr2 = \
                 (query_common
                  .join(CatalogToPanstarrs1)
@@ -331,6 +351,9 @@ def get_file_carton(filename):
             len_legacysurvey_dr8 =\
                 len(self._table[self._table['LegacySurvey_DR8_ID'] > 0])
 
+            len_legacysurvey_dr10 =\
+                len(self._table[self._table['LegacySurvey_DR10_ID'] > 0])
+
             len_panstarrs_dr2 =\
                 len(self._table[self._table['PanSTARRS_DR2_ID'] > 0])
 
@@ -343,11 +366,12 @@ def get_file_carton(filename):
                 len(self._table[self._table['TwoMASS_ID'] != 'NA'])
 
             # There must be exactly one non-zero id per row else raise an exception.
-            if ((len_gaia_dr3 + len_gaia_dr2 + len_legacysurvey_dr8 +
+            if ((len_gaia_dr3 + len_gaia_dr2 +
+                 len_legacysurvey_dr8 + len_legacysurvey_dr10 +
                  len_panstarrs_dr2 + len_twomass_psc) != len_table):
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(len_gaia_dr3 + len_gaia_dr2 + ' +
-                                           'len_legacysurvey_dr8 + ' +
+                                           'len_legacysurvey_dr8 + len_legacysurvey_dr10 +' +
                                            'len_panstarrs_dr2 + len_twomass_psc) != ' +
                                            'len_table')
 
@@ -365,6 +389,11 @@ def get_file_carton(filename):
                 is_legacysurvey_dr8 = True
             else:
                 is_legacysurvey_dr8 = False
+
+            if (len_legacysurvey_dr10 > 0):
+                is_legacysurvey_dr10 = True
+            else:
+                is_legacysurvey_dr10 = False
 
             if (len_panstarrs_dr2 > 0):
                 is_panstarrs_dr2 = True
@@ -396,6 +425,12 @@ def get_file_carton(filename):
                 else:
                     query = query | query_legacysurvey_dr8
 
+            if (is_legacysurvey_dr10 is True):
+                if (query is None):
+                    query = query_legacysurvey_dr10
+                else:
+                    query = query | query_legacysurvey_dr10
+
             if (is_panstarrs_dr2 is True):
                 if (query is None):
                     query = query_panstarrs_dr2
@@ -415,6 +450,7 @@ def get_file_carton(filename):
                                            '(is_gaia_dr3 is False) and ' +
                                            '(is_gaia_dr2 is False) and ' +
                                            '(is_legacysurvey_dr8 is False) and ' +
+                                           '(is_legacysurvey_dr10 is False) and ' +
                                            '(is_panstarrs_dr2 is False) and ' +
                                            '(is_twomass_psc is False)')
 
