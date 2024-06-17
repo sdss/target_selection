@@ -29,16 +29,15 @@ def get_file_carton(filename):
 
     # Import this here to prevent this module not being importable if the database
     # connection is not ready.
-    from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
+    from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR2,
+                                                 CatalogToGaia_DR3,
                                                  CatalogToLegacy_Survey_DR8,
                                                  CatalogToLegacy_Survey_DR10,
                                                  CatalogToPanstarrs1,
-                                                 CatalogToTIC_v8,
                                                  CatalogToTwoMassPSC, Gaia_DR2,
                                                  Gaia_DR3, Legacy_Survey_DR8,
                                                  Legacy_Survey_DR10,
-                                                 Panstarrs1, TIC_v8,
-                                                 TwoMassPSC)
+                                                 Panstarrs1, TwoMassPSC)
 
     class FileCarton(BaseCarton):
 
@@ -281,16 +280,32 @@ def get_file_carton(filename):
 
             query_gaia_dr2 = \
                 (query_common
-                 .join(CatalogToTIC_v8)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+                 .join(CatalogToGaia_DR2)
+                 .join(Gaia_DR2, on=(CatalogToGaia_DR2.target_id == Gaia_DR2.source_id))
                  .join(temp,
                        on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
                  .switch(Catalog)
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        (CatalogToTIC_v8.best >> True) |
-                        CatalogToTIC_v8.best.is_null(),
+                 .where(CatalogToGaia_DR2.version_id == version_id,
+                        (CatalogToGaia_DR2.best >> True) |
+                        CatalogToGaia_DR2.best.is_null(),
                         Catalog.version_id == version_id))
+
+# Above is the new way for making query_gaia_dr2 after v1.0 crossmatch.
+# Below is the old way for making query_gaia_dr2 before v1.0 crossmatch.
+# It is kept here for future reference.
+#
+#             query_gaia_dr2 = \
+#                 (query_common
+#                  .join(CatalogToTIC_v8)
+#                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+#                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+#                  .join(temp,
+#                        on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
+#                  .switch(Catalog)
+#                  .where(CatalogToTIC_v8.version_id == version_id,
+#                         (CatalogToTIC_v8.best >> True) |
+#                         CatalogToTIC_v8.best.is_null(),
+#                         Catalog.version_id == version_id))
 
             query_legacysurvey_dr10 = \
                 (query_common
