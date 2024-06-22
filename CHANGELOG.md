@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.7 - June 20, 2024
+
+### New
+
+*  tools.py: add column LegacySurvey_DR10_ID for manual carton fits file 
+
 ## 1.2.6 - June 3, 2024
 
 ### New
