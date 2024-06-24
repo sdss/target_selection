@@ -4,7 +4,7 @@
 
 ### New
 
-*  tools.py: add column LegacySurvey_DR10_ID for manual carton fits file 
+*  tools.py: add column LegacySurvey_DR10_ID for manual carton fits file
 
 ## 1.2.6 - June 3, 2024
 
@@ -57,10 +57,10 @@
 
 This version makes several improvements to `XMatch`:
 
-* *Removes some hard-coded use of SQL files. These should not be necessary and if they were, we should get to the bottom of why they are ...
-* *Store intermediate results in a sandboxed `catalog_to_XXX` table. This allows to run a full dry-run cross-match for a single catalogue.
-* *Phase 1: distinct only on `model_pk`.
-* *Phase 3: Require using only best matches.
+* Removes some hard-coded use of SQL files. These should not be necessary and if they were, we should get to the bottom of why they are ...
+* Store intermediate results in a sandboxed `catalog_to_XXX` table. This allows to run a full dry-run cross-match for a single catalogue.
+* Phase 1: distinct only on `model_pk`.
+* Phase 3: Require using only best matches.
 
 Additionally, this version adds the `too` carton.
 
