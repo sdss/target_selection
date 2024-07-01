@@ -104,7 +104,7 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
 
         cursor = self.database.execute_sql(
             "select catalogid, gaia_dr3_phot_g_mean_mag from " +
-            " sandbox.temp_mwm_openfibertargets_mwm_hypervelocity_stars_boss ;")
+            " sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss ;")
 
         output = cursor.fetchall()
 
@@ -119,6 +119,6 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_openfibertargets_mwm_hypervelocity_stars_boss " +
+                    " update sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss " +
                     " set cadence = '" + current_cadence + "'"
                     " where catalogid = " + str(current_catalogid) + ";")
