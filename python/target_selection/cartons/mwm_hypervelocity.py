@@ -8,11 +8,12 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToGaia_DR3,
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
                                              Gaia_DR3)
 
 from target_selection.cartons import BaseCarton
+
+
 # from target_selection.exceptions import TargetSelectionError
 
 
