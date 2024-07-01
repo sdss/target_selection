@@ -46,7 +46,7 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
     name = 'openfibertargets_mwm_hypervelocity_stars_boss'
     category = 'science'
     instrument = 'BOSS'
-    cadence = None  # cadence is assigned in post-process
+    cadence = None  # cadence is assigned in post_process()
     program = 'open_fiber'
     mapper = 'MWM'
     priority = 6085
