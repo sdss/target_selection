@@ -266,6 +266,22 @@ def get_file_carton(filename):
                                     peewee.Value(0).alias('value'))
                             .distinct(Catalog.catalogid))
 
+            # The above clause .distinct(Catalog.catalogid)) is
+            # part of below queries like
+            # query_gaia_dr3, query_gaia_dr2 etc. via query_common.
+            # Note that the DISTINCT clause applies to
+            # each of query_gaia_dr3, query_gaia_dr2 etc.
+            # However, it does not apply to the UNION of these queries.
+            # Hence, if the manual carton input fits file
+            # contains multiple types of IDs
+            # then it is possible to get duplicate catalogid where
+            # one catalogid is from query_gaia_dr3 and other is from
+            # query_twomass_psc. This will be detected at the time of
+            # creation of the unique index on catalogid
+            # in the temporary table.
+            # Hence, the carton owner should remove such duplicates in the
+            # manual carton input fits file.
+
             query_gaia_dr3 = \
                 (query_common
                  .join(CatalogToGaia_DR3)
@@ -422,6 +438,9 @@ def get_file_carton(filename):
 
             query = None
 
+            # Below variable 'query' is a UNION of queries.
+            # The operator | is used to construct a UNION of queries.
+
             if (is_gaia_dr3 is True):
                 if (query is None):
                     query = query_gaia_dr3
@@ -459,7 +478,8 @@ def get_file_carton(filename):
                     query = query | query_twomass_psc
 
             if (query is None):
-                # At least one of the four boolean variables above
+                # At least one of the boolean variables above
+                # (e.g. is_gaia_dr3, is_gaia_dr2 etc.)
                 # must be True, so we should not get here.
                 raise TargetSelectionError('error in get_file_carton(): ' +
                                            '(is_gaia_dr3 is False) and ' +
