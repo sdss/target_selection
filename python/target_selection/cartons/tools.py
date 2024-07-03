@@ -438,6 +438,9 @@ def get_file_carton(filename):
 
             query = None
 
+            # Below variable 'query' is a UNION of queries.
+            # The operator | is used to construct a UNION of queries.
+
             if (is_gaia_dr3 is True):
                 if (query is None):
                     query = query_gaia_dr3
