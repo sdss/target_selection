@@ -23,7 +23,7 @@ from target_selection.cartons import BaseCarton
 # https://github.com/sdss/sdssdb/blob/master/python/sdssdb/peewee/sdss5db/catalogdb.py
 
 
-class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
+class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
     """openfibertargets_mwm_more_ob_boss
     Shorthand name: openfibertargets_mwm_more_ob_boss
     Link: More B stars
