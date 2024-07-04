@@ -53,3 +53,51 @@ All checks passed!
 ```
 
 Updating the package version can be done directly in the `pyproject.toml` file and doesn't require having `poetry` installed or otherwise updating the lockfile.
+
+### Visual Studio Code configuration
+
+If using Visual Studio Code, it is recommended to install the [ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) and [prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) extensions. Then you can create a workspace file inside the cloned repo, under `.vscode/settings.json` with the following configuration
+
+```json
+{
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        },
+        "editor.wordWrap": "off",
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "[markdown]": {
+        "editor.wordWrapColumn": 88
+    },
+    "[restructuredtext]": {
+        "editor.wordWrapColumn": 88
+    },
+    "[json]": {
+        "editor.quickSuggestions": {
+            "strings": true
+        },
+        "editor.suggest.insertMode": "replace",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[yaml]": {
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced",
+    },
+    "prettier.tabWidth": 2,
+    "editor.rulers": [99],
+    "editor.wordWrapColumn": 99,
+    "python.analysis.typeCheckingMode": "off",
+    "ruff.nativeServer": true
+}
+```
+
+which will apply the formatting and linting automatically on save.
