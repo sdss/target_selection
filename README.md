@@ -51,3 +51,5 @@ A workflow checks for linting and formatting errors on each commit, and pull req
 >>> ruff check ./python/
 All checks passed!
 ```
+
+Updating the package version can be done directly in the `pyproject.toml` file and doesn't require having `poetry` installed or otherwise updating the lockfile.
