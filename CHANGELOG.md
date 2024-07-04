@@ -1,51 +1,61 @@
 # Changelog
 
+## Next version
+
+### ⚙️ Engineering
+
+* [#454](https://github.com/sdss/target_selection/pull/454) Adapt `target_selection` to using a PEP517 installer with Poetry backend. Lint and format using `ruff`. Added linting and release workflows and updated the RTDs build.
+
+
 ## 1.2.7 - June 20, 2024
 
-### New
+### 🚀 New
 
 * tools.py: add column LegacySurvey_DR10_ID for manual carton fits file
 
 ## 1.2.6 - June 3, 2024
 
-### New
+### 🚀 New
 
 * changed the cadence to bright_2x1_long for the cartons mwm_bin_gaia_astb_apogee and mwm_bin_gaia_astb_boss.
 
+
 ## 1.2.5 - May 17, 2024
 
-### New
+### 🚀 New
 
 * Added cross-match plan `1.1.4` for `mangatarget`
 * Added cross-match plan `1.1.5` for `mastar_goodstars`
 
+
 ## 1.2.4 - May 7, 2024
 
-### New
+### 🚀 New
 
 * Added cross-match plan `1.1.3` for `sdss_dr17_specobj`
 
+
 ## 1.2.3 - May 2, 2024
 
-### New
+### 🚀 New
 
 * Added cross-match plan `1.1.2` for `marvels_dr12_star`
 
 
 ## 1.2.2 - April 30, 2024
 
-### Improved
+### ✨ Improved
 
 * Changed some warning to log messages.
 
-### Fixed
+### 🔧 Fixed
 
 * Removed leftover print message.
 
 
 ## 1.2.1 - April 25, 2024
 
-### New
+### 🚀 New
 
 * Added cross-match plan `1.1.1` for `marvels_dr11_star`.
 * A few additional improvements to the `XMatchPlanner` code.
@@ -53,7 +63,7 @@
 
 ## 1.2.0 - April 23, 2024
 
-### Improved
+### ✨ Improved
 
 This version makes several improvements to `XMatch`:
 
@@ -67,134 +77,154 @@ Additionally, this version adds the `too` carton.
 
 ## 1.1.1 - October 13, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * mwm_rv.py: mwm_bin_rv_short_rgb_apogee: remove downsampling.
 * Update target_selection.yml for target_selection_plan 1.0.51.
 
+
 ## 1.1.0 - September 28, 2023
 
-### New
+### 🚀 New
 
 * Added support in the cross-match code to run "addendum" cross-match runs.
 * Configuration for cross-match run 1.1.0.
 
+
 ## 1.0.50 - August 20, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.50 cartons
 
+
 ## 1.0.49 - August 17, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.49 cartons
 
+
 ## 1.0.48 - August 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.48 cartons
 
+
 ## 1.0.47 - August 3, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.47 cartons
 
+
 ## 1.0.46 - August 2, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.46 manual cartons
 
+
 ## 1.0.45 - July 31, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.45
 
+
 ## 1.0.44 - July 28, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.44
 
+
 ## 1.0.43 - July 26, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.43
 
+
 ## 1.0.42 - July 24, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.42
 
+
 ## 1.0.41 - July 23, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.41
 * Update mwm_cb_*, mwm_bin_vis* carton names + priorities
 
+
 ## 1.0.40 - July 21, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.40
 * Update mwm_erosita_* carton names + priorities
 
+
 ## 1.0.39 - July 20, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.39
 * Update mwm_bin_rv*, mwm_ob*, mwm_halo* cartons
 
+
 ## 1.0.38 - July 12, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.38
 
+
 ## 1.0.37 - July 7, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Modify several BHM (+MWM-eROSITA) cadences to be 'flexible' equivalents.
 * Adjust method by which AQMES cartons aquire cadence choices
 * Update target_selection.yml for plan 1.0.37
 
+
 ## 1.0.36 - July 4, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.36
-# change priority for mwm_ob_core and mwm_ob_cepheids
+* change priority for mwm_ob_core and mwm_ob_cepheids
+
 
 ## 1.0.35 - July 2, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.35 manual cartons
 
+
 ## 1.0.34 - June 30, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.34 cartons
 * add cartons: mwm_bin_rv_short_mdwarf, mwm_bin_rv_short_subgiant, mwm_bin_rv_short_rgb
 * remove carton mwm_bin_rv_short
 
+
 ## 1.0.33 - June 14, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.33 cartons
 * Add mwm_yso_*_single cartons
+
 
 ## 1.0.32 - June 1, 2023
 
@@ -205,189 +235,189 @@ Additionally, this version adds the `too` carton.
 
 ## 1.0.31 - May 23, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.31 cartons
 
 
 ## 1.0.30 - May 21, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Rerun ``mwm_cb_galex_vol``, ``mwm_cb_xmmom``, and ``mwm_cb_swiftuvot``.
 
 
 ## 1.0.29 - May 18, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Rerun ``ops_std_boss_ps1dr2``.
 
 
 ## 1.0.28 - May 16, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.28 cartons
 
 
 ## 1.0.27 - May 9, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.27 cartons
 
 
 ## 1.0.26 - May 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.26 cartons
 
 
 ## 1.0.25 - May 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.25 cartons
 
 
 ## 1.0.24 - May 7, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.24 cartons
 
 
 ## 1.0.23 - May 6, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.23 cartons
 
 
 ## 1.0.22 - May 5, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.22 cartons
 
 
 ## 1.0.21 - May 2, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.21 cartons
 
 
 ## 1.0.20 - May 2, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.20 cartons
 
 
 ## 1.0.19 - April 26, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.19 cartons
 
 
 ## 1.0.18 - April 17, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.18 cartons
 
 
 ## 1.0.17 - April 15, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.17 cartons
 
 
 ## 1.0.16 - April 9, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.16 cartons
 
 
 ## 1.0.15 - April 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.15 cartons
 
 
 ## 1.0.14 - April 7, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.14 cartons
 
 
 ## 1.0.13 - April 6, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.13 cartons
 
 
 ## 1.0.12 - April 3, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.12 cartons
 
 
 ## 1.0.11 - March 31, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.11 cartons
 
 
 ## 1.0.10 - March 28, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.10 for manual cartons
 
 
 ## 1.0.9 - March 28, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.9 cartons
 
 
 ## 1.0.8 - March 17, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.8 cartons
 
 
 ## 1.0.7 - March 13, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.7 for manual cartons
 
 
 ## 1.0.6 - March 10, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.6 cartons
 
 
 ## 1.0.5 - March 9, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update target_selection.yml for plan 1.0.5 cartons
 * Updated code for gaia dr3 XP synthetic magnitudes
@@ -395,28 +425,28 @@ Additionally, this version adds the `too` carton.
 
 ## 1.0.4 - March 4, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Use gaia dr3 XP synthetic mags as supplier of griz for targets
 
 
 ## 1.0.3 - February 10, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update for manual cartons can_offset
 
 
 ## 1.0.2 - February 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update tools.py for manual cartons for Gaia DR3
 
 
 ## 1.0.1 - February 8, 2023
 
-### Fixed
+### 🔧 Fixed
 
 * Update mwm_yso cartons for v1.0
 

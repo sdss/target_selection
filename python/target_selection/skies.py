@@ -22,18 +22,17 @@ from matplotlib.patches import Ellipse
 from mocpy import MOC
 
 from target_selection import log
-from target_selection.exceptions import (TargetSelectionError,
-                                         TargetSelectionUserWarning)
+from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
 
 
-warnings.filterwarnings('ignore', '.*invalid value encountered in power.*')
+warnings.filterwarnings("ignore", ".*invalid value encountered in power.*")
 
 
 _known_flux_zpts = {
-    'nMgy': 22.5,
-    'Jy': 8.9,
-    'mJy': 16.4,
-    'uJy': 23.9,
+    "nMgy": 22.5,
+    "Jy": 8.9,
+    "mJy": 16.4,
+    "uJy": 23.9,
 }
 
 
@@ -82,37 +81,32 @@ def nested_regrade(pixels, nside_in, nside_out):
 
     """
 
-    assert nside_in != nside_out, 'nside_in cannot be equal to nside_out.'
+    assert nside_in != nside_out, "nside_in cannot be equal to nside_out."
 
     k_in = numpy.log2(nside_in)
     k_out = numpy.log2(nside_out)
 
-    assert k_in.is_integer() and k_out.is_integer(), \
-        'nside_in or nside_out are not power of 2.'
+    assert k_in.is_integer() and k_out.is_integer(), "nside_in or nside_out are not power of 2."
 
     pixels = numpy.atleast_1d(pixels).astype(int)
-    assert pixels.ndim == 1, 'dimension of input pixels is invalid.'
+    assert pixels.ndim == 1, "dimension of input pixels is invalid."
 
     # Npix = 12 * nside**2
-    assert numpy.all(pixels <= 12 * nside_in**2), \
-        'some pixel indices are greater than the maximum allowed for nside_in.'
+    is_all = numpy.all(pixels <= 12 * nside_in**2)
+    assert is_all, "some pixel indices are greater than the maximum allowed for nside_in."
 
     if k_in > k_out:
-
         degraded = numpy.right_shift(pixels, 2 * int(k_in - k_out))
 
         return degraded[0] if len(degraded) == 1 else degraded
 
     else:
-
-        prograded = numpy.zeros((len(pixels), int(2**(2 * (k_out - k_in)))),
-                                dtype=int)
+        prograded = numpy.zeros((len(pixels), int(2 ** (2 * (k_out - k_in)))), dtype=int)
         prograded += pixels[numpy.newaxis].T
         for ii in range(int(k_out - k_in))[::-1]:
-
             prograded = numpy.left_shift(prograded, 2)
 
-            repeats = numpy.repeat([0, 1, 2, 3], (4 ** ii) or 1)
+            repeats = numpy.repeat([0, 1, 2, 3], (4**ii) or 1)
             tiles = numpy.tile(repeats, prograded.shape[1] // len(repeats))
 
             prograded += tiles
@@ -120,29 +114,34 @@ def nested_regrade(pixels, nside_in, nside_out):
         return prograded
 
 
-def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
-               candidate_nside=32768, downsample_nside=256,
-               downsample_data=None, seed=None):
+def downsample(
+    df,
+    nsample=2048,
+    tile_column="tile_32",
+    tile_nside=32,
+    candidate_nside=32768,
+    downsample_nside=256,
+    downsample_data=None,
+    seed=None,
+):
     """Downsamples valid sky positions for a tile."""
 
-    df['selected'] = False
+    df["selected"] = False
 
-    if 'down_pix' not in df:
-        df.loc[:, 'down_pix'] = nested_regrade(df.index,
-                                               candidate_nside,
-                                               downsample_nside)
+    if "down_pix" not in df:
+        df.loc[:, "down_pix"] = nested_regrade(df.index, candidate_nside, downsample_nside)
 
     if downsample_data is not None:
         cond = True
         if tile_column in df:
             tile = df.iloc[0][tile_column]
             cond = cond & (downsample_data[tile_column] == tile)
-        if 'valid' in df:
+        if "valid" in df:
             cond = cond & downsample_data.valid
         down_tile = downsample_data.loc[cond]
         selected = df.reindex(down_tile.index).dropna()
         selected = selected.loc[selected.valid]
-        df.loc[selected.index, 'selected'] = True
+        df.loc[selected.index, "selected"] = True
         if len(selected) == nsample:
             return df
 
@@ -159,7 +158,7 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
     # Calculate how many skies per downsample pixel to get.
     k_tile = int(numpy.log2(tile_nside))
     k_downsample = int(numpy.log2(downsample_nside))
-    n_downsample_pix = 4**(k_downsample - k_tile)
+    n_downsample_pix = 4 ** (k_downsample - k_tile)
     n_skies_per_pix = nsample // n_downsample_pix
     # reset index line here is new and it is meant to avoid problem in sample
     # with invalid ids while using weights
@@ -169,14 +168,15 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
         not_selected = df[(~df.selected) & df.valid]
         not_selected.reset_index(inplace=True)
         weights = not_selected.sep_neighbour / not_selected.sep_neighbour.sum()
-        valid_selected = (not_selected.groupby('down_pix')
-                          .sample(n=n_skies_per_pix,
-                                  replace=True,
-                                  random_state=seed,
-                                  weights=weights))
+        valid_selected = not_selected.groupby("down_pix").sample(
+            n=n_skies_per_pix,
+            replace=True,
+            random_state=seed,
+            weights=weights,
+        )
         valid_selected.drop_duplicates(inplace=True)
-        valid_selected.set_index('pix_32768', inplace=True)
-        df.loc[valid_selected.index, 'selected'] = True
+        valid_selected.set_index("pix_32768", inplace=True)
+        df.loc[valid_selected.index, "selected"] = True
 
     if df.selected.sum() >= nsample or (~df.selected).sum() == 0:
         return df
@@ -184,43 +184,54 @@ def downsample(df, nsample=2048, tile_column='tile_32', tile_nside=32,
     # Step two: complete downsample pixels without enough skies with the
     # invalid skies that have the largest separation.
 
-    assigned = df.groupby('down_pix').apply(lambda x: len(x[x.selected]))
+    assigned = df.groupby("down_pix").apply(lambda x: len(x[x.selected]))
     n_pix_missing = assigned[assigned < n_skies_per_pix]
 
-    invalid_sorted = (df.loc[df.down_pix.isin(n_pix_missing.index)
-                             & ~df.selected]
-                      .groupby('down_pix')
-                      .apply(lambda x: x.sort_values(['valid',
-                                                      'sep_neighbour'],
-                                                     ascending=False)))
+    invalid_sorted = (
+        df.loc[df.down_pix.isin(n_pix_missing.index) & ~df.selected]
+        .groupby("down_pix")
+        .apply(lambda x: x.sort_values(["valid", "sep_neighbour"], ascending=False))
+    )
 
     if invalid_sorted.size == 0:
         return df
 
-    if 'down_pix' in invalid_sorted.index.names:
-        invalid_sorted.reset_index('down_pix', drop=True, inplace=True)
+    if "down_pix" in invalid_sorted.index.names:
+        invalid_sorted.reset_index("down_pix", drop=True, inplace=True)
 
-    invalid_selected = (invalid_sorted .groupby('down_pix').apply(
-        lambda x: x.head(n_skies_per_pix -
-                         assigned.loc[x.iloc[0].down_pix])))
+    invalid_selected = invalid_sorted.groupby("down_pix").apply(
+        lambda x: x.head(n_skies_per_pix - assigned.loc[x.iloc[0].down_pix])
+    )
 
     if invalid_selected.size == 0:
         return df
 
-    if 'down_pix' in invalid_selected.index.names:
-        invalid_selected.reset_index('down_pix', drop=True, inplace=True)
+    if "down_pix" in invalid_selected.index.names:
+        invalid_selected.reset_index("down_pix", drop=True, inplace=True)
 
-    df.loc[invalid_selected.index, 'selected'] = True
+    df.loc[invalid_selected.index, "selected"] = True
 
     return df
 
 
-def _process_tile(tile, database_params=None, candidate_nside=None,
-                  tile_nside=None, query=None, min_separation=None,
-                  is_flux=False, flux_unit='nMgy', mag_threshold=None,
-                  scale_a=0.2, scale_b=1, nsample=None, downsample_data=None,
-                  downsample_nside=None, calculate_min_separation=True,
-                  seed=None):
+def _process_tile(
+    tile,
+    database_params=None,
+    candidate_nside=None,
+    tile_nside=None,
+    query=None,
+    min_separation=None,
+    is_flux=False,
+    flux_unit="nMgy",
+    mag_threshold=None,
+    scale_a=0.2,
+    scale_b=1,
+    nsample=None,
+    downsample_data=None,
+    downsample_nside=None,
+    calculate_min_separation=True,
+    seed=None,
+):
     """Processes a tile from catalogue data."""
 
     db = peewee.PostgresqlDatabase(**database_params)
@@ -230,37 +241,38 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
 
     db.close()
 
-    has_mag = 'mag' in targets
-    has_radius = 'radius' in targets
+    has_mag = "mag" in targets
+    has_radius = "radius" in targets
 
-    if 'mag' in targets and not mag_threshold:
-        raise TargetSelectionError('mag_threshold required \
-                                    if mag_column is set.')
+    if "mag" in targets and not mag_threshold:
+        raise TargetSelectionError("mag_threshold required if mag_column is set.")
 
     if len(targets) == 0:
         return False
 
     # For each target we calculate the corresponding pixel in candidate_nside
     # resolution.
-    cpcol = f'pix_{candidate_nside}'
+    cpcol = f"pix_{candidate_nside}"
 
-    targets[cpcol] = healpy.ang2pix(candidate_nside,
-                                    targets.ra.array, targets.dec.array,
-                                    nest=True, lonlat=True)
+    targets[cpcol] = healpy.ang2pix(
+        candidate_nside, targets.ra.array, targets.dec.array, nest=True, lonlat=True
+    )
 
     # Get all the pixels in candidate_nside resolution that correspond to this
     # tile. Create a mask with all of them that are not occupied by a target.
     all_pix = nested_regrade(tile, tile_nside, candidate_nside)[0]
-    mask_not_target = ~numpy.in1d(all_pix, targets[cpcol])
+    mask_not_target = ~numpy.isin(all_pix, targets[cpcol])
 
     # Create a DF with the candidate pixels and calculate their RAs and Decs.
     candidates = pandas.DataFrame(all_pix[mask_not_target], columns=[cpcol])
-    candidates['ra'], candidates['dec'] = healpy.pix2ang(candidate_nside,
-                                                         candidates[cpcol],
-                                                         nest=True,
-                                                         lonlat=True)
+    candidates["ra"], candidates["dec"] = healpy.pix2ang(
+        candidate_nside,
+        candidates[cpcol],
+        nest=True,
+        lonlat=True,
+    )
 
-    candidates['valid'] = True
+    candidates["valid"] = True
 
     # If we are using the magnitudes to correct the minimum separation, we
     # first convert the column to magnitudes if it's flux. Then for each pixel
@@ -275,9 +287,8 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
         except BaseException:
             raise Exception(f"Unknown flux_unit: {flux_unit}")
 
-        targets.loc[mask_flux, 'mag'] = (
-            zpt - 2.5 * numpy.log10(targets[mask_flux].mag))
-        targets.loc[targets.mag <= 0, 'mag'] = numpy.nan
+        targets.loc[mask_flux, "mag"] = zpt - 2.5 * numpy.log10(targets[mask_flux].mag)
+        targets.loc[targets.mag <= 0, "mag"] = numpy.nan
 
     vectors = healpy.pixelfunc.ang2vec(targets.ra, targets.dec, lonlat=True)
 
@@ -287,45 +298,43 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
         if has_radius:
             sep_corr = max(min_separation, target.radius)
         elif has_mag and mag_threshold is not None:
-            min_sep_corr = numpy.power(mag_threshold -
-                                       target.mag, scale_b) / scale_a
+            min_sep_corr = numpy.power(mag_threshold - target.mag, scale_b) / scale_a
             sep_corr = min_separation + min_sep_corr
         else:
             sep_corr = min_separation
 
-        masked = healpy.query_disc(candidate_nside,
-                                   vec=vectors[row],
-                                   radius=numpy.deg2rad(sep_corr / 3600.),
-                                   inclusive=True,
-                                   fact=4,
-                                   nest=True)
+        masked = healpy.query_disc(
+            candidate_nside,
+            vec=vectors[row],
+            radius=numpy.deg2rad(sep_corr / 3600.0),
+            inclusive=True,
+            fact=4,
+            nest=True,
+        )
 
         all_masked += masked.tolist()
 
         row += 1
 
-    candidates.loc[candidates[cpcol].isin(all_masked), 'valid'] = False
+    candidates.loc[candidates[cpcol].isin(all_masked), "valid"] = False
 
     # Determine the closest neighbout for each candidate pixel.
     if calculate_min_separation:
-        c1 = SkyCoord(ra=candidates.ra.to_numpy(),
-                      dec=candidates.dec.to_numpy(), unit='deg')
-        c2 = SkyCoord(ra=targets.ra.to_numpy(),
-                      dec=targets.dec.to_numpy(), unit='deg')
+        c1 = SkyCoord(ra=candidates.ra.to_numpy(), dec=candidates.dec.to_numpy(), unit="deg")
+        c2 = SkyCoord(ra=targets.ra.to_numpy(), dec=targets.dec.to_numpy(), unit="deg")
 
         target_idx, sep, _ = match_coordinates_sky(c1, c2, nthneighbor=1)
 
         matched_target = targets.iloc[target_idx, :]
-        sep_arcsec = sep.value * 3600.
+        sep_arcsec = sep.value * 3600.0
 
         # Add column with the separation.
-        candidates['sep_neighbour'] = sep_arcsec
+        candidates["sep_neighbour"] = sep_arcsec
 
         if has_mag:
-            candidates['mag_neighbour'] = (matched_target.loc[:, 'mag']
-                                           .to_numpy())
+            candidates["mag_neighbour"] = matched_target.loc[:, "mag"].to_numpy()
 
-    candidates.loc[:, f'tile_{tile_nside}'] = tile
+    candidates.loc[:, f"tile_{tile_nside}"] = tile
 
     # If we are not downsampling, set the index and return.
     if downsample is False or downsample is None:
@@ -337,9 +346,11 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
 
     # If downsampling, regrade each candidate pixel value to the nside we'll
     # use for downsampling.
-    candidates.loc[:, 'down_pix'] = nested_regrade(candidates[cpcol],
-                                                   candidate_nside,
-                                                   downsample_nside)
+    candidates.loc[:, "down_pix"] = nested_regrade(
+        candidates[cpcol],
+        candidate_nside,
+        downsample_nside,
+    )
 
     if len(candidates) > 0:
         candidates.set_index(cpcol, inplace=True)
@@ -350,28 +361,44 @@ def _process_tile(tile, database_params=None, candidate_nside=None,
         return candidates
     else:
         if downsample_data is not None:
-            assert nsample is not None, \
-                'downsample_data requires nsample to be defined.'
-        downsampled = downsample(candidates,
-                                 tile_column=f'tile_{tile_nside}',
-                                 tile_nside=tile_nside,
-                                 nsample=nsample,
-                                 candidate_nside=candidate_nside,
-                                 downsample_nside=downsample_nside,
-                                 downsample_data=downsample_data,
-                                 seed=seed)
+            assert nsample is not None, "downsample_data requires nsample to be defined."
+        downsampled = downsample(
+            candidates,
+            tile_column=f"tile_{tile_nside}",
+            tile_nside=tile_nside,
+            nsample=nsample,
+            candidate_nside=candidate_nside,
+            downsample_nside=downsample_nside,
+            downsample_data=downsample_data,
+            seed=seed,
+        )
         return downsampled[downsampled.selected]
 
 
-def get_sky_table(database, table, output, tiles=None, tile_nside=32,
-                  candidate_nside=32768, min_separation=10,
-                  ra_column='ra', dec_column='dec',
-                  mag_column=None, is_flux=False,
-                  radius_column=None, flux_unit='nMgy',
-                  scale_a=0.2, scale_b=1.0,
-                  mag_threshold=None, calculate_min_separation=True,
-                  nsample=2048, downsample_data=None, downsample_nside=256,
-                  n_cpus=1, seed=None):
+def get_sky_table(
+    database,
+    table,
+    output,
+    tiles=None,
+    tile_nside=32,
+    candidate_nside=32768,
+    min_separation=10,
+    ra_column="ra",
+    dec_column="dec",
+    mag_column=None,
+    is_flux=False,
+    radius_column=None,
+    flux_unit="nMgy",
+    scale_a=0.2,
+    scale_b=1.0,
+    mag_threshold=None,
+    calculate_min_separation=True,
+    nsample=2048,
+    downsample_data=None,
+    downsample_nside=256,
+    n_cpus=1,
+    seed=None,
+):
     r"""Identifies skies from a database table.
 
     Skies are selected using the following procedure:
@@ -484,55 +511,63 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
 
     """
 
-    assert database.connected, 'database is not connected.'
+    assert database.connected, "database is not connected."
 
-    columns = (f'healpix_ang2ipix_nest('
-               f'{tile_nside}, {ra_column}, {dec_column}) '
-               f'AS tile_{tile_nside}, '
-               f'{ra_column} AS ra, {dec_column} AS dec')
+    columns = (
+        f"healpix_ang2ipix_nest("
+        f"{tile_nside}, {ra_column}, {dec_column}) "
+        f"AS tile_{tile_nside}, "
+        f"{ra_column} AS ra, {dec_column} AS dec"
+    )
 
     if mag_column and mag_threshold:
-        columns += f', {mag_column} AS mag'
+        columns += f", {mag_column} AS mag"
 
     if radius_column:
-        columns += f', {radius_column} as radius'
+        columns += f", {radius_column} as radius"
 
     if tiles is None:
         tiles = numpy.arange(healpy.nside2npix(tile_nside))
 
     if downsample_data is not None:
-        downsample_data = downsample_data.loc[:, ['tile_32', 'valid']]
+        downsample_data = downsample_data.loc[:, ["tile_32", "valid"]]
         downsample_data = downsample_data.loc[downsample_data.valid]
 
-    query = (f'SELECT {columns} FROM {table} '
-             f'WHERE healpix_ang2ipix_nest('
-             f'{tile_nside}, {ra_column}, {dec_column}) = {{tile}};')
+    query = (
+        f"SELECT {columns} FROM {table} "
+        f"WHERE healpix_ang2ipix_nest("
+        f"{tile_nside}, {ra_column}, {dec_column}) = {{tile}};"
+    )
 
-    pbar = enlighten.Counter(total=len(tiles), desc=output, unit='tiles')
+    pbar = enlighten.Counter(total=len(tiles), desc=output, unit="tiles")
     pbar.refresh()
 
     database_params = database.connection_params
-    database_params.update({'database': database.dbname})
+    database_params.update({"database": database.dbname})
 
-    process_tile = partial(_process_tile,
-                           database_params=database_params, query=query,
-                           candidate_nside=candidate_nside,
-                           tile_nside=tile_nside,
-                           min_separation=min_separation,
-                           is_flux=is_flux, flux_unit=flux_unit,
-                           scale_a=scale_a, scale_b=scale_b,
-                           mag_threshold=mag_threshold,
-                           nsample=nsample, downsample_data=downsample_data,
-                           calculate_min_separation=calculate_min_separation,
-                           downsample_nside=downsample_nside,
-                           seed=seed)
+    process_tile = partial(
+        _process_tile,
+        database_params=database_params,
+        query=query,
+        candidate_nside=candidate_nside,
+        tile_nside=tile_nside,
+        min_separation=min_separation,
+        is_flux=is_flux,
+        flux_unit=flux_unit,
+        scale_a=scale_a,
+        scale_b=scale_b,
+        mag_threshold=mag_threshold,
+        nsample=nsample,
+        downsample_data=downsample_data,
+        calculate_min_separation=calculate_min_separation,
+        downsample_nside=downsample_nside,
+        seed=seed,
+    )
 
     all_skies = None
 
     with multiprocessing.Pool(n_cpus) as pool:
-        for tile_skies in pool.imap_unordered(process_tile,
-                                              tiles,
-                                              chunksize=5):
+        for tile_skies in pool.imap_unordered(process_tile, tiles, chunksize=5):
             if tile_skies is not False and len(tile_skies) > 0:
                 if all_skies is None:
                     all_skies = tile_skies
@@ -549,23 +584,22 @@ def get_sky_table(database, table, output, tiles=None, tile_nside=32,
     all_skies.valid = all_skies.valid.astype(bool)
 
     # Downcast some columns
-    all_skies = all_skies.astype({f'tile_{tile_nside}': numpy.int16})
+    all_skies = all_skies.astype({f"tile_{tile_nside}": numpy.int16})
 
-    if 'sep_neighbour' in all_skies:
-        all_skies = all_skies.astype({'sep_neighbour': numpy.float32})
-    if 'mag_neighbour' in all_skies:
-        all_skies = all_skies.astype({'mag_neighbour': numpy.float32})
+    if "sep_neighbour" in all_skies:
+        all_skies = all_skies.astype({"sep_neighbour": numpy.float32})
+    if "mag_neighbour" in all_skies:
+        all_skies = all_skies.astype({"mag_neighbour": numpy.float32})
 
     if downsample_nside is not None:
-        all_skies = all_skies.astype({'down_pix': numpy.int32})
+        all_skies = all_skies.astype({"down_pix": numpy.int32})
 
-    all_skies.to_hdf(output, 'data')
+    all_skies.to_hdf(output, "data")
 
     return all_skies
 
 
-def plot_sky_density(file_or_data, nside, pix_column=None,
-                     nside_plot=32, **kwargs):
+def plot_sky_density(file_or_data, nside, pix_column=None, nside_plot=32, **kwargs):
     """Plots the number of skies as a HEALPix map.
 
     Parameters
@@ -601,9 +635,8 @@ def plot_sky_density(file_or_data, nside, pix_column=None,
         pix_column = data.index.name
         data.reset_index(inplace=True)
 
-    data[f'pix_{nside_plot}'] = nested_regrade(data[pix_column],
-                                               nside, nside_plot)
-    count = data.groupby(f'pix_{nside_plot}').count()
+    data[f"pix_{nside_plot}"] = nested_regrade(data[pix_column], nside, nside_plot)
+    count = data.groupby(f"pix_{nside_plot}").count()
 
     hmap = numpy.arange(healpy.nside2npix(nside_plot), dtype=numpy.float32)
     hmap[:] = healpy.UNSEEN
@@ -615,8 +648,9 @@ def plot_sky_density(file_or_data, nside, pix_column=None,
     return figure
 
 
-def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
-               show_sky_buffer=False, buffer_radius=10.):
+def plot_skies(
+    file_or_data, ra, dec, radius=1.5, targets=None, show_sky_buffer=False, buffer_radius=10.0
+):
     """Plots the skies (and optionally targets) in a regions.
 
     Parameters
@@ -653,49 +687,59 @@ def plot_skies(file_or_data, ra, dec, radius=1.5, targets=None,
 
     cos_factor = numpy.cos(numpy.radians(dec))
 
-    FOV = Ellipse((ra, dec), radius * 2 / cos_factor,
-                  radius * 2, linewidth=2, color='None',
-                  ec='k')
+    FOV = Ellipse(
+        (ra, dec),
+        radius * 2 / cos_factor,
+        radius * 2,
+        linewidth=2,
+        color="None",
+        ec="k",
+    )
     ax.add_patch(FOV)
 
     # Plot skies
-    centre = SkyCoord(ra=ra, dec=dec, unit='deg')
-    sky_coords = SkyCoord(ra=data.ra.to_numpy(),
-                          dec=data.dec.to_numpy(),
-                          unit='deg')
+    centre = SkyCoord(ra=ra, dec=dec, unit="deg")
+    sky_coords = SkyCoord(ra=data.ra.to_numpy(), dec=data.dec.to_numpy(), unit="deg")
     skies = data[sky_coords.separation(centre).value < radius]
 
-    ax.scatter(skies.ra, skies.dec,
-               marker='o', s=0.2, color='b', zorder=10, label='Skies')
+    ax.scatter(skies.ra, skies.dec, marker="o", s=0.2, color="b", zorder=10, label="Skies")
 
     if show_sky_buffer:
         for _, sky in skies.iterrows():
-            buffer = Ellipse((sky.ra, sky.dec),
-                             buffer_radius / 3600. * 2,
-                             buffer_radius / 3600. * 2,
-                             color='y', ec='None',
-                             alpha=0.2, zorder=0)
+            buffer = Ellipse(
+                (sky.ra, sky.dec),
+                buffer_radius / 3600.0 * 2,
+                buffer_radius / 3600.0 * 2,
+                color="y",
+                ec="None",
+                alpha=0.2,
+                zorder=0,
+            )
             ax.add_patch(buffer)
 
     # Plot targets
     if targets is not None:
         targets = numpy.array(targets)
-        target_coords = SkyCoord(ra=targets[:, 0],
-                                 dec=targets[:, 1],
-                                 unit='deg')
+        target_coords = SkyCoord(ra=targets[:, 0], dec=targets[:, 1], unit="deg")
         targets = targets[target_coords.separation(centre).value < radius]
 
-        ax.scatter(targets[:, 0], targets[:, 1], marker='x', s=0.2,
-                   color='r', zorder=20, label='Targets')
+        ax.scatter(
+            targets[:, 0],
+            targets[:, 1],
+            marker="x",
+            s=0.2,
+            color="r",
+            zorder=20,
+            label="Targets",
+        )
 
-    ax.legend(loc='upper right')
+    ax.legend(loc="upper right")
 
-    ax.set_xlim(ra - (radius - 0.1) / cos_factor,
-                ra + (radius + 0.1) / cos_factor)
+    ax.set_xlim(ra - (radius - 0.1) / cos_factor, ra + (radius + 0.1) / cos_factor)
     ax.set_ylim(dec - radius - 0.1, dec + radius + 0.1)
 
-    ax.set_xlabel('Right Ascension [deg]')
-    ax.set_ylabel('Declination [deg]')
+    ax.set_xlabel("Right Ascension [deg]")
+    ax.set_ylabel("Declination [deg]")
 
     ax.set_aspect(1 / cos_factor)
 
@@ -714,115 +758,172 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     default_param_b = 1.5
     nsample = 2048
 
-    if not os.path.exists('tmass_skies.h5'):
-        log.info('Procesing twomass_psc.')
-        get_sky_table(database, 'catalogdb.twomass_psc', 'tmass_skies.h5',
-                      dec_column='decl', mag_column='h_m',
-                      mag_threshold=default_mag_threshold,
-                      min_separation=default_min_separation,
-                      scale_a=default_param_a, scale_b=default_param_b,
-                      nsample=nsample, tiles=tiles, **kwargs)
+    if not os.path.exists("tmass_skies.h5"):
+        log.info("Procesing twomass_psc.")
+        get_sky_table(
+            database,
+            "catalogdb.twomass_psc",
+            "tmass_skies.h5",
+            dec_column="decl",
+            mag_column="h_m",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file tmass_skies.h5', TargetSelectionUserWarning)
+        warnings.warn("Found file tmass_skies.h5", TargetSelectionUserWarning)
 
     # We use 2MASS as the source for the downsampled candidates.
-    tmass = pandas.read_hdf('tmass_skies.h5')
+    tmass = pandas.read_hdf("tmass_skies.h5")
 
-    if not os.path.exists('gaia_skies.h5'):
-        log.info('Procesing gaia_dr2_source.')
-        get_sky_table(database, 'catalogdb.gaia_dr2_source', 'gaia_skies.h5',
-                      mag_column='phot_g_mean_mag',
-                      mag_threshold=default_mag_threshold,
-                      min_separation=default_min_separation,
-                      scale_a=default_param_a, scale_b=default_param_b,
-                      nsample=nsample, downsample_data=tmass, tiles=tiles,
-                      **kwargs)
+    if not os.path.exists("gaia_skies.h5"):
+        log.info("Procesing gaia_dr2_source.")
+        get_sky_table(
+            database,
+            "catalogdb.gaia_dr2_source",
+            "gaia_skies.h5",
+            mag_column="phot_g_mean_mag",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file gaia_skies.h5', TargetSelectionUserWarning)
+        warnings.warn("Found file gaia_skies.h5", TargetSelectionUserWarning)
 
-    if not os.path.exists('ps1dr2_skies.h5'):
-        log.info('Procesing ps1dr2.')
-        get_sky_table(database, 'catalogdb.panstarrs1', 'ps1dr2_skies.h5',
-                      mag_column='r_stk_psf_flux', is_flux=True,
-                      flux_unit='Jy', mag_threshold=default_mag_threshold,
-                      min_separation=default_min_separation,
-                      scale_a=default_param_a, scale_b=default_param_b,
-                      nsample=nsample, downsample_data=tmass, tiles=tiles,
-                      **kwargs)
+    if not os.path.exists("ps1dr2_skies.h5"):
+        log.info("Procesing ps1dr2.")
+        get_sky_table(
+            database,
+            "catalogdb.panstarrs1",
+            "ps1dr2_skies.h5",
+            mag_column="r_stk_psf_flux",
+            is_flux=True,
+            flux_unit="Jy",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file ps1dr2_skies.h5', TargetSelectionUserWarning)
+        warnings.warn("Found file ps1dr2_skies.h5", TargetSelectionUserWarning)
 
-    if not os.path.exists('ls8_skies.h5'):
-        log.info('Procesing legacy_survey_dr8.')
-        get_sky_table(database, 'catalogdb.legacy_survey_dr8', 'ls8_skies.h5',
-                      mag_column='flux_r', is_flux=True, flux_unit='nMgy',
-                      mag_threshold=default_mag_threshold,
-                      min_separation=default_min_separation,
-                      scale_a=default_param_a, scale_b=default_param_b,
-                      nsample=nsample, downsample_data=tmass, tiles=tiles,
-                      **kwargs)
+    if not os.path.exists("ls8_skies.h5"):
+        log.info("Procesing legacy_survey_dr8.")
+        get_sky_table(
+            database,
+            "catalogdb.legacy_survey_dr8",
+            "ls8_skies.h5",
+            mag_column="flux_r",
+            is_flux=True,
+            flux_unit="nMgy",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file ls8_skies.h5', TargetSelectionUserWarning)
+        warnings.warn("Found file ls8_skies.h5", TargetSelectionUserWarning)
 
-    if not os.path.exists('tycho2_skies.h5'):
-        log.info('Procesing tycho2.')
-        get_sky_table(database, 'catalogdb.tycho2', 'tycho2_skies.h5',
-                      ra_column='ramdeg', dec_column='demdeg',
-                      mag_column='vtmag',
-                      mag_threshold=default_mag_threshold,
-                      min_separation=default_min_separation,
-                      scale_a=default_param_a, scale_b=default_param_b,
-                      nsample=nsample, downsample_data=tmass, tiles=tiles,
-                      **kwargs)
+    if not os.path.exists("tycho2_skies.h5"):
+        log.info("Procesing tycho2.")
+        get_sky_table(
+            database,
+            "catalogdb.tycho2",
+            "tycho2_skies.h5",
+            ra_column="ramdeg",
+            dec_column="demdeg",
+            mag_column="vtmag",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file tycho2_skies.h5', TargetSelectionUserWarning)
+        warnings.warn("Found file tycho2_skies.h5", TargetSelectionUserWarning)
 
-    if not os.path.exists('tmass_xsc_skies.h5'):
-        log.info('Procesing twomass_xsc.')
-        get_sky_table(database, 'catalogdb.twomass_xsc', 'tmass_xsc_skies.h5',
-                      dec_column='decl', radius_column='r_ext',
-                      # mag_column='h_m_k20fe', mag_threshold=14,
-                      nsample=nsample, downsample_data=tmass, tiles=tiles,
-                      **kwargs)
+    if not os.path.exists("tmass_xsc_skies.h5"):
+        log.info("Procesing twomass_xsc.")
+        get_sky_table(
+            database,
+            "catalogdb.twomass_xsc",
+            "tmass_xsc_skies.h5",
+            dec_column="decl",
+            radius_column="r_ext",
+            # mag_column='h_m_k20fe', mag_threshold=14,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
     else:
-        warnings.warn('Found file tmass_xsc_skies.h5',
-                      TargetSelectionUserWarning)
+        warnings.warn("Found file tmass_xsc_skies.h5", TargetSelectionUserWarning)
 
     skies = None
     col_order = []
 
-    for file_ in ['gaia_skies.h5', 'ls8_skies.h5', 'ps1dr2_skies.h5',
-                  'tmass_skies.h5', 'tycho2_skies.h5', 'tmass_xsc_skies.h5']:
-
+    for file_ in [
+        "gaia_skies.h5",
+        "ls8_skies.h5",
+        "ps1dr2_skies.h5",
+        "tmass_skies.h5",
+        "tycho2_skies.h5",
+        "tmass_xsc_skies.h5",
+    ]:
         table_name = file_[0:-9]
 
         if not os.path.exists(file_):
-            warnings.warn(f'File {file_} does not exists.',
-                          TargetSelectionUserWarning)
+            warnings.warn(f"File {file_} does not exists.", TargetSelectionUserWarning)
             continue
 
         table = pandas.read_hdf(file_).drop_duplicates()
-        table.rename(columns={'sep_neighbour': f'sep_neighbour_{table_name}',
-                              'mag_neighbour': f'mag_neighbour_{table_name}',
-                              'valid': f'valid_{table_name}',
-                              'selected': f'selected_{table_name}'},
-                     inplace=True)
+        table.rename(
+            columns={
+                "sep_neighbour": f"sep_neighbour_{table_name}",
+                "mag_neighbour": f"mag_neighbour_{table_name}",
+                "valid": f"valid_{table_name}",
+                "selected": f"selected_{table_name}",
+            },
+            inplace=True,
+        )
 
         if skies is None:
             skies = table
         else:
             skies = skies.combine_first(table)
 
-        for col in [f'valid_{table_name}',
-                    f'selected_{table_name}',
-                    f'sep_neighbour_{table_name}',
-                    f'mag_neighbour_{table_name}']:
+        for col in [
+            f"valid_{table_name}",
+            f"selected_{table_name}",
+            f"sep_neighbour_{table_name}",
+            f"mag_neighbour_{table_name}",
+        ]:
             if col in skies:
                 col_order.append(col)
 
-    skies = skies.loc[:, ['ra', 'dec', 'down_pix', 'tile_32'] + col_order]
+    skies = skies.loc[:, ["ra", "dec", "down_pix", "tile_32"] + col_order]
     for col in skies:
-        if col.startswith('valid_') or col.startswith('selected_'):
+        if col.startswith("valid_") or col.startswith("selected_"):
             skies[col].fillna(False, inplace=True)
 
     # Now do some masking based on healpixels that are flagged by a
@@ -846,22 +947,24 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
 
     skies.tile_32 = skies.tile_32.astype(int)
     skies.down_pix = skies.down_pix.astype(int)
-    skies.to_hdf('skies.h5', 'data')
+    skies.to_hdf("skies.h5", "data")
 
 
-def create_veto_mask(database,
-                     nside=32768,
-                     moc_filename=None,
-                     overwrite=False,
-                     debug_limit=None,
-                     table='gaia_dr2_source',
-                     ra_column='ra',
-                     dec_column='dec',
-                     mag_column='phot_g_mean_mag',
-                     mag_threshold=12.0,
-                     min_separation=15.0,
-                     param_a=0.15,
-                     param_b=1.5):
+def create_veto_mask(
+    database,
+    nside=32768,
+    moc_filename=None,
+    overwrite=False,
+    debug_limit=None,
+    table="gaia_dr2_source",
+    ra_column="ra",
+    dec_column="dec",
+    mag_column="phot_g_mean_mag",
+    mag_threshold=12.0,
+    min_separation=15.0,
+    param_a=0.15,
+    param_b=1.5,
+):
     """Generate a list of healpixels that must be avoided because
     they lie within the near-zones of bright stars (and/or galaxies TBD).
 
@@ -915,20 +1018,22 @@ def create_veto_mask(database,
 
     # get the list of gaia dr2 stars brighter than G=12 from the database
 
-    query = (f'SELECT {ra_column},{dec_column},{mag_column} from '
-             f'{table} WHERE {mag_column} < {mag_threshold} AND '
-             f'{ra_column} IS NOT NULL AND {dec_column} IS NOT NULL')
+    query = (
+        f"SELECT {ra_column},{dec_column},{mag_column} from "
+        f"{table} WHERE {mag_column} < {mag_threshold} AND "
+        f"{ra_column} IS NOT NULL AND {dec_column} IS NOT NULL"
+    )
     if debug_limit is not None:
-        query = query + f'limit {debug_limit} '
+        query = query + f"limit {debug_limit} "
 
     targets = pandas.read_sql(query, database)
-    print(f'Working on {len(targets):,} bright stars '
-          f'({mag_column} < {mag_threshold}) from {table}')
+    print(
+        f"Working on {len(targets):,} bright stars "
+        f"({mag_column} < {mag_threshold}) from {table}"
+    )
 
     # compute coords on unit sphere
-    vector = healpy.pixelfunc.ang2vec(targets[ra_column],
-                                      targets[dec_column],
-                                      lonlat=True)
+    vector = healpy.pixelfunc.ang2vec(targets[ra_column], targets[dec_column], lonlat=True)
 
     # compute mag-dependent exclusion radii
     corr = numpy.power(mag_threshold - targets[mag_column], param_b) / param_a
@@ -936,24 +1041,17 @@ def create_veto_mask(database,
 
     ipix_list = []
     for v, r in zip(vector, radius):
-        i = healpy.query_disc(nside,
-                              vec=v,
-                              radius=r,
-                              inclusive=True,
-                              fact=4,
-                              nest=True)
+        i = healpy.query_disc(nside, vec=v, radius=r, inclusive=True, fact=4, nest=True)
         if len(i) > 0:
             ipix_list.extend(list(i))
 
     # we only one copy of each masked pixel:
     ipix = numpy.unique(ipix_list)
     npix = len(ipix)
-    print(f"Result: {npix:,} masked pixels (NSIDE={nside}), "
-          f"area={npix*pixarea:.4f} sqdeg")
+    print(f"Result: {npix:,} masked pixels (NSIDE={nside}), area={npix*pixarea:.4f} sqdeg")
 
     if moc_filename is not None:
-        m = MOC.from_healpix_cells(ipix=ipix,
-                                   depth=numpy.repeat(hpx_order, len(ipix)))
-        m.write(moc_filename, format='fits', overwrite=overwrite)
+        m = MOC.from_healpix_cells(ipix=ipix, depth=numpy.repeat(hpx_order, len(ipix)))
+        m.write(moc_filename, format="fits", overwrite=overwrite)
 
     return ipix

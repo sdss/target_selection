@@ -75,18 +75,16 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 
 
 class BhmSpidersClustersLsdr10Carton(BaseCarton):
-
-    name = 'bhm_spiders_clusters_lsdr10'
-    category = 'science'
-    mapper = 'BHM'
-    program = 'bhm_spiders'
+    name = "bhm_spiders_clusters_lsdr10"
+    category = "science"
+    mapper = "BHM"
+    program = "bhm_spiders"
     tile = False
-    instrument = 'BOSS'
+    instrument = "BOSS"
     inertial = True
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         c = Catalog.alias()
         ls = Legacy_Survey_DR10.alias()
         c2ls = CatalogToLegacy_Survey_DR10.alias()
@@ -114,29 +112,29 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         # )
 
         instrument = peewee.Value(self.instrument)
-        inertial = peewee.Value(self.inertial).cast('bool')
+        inertial = peewee.Value(self.inertial).cast("bool")
 
-        fibertotflux_i_max = AB2nMgy(self.parameters['fibertotmag_i_min'])
-        fibertotflux_i_min = AB2nMgy(self.parameters['fibertotmag_i_max'])
-        fibertotflux_z_max = AB2nMgy(self.parameters['fibertotmag_z_min'])
-        fibertotflux_z_min = AB2nMgy(self.parameters['fibertotmag_z_max'])
-        fibertotflux_i_max_for_core = AB2nMgy(self.parameters['fibertotmag_i_min_for_core'])
-        fibertotflux_i_min_for_core = AB2nMgy(self.parameters['fibertotmag_i_max_for_core'])
-        fibertotflux_z_max_for_core = AB2nMgy(self.parameters['fibertotmag_z_min_for_core'])
-        fibertotflux_z_min_for_core = AB2nMgy(self.parameters['fibertotmag_z_max_for_core'])
+        fibertotflux_i_max = AB2nMgy(self.parameters["fibertotmag_i_min"])
+        fibertotflux_i_min = AB2nMgy(self.parameters["fibertotmag_i_max"])
+        fibertotflux_z_max = AB2nMgy(self.parameters["fibertotmag_z_min"])
+        fibertotflux_z_min = AB2nMgy(self.parameters["fibertotmag_z_max"])
+        fibertotflux_i_max_for_core = AB2nMgy(self.parameters["fibertotmag_i_min_for_core"])
+        fibertotflux_i_min_for_core = AB2nMgy(self.parameters["fibertotmag_i_max_for_core"])
+        fibertotflux_z_max_for_core = AB2nMgy(self.parameters["fibertotmag_z_min_for_core"])
+        fibertotflux_z_min_for_core = AB2nMgy(self.parameters["fibertotmag_z_max_for_core"])
 
-        fibertotflux_r_min_for_cadence1 = AB2nMgy(self.parameters['fibertotmag_r_for_cadence1'])
-        fibertotflux_z_min_for_cadence1 = AB2nMgy(self.parameters['fibertotmag_z_for_cadence1'])
-        fibertotflux_r_min_for_cadence2 = AB2nMgy(self.parameters['fibertotmag_r_for_cadence2'])
-        gaia_g_max_for_cadence1 = self.parameters['gaia_g_max_for_cadence1']
-        gaia_rp_max_for_cadence1 = self.parameters['gaia_rp_max_for_cadence1']
+        fibertotflux_r_min_for_cadence1 = AB2nMgy(self.parameters["fibertotmag_r_for_cadence1"])
+        fibertotflux_z_min_for_cadence1 = AB2nMgy(self.parameters["fibertotmag_z_for_cadence1"])
+        fibertotflux_r_min_for_cadence2 = AB2nMgy(self.parameters["fibertotmag_r_for_cadence2"])
+        gaia_g_max_for_cadence1 = self.parameters["gaia_g_max_for_cadence1"]
+        gaia_rp_max_for_cadence1 = self.parameters["gaia_rp_max_for_cadence1"]
 
         # flux30 = AB2nMgy(30.00)
 
         # #########################################################################
         # prepare the spectroscopy catalogues
-        spec_sn_thresh = self.parameters['spec_sn_thresh']
-        spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+        spec_sn_thresh = self.parameters["spec_sn_thresh"]
+        spec_z_err_thresh = self.parameters["spec_z_err_thresh"]
 
         # SDSS DR19p
         # downslect only 'good' spectra
@@ -144,7 +142,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(
-                ss19.pk.alias('s19_pk'),
+                ss19.pk.alias("s19_pk"),
             )
             .where(
                 ss19.sn_median_all >= spec_sn_thresh,
@@ -153,7 +151,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
                 ss19.z_err > 0.0,
                 ss19.specprimary > 0,
             )
-            .alias('s19')
+            .alias("s19")
         )
         # #########################################################################
 
@@ -162,12 +160,24 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         is_core = peewee.Case(
             None,
             (
-                (~((ls.fiberflux_r.between(fibertotflux_i_min_for_core,
-                                           fibertotflux_i_max_for_core)) |
-                   (ls.fiberflux_i.between(fibertotflux_z_min_for_core,
-                                           fibertotflux_z_max_for_core))), False),
+                (
+                    ~(
+                        (
+                            ls.fiberflux_r.between(
+                                fibertotflux_i_min_for_core, fibertotflux_i_max_for_core
+                            )
+                        )
+                        | (
+                            ls.fiberflux_i.between(
+                                fibertotflux_z_min_for_core, fibertotflux_z_max_for_core
+                            )
+                        )
+                    ),
+                    False,
+                ),
             ),
-            True)
+            True,
+        )
 
         # priority is determined by target rank within cluster
         # start with a priority floor value (per carton)
@@ -190,49 +200,49 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
         #     None)
 
         dpriority_non_core = peewee.Case(
-            None,
-            ((is_core, 0), ),
-            self.parameters['dpriority_non_core'])
+            None, ((is_core, 0),), self.parameters["dpriority_non_core"]
+        )
 
         priority_floor = peewee.Case(
             None,
-            ((x.target_priority == 0, self.parameters['priority_floor_bcg']), ),
-            self.parameters['priority_floor_member']
+            ((x.target_priority == 0, self.parameters["priority_floor_bcg"]),),
+            self.parameters["priority_floor_member"],
         )
 
-        priority = (
-            priority_floor +
-            x.target_priority +
-            dpriority_non_core
-        )
+        priority = priority_floor + x.target_priority + dpriority_non_core
 
         value = peewee.Case(
             None,
             (
                 (~is_core, 0),
-                (x.target_priority == 0, self.parameters['value_bcg']),
-                (x.target_priority > 0, self.parameters['value_member']),
+                (x.target_priority == 0, self.parameters["value_bcg"]),
+                (x.target_priority > 0, self.parameters["value_member"]),
             ),
-            None).cast('float')
+            None,
+        ).cast("float")
 
         # choose cadence based on fiber magnitude in r-band
-        cadence1 = self.parameters['cadence1']
-        cadence2 = self.parameters['cadence2']
-        cadence3 = self.parameters['cadence3']
-        cadence4 = 'unknown_cadence'  # catch failures
+        cadence1 = self.parameters["cadence1"]
+        cadence2 = self.parameters["cadence2"]
+        cadence3 = self.parameters["cadence3"]
+        cadence4 = "unknown_cadence"  # catch failures
         cadence = peewee.Case(
             None,
             (
                 (
-                    ((ls.fibertotflux_r > fibertotflux_r_min_for_cadence1) |
-                     (ls.fibertotflux_z > fibertotflux_z_min_for_cadence1) |
-                     (ls.gaia_phot_g_mean_mag.between(0.1, gaia_g_max_for_cadence1)) |
-                     (ls.gaia_phot_rp_mean_mag.between(0.1, gaia_rp_max_for_cadence1))),
-                    cadence1),
+                    (
+                        (ls.fibertotflux_r > fibertotflux_r_min_for_cadence1)
+                        | (ls.fibertotflux_z > fibertotflux_z_min_for_cadence1)
+                        | (ls.gaia_phot_g_mean_mag.between(0.1, gaia_g_max_for_cadence1))
+                        | (ls.gaia_phot_rp_mean_mag.between(0.1, gaia_rp_max_for_cadence1))
+                    ),
+                    cadence1,
+                ),
                 (ls.fibertotflux_r > fibertotflux_r_min_for_cadence2, cadence2),
                 (ls.fibertotflux_r <= fibertotflux_r_min_for_cadence2, cadence3),
             ),
-            cadence4)
+            cadence4,
+        )
 
         # compute transformed SDSS mags for pointlike and extended sources uniformly
         # transform the legacysurvey grz into sdss psfmag griz
@@ -256,93 +266,92 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
 
         nMgy_min = 1e-3  # equiv to AB=30
         # extended - start from ls8 fiberfluxes
-        g0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g)))
-        r0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
-        i0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i)))
-        z0_e = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+        g0_e = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g))
+        r0_e = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r))
+        i0_e = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_i))
+        z0_e = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_z))
 
-        g0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_g)))
-        r0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_r)))
-        i0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_i)))
-        z0_t = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_z)))
+        g0_t = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_g))
+        r0_t = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_r))
+        i0_t = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_i))
+        z0_t = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fibertotflux_z))
 
-        g0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g)))
-        r0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r)))
-        i0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i)))
-        z0_p = (22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z)))
+        g0_p = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_g))
+        r0_p = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_r))
+        i0_p = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_i))
+        z0_p = 22.5 - 2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.flux_z))
 
-        g_r_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_g) /
-                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_r)))
-        r_z_e = (-2.5 * peewee.fn.log(peewee.fn.greatest(nMgy_min, ls.fiberflux_r) /
-                                      peewee.fn.greatest(nMgy_min, ls.fiberflux_z)))
+        g_r_e = -2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.fiberflux_g)
+            / peewee.fn.greatest(nMgy_min, ls.fiberflux_r)
+        )
+        r_z_e = -2.5 * peewee.fn.log(
+            peewee.fn.greatest(nMgy_min, ls.fiberflux_r)
+            / peewee.fn.greatest(nMgy_min, ls.fiberflux_z)
+        )
 
-        g_e = (g0_e + coeffs['g0_e'] + coeffs['g1_e'] * g_r_e + coeffs['g2_e'] * g_r_e * g_r_e)
-        r_e = (r0_e + coeffs['r0_e'] + coeffs['r1_e'] * g_r_e + coeffs['r2_e'] * g_r_e * g_r_e)
-        i_e = (r0_e + coeffs['i0_e'] + coeffs['i1_e'] * r_z_e + coeffs['i2_e'] * r_z_e * r_z_e)
-        z_e = (z0_e + coeffs['z0_e'] + coeffs['z1_e'] * r_z_e + coeffs['z2_e'] * r_z_e * r_z_e)
+        g_e = g0_e + coeffs["g0_e"] + coeffs["g1_e"] * g_r_e + coeffs["g2_e"] * g_r_e * g_r_e
+        r_e = r0_e + coeffs["r0_e"] + coeffs["r1_e"] * g_r_e + coeffs["r2_e"] * g_r_e * g_r_e
+        i_e = r0_e + coeffs["i0_e"] + coeffs["i1_e"] * r_z_e + coeffs["i2_e"] * r_z_e * r_z_e
+        z_e = z0_e + coeffs["z0_e"] + coeffs["z1_e"] * r_z_e + coeffs["z2_e"] * r_z_e * r_z_e
 
         # validity checks
-        valid = (g0_e.between(0.1, 29.9) &
-                 r0_e.between(0.1, 29.9) &
-                 z0_e.between(0.1, 29.9))
+        valid = g0_e.between(0.1, 29.9) & r0_e.between(0.1, 29.9) & z0_e.between(0.1, 29.9)
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_fiber2mag_from_lsdr10'),), 'undefined')
-        magnitude_g = peewee.Case(None, ((valid, g_e),), 'NaN')
-        magnitude_r = peewee.Case(None, ((valid, r_e),), 'NaN')
-        magnitude_i = peewee.Case(None, ((valid, i_e),), 'NaN')
-        magnitude_z = peewee.Case(None, ((valid, z_e),), 'NaN')
+        opt_prov = peewee.Case(None, ((valid, "sdss_fiber2mag_from_lsdr10"),), "undefined")
+        magnitude_g = peewee.Case(None, ((valid, g_e),), "NaN")
+        magnitude_r = peewee.Case(None, ((valid, r_e),), "NaN")
+        magnitude_i = peewee.Case(None, ((valid, i_e),), "NaN")
+        magnitude_z = peewee.Case(None, ((valid, z_e),), "NaN")
         magnitude_gaia_g = peewee.Case(
-            None,
-            ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),),
-            'NaN')
+            None, ((ls.gaia_phot_g_mean_mag.between(0.1, 29.9), ls.gaia_phot_g_mean_mag),), "NaN"
+        )
         magnitude_gaia_bp = peewee.Case(
-            None,
-            ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),),
-            'NaN')
+            None, ((ls.gaia_phot_bp_mean_mag.between(0.1, 29.9), ls.gaia_phot_bp_mean_mag),), "NaN"
+        )
         magnitude_gaia_rp = peewee.Case(
-            None,
-            ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),),
-            'NaN')
+            None, ((ls.gaia_phot_rp_mean_mag.between(0.1, 29.9), ls.gaia_phot_rp_mean_mag),), "NaN"
+        )
 
-        spec_sn_thresh = self.parameters['spec_sn_thresh']
-        spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+        spec_sn_thresh = self.parameters["spec_sn_thresh"]
+        spec_z_err_thresh = self.parameters["spec_z_err_thresh"]
 
         query = (
             c.select(
-                c.catalogid.alias('catalogid'),
-                ls.ls_id.alias('ls_id'),  # extra
-                x.pkey.alias('ero_pkey'),  # extra
-                x.ero_detuid.cast('text').alias('ero_detuid'),  # extra
-                s19.c.s19_pk.alias('sdss_dr19p_speclite_pk'),  # extra
-                c.ra.alias('ra'),  # extra
-                c.dec.alias('dec'),  # extra
-                priority.alias('priority'),
-                value.alias('value'),
-                cadence.alias('cadence'),
-                instrument.alias('instrument'),
-                opt_prov.alias('optical_prov'),
-                magnitude_g.alias('g'),
-                magnitude_r.alias('r'),
-                magnitude_i.alias('i'),
-                magnitude_z.alias('z'),
-                magnitude_gaia_g.alias('gaia_g'),
-                magnitude_gaia_bp.alias('bp'),
-                magnitude_gaia_rp.alias('rp'),
-                inertial.alias('inertial'),
-                g0_p.alias('ls10_mag_g'),   # extra
-                r0_p.alias('ls10_mag_r'),  # extra
-                i0_p.alias('ls10_mag_i'),  # extra
-                z0_p.alias('ls10_mag_z'),  # extra
-                g0_e.alias('ls10_fibermag_g'),  # extra
-                r0_e.alias('ls10_fibermag_r'),  # extra
-                i0_e.alias('ls10_fibermag_i'),  # extra
-                z0_e.alias('ls10_fibermag_z'),  # extra
-                g0_t.alias('ls10_fibertotmag_g'),  # extra
-                r0_t.alias('ls10_fibertotmag_r'),  # extra
-                i0_t.alias('ls10_fibertotmag_i'),  # extra
-                z0_t.alias('ls10_fibertotmag_z'),  # extra
-                is_core.alias('is_core'),  # extra
-                x.target_priority.alias('orig_target_priority'),
+                c.catalogid.alias("catalogid"),
+                ls.ls_id.alias("ls_id"),  # extra
+                x.pkey.alias("ero_pkey"),  # extra
+                x.ero_detuid.cast("text").alias("ero_detuid"),  # extra
+                s19.c.s19_pk.alias("sdss_dr19p_speclite_pk"),  # extra
+                c.ra.alias("ra"),  # extra
+                c.dec.alias("dec"),  # extra
+                priority.alias("priority"),
+                value.alias("value"),
+                cadence.alias("cadence"),
+                instrument.alias("instrument"),
+                opt_prov.alias("optical_prov"),
+                magnitude_g.alias("g"),
+                magnitude_r.alias("r"),
+                magnitude_i.alias("i"),
+                magnitude_z.alias("z"),
+                magnitude_gaia_g.alias("gaia_g"),
+                magnitude_gaia_bp.alias("bp"),
+                magnitude_gaia_rp.alias("rp"),
+                inertial.alias("inertial"),
+                g0_p.alias("ls10_mag_g"),  # extra
+                r0_p.alias("ls10_mag_r"),  # extra
+                i0_p.alias("ls10_mag_i"),  # extra
+                z0_p.alias("ls10_mag_z"),  # extra
+                g0_e.alias("ls10_fibermag_g"),  # extra
+                r0_e.alias("ls10_fibermag_r"),  # extra
+                i0_e.alias("ls10_fibermag_i"),  # extra
+                z0_e.alias("ls10_fibermag_z"),  # extra
+                g0_t.alias("ls10_fibertotmag_g"),  # extra
+                r0_t.alias("ls10_fibertotmag_r"),  # extra
+                i0_t.alias("ls10_fibertotmag_i"),  # extra
+                z0_t.alias("ls10_fibertotmag_z"),  # extra
+                is_core.alias("is_core"),  # extra
+                x.target_priority.alias("orig_target_priority"),
                 x.eromapper_lambda.alias("eromapper_lambda"),
                 x.eromapper_z_lambda.alias("eromapper_z_lambda"),
                 x.xmatch_flags.alias("xmatch_flags"),
@@ -354,8 +363,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
             # start joining the spectroscopy
             .switch(c)
             .join(c2s19, JOIN.LEFT_OUTER)
-            .join(s19, JOIN.LEFT_OUTER,
-                  on=(s19.c.s19_pk == c2s19.target_id))
+            .join(s19, JOIN.LEFT_OUTER, on=(s19.c.s19_pk == c2s19.target_id))
             # finished joining the spectroscopy
             .where(
                 c.version_id == version_id,
@@ -367,33 +375,35 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
                 s19.c.s19_pk.is_null(True),
             )
             .where(
-                (x.ero_version == self.parameters['ero_version']),
-                (x.xmatch_method == self.parameters['xmatch_method']),
-                (x.xmatch_version == self.parameters['xmatch_version']),
-                (x.opt_cat == self.parameters['opt_cat']),
-                (x.xmatch_metric > self.parameters['xmatch_metric_min']),
-                (x.ero_det_like > self.parameters['det_like_min']),
+                (x.ero_version == self.parameters["ero_version"]),
+                (x.xmatch_method == self.parameters["xmatch_method"]),
+                (x.xmatch_version == self.parameters["xmatch_version"]),
+                (x.opt_cat == self.parameters["opt_cat"]),
+                (x.xmatch_metric > self.parameters["xmatch_metric_min"]),
+                (x.ero_det_like > self.parameters["det_like_min"]),
             )
             .where(
                 (
-                    (ls.fibertotflux_i.between(fibertotflux_i_min, fibertotflux_i_max)) |
-                    (ls.fibertotflux_z.between(fibertotflux_z_min, fibertotflux_z_max))
+                    (ls.fibertotflux_i.between(fibertotflux_i_min, fibertotflux_i_max))
+                    | (ls.fibertotflux_z.between(fibertotflux_z_min, fibertotflux_z_max))
                 ),
                 (x.target_has_spec == 0),
                 # gaia safety checks to avoid bad ls photometry
-                ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters['gaia_g_mag_limit'])),
-                ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters['gaia_rp_mag_limit'])),
-            ).
-            distinct([ls.ls_id])
+                ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters["gaia_g_mag_limit"])),
+                ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters["gaia_rp_mag_limit"])),
+            )
+            .distinct([ls.ls_id])
         )
 
         if query_region:
-            query = query.where(peewee.fn.q3c_radial_query(c.ra, c.dec,
-                                                           query_region[0],
-                                                           query_region[1],
-                                                           query_region[2]))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    c.ra, c.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
+
 
 #
 # END BhmSpidersClustersLsdr10Carton

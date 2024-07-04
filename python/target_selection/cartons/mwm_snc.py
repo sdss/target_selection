@@ -10,9 +10,13 @@ import random
 
 from peewee import fn
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC,
-                                             Gaia_DR3, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToGaia_DR3,
+    CatalogToTwoMassPSC,
+    Gaia_DR3,
+    TwoMassPSC,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -51,33 +55,39 @@ class MWM_SNC_100pc_Carton(BaseCarton):
     """
 
     def build_query(self, version_id, query_region=None):
-
         ll = Gaia_DR3.l
         bb = Gaia_DR3.b
 
         # Dense regions (Galactic plane, SMC, LMC).
-        gal_cut = (((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
-                   | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
-                   | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
-                   | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8))
+        gal_cut = (
+            ((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
+            | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
+            | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
+            | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8)
+        )
 
-        cte = Gaia_DR3.select(Gaia_DR3.source_id).where(
-            Gaia_DR3.parallax > 0, (Gaia_DR3.parallax - Gaia_DR3.parallax_error)
-            > 10).cte('plx_cte', materialized=True)
+        cte = (
+            Gaia_DR3.select(Gaia_DR3.source_id)
+            .where(Gaia_DR3.parallax > 0, (Gaia_DR3.parallax - Gaia_DR3.parallax_error) > 10)
+            .cte("plx_cte", materialized=True)
+        )
 
-        query = (Gaia_DR3.select(
-            CatalogToGaia_DR3.catalogid,
-            Gaia_DR3.source_id,
-            Gaia_DR3.ra,
-            Gaia_DR3.dec,
-            Gaia_DR3.phot_g_mean_mag,
-            ll,
-            bb,
-        ).join(CatalogToGaia_DR3).join_from(
-            Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id)).where((
-                (Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut).where(
-                    CatalogToGaia_DR3.version_id == version_id,
-                    CatalogToGaia_DR3.best >> True).with_cte(cte))
+        query = (
+            Gaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra,
+                Gaia_DR3.dec,
+                Gaia_DR3.phot_g_mean_mag,
+                ll,
+                bb,
+            )
+            .join(CatalogToGaia_DR3)
+            .join_from(Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id))
+            .where(((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut)
+            .where(CatalogToGaia_DR3.version_id == version_id, CatalogToGaia_DR3.best >> True)
+            .with_cte(cte)
+        )
 
         if query_region:
             query = query.join_from(CatalogToGaia_DR3, Catalog).where(
@@ -87,7 +97,8 @@ class MWM_SNC_100pc_Carton(BaseCarton):
                     query_region[0],
                     query_region[1],
                     query_region[2],
-                ))
+                )
+            )
 
         return query
 
@@ -95,24 +106,30 @@ class MWM_SNC_100pc_Carton(BaseCarton):
 class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
     """MWM SNC 100pc targets to be observed with APOGEE."""
 
-    name = 'mwm_snc_100pc_apogee'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_snc_100pc_apogee"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region=query_region)
-        query = (query.switch(CatalogToGaia_DR3).join(
-            CatalogToTwoMassPSC, on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid
-                                     )).join(TwoMassPSC).where(
-                                         CatalogToTwoMassPSC.version_id == version_id,
-                                         CatalogToTwoMassPSC.best >> True,
-                                         TwoMassPSC.h_m < 11))
+        query = (
+            query.switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC)
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                TwoMassPSC.h_m < 11,
+            )
+        )
 
         return query
 
@@ -120,28 +137,26 @@ class MWM_SNC_100pc_APOGEE_Carton(MWM_SNC_100pc_Carton):
 class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     """MWM SNC 100pc targets to be observed with BOSS."""
 
-    name = 'mwm_snc_100pc_boss'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'BOSS'
+    name = "mwm_snc_100pc_boss"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "BOSS"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region)
         query = query.where(Gaia_DR3.phot_g_mean_mag > 10)
 
         return query
 
     def post_process(self, model, **kwargs):
-
         # G < 16 => cadence = bright_flexible_1x2
-        model.update(cadence='bright_flexible_1x2').where(model.phot_g_mean_mag < 16).execute()
+        model.update(cadence="bright_flexible_1x2").where(model.phot_g_mean_mag < 16).execute()
 
         # G > 16 => cadence = dark_flexible_1x2
-        model.update(cadence='dark_flexible_1x2').where(model.phot_g_mean_mag > 16).execute()
+        model.update(cadence="dark_flexible_1x2").where(model.phot_g_mean_mag > 16).execute()
 
         return model
 
@@ -191,31 +206,41 @@ class MWM_SNC_Ext_Carton(BaseCarton):
     """
 
     def build_query(self, version_id, query_region=None):
-
         ll = Gaia_DR3.l
         bb = Gaia_DR3.b
 
         # Dense regions (Galactic plane, SMC, LMC).
-        gal_cut = (((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
-                   | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
-                   | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
-                   | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8))
+        gal_cut = (
+            ((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
+            | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
+            | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
+            | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8)
+        )
 
-        mag_cut = ((Gaia_DR3.phot_g_mean_mag + 5 * fn.log(Gaia_DR3.parallax / 1000) + 5)
-                   < 19.125 - 0.03225 * (1000 / Gaia_DR3.parallax))
+        mag_cut = (
+            Gaia_DR3.phot_g_mean_mag + 5 * fn.log(Gaia_DR3.parallax / 1000) + 5
+        ) < 19.125 - 0.03225 * (1000 / Gaia_DR3.parallax)
 
-        query = (Gaia_DR3.select(
-            CatalogToGaia_DR3.catalogid,
-            Gaia_DR3.source_id,
-            Gaia_DR3.ra,
-            Gaia_DR3.dec,
-            Gaia_DR3.phot_g_mean_mag,
-            ll,
-            bb,
-        ).join(CatalogToGaia_DR3).where(
-            CatalogToGaia_DR3.version_id == version_id, CatalogToGaia_DR3.best >> True,
-            Gaia_DR3.parallax > 0, Gaia_DR3.parallax < 10,
-            ((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut, mag_cut))
+        query = (
+            Gaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra,
+                Gaia_DR3.dec,
+                Gaia_DR3.phot_g_mean_mag,
+                ll,
+                bb,
+            )
+            .join(CatalogToGaia_DR3)
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                Gaia_DR3.parallax > 0,
+                Gaia_DR3.parallax < 10,
+                ((Gaia_DR3.astrometric_excess_noise < 2) & gal_cut) | ~gal_cut,
+                mag_cut,
+            )
+        )
 
         if query_region:
             query = query.join_from(CatalogToGaia_DR3, Catalog).where(
@@ -225,7 +250,8 @@ class MWM_SNC_Ext_Carton(BaseCarton):
                     query_region[0],
                     query_region[1],
                     query_region[2],
-                ))
+                )
+            )
 
         return query
 
@@ -238,13 +264,20 @@ class MWM_SNC_Ext_APOGEE_Base_Carton(MWM_SNC_Ext_Carton):
     """
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region=query_region)
-        query = (query.switch(CatalogToGaia_DR3).join(
-            CatalogToTwoMassPSC,
-            on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid
-                )).join(TwoMassPSC).where(CatalogToTwoMassPSC.version_id == version_id,
-                                          CatalogToTwoMassPSC.best >> True, TwoMassPSC.h_m < 11))
+        query = (
+            query.switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC)
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                TwoMassPSC.h_m < 11,
+            )
+        )
 
         return query
 
@@ -252,12 +285,12 @@ class MWM_SNC_Ext_APOGEE_Base_Carton(MWM_SNC_Ext_Carton):
 class MWM_SNC_Ext_main_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
     """See base carton for details."""
 
-    name = 'mwm_snc_ext_main_apogee'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_snc_ext_main_apogee"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 2705
     can_offset = True
 
@@ -266,15 +299,16 @@ class MWM_SNC_Ext_main_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
         a set random seed, select 1/16 of the targets
         """
         cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_snc_ext_main_apogee " +
-            "set selected = false;")
+            "update sandbox.temp_mwm_snc_ext_main_apogee " + "set selected = false;"
+        )
 
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_main_apogee " +
-            " order by catalogid;")
+            "select catalogid from "
+            + " sandbox.temp_mwm_snc_ext_main_apogee "
+            + " order by catalogid;"
+        )
 
         output = cursor.fetchall()
 
@@ -283,22 +317,25 @@ class MWM_SNC_Ext_main_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_random = random.randrange(16)
-            if (current_random == 0):
+            if current_random == 0:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_main_apogee " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_main_apogee "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
 
 class MWM_SNC_Ext_filler_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
     """See base carton for details."""
 
-    name = 'mwm_snc_ext_filler_apogee'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_snc_ext_filler_apogee"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 7200
     can_offset = True
 
@@ -307,15 +344,16 @@ class MWM_SNC_Ext_filler_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
         a set random seed, select 15/16 of the targets
         """
         cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_snc_ext_filler_apogee " +
-            "set selected = false;")
+            "update sandbox.temp_mwm_snc_ext_filler_apogee " + "set selected = false;"
+        )
 
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_filler_apogee " +
-            " order by catalogid;")
+            "select catalogid from "
+            + " sandbox.temp_mwm_snc_ext_filler_apogee "
+            + " order by catalogid;"
+        )
 
         output = cursor.fetchall()
 
@@ -324,11 +362,14 @@ class MWM_SNC_Ext_filler_APOGEE_Carton(MWM_SNC_Ext_APOGEE_Base_Carton):
         for i in range(len(output)):
             current_catalogid = output[i][0]
             current_random = random.randrange(16)
-            if (current_random != 0):
+            if current_random != 0:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_filler_apogee " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_filler_apogee "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
 
 class MWM_SNC_Ext_BOSS_Base_Carton(MWM_SNC_Ext_Carton):
@@ -338,7 +379,6 @@ class MWM_SNC_Ext_BOSS_Base_Carton(MWM_SNC_Ext_Carton):
     mwm_snc_ext_filler_boss: priority = 7200"""
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region)
         query = query.where(Gaia_DR3.phot_g_mean_mag > 10)
 
@@ -352,12 +392,12 @@ class MWM_SNC_Ext_main_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
     # it can be set in post_process().
     # If cadence is not None here then
     # it cannot be set in post_process().
-    name = 'mwm_snc_ext_main_boss'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'BOSS'
-    cadence = None    # cadence is set in post_process()
+    name = "mwm_snc_ext_main_boss"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "BOSS"
+    cadence = None  # cadence is set in post_process()
     priority = 2705
     can_offset = True
 
@@ -367,15 +407,16 @@ class MWM_SNC_Ext_main_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
         """
 
         cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_snc_ext_main_boss " +
-            "set selected = false;")
+            "update sandbox.temp_mwm_snc_ext_main_boss " + "set selected = false;"
+        )
 
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_main_boss " +
-            " order by catalogid;")
+            "select catalogid from "
+            + " sandbox.temp_mwm_snc_ext_main_boss "
+            + " order by catalogid;"
+        )
 
         output = cursor.fetchall()
 
@@ -385,22 +426,31 @@ class MWM_SNC_Ext_main_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
             current_catalogid = output[i][0]
 
             current_random = random.randrange(20)
-            if (current_random == 0):
+            if current_random == 0:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_main_boss " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_main_boss "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
-            if (Gaia_DR3.phot_g_mean_mag < 16):
+            if Gaia_DR3.phot_g_mean_mag < 16:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_main_boss " +
-                    " set cadence = 'bright_flexible_2x1' " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_main_boss "
+                    + " set cadence = 'bright_flexible_2x1' "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
             else:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_main_boss " +
-                    " set cadence = 'dark_flexible_2x1' " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_main_boss "
+                    + " set cadence = 'dark_flexible_2x1' "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
 
 class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
@@ -410,12 +460,12 @@ class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
     # it can be set in post_process().
     # If cadence is not None here then
     # it cannot be set in post_process().
-    name = 'mwm_snc_ext_filler_boss'
-    category = 'science'
-    program = 'mwm_snc'
-    mapper = 'MWM'
-    instrument = 'BOSS'
-    cadence = None    # cadence is set in post_process()
+    name = "mwm_snc_ext_filler_boss"
+    category = "science"
+    program = "mwm_snc"
+    mapper = "MWM"
+    instrument = "BOSS"
+    cadence = None  # cadence is set in post_process()
     priority = 7200
     can_offset = True
 
@@ -425,15 +475,16 @@ class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
         """
 
         cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_snc_ext_filler_boss " +
-            "set selected = false;")
+            "update sandbox.temp_mwm_snc_ext_filler_boss " + "set selected = false;"
+        )
 
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_snc_ext_filler_boss " +
-            " order by catalogid;")
+            "select catalogid from "
+            + " sandbox.temp_mwm_snc_ext_filler_boss "
+            + " order by catalogid;"
+        )
 
         output = cursor.fetchall()
 
@@ -443,19 +494,28 @@ class MWM_SNC_Ext_filler_BOSS_Carton(MWM_SNC_Ext_BOSS_Base_Carton):
             current_catalogid = output[i][0]
 
             current_random = random.randrange(20)
-            if (current_random != 0):
+            if current_random != 0:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_filler_boss "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
-            if (Gaia_DR3.phot_g_mean_mag < 16):
+            if Gaia_DR3.phot_g_mean_mag < 16:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
-                    " set cadence = 'bright_flexible_2x1' " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_filler_boss "
+                    + " set cadence = 'bright_flexible_2x1' "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
             else:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_snc_ext_filler_boss " +
-                    " set cadence = 'dark_flexible_2x1' " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_snc_ext_filler_boss "
+                    + " set cadence = 'dark_flexible_2x1' "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )

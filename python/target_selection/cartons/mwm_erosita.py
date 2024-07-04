@@ -9,10 +9,13 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import Catalog  # CatalogToTIC_v8,
-from sdssdb.peewee.sdss5db.catalogdb import (CatalogToGaia_DR3,
-                                             EROSITASupersetv1Compactobjects,
-                                             EROSITASupersetv1Stars, Gaia_DR3)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToGaia_DR3,
+    EROSITASupersetv1Compactobjects,
+    EROSITASupersetv1Stars,
+    Gaia_DR3,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -93,14 +96,14 @@ class MWM_EROSITA_Stars_Boss_Carton(BaseCarton):
     """
 
     # name = 'mwm_erosita_stars'
-    name = 'mwm_erosita_stars_boss'
-    category = 'science'
-    instrument = 'BOSS'
-    program = 'mwm_erosita'
-    mapper = 'MWM'
+    name = "mwm_erosita_stars_boss"
+    category = "science"
+    instrument = "BOSS"
+    program = "mwm_erosita"
+    mapper = "MWM"
     can_offset = True
 
-    faintest_cadence = 'dark_flexible_2x1'
+    faintest_cadence = "dark_flexible_2x1"
     # faintest_priority = 1910
     flat_priority = 1920
 
@@ -109,11 +112,11 @@ class MWM_EROSITA_Stars_Boss_Carton(BaseCarton):
         cadence = peewee.Case(
             None,
             (
-                (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
-                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_flexible_2x1'),
+                (Gaia_DR3.phot_g_mean_mag < 17.0, "bright_1x1"),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, "dark_flexible_2x1"),
             ),
-            self.faintest_cadence
-        ).cast('text')
+            self.faintest_cadence,
+        ).cast("text")
 
         # priority = (
         #     EROSITASupersetv1Stars.xmatch_flags - 1 +
@@ -125,55 +128,62 @@ class MWM_EROSITA_Stars_Boss_Carton(BaseCarton):
         #         self.faintest_priority
         #     ).cast('integer')
         # )
-        priority = peewee.Value(self.flat_priority).cast('integer')
+        priority = peewee.Value(self.flat_priority).cast("integer")
 
-        query = (CatalogToGaia_DR3
-                 .select(
-                     CatalogToGaia_DR3.catalogid,
-                     Gaia_DR3.source_id,
-                     Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                     Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                     Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
-                     Gaia_DR3.phot_bp_mean_mag.alias('bp'),
-                     Gaia_DR3.phot_rp_mean_mag.alias('rp'),
-                     Gaia_DR3.parallax,
-                     Gaia_DR3.pmra,
-                     Gaia_DR3.pmdec,
-                     cadence.alias('cadence'),
-                     priority.alias('priority'),
-                     EROSITASupersetv1Stars.target_priority,
-                     EROSITASupersetv1Stars.ero_detuid,
-                     EROSITASupersetv1Stars.xmatch_metric,
-                     EROSITASupersetv1Stars.xmatch_flags,
-                     EROSITASupersetv1Stars.ero_flux,
-                     EROSITASupersetv1Stars.ero_ra,
-                     EROSITASupersetv1Stars.ero_dec,
-                     EROSITASupersetv1Stars.opt_ra,
-                     EROSITASupersetv1Stars.opt_dec,
-                 )
-                 .distinct(CatalogToGaia_DR3.catalogid)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .join(EROSITASupersetv1Stars,
-                       on=(Gaia_DR3.source_id == EROSITASupersetv1Stars.gaia_dr3_source_id))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        EROSITASupersetv1Stars.xmatch_method == 'HamStar',
-                        EROSITASupersetv1Stars.xmatch_version == 'v1.1.1',
-                        EROSITASupersetv1Stars.xmatch_metric > 0.0,
-                        Gaia_DR3.phot_g_mean_mag > bright_bright_limit))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.phot_g_mean_mag.alias("gaia_g"),
+                Gaia_DR3.phot_bp_mean_mag.alias("bp"),
+                Gaia_DR3.phot_rp_mean_mag.alias("rp"),
+                Gaia_DR3.parallax,
+                Gaia_DR3.pmra,
+                Gaia_DR3.pmdec,
+                cadence.alias("cadence"),
+                priority.alias("priority"),
+                EROSITASupersetv1Stars.target_priority,
+                EROSITASupersetv1Stars.ero_detuid,
+                EROSITASupersetv1Stars.xmatch_metric,
+                EROSITASupersetv1Stars.xmatch_flags,
+                EROSITASupersetv1Stars.ero_flux,
+                EROSITASupersetv1Stars.ero_ra,
+                EROSITASupersetv1Stars.ero_dec,
+                EROSITASupersetv1Stars.opt_ra,
+                EROSITASupersetv1Stars.opt_dec,
+            )
+            .distinct(CatalogToGaia_DR3.catalogid)
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(
+                EROSITASupersetv1Stars,
+                on=(Gaia_DR3.source_id == EROSITASupersetv1Stars.gaia_dr3_source_id),
+            )
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                EROSITASupersetv1Stars.xmatch_method == "HamStar",
+                EROSITASupersetv1Stars.xmatch_version == "v1.1.1",
+                EROSITASupersetv1Stars.xmatch_metric > 0.0,
+                Gaia_DR3.phot_g_mean_mag > bright_bright_limit,
+            )
+        )
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
         #
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -233,7 +243,8 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
     FROM catalog c
     INNER JOIN catalog_to_gaia_dr3_source c2g3 USING (catalogid)
     INNER JOIN gaia_dr3_source gaia ON gaia.source_id = c2g3.target_id
-    INNER JOIN erosita_superset_v1_compactobjects estars ON estars.gaia_dr3_source_id = gaia.source_id  # noqa
+    INNER JOIN erosita_superset_v1_compactobjects estars
+        ON estars.gaia_dr3_source_id = gaia.source_id
     WHERE (c2g3.version_id = 31) AND /* control version! */
     (c2g3.best is true) AND /* and enforce unique-ish crossmatch */
     estars.xmatch_method = 'NWAY_CV' AND
@@ -241,25 +252,24 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
     limit 10;
     """
 
-    name = 'mwm_erosita_compact_boss'
-    category = 'science'
-    instrument = 'BOSS'
-    program = 'mwm_erosita'
-    mapper = 'MWM'
+    name = "mwm_erosita_compact_boss"
+    category = "science"
+    instrument = "BOSS"
+    program = "mwm_erosita"
+    mapper = "MWM"
     can_offset = True
-    faintest_cadence = 'dark_flexible_2x2'
+    faintest_cadence = "dark_flexible_2x2"
     flat_priority = 1810
 
     def build_query(self, version_id, query_region=None):
-
         cadence = peewee.Case(
             None,
             (
-                (Gaia_DR3.phot_g_mean_mag < 17.0, 'bright_1x1'),
-                (Gaia_DR3.phot_g_mean_mag < 18.0, 'dark_flexible_2x1'),
+                (Gaia_DR3.phot_g_mean_mag < 17.0, "bright_1x1"),
+                (Gaia_DR3.phot_g_mean_mag < 18.0, "dark_flexible_2x1"),
             ),
-            self.faintest_cadence
-        ).cast('text')
+            self.faintest_cadence,
+        ).cast("text")
 
         # priority = peewee.Case(
         #     None,
@@ -268,23 +278,22 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
         #     ),
         #     self.faintest_priority
         # ).cast('integer')
-        priority = peewee.Value(self.flat_priority).cast('integer')
+        priority = peewee.Value(self.flat_priority).cast("integer")
 
         query = (
-            CatalogToGaia_DR3
-            .select(
+            CatalogToGaia_DR3.select(
                 CatalogToGaia_DR3.catalogid,
                 Gaia_DR3.source_id,
-                Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                Gaia_DR3.phot_g_mean_mag.alias('gaia_g'),
-                Gaia_DR3.phot_bp_mean_mag.alias('bp'),
-                Gaia_DR3.phot_rp_mean_mag.alias('rp'),
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.phot_g_mean_mag.alias("gaia_g"),
+                Gaia_DR3.phot_bp_mean_mag.alias("bp"),
+                Gaia_DR3.phot_rp_mean_mag.alias("rp"),
                 Gaia_DR3.parallax,
                 Gaia_DR3.pmra,
                 Gaia_DR3.pmdec,
-                cadence.alias('cadence'),
-                priority.alias('priority'),
+                cadence.alias("cadence"),
+                priority.alias("priority"),
                 EROSITASupersetv1Compactobjects.target_priority,
                 EROSITASupersetv1Compactobjects.ero_detuid,
                 EROSITASupersetv1Compactobjects.xmatch_metric,
@@ -292,20 +301,19 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
                 EROSITASupersetv1Compactobjects.ero_ra,
                 EROSITASupersetv1Compactobjects.ero_dec,
                 EROSITASupersetv1Compactobjects.opt_ra,
-                EROSITASupersetv1Compactobjects.opt_dec
+                EROSITASupersetv1Compactobjects.opt_dec,
             )
             .distinct(CatalogToGaia_DR3.catalogid)
-            .join(Gaia_DR3,
-                  on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-            .join(EROSITASupersetv1Compactobjects,
-                  on=(Gaia_DR3.source_id ==
-                      EROSITASupersetv1Compactobjects.gaia_dr3_source_id))
-            .where
-            (
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(
+                EROSITASupersetv1Compactobjects,
+                on=(Gaia_DR3.source_id == EROSITASupersetv1Compactobjects.gaia_dr3_source_id),
+            )
+            .where(
                 CatalogToGaia_DR3.version_id == version_id,
                 CatalogToGaia_DR3.best >> True,
-                EROSITASupersetv1Compactobjects.xmatch_method == 'NWAY_CV',
-                EROSITASupersetv1Compactobjects.xmatch_version == '20Oct2022',
+                EROSITASupersetv1Compactobjects.xmatch_method == "NWAY_CV",
+                EROSITASupersetv1Compactobjects.xmatch_version == "20Oct2022",
             )
         )
 
@@ -313,18 +321,20 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
         # table catalogdb.gaia_dr3_source.
         #
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_EROSITA_Compact_Boss_Shallow_Carton(MWM_EROSITA_Compact_Boss_Carton):
-    name = 'mwm_erosita_compact_boss_shallow'
-    faintest_cadence = 'dark_flexible_2x1'
+    name = "mwm_erosita_compact_boss_shallow"
+    faintest_cadence = "dark_flexible_2x1"
     faintest_priority = 1811

@@ -16,9 +16,18 @@ import pandas
 from peewee import SQL, DoesNotExist, fn
 
 
-__all__ = ['Timer', 'sql_apply_pm', 'sql_iauname', 'copy_pandas',
-           'get_epoch', 'set_config_parameter', 'remove_version',
-           'vacuum_outputs', 'get_configuration_values', 'vacuum_table']
+__all__ = [
+    "Timer",
+    "sql_apply_pm",
+    "sql_iauname",
+    "copy_pandas",
+    "get_epoch",
+    "set_config_parameter",
+    "remove_version",
+    "vacuum_outputs",
+    "get_configuration_values",
+    "vacuum_table",
+]
 
 
 class Timer:
@@ -39,15 +48,13 @@ class Timer:
 
     @property
     def elapsed(self):
-
         if self.end:
             return self.interval
 
         return time.time() - self.start
 
 
-def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
-                 epoch_delta, is_pmra_cos=True):
+def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field, epoch_delta, is_pmra_cos=True):
     """Constructs a SQL expression for applying proper motions to RA/Dec.
 
     Parameters
@@ -74,8 +81,8 @@ def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
 
     """
 
-    pmra_field = fn.coalesce(pmra_field, 0) / 1000. / 3600.
-    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000. / 3600.
+    pmra_field = fn.coalesce(pmra_field, 0) / 1000.0 / 3600.0
+    pmdec_field = fn.coalesce(pmdec_field, 0) / 1000.0 / 3600.0
     epoch = fn.coalesce(epoch_delta, 0)
 
     if is_pmra_cos:
@@ -89,7 +96,7 @@ def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field,
     return ra_corr, dec_corr
 
 
-def sql_iauname(ra_field, dec_field, prefix='SDSS J'):
+def sql_iauname(ra_field, dec_field, prefix="SDSS J"):
     """Constructs a SQL expression for the IAU name from RA/Dec.
 
     Parameters
@@ -109,22 +116,26 @@ def sql_iauname(ra_field, dec_field, prefix='SDSS J'):
     """
 
     def dd2dms(dd, round=2, sign=False):
+        degs = fn.trunc(dd).cast("INT")
+        mins = fn.trunc((fn.abs(dd) - fn.abs(degs)) * 60).cast("INT")
 
-        degs = fn.trunc(dd).cast('INT')
-        mins = fn.trunc((fn.abs(dd) - fn.abs(degs)) * 60).cast('INT')
-        secs = (fn.round(((((fn.abs(dd) - fn.abs(degs)) * 60) - mins) * 60)
-                         .cast('NUMERIC'), round).cast('REAL'))
+        secs_raw = ((((fn.abs(dd) - fn.abs(degs)) * 60) - mins) * 60).cast("NUMERIC")
+        secs = fn.round(secs_raw, round).cast("REAL")
 
-        degs_fmt = '00' if sign is False else 'SG00'
-        secs_fmt = '00.' + '0' * round
+        degs_fmt = "00" if sign is False else "SG00"
+        secs_fmt = "00." + "0" * round
 
-        return fn.trim(fn.to_char(degs, degs_fmt)).concat(
-            fn.trim(fn.to_char(mins, '00'))).concat(
-                fn.trim(fn.to_char(secs, secs_fmt)))
+        return (
+            fn.trim(fn.to_char(degs, degs_fmt))
+            .concat(fn.trim(fn.to_char(mins, "00")))
+            .concat(fn.trim(fn.to_char(secs, secs_fmt)))
+        )
 
-    return SQL('\'' + prefix + '\'').concat(
-        dd2dms(ra_field / 15)).concat(
-            dd2dms(dec_field, round=1, sign=True))
+    return (
+        SQL("'" + prefix + "'")
+        .concat(dd2dms(ra_field / 15))
+        .concat(dd2dms(dec_field, round=1, sign=True))
+    )
 
 
 def copy_pandas(df, database, table_name, schema=None, columns=None):
@@ -154,10 +165,10 @@ def copy_pandas(df, database, table_name, schema=None, columns=None):
 
     cursor = database.cursor()
 
-    full_table_name = schema + '.' + table_name if schema else table_name
+    full_table_name = schema + "." + table_name if schema else table_name
 
     with database.atomic():
-        cursor.copy_from(stream, full_table_name, columns=columns, sep=',')
+        cursor.copy_from(stream, full_table_name, columns=columns, sep=",")
 
     return df
 
@@ -177,7 +188,7 @@ def get_epoch(xmodel):
     else:
         epoch = fn.nullif(fields[xmatch.epoch_column], 0)
 
-    if xmatch.epoch_format == 'jd':
+    if xmatch.epoch_format == "jd":
         epoch = 2000 + (epoch - 2451545.0) / 365.25
 
     return epoch
@@ -190,37 +201,34 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
     new_value = new_value.upper()
 
     try:
-
-        orig_value = (database
-                      .execute_sql(f'SHOW {parameter}')
-                      .fetchone()[0].upper())
+        orig_value = database.execute_sql(f"SHOW {parameter}").fetchone()[0].upper()
         value_changed = orig_value != new_value
 
         if value_changed:
-            database.execute_sql(f'SET {parameter} = {new_value};')
+            database.execute_sql(f"SET {parameter} = {new_value};")
             if log:
-                log.debug(f'{parameter} is {new_value}.')
+                log.debug(f"{parameter} is {new_value}.")
 
         yield
 
     finally:
-
         if reset and value_changed:
-            database.execute_sql(f'SET {parameter} = {orig_value};')
+            database.execute_sql(f"SET {parameter} = {orig_value};")
             if log:
-                log.debug(f'{parameter} reset to {orig_value}.')
+                log.debug(f"{parameter} reset to {orig_value}.")
 
 
-def remove_version(database, plan, schema='catalogdb', table='catalog',
-                   delete_version=True, vacuum=True):
+def remove_version(
+    database, plan, schema="catalogdb", table="catalog", delete_version=True, vacuum=True
+):
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
     models = []
     for path in database.models:
-        schema, table_name = path.split('.')
+        schema, table_name = path.split(".")
         if schema != schema:
             continue
-        if table_name != table and not table_name.startswith(table + '_to_'):
+        if table_name != table and not table_name.startswith(table + "_to_"):
             continue
         model = database.models[path]
         if not model.table_exists() or model._meta.schema != schema:
@@ -228,98 +236,91 @@ def remove_version(database, plan, schema='catalogdb', table='catalog',
         models.append(model)
 
     if len(models) == 0:
-        raise ValueError('No table matches the input parameters.')
+        raise ValueError("No table matches the input parameters.")
 
-    print(f'Tables that will be truncated on {plan!r}: ' +
-          ', '.join(model._meta.table_name for model in models))
+    print(
+        f"Tables that will be truncated on {plan!r}: "
+        + ", ".join(model._meta.table_name for model in models)
+    )
 
-    Catalog = database.models[schema + '.' + table]
-    Version = database.models[schema + '.version']
+    Catalog = database.models[schema + "." + table]
+    Version = database.models[schema + ".version"]
 
     try:
         version_id = Version.get(plan=plan).id
     except DoesNotExist:
-        raise ValueError(f'Version {plan!r} does not exist.')
+        raise ValueError(f"Version {plan!r} does not exist.")
 
-    print(f'version_id={version_id}')
+    print(f"version_id={version_id}")
 
-    n_targets = (Catalog
-                 .select()
-                 .where(Catalog.version_id == version_id)
-                 .count())
-    print(f'Number of targets found in '
-          f'{Catalog._meta.table_name}: {n_targets:,}')
+    n_targets = Catalog.select().where(Catalog.version_id == version_id).count()
+    print(f"Number of targets found in {Catalog._meta.table_name}: {n_targets:,}")
 
-    if not click.confirm('Do you really want to proceed?'):
+    if not click.confirm("Do you really want to proceed?"):
         return
 
     for model in models:
-        n_removed = (model
-                     .delete()
-                     .where(model.version_id == version_id)
-                     .execute())
-        print(f'{model._meta.table_name}: {n_removed:,} rows removed.')
+        n_removed = model.delete().where(model.version_id == version_id).execute()
+        print(f"{model._meta.table_name}: {n_removed:,} rows removed.")
         if vacuum:
-            print('Vacuuming ...')
-            vacuum_table(database,
-                         f'{model._meta.schema}.{model._meta.table_name}')
+            print("Vacuuming ...")
+            vacuum_table(database, f"{model._meta.schema}.{model._meta.table_name}")
 
     md5 = hashlib.md5(plan.encode()).hexdigest()[0:16]
     for table in database.get_tables(schema=schema):
         if table.endswith(md5):
-            print(f'Dropping temporary table {table}.')
-            database.execute_sql(f'DROP TABLE IF EXISTS {table};')
+            print(f"Dropping temporary table {table}.")
+            database.execute_sql(f"DROP TABLE IF EXISTS {table};")
 
     if delete_version:
         Version.delete().where(Version.id == version_id).execute()
-        print('Removed entry in \'version\'.')
+        print("Removed entry in 'version'.")
 
 
-def vacuum_table(database, table_name, vacuum=True, analyze=True,
-                 maintenance_work_mem='50GB'):
+def vacuum_table(database, table_name, vacuum=True, analyze=True, maintenance_work_mem="50GB"):
     """Vacuums and analyses a table."""
 
-    statement = (('VACUUM ' if vacuum else '') +
-                 ('ANALYZE ' if analyze else '') +
-                 table_name)
+    statement = ("VACUUM " if vacuum else "") + ("ANALYZE " if analyze else "") + table_name
 
     with database.atomic():
-
         # Change isolation level to allow executing commands such as VACUUM.
         connection = database.connection()
         original_isolation_level = connection.isolation_level
         connection.set_isolation_level(0)
 
-        database.execute_sql(
-            f'SET maintenance_work_mem = {maintenance_work_mem!r}')
+        database.execute_sql(f"SET maintenance_work_mem = {maintenance_work_mem!r}")
 
         database.execute_sql(statement)
 
         connection.set_isolation_level(original_isolation_level)
 
 
-def vacuum_outputs(database, vacuum=True, analyze=True, schema='catalogdb',
-                   table='catalog', relational_tables=True):
+def vacuum_outputs(
+    database,
+    vacuum=True,
+    analyze=True,
+    schema="catalogdb",
+    table="catalog",
+    relational_tables=True,
+):
     """Vacuums and analyses the output tables."""
 
-    assert vacuum or analyze, 'either vacuum or analyze need to be True.'
-    assert database.is_connection_usable(), 'connection is not usable.'
+    assert vacuum or analyze, "either vacuum or analyze need to be True."
+    assert database.is_connection_usable(), "connection is not usable."
 
     tables = []
     for full_name in database.models:
-        table_schema, table_name = full_name.split('.')
+        table_schema, table_name = full_name.split(".")
         if table_schema != schema:
             continue
         if table_name != table:
-            is_relational = table_name.startswith(table + '_to_')
+            is_relational = table_name.startswith(table + "_to_")
             if not is_relational or not relational_tables:
                 continue
         tables.append(table_name)
 
     for table_name in tables:
-        table_name = (table_name
-                      if schema is None
-                      else schema + '.' + table_name)
+        table_name = table_name if schema is None else schema + "." + table_name
         vacuum_table(database, table_name, vacuum=vacuum, analyze=analyze)
 
 
@@ -330,23 +331,27 @@ def get_configuration_values(database, parameters):
 
     with database.atomic():
         for parameter in parameters:
-            value = database.execute_sql(f'SHOW {parameter}').fetchone()[0]
+            value = database.execute_sql(f"SHOW {parameter}").fetchone()[0]
             values[parameter] = value
 
     return values
 
 
-def is_view(database, view_name, schema='public', materialized=False):
+def is_view(database, view_name, schema="public", materialized=False):
     """Determines if a view exists."""
 
     if not materialized:
-        query = (f'SELECT * FROM pg_views where schemaname = {schema!r} '
-                 f'AND viewname = {view_name!r};')
+        query = (
+            f"SELECT * FROM pg_views where schemaname = {schema!r} "
+            f"AND viewname = {view_name!r};"
+        )
     else:
-        query = (f'SELECT pc.* FROM pg_class pc '
-                 f'JOIN pg_namespace pn ON pc.relnamespace = pn.oid '
-                 f'WHERE pn.nspname = {schema!r} AND '
-                 f'pc.relname = {view_name!r};')
+        query = (
+            f"SELECT pc.* FROM pg_class pc "
+            f"JOIN pg_namespace pn ON pc.relnamespace = pn.oid "
+            f"WHERE pn.nspname = {schema!r} AND "
+            f"pc.relname = {view_name!r};"
+        )
 
     if len(database.execute_sql(query).fetchall()) > 0:
         return True

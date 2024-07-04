@@ -8,9 +8,13 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC,
-                                             Gaia_DR3, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToGaia_DR3,
+    CatalogToTwoMassPSC,
+    Gaia_DR3,
+    TwoMassPSC,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -22,7 +26,7 @@ from target_selection.cartons import BaseCarton
 class MWM_Galactic_Core_apogee_Carton(BaseCarton):
     """Galactic Genesis carton.
 
-    Definition: Selection of all IR-bright, red stars – vast majority are red
+    Definition: Selection of all IR-bright, red stars - vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
     plane and bulge). Select sources brighter than H<11 AND ((G-H) > 3.5 OR
     Gaia non-detection).
@@ -80,57 +84,69 @@ class MWM_Galactic_Core_apogee_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_galactic_core_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_galactic_core_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 2710
-    program = 'mwm_galactic'
-    mapper = 'MWM'
+    program = "mwm_galactic"
+    mapper = "MWM"
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToTwoMassPSC
-                 .select(CatalogToTwoMassPSC.catalogid,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.ra,
-                         Gaia_DR3.dec,
-                         Gaia_DR3.pmra,
-                         Gaia_DR3.pmdec,
-                         Gaia_DR3.phot_g_mean_mag,
-                         TwoMassPSC.h_m,
-                         TwoMassPSC.designation)
-                 .join(TwoMassPSC,
-                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToTwoMassPSC)
-                 .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
-                       on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
-                 .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
-                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .where(CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        TwoMassPSC.h_m < 11,
-                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
-                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
-                        TwoMassPSC.gal_contam == 0,
-                        peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == '0',
-                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') > 0) &
-                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') <= 3),
-                        ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 3.5) |
-                        (Gaia_DR3.phot_g_mean_mag >> None)))
+        query = (
+            CatalogToTwoMassPSC.select(
+                CatalogToTwoMassPSC.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra,
+                Gaia_DR3.dec,
+                Gaia_DR3.pmra,
+                Gaia_DR3.pmdec,
+                Gaia_DR3.phot_g_mean_mag,
+                TwoMassPSC.h_m,
+                TwoMassPSC.designation,
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToTwoMassPSC)
+            .join(
+                CatalogToGaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid),
+            )
+            .join(
+                Gaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id),
+            )
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                TwoMassPSC.h_m < 11,
+                (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == "A")
+                | (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == "B"),
+                TwoMassPSC.gal_contam == 0,
+                peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == "0",
+                (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast("integer") > 0)
+                & (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast("integer") <= 3),
+                ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 3.5)
+                | (Gaia_DR3.phot_g_mean_mag >> None),
+            )
+        )
         # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
         # that we get the rows from the left outer join
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTwoMassPSC, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTwoMassPSC, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -138,7 +154,7 @@ class MWM_Galactic_Core_apogee_Carton(BaseCarton):
 class MWM_Galactic_Core_Dist_apogee_Carton(BaseCarton):
     """Galactic Genesis carton.
 
-    Definition: Selection of all IR-bright, red stars – vast majority are red
+    Definition: Selection of all IR-bright, red stars - vast majority are red
     giants; follows the density distribution of the MW (concentrated in the
     plane and bulge). Select sources brighter than H<11 AND ((G-H) > 5 OR
     Gaia non-detection).
@@ -196,60 +212,71 @@ class MWM_Galactic_Core_Dist_apogee_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_galactic_core_dist_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_galactic_core_dist_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 2710
-    program = 'mwm_galactic'
-    mapper = 'MWM'
+    program = "mwm_galactic"
+    mapper = "MWM"
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToTwoMassPSC
-                 .select(CatalogToTwoMassPSC.catalogid,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.ra,
-                         Gaia_DR3.dec,
-                         Gaia_DR3.pmra,
-                         Gaia_DR3.pmdec,
-                         Gaia_DR3.parallax,
-                         Gaia_DR3.phot_g_mean_mag,
-                         TwoMassPSC.h_m,
-                         TwoMassPSC.designation)
-                 .join(TwoMassPSC,
-                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToTwoMassPSC)
-                 .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
-                       on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
-                 .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
-                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .where(CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        TwoMassPSC.h_m < 11,
-                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'A') |
-                        (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == 'B'),
-                        TwoMassPSC.gal_contam == 0,
-                        peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == '0',
-                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') > 0) &
-                        (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast('integer') <= 3),
-                        (Gaia_DR3.parallax <
-                         100 * peewee.fn.power(10, 0.2 * (-2.5 - TwoMassPSC.h_m))) |
-                        ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 5) |
-                        (Gaia_DR3.phot_g_mean_mag >> None)))
+        query = (
+            CatalogToTwoMassPSC.select(
+                CatalogToTwoMassPSC.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra,
+                Gaia_DR3.dec,
+                Gaia_DR3.pmra,
+                Gaia_DR3.pmdec,
+                Gaia_DR3.parallax,
+                Gaia_DR3.phot_g_mean_mag,
+                TwoMassPSC.h_m,
+                TwoMassPSC.designation,
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToTwoMassPSC)
+            .join(
+                CatalogToGaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid),
+            )
+            .join(
+                Gaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id),
+            )
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                TwoMassPSC.h_m < 11,
+                (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == "A")
+                | (peewee.fn.substr(TwoMassPSC.ph_qual, 2, 1) == "B"),
+                TwoMassPSC.gal_contam == 0,
+                peewee.fn.substr(TwoMassPSC.cc_flg, 2, 1) == "0",
+                (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast("integer") > 0)
+                & (peewee.fn.substr(TwoMassPSC.rd_flg, 2, 1).cast("integer") <= 3),
+                (Gaia_DR3.parallax < 100 * peewee.fn.power(10, 0.2 * (-2.5 - TwoMassPSC.h_m)))
+                | ((Gaia_DR3.phot_g_mean_mag - TwoMassPSC.h_m) > 5)
+                | (Gaia_DR3.phot_g_mean_mag >> None),
+            )
+        )
 
         # above condition (Gaia_DR3.phot_g_mean_mag >> None) ensures that
         # that we get the rows from the left outer join
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTwoMassPSC, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra, Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTwoMassPSC, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
