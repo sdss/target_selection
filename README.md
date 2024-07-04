@@ -45,10 +45,10 @@ We use [ruff](https://docs.astral.sh/ruff/) for both linting, import sorting, an
 A workflow checks for linting and formatting errors on each commit, and pull requests are blocked until the workflow succeeds. The easiest way to fix these problems is by installing `ruff` and letting it format the code, and then checking if any linting errors remain
 
 ```console
->>> pip install ruff
->>> ruff format ./python/
+$ pip install ruff
+$ ruff format ./python/
 1 file reformatted, 46 files left unchanged
->>> ruff check ./python/
+$ ruff check ./python/
 All checks passed!
 ```
 
