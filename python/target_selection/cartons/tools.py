@@ -249,6 +249,22 @@ def get_file_carton(filename):
 
             self._disable_query_log = True
 
+        def copy_data(self, temp_table: str):
+            """Copy the input file data to a temporary table.
+
+            The schema of the file carton table is such that we can dump to
+            a CSV file without issues.
+
+            """
+
+            temp_csv = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
+            self._table.write(temp_csv.name, format="csv", overwrite=True)
+
+            cursor = self.database.cursor()
+            temp_csv.seek(0)
+            cursor.copy_expert(f"COPY {temp_table} FROM STDOUT WITH CSV HEADER", temp_csv)
+            self.database.commit()
+
         def build_query(self, version_id, query_region=None):
             self.log.debug(f"Processing file {self._file_path}.")
 
@@ -263,15 +279,8 @@ def get_file_carton(filename):
             temp._meta.database = self.database
             temp.create_table(temporary=True)
 
-            # Copy data. The schema of the file carton table is such that we can dump to
-            # a CSV file without issues, which is more efficient than using copy_data().
-            temp_csv = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
-            self._table.write(temp_csv.name, format="csv", overwrite=True)
-
-            cursor = self.database.cursor()
-            temp_csv.seek(0)
-            cursor.copy_expert(f"COPY {temp_table} FROM STDOUT WITH CSV HEADER", temp_csv)
-            self.database.commit()
+            # Copy the data
+            self.copy_data(temp_table)
 
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
