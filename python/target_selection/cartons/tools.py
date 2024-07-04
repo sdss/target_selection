@@ -7,12 +7,13 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import os
+import tempfile
 
 import numpy
 import peewee
 from astropy.table import Table
 
-from sdssdb.utils.ingest import copy_data, create_model_from_table
+from sdssdb.utils.ingest import create_model_from_table
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
@@ -21,10 +22,13 @@ from target_selection.utils import vacuum_table
 
 def get_file_carton(filename):
     """Returns a carton class that creates a carton based on a FITS file.
-    The FITS file is located in the open_fiber_path which is specified in
-    python/config/target_selection.yml.
+
+    The FITS file is located in the ``open_fiber_path`` which is specified in
+    ``python/config/target_selection.yml``.
+
     The list of FITS files to be loaded is specified in the
-    file open_fiber_file_list.txt which is in the directory open_fiber_path.
+    file ``open_fiber_file_list.txt`` which is in the directory ``open_fiber_path``.
+
     """
 
     # Import this here to prevent this module not being importable if the database
@@ -259,8 +263,15 @@ def get_file_carton(filename):
             temp._meta.database = self.database
             temp.create_table(temporary=True)
 
-            # Copy data.
-            copy_data(self._table, self.database, temp_table)
+            # Copy data. The schema of the file carton table is such that we can dump to
+            # a CSV file without issues, which is more efficient than using copy_data().
+            temp_csv = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
+            self._table.write(temp_csv.name, format="csv", overwrite=True)
+
+            cursor = self.database.cursor()
+            temp_csv.seek(0)
+            cursor.copy_expert(f"COPY {temp_table} FROM STDOUT WITH CSV HEADER", temp_csv)
+            self.database.commit()
 
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
             self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
