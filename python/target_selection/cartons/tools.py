@@ -361,67 +361,68 @@ def get_file_carton(filename):
                     + "len_table"
                 )
 
-            # A list of CatalogToX models that we need to join to because there are entries
-            # in the file carton with that identifier. Also includes the field to which to join
-            # in the related models and the column in the temporary table. In all cases except
-            # 2MASS this is the primary key.
-            catalog_to_models = []
+            # For each identifier that has non-zero targets, appends some information that
+            # we need to create the subquery for that table. This includes the CatalogToX model
+            # to which we need to join, the field on which to join in the parent catalogue,
+            # and the column in the temporary table. In all cases except 2MASS, we join on the
+            # parent catalogue primary key.
+            model_data = []
 
             if len_gaia_dr3 > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToGaia_DR3,
-                        Gaia_DR3.source_id,
-                        "Gaia_DR3_Source_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToGaia_DR3,
+                        "parent_field": Gaia_DR3.source_id,
+                        "temp_column": "Gaia_DR3_Source_ID",
+                    }
                 )
 
             if len_gaia_dr2 > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToGaia_DR2,
-                        Gaia_DR2.source_id,
-                        "Gaia_DR2_Source_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToGaia_DR2,
+                        "parent_field": Gaia_DR2.source_id,
+                        "temp_column": "Gaia_DR2_Source_ID",
+                    }
                 )
 
             if len_legacysurvey_dr10 > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToLegacy_Survey_DR10,
-                        Legacy_Survey_DR10.ls_id,
-                        "LegacySurvey_DR10_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToLegacy_Survey_DR10,
+                        "parent_field": Legacy_Survey_DR10.ls_id,
+                        "temp_column": "LegacySurvey_DR10_ID",
+                    }
                 )
 
             if len_legacysurvey_dr8 > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToLegacy_Survey_DR8,
-                        Legacy_Survey_DR8.ls_id,
-                        "LegacySurvey_DR8_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToLegacy_Survey_DR8,
+                        "parent_field": Legacy_Survey_DR8.ls_id,
+                        "temp_column": "LegacySurvey_DR8_ID",
+                    }
                 )
 
             if len_panstarrs_dr2 > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToPanstarrs1,
-                        Panstarrs1.catid_objid,
-                        "PanSTARRS_DR2_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToPanstarrs1,
+                        "parent_field": Panstarrs1.catid_objid,
+                        "temp_column": "PanSTARRS_DR2_ID",
+                    }
                 )
 
             if len_twomass_psc > 0:
-                catalog_to_models.append(
-                    (
-                        CatalogToTwoMassPSC,
-                        TwoMassPSC.designation,
-                        "TwoMASS_ID",
-                    )
+                model_data.append(
+                    {
+                        "catalog_to": CatalogToTwoMassPSC,
+                        "parent_field": TwoMassPSC.designation,
+                        "temp_column": "TwoMASS_ID",
+                    }
                 )
 
-            if len(catalog_to_models) == 0:
+            if len(model_data) == 0:
                 raise TargetSelectionError(
                     "Error in get_file_carton(): no join model found for the file carton."
                 )
@@ -433,16 +434,20 @@ def get_file_carton(filename):
 
             queries = []
 
-            for catalog_to_model, rel_model_field, temp_column in catalog_to_models:
+            for data in model_data:
+                catalog_to_model = data["catalog_to"]
+                parent_field = data["parent_field"]
+                temp_column = data["temp_column"]
+
                 # Get the model class field for the column in the temporary table with the
                 # identifier for this case.
                 temp_field = getattr(temp, temp_column)
 
-                # Get the related model. The only reason why we need to join all the way to the
+                # Get the psrent model. The only reason why we need to join all the way to the
                 # parent catalogue model is 2MASS for which the column TwoMASS_ID in the file
                 # carton corresponds to the designation column in the TwoMassPSC model, which
                 # is not the primary key.
-                rel_model = rel_model_field.model
+                parent_model = parent_field.model
 
                 # Create a subquery that ranks the rows by distance to the target. Since
                 # temp is also used in the main query, we need to alias it.
@@ -466,10 +471,10 @@ def get_file_carton(filename):
                 sub_query = (
                     temp_alias.select(
                         catalog_to_model.catalogid,
-                        rel_model_field.alias("target_id"),
+                        parent_field.alias("target_id"),
                         distance_rank_partition.alias("distance_rank"),
                     )
-                    .join(rel_model, on=(temp_alias_field == rel_model_field))
+                    .join(parent_model, on=(temp_alias_field == parent_field))
                     .join(catalog_to_model)
                     .where(
                         catalog_to_model.best >> True,
