@@ -7,8 +7,7 @@
 # @License: BSD 3-Clause
 # @Copyright: Tom Dwelly
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from math import log10
 
@@ -52,9 +51,7 @@ def mag2flux(mag, zp=None):
     assert zp is not None
     if np.ndim(mag) > 0:
         with np.errstate(divide="ignore", invalid="ignore"):
-            flux = np.where(
-                mag >= __invalid_mag_thresh, 0.0, 10.0 ** (-0.4 * (mag - zp))
-            )
+            flux = np.where(mag >= __invalid_mag_thresh, 0.0, 10.0 ** (-0.4 * (mag - zp)))
     else:
         if mag >= __invalid_mag_thresh:
             flux = 0.0

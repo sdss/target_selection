@@ -8,8 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             Gaia_DR3)
+from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToGaia_DR3, Gaia_DR3
 
 from target_selection.cartons import BaseCarton
 
@@ -44,37 +43,43 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
 
     """
 
-    name = 'openfibertargets_mwm_hypervelocity_stars_boss'
-    category = 'science'
-    instrument = 'BOSS'
+    name = "openfibertargets_mwm_hypervelocity_stars_boss"
+    category = "science"
+    instrument = "BOSS"
     cadence = None  # cadence is assigned in post_process()
-    program = 'open_fiber'
-    mapper = 'MWM'
+    program = "open_fiber"
+    mapper = "MWM"
     priority = 6085
     can_offset = False
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         Gaia_DR3.phot_g_mean_mag.alias('gaia_dr3_phot_g_mean_mag'),
-                         Gaia_DR3.pm,
-                         Gaia_DR3.pmra,
-                         Gaia_DR3.pmdec,
-                         Gaia_DR3.ruwe,
-                         Gaia_DR3.parallax,
-                         Gaia_DR3.parallax_error)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        Gaia_DR3.phot_g_mean_mag < 19.5,
-                        Gaia_DR3.ruwe < 1.4,
-                        Gaia_DR3.pm > 50,
-                        ((4.74 * Gaia_DR3.pm / Gaia_DR3.parallax > 900) |
-                         (4.74 * Gaia_DR3.pm / (Gaia_DR3.parallax + Gaia_DR3.parallax_error) > 600))  # noqa E501
-                        ))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.phot_g_mean_mag.alias("gaia_dr3_phot_g_mean_mag"),
+                Gaia_DR3.pm,
+                Gaia_DR3.pmra,
+                Gaia_DR3.pmdec,
+                Gaia_DR3.ruwe,
+                Gaia_DR3.parallax,
+                Gaia_DR3.parallax_error,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                Gaia_DR3.phot_g_mean_mag < 19.5,
+                Gaia_DR3.ruwe < 1.4,
+                Gaia_DR3.pm > 50,
+                (
+                    (4.74 * Gaia_DR3.pm / Gaia_DR3.parallax > 900)
+                    | (4.74 * Gaia_DR3.pm / (Gaia_DR3.parallax + Gaia_DR3.parallax_error) > 600)
+                ),  # noqa E501
+            )
+        )
 
         # There can be cases in which the same catalogid has multiple entries
         # in a catalog_to_x table since the same physical object
@@ -86,13 +91,15 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
         # table catalogdb.gaia_dr3_source.
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -103,8 +110,9 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr3_phot_g_mean_mag from " +
-            " sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss ;")
+            "select catalogid, gaia_dr3_phot_g_mean_mag from "
+            + " sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss ;"
+        )
 
         output = cursor.fetchall()
 
@@ -112,13 +120,16 @@ class Openfibertargets_mwm_hypervelocity_stars_boss_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_g = output[i][1]
 
-            if (current_g < 18.5):
-                current_cadence = 'bright_1x1'
+            if current_g < 18.5:
+                current_cadence = "bright_1x1"
             else:
-                current_cadence = 'dark_1x1'
+                current_cadence = "dark_1x1"
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_openfibertargets_mwm_hypervelocity_stars_boss "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )

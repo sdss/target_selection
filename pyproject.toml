@@ -64,11 +64,13 @@ target-version = 'py312'
 exclude = ["typings/"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "NPY201"]
+select = ["E", "F", "I"]
+ignore = ["E722"]
 unfixable = ["F841"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
+"**/cartons/bhm_*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["target_selection"]
