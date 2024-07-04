@@ -2,6 +2,10 @@
 
 ## Next version
 
+### ✨ Improved
+
+* [#455](https://github.com/sdss/target_selection/pull/455) Significant rewrite of the `FileCarton` code to deal with instances of duplicate rows for a single input identifier.
+
 ### ⚙️ Engineering
 
 * [#454](https://github.com/sdss/target_selection/pull/454) Adapt `target_selection` to using a PEP517 installer with Poetry backend. Lint and format using `ruff`. Added linting and release workflows and updated the RTDs build.
