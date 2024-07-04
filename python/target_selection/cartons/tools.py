@@ -59,12 +59,26 @@ def get_file_carton(filename):
             if self._table.masked:
                 self._table = self._table.filled()
 
+            self._run_sanity_checks()
+
+            super().__init__(
+                targeting_plan,
+                config_file=config_file,
+                schema=schema,
+                table_name=table_name,
+            )
+
+            self._disable_query_log = True
+
+        def _run_sanity_checks(self):
+            """Runs a series of sanity checks on the FITS table."""
+
             unique_cartonname = numpy.unique(self._table["cartonname"])
             if len(unique_cartonname) == 1:
                 self.name = unique_cartonname[0].lower()
             else:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + filename
                     + " contains more than one cartonname"
                 )
@@ -72,7 +86,7 @@ def get_file_carton(filename):
             unique_can_offset = numpy.unique(self._table["can_offset"])
             if len(unique_can_offset) > 1:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + filename
                     + " contains more than one"
                     + " value of can_offset:"
@@ -82,7 +96,7 @@ def get_file_carton(filename):
 
             if (unique_can_offset[0] != 1) and (unique_can_offset[0] != 0):
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + filename
                     + " can_offset can only be 0 or 1."
                     + " can_offset is "
@@ -92,7 +106,7 @@ def get_file_carton(filename):
             unique_inertial = numpy.unique(self._table["inertial"])
             if len(unique_inertial) > 2:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + filename
                     + " contains more than two"
                     + " values of inertial:"
@@ -102,7 +116,7 @@ def get_file_carton(filename):
 
             if (unique_inertial[0] != 1) and (unique_inertial[0] != 0):
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + filename
                     + " inertial can only be 0 or 1."
                     + " inertial is "
@@ -114,7 +128,7 @@ def get_file_carton(filename):
             if len(unique_inertial) == 2:
                 if (unique_inertial[1] != 1) and (unique_inertial[1] != 0):
                     raise TargetSelectionError(
-                        "error in get_file_carton(): "
+                        "Error in get_file_carton(): "
                         + filename
                         + " inertial can only be 0 or 1."
                         + " inertial is "
@@ -180,14 +194,14 @@ def get_file_carton(filename):
                 self.category = unique_category[0].lower()
                 if self.category not in valid_category:
                     raise TargetSelectionError(
-                        "error in get_file_carton(): "
+                        "Error in get_file_carton(): "
                         + filename
                         + " contains invalid category = "
                         + self.category
                     )
             else:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): " + filename + " contains more than one category"
+                    "Error in get_file_carton(): " + filename + " contains more than one category"
                 )
 
             unique_program = numpy.unique(self._table["program"])
@@ -195,14 +209,14 @@ def get_file_carton(filename):
                 self.program = unique_program[0].lower()
                 if self.program not in valid_program:
                     raise TargetSelectionError(
-                        "error in get_file_carton(): "
+                        "Error in get_file_carton(): "
                         + filename
                         + " contains invalid program = "
                         + self.program
                     )
             else:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): " + filename + " contains more than one program"
+                    "Error in get_file_carton(): " + filename + " contains more than one program"
                 )
 
             unique_mapper = numpy.unique(self._table["mapper"])
@@ -212,7 +226,7 @@ def get_file_carton(filename):
                 self.mapper = unique_mapper[0]
                 if self.mapper not in valid_mapper:
                     raise TargetSelectionError(
-                        "error in get_file_carton(): "
+                        "Error in get_file_carton(): "
                         + filename
                         + " contains invalid mapper = "
                         + self.mapper
@@ -221,7 +235,7 @@ def get_file_carton(filename):
                     self.mapper = None
             else:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): " + filename + " contains more than one mapper"
+                    "Error in get_file_carton(): " + filename + " contains more than one mapper"
                 )
 
             basename_fits = os.path.basename(filename)
@@ -239,15 +253,6 @@ def get_file_carton(filename):
                     + " cartonname = "
                     + self.name
                 )
-
-            super().__init__(
-                targeting_plan,
-                config_file=config_file,
-                schema=schema,
-                table_name=table_name,
-            )
-
-            self._disable_query_log = True
 
         def copy_data(self, temp_table: str):
             """Copy the input file data to a temporary table.
@@ -274,7 +279,8 @@ def get_file_carton(filename):
 
             # Create model for temporary table from FITS table columns.
             # This works fine because we know there are no arrays.
-            temp_table = self.name.lower() + "_temp"
+            temp_table = f"inputs_{self.name.lower()}_temp"
+            self.database.execute_sql(f"DROP TABLE IF EXISTS {temp_table};")
             temp = create_model_from_table(temp_table, self._table)
             temp._meta.database = self.database
             temp.create_table(temporary=True)
@@ -296,11 +302,8 @@ def get_file_carton(filename):
                 temp.inertial.cast("boolean"),
             )
 
-            # Below we make aliases for the temp table column names.
-            # For example, column temp.Gaia_DR3_Source_ID has alias 'gaia_source_id'.
-            # However, we do not use the column name aliases later.
-            # i.e. later we use the full column name temp.Gaia_DR3_Source_ID.
-            query_common = Catalog.select(
+            # List of columns and aliases for the final query table.
+            query_columns = [
                 Catalog.catalogid,
                 temp.Gaia_DR3_Source_ID.alias("gaia_dr3_source_id"),
                 temp.Gaia_DR2_Source_ID.alias("gaia_source_id"),
@@ -318,133 +321,28 @@ def get_file_carton(filename):
                 temp.instrument,
                 temp.can_offset.cast("boolean").alias("can_offset"),
                 peewee.Value(0).alias("value"),
-            ).distinct(Catalog.catalogid)
+            ]
 
-            # The above clause .distinct(Catalog.catalogid)) is
-            # part of below queries like
-            # query_gaia_dr3, query_gaia_dr2 etc. via query_common.
-            # Note that the DISTINCT clause applies to
-            # each of query_gaia_dr3, query_gaia_dr2 etc.
-            # However, it does not apply to the UNION of these queries.
-            # Hence, if the manual carton input fits file
-            # contains multiple types of IDs
-            # then it is possible to get duplicate catalogid where
-            # one catalogid is from query_gaia_dr3 and other is from
-            # query_twomass_psc. This will be detected at the time of
-            # creation of the unique index on catalogid
-            # in the temporary table.
-            # Hence, the carton owner should remove such duplicates in the
-            # manual carton input fits file.
-
-            query_gaia_dr3 = (
-                query_common.join(CatalogToGaia_DR3)
-                .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                .join(temp, on=(temp.Gaia_DR3_Source_ID == Gaia_DR3.source_id))
-                .switch(Catalog)
-                .where(
-                    CatalogToGaia_DR3.version_id == version_id,
-                    (CatalogToGaia_DR3.best >> True) | CatalogToGaia_DR3.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
-            query_gaia_dr2 = (
-                query_common.join(CatalogToGaia_DR2)
-                .join(Gaia_DR2, on=(CatalogToGaia_DR2.target_id == Gaia_DR2.source_id))
-                .join(temp, on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
-                .switch(Catalog)
-                .where(
-                    CatalogToGaia_DR2.version_id == version_id,
-                    (CatalogToGaia_DR2.best >> True) | CatalogToGaia_DR2.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
-            # Above is the new way for making query_gaia_dr2 after v1.0 crossmatch.
-            # Below is the old way for making query_gaia_dr2 before v1.0 crossmatch.
-            # It is kept here for future reference.
-            #
-            #             query_gaia_dr2 = \
-            #                 (query_common
-            #                  .join(CatalogToTIC_v8)
-            #                  .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-            #                  .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-            #                  .join(temp,
-            #                        on=(temp.Gaia_DR2_Source_ID == Gaia_DR2.source_id))
-            #                  .switch(Catalog)
-            #                  .where(CatalogToTIC_v8.version_id == version_id,
-            #                         (CatalogToTIC_v8.best >> True) |
-            #                         CatalogToTIC_v8.best.is_null(),
-            #                         Catalog.version_id == version_id))
-
-            query_legacysurvey_dr10 = (
-                query_common.join(CatalogToLegacy_Survey_DR10)
-                .join(Legacy_Survey_DR10)
-                .join(temp, on=(temp.LegacySurvey_DR10_ID == Legacy_Survey_DR10.ls_id))
-                .switch(Catalog)
-                .where(
-                    CatalogToLegacy_Survey_DR10.version_id == version_id,
-                    (CatalogToLegacy_Survey_DR10.best >> True)
-                    | CatalogToLegacy_Survey_DR10.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
-            query_legacysurvey_dr8 = (
-                query_common.join(CatalogToLegacy_Survey_DR8)
-                .join(Legacy_Survey_DR8)
-                .join(temp, on=(temp.LegacySurvey_DR8_ID == Legacy_Survey_DR8.ls_id))
-                .switch(Catalog)
-                .where(
-                    CatalogToLegacy_Survey_DR8.version_id == version_id,
-                    (CatalogToLegacy_Survey_DR8.best >> True)
-                    | CatalogToLegacy_Survey_DR8.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
-            query_panstarrs_dr2 = (
-                query_common.join(CatalogToPanstarrs1)
-                .join(Panstarrs1)
-                .join(temp, on=(temp.PanSTARRS_DR2_ID == Panstarrs1.catid_objid))
-                .switch(Catalog)
-                .where(
-                    CatalogToPanstarrs1.version_id == version_id,
-                    (CatalogToPanstarrs1.best >> True) | CatalogToPanstarrs1.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
-            query_twomass_psc = (
-                query_common.join(CatalogToTwoMassPSC)
-                .join(TwoMassPSC)
-                .join(temp, on=(temp.TwoMASS_ID == TwoMassPSC.designation))
-                .switch(Catalog)
-                .where(
-                    CatalogToTwoMassPSC.version_id == version_id,
-                    (CatalogToTwoMassPSC.best >> True) | CatalogToTwoMassPSC.best.is_null(),
-                    Catalog.version_id == version_id,
-                )
-            )
-
+            # Calculate number of rows in the table for each parent catalogue identifier and
+            # run some sanity checks.
             len_table = len(self._table)
-
             len_gaia_dr3 = len(self._table[self._table["Gaia_DR3_Source_ID"] > 0])
-
             len_gaia_dr2 = len(self._table[self._table["Gaia_DR2_Source_ID"] > 0])
-
             len_legacysurvey_dr10 = len(self._table[self._table["LegacySurvey_DR10_ID"] > 0])
-
             len_legacysurvey_dr8 = len(self._table[self._table["LegacySurvey_DR8_ID"] > 0])
-
             len_panstarrs_dr2 = len(self._table[self._table["PanSTARRS_DR2_ID"] > 0])
 
             # TwoMass_ID corresponds to the designation column of
             # the table catalogdb.twomass_psc.
             # Since the designation column is a text column, below
             # we are comparing it to the string 'NA' and not the integer 0.
-            #
             len_twomass_psc = len(self._table[self._table["TwoMASS_ID"] != "NA"])
+
+            # Make sure this is not an empty table.
+            if len_table == 0:
+                raise TargetSelectionError(
+                    f"Error in get_file_carton(): {self._file_path} is an empty table"
+                )
 
             # There must be exactly one non-zero id per row else raise an exception.
             if (
@@ -456,99 +354,175 @@ def get_file_carton(filename):
                 + len_twomass_psc
             ) != len_table:
                 raise TargetSelectionError(
-                    "error in get_file_carton(): "
+                    "Error in get_file_carton(): "
                     + "(len_gaia_dr3 + len_gaia_dr2 + "
                     + "len_legacysurvey_dr10 + len_legacysurvey_dr8 +"
                     + "len_panstarrs_dr2 + len_twomass_psc) != "
                     + "len_table"
                 )
 
+            # A list of CatalogToX models that we need to join to because there are entries
+            # in the file carton with that identifier. Also includes the field to which to join
+            # in the related models and the column in the temporary table. In all cases except
+            # 2MASS this is the primary key.
+            catalog_to_models = []
+
             if len_gaia_dr3 > 0:
-                is_gaia_dr3 = True
-            else:
-                is_gaia_dr3 = False
-
-            if len_gaia_dr2 > 0:
-                is_gaia_dr2 = True
-            else:
-                is_gaia_dr2 = False
-
-            if len_legacysurvey_dr10 > 0:
-                is_legacysurvey_dr10 = True
-            else:
-                is_legacysurvey_dr10 = False
-
-            if len_legacysurvey_dr8 > 0:
-                is_legacysurvey_dr8 = True
-            else:
-                is_legacysurvey_dr8 = False
-
-            if len_panstarrs_dr2 > 0:
-                is_panstarrs_dr2 = True
-            else:
-                is_panstarrs_dr2 = False
-
-            if len_twomass_psc > 0:
-                is_twomass_psc = True
-            else:
-                is_twomass_psc = False
-
-            query = None
-
-            # Below variable 'query' is a UNION of queries.
-            # The operator | is used to construct a UNION of queries.
-
-            if is_gaia_dr3 is True:
-                if query is None:
-                    query = query_gaia_dr3
-                else:
-                    query = query | query_gaia_dr3
-
-            if is_gaia_dr2 is True:
-                if query is None:
-                    query = query_gaia_dr2
-                else:
-                    query = query | query_gaia_dr2
-
-            if is_legacysurvey_dr10 is True:
-                if query is None:
-                    query = query_legacysurvey_dr10
-                else:
-                    query = query | query_legacysurvey_dr10
-
-            if is_legacysurvey_dr8 is True:
-                if query is None:
-                    query = query_legacysurvey_dr8
-                else:
-                    query = query | query_legacysurvey_dr8
-
-            if is_panstarrs_dr2 is True:
-                if query is None:
-                    query = query_panstarrs_dr2
-                else:
-                    query = query | query_panstarrs_dr2
-
-            if is_twomass_psc is True:
-                if query is None:
-                    query = query_twomass_psc
-                else:
-                    query = query | query_twomass_psc
-
-            if query is None:
-                # At least one of the boolean variables above
-                # (e.g. is_gaia_dr3, is_gaia_dr2 etc.)
-                # must be True, so we should not get here.
-                raise TargetSelectionError(
-                    "error in get_file_carton(): "
-                    + "(is_gaia_dr3 is False) and "
-                    + "(is_gaia_dr2 is False) and "
-                    + "(is_legacysurvey_dr10 is False) and "
-                    + "(is_legacysurvey_dr8 is False) and "
-                    + "(is_panstarrs_dr2 is False) and "
-                    + "(is_twomass_psc is False)"
+                catalog_to_models.append(
+                    (
+                        CatalogToGaia_DR3,
+                        Gaia_DR3.source_id,
+                        "Gaia_DR3_Source_ID",
+                    )
                 )
 
-            return query
+            if len_gaia_dr2 > 0:
+                catalog_to_models.append(
+                    (
+                        CatalogToGaia_DR2,
+                        Gaia_DR2.source_id,
+                        "Gaia_DR2_Source_ID",
+                    )
+                )
+
+            if len_legacysurvey_dr10 > 0:
+                catalog_to_models.append(
+                    (
+                        CatalogToLegacy_Survey_DR10,
+                        Legacy_Survey_DR10.ls_id,
+                        "LegacySurvey_DR10_ID",
+                    )
+                )
+
+            if len_legacysurvey_dr8 > 0:
+                catalog_to_models.append(
+                    (
+                        CatalogToLegacy_Survey_DR8,
+                        Legacy_Survey_DR8.ls_id,
+                        "LegacySurvey_DR8_ID",
+                    )
+                )
+
+            if len_panstarrs_dr2 > 0:
+                catalog_to_models.append(
+                    (
+                        CatalogToPanstarrs1,
+                        Panstarrs1.catid_objid,
+                        "PanSTARRS_DR2_ID",
+                    )
+                )
+
+            if len_twomass_psc > 0:
+                catalog_to_models.append(
+                    (
+                        CatalogToTwoMassPSC,
+                        TwoMassPSC.designation,
+                        "TwoMASS_ID",
+                    )
+                )
+
+            if len(catalog_to_models) == 0:
+                raise TargetSelectionError(
+                    "Error in get_file_carton(): no join model found for the file carton."
+                )
+
+            # Create a query for each join model. The final query will be the union of all.
+            # For each join model, we need to account for cases in which an identifier is
+            # associated with more than one catalogid via a window function (we select either
+            # the phase 1 match, or the one with the smallest distance).
+
+            queries = []
+
+            for catalog_to_model, rel_model_field, temp_column in catalog_to_models:
+                # Get the model class field for the column in the temporary table with the
+                # identifier for this case.
+                temp_field = getattr(temp, temp_column)
+
+                # Get the related model. The only reason why we need to join all the way to the
+                # parent catalogue model is 2MASS for which the column TwoMASS_ID in the file
+                # carton corresponds to the designation column in the TwoMassPSC model, which
+                # is not the primary key.
+                rel_model = rel_model_field.model
+
+                # Create a subquery that ranks the rows by distance to the target. Since
+                # temp is also used in the main query, we need to alias it.
+                # Note that we are using ROW_NUMBER() and not RANK() because the latter would
+                # assign the same rank to multiple rows with the same distance. This can happen
+                # if two catalogids are associated with a target in phase 1 (an example of this
+                # is a Gaia DR2 target that has been deblended into two Gaia DR3 targets).
+                # We also order by catalogid to ensure that the query is deterministic but
+                # ultimately we are randomly selecting one of the targets here.
+                temp_alias = temp.alias("temp_alias")
+                temp_alias_field = getattr(temp_alias, temp_column)
+
+                distance_rank_partition = peewee.fn.row_number().over(
+                    partition_by=[catalog_to_model.target_id],
+                    order_by=[
+                        peewee.fn.coalesce(catalog_to_model.distance, 0.0).asc(),
+                        catalog_to_model.catalogid.asc(),
+                    ],
+                )
+
+                sub_query = (
+                    temp_alias.select(
+                        catalog_to_model.catalogid,
+                        rel_model_field.alias("target_id"),
+                        distance_rank_partition.alias("distance_rank"),
+                    )
+                    .join(rel_model, on=(temp_alias_field == rel_model_field))
+                    .join(catalog_to_model)
+                    .where(
+                        catalog_to_model.best >> True,
+                        catalog_to_model.version_id == version_id,
+                    )
+                ).alias("distance_rank_subquery")
+
+                # Now add the main query. We join the subquery to the temporary table to
+                # get all the relevant columns, but keep only the entries with distance_rank=1.
+                queries.append(
+                    Catalog.select(*query_columns, sub_query.c.distance_rank)
+                    .join(
+                        sub_query,
+                        on=(Catalog.catalogid == sub_query.c.catalogid),
+                    )
+                    .join(
+                        temp,
+                        on=(temp_field == sub_query.c.target_id),
+                    )
+                    .where(sub_query.c.distance_rank == 1)
+                    .distinct(Catalog.catalogid)
+                )
+
+            # Union all queries.
+            query_union = queries[0]
+            for query in queries[1:]:
+                query_union = query_union | query
+
+            # It seems to work better if we disable sequential scans and force the use of the
+            # indices.
+            self.database.execute_sql("SET LOCAL enable_seqscan = off;")
+
+            # Now just distinct on catalogid for all the unions. Although we already have a
+            # distinct in each query, they can yield the same catalogid from different queries.
+            query_union = query_union.cte("query_union")
+
+            return (
+                query_union.select(query_union.__star__)
+                .distinct(query_union.c.catalogid)
+                .with_cte(query_union)
+            )
+
+        def post_process(self, model, **kwargs):
+            """Runs sanity checks on the output of the query."""
+
+            n_file_table = len(self._table)
+            n_query = model.select().count()
+
+            if n_file_table != n_query:
+                self.log.warning(
+                    f"The number of rows in the file table ({n_file_table}) does not "
+                    f"match the number of rows returned by the query ({n_query})."
+                )
 
     return FileCarton
 
