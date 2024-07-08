@@ -9,7 +9,6 @@
 from peewee import fn
 
 from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
     CatalogToGaia_DR3,
     CatalogToTwoMassPSC,
     Gaia_DR3,
