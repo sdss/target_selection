@@ -47,7 +47,8 @@ class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
     can_offset = True
     Lead contact: Alexander Ji
 
-    Note that there is a carton derived from this *single* carton.
+    Note that there is a carton derived from this 
+    MWM_halo_distant_rrl_boss_single_Carton carton.
     The derived carton is called MWM_halo_distant_rrl_boss_triple_Carton.
     This pattern is true for the other mwm_halo_*_triple cartons in this file.
 
