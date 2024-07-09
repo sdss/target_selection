@@ -49,9 +49,10 @@ class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
 
     Note that there is a carton derived from this *single* carton.
     The derived carton is called MWM_halo_distant_rrl_boss_triple_Carton.
-    This pattern is true for the other *triple* cartons in this file.
+    This pattern is true for the other mwm_halo_*_triple cartons in this file.
 
-    We do not call this *single* carton as MWM_halo_distant_rrl_boss_Base_Carton since
+    We call this carton as MWM_halo_distant_rrl_boss_single_Carton.
+    We do not call this carton as MWM_halo_distant_rrl_boss_Base_Carton since
     there is a separate carton called MWM_halo_distant_rrl_boss_Carton.
     """
 
@@ -429,7 +430,7 @@ class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
 
 class MWM_halo_mp_xp_boss_triple_Carton(MWM_halo_mp_xp_boss_single_Carton):
     """
-    mwm_halo_mp_xp_boss_single
+    mwm_halo_mp_xp_boss_triple
     G>13
     -2.0 < mh_xgboost <= -1.5
     INSTRUMENT: BOSS
