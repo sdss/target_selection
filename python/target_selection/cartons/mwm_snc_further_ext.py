@@ -82,6 +82,7 @@ class Openfibertargets_mwm_snc_further_ext_apogee_bright_Carton(MWM_snc_further_
     Program: open_fiber
     Lead contact: Ilija Medan
     """
+
     name = "openfibertargets_mwm_snc_further_ext_apogee_bright"
     category = "science"
     instrument = "APOGEE"
@@ -115,7 +116,8 @@ class Openfibertargets_mwm_snc_further_ext_apogee_dark_Carton(MWM_snc_further_ex
     Program: open_fiber
     Lead contact: Ilija Medan
     """
-    name = "openfibertargets_mwm_snc_further_ext_apogee_bright"
+
+    name = "openfibertargets_mwm_snc_further_ext_apogee_dark"
     category = "science"
     instrument = "APOGEE"
     cadence = "dark_1x1"
@@ -148,6 +150,7 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
     Program: open_fiber
     Lead contact: Ilija Medan
     """
+
     name = "openfibertargets_mwm_snc_further_ext_boss"
     category = "science"
     instrument = "BOSS"
@@ -171,7 +174,8 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
         # self is not a parameter of post_process() below
         # since we are using super().
         super().post_process(model)
-        # cadence bright_1x1 for stars with G < 16 and dark_1x1 for stars with G > 16
+
+        # set cadence bright_1x1 for stars with G < 16 and dark_1x1 for stars with G > 16
 
         cursor = self.database.execute_sql(
             "select catalogid, gaia_dr3_phot_g_mean_mag from "
