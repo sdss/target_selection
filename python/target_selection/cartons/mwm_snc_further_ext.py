@@ -32,41 +32,62 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
         ll = Gaia_DR3.l
         bb = Gaia_DR3.b
 
-    # Dense regions (Galactic plane, SMC, LMC).
-        gal_cut = (((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
-                   | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
-                   | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
-                   | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8))
+        # Dense regions (Galactic plane, SMC, LMC).
+        gal_cut = (
+            ((ll <= 180) & (bb < (-0.139 * ll + 25)) & (bb > (0.139 * ll - 25)))
+            | ((ll > 180) & (bb > (-0.139 * ll + 25)) & (bb < (0.139 * ll - 25)))
+            | (fn.sqrt(fn.pow(ll - 303.2, 2) + 2 * fn.pow(bb + 44.4, 2)) < 5)
+            | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8)
+        )
 
-        cte = Gaia_DR3.select(Gaia_DR3.source_id)\
+        cte = (
+            Gaia_DR3.select(Gaia_DR3.source_id)
             .where(
-            Gaia_DR3.parallax < 10, Gaia_DR3.parallax - Gaia_DR3.parallax_error > 2,
-            Gaia_DR3.phot_g_mean_mag + 5 * fn.log10(Gaia_DR3.parallax / 1000) + 5 >
-                19.125 - 0.03225 * (1000 / Gaia_DR3.parallax)
-            ).cte('plx_mag_cte', materialized=True)
+                Gaia_DR3.parallax < 10,
+                Gaia_DR3.parallax - Gaia_DR3.parallax_error > 2,
+                Gaia_DR3.phot_g_mean_mag + 5 * fn.log10(Gaia_DR3.parallax / 1000) + 5
+                > 19.125 - 0.03225 * (1000 / Gaia_DR3.parallax),
+            )
+            .cte("plx_mag_cte", materialized=True)
+        )
 
-        query = (Gaia_DR3.select(Gaia_DR3.source_id,
-            Gaia_DR3.l,
-            Gaia_DR3.b,
-            Gaia_DR3.parallax,
-            Gaia_DR3.parallax_error,
-            Gaia_DR3.phot_g_mean_mag.alias("gaia_dr3_phot_g_mean_mag"),
-            Gaia_DR3.phot_bp_mean_mag,
-            Gaia_DR3.phot_rp_mean_mag,
-            Gaia_DR3.ruwe,
-            Gaia_DR3.phot_bp_rp_excess_factor,
-            Gaia_DR3.astrometric_excess_noise)\
-            .join(CatalogToGaia_DR3).join_from(
-            Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id)).where((
-                (Gaia_DR3.astrometric_excess_noise < 2) &
-                (Gaia_DR3.ruwe < 1.2) &
-                (Gaia_DR3.phot_bp_rp_excess_factor >
-                 1 + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
-                (Gaia_DR3.phot_bp_rp_excess_factor <
-                 1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
-                gal_cut) | ~gal_cut).where(
-                        CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True).with_cte(cte))
+        query = (
+            Gaia_DR3.select(
+                Gaia_DR3.source_id,
+                Gaia_DR3.l,
+                Gaia_DR3.b,
+                Gaia_DR3.parallax,
+                Gaia_DR3.parallax_error,
+                Gaia_DR3.phot_g_mean_mag.alias("gaia_dr3_phot_g_mean_mag"),
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag,
+                Gaia_DR3.ruwe,
+                Gaia_DR3.phot_bp_rp_excess_factor,
+                Gaia_DR3.astrometric_excess_noise,
+            )
+            .join(CatalogToGaia_DR3)
+            .join_from(Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id))
+            .where(
+                (
+                    (Gaia_DR3.astrometric_excess_noise < 2)
+                    & (Gaia_DR3.ruwe < 1.2)
+                    & (
+                        Gaia_DR3.phot_bp_rp_excess_factor
+                        > 1
+                        + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)
+                    )
+                    & (
+                        Gaia_DR3.phot_bp_rp_excess_factor
+                        < 1.3
+                        + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)
+                    )
+                    & gal_cut
+                )
+                | ~gal_cut
+            )
+            .where(CatalogToGaia_DR3.version_id == version_id, CatalogToGaia_DR3.best >> True)
+            .with_cte(cte)
+        )
         return query
 
 
@@ -94,12 +115,19 @@ class Openfibertargets_mwm_snc_further_ext_apogee_bright_Carton(MWM_snc_further_
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
-        query = query.switch(CatalogToGaia_DR3).join(
-            CatalogToTwoMassPSC, on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid
-                                     )).join(TwoMassPSC).where(
-                                         CatalogToTwoMassPSC.version_id == version_id,
-                                         CatalogToTwoMassPSC.best >> True,
-                                         TwoMassPSC.h_m < 11)
+        query = (
+            query.switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC)
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                TwoMassPSC.h_m < 11,
+            )
+        )
 
         return query
 
@@ -128,12 +156,19 @@ class Openfibertargets_mwm_snc_further_ext_apogee_dark_Carton(MWM_snc_further_ex
 
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
-        query = query.switch(CatalogToGaia_DR3).join(
-            CatalogToTwoMassPSC, on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid
-                                     )).join(TwoMassPSC).where(
-                                         CatalogToTwoMassPSC.version_id == version_id,
-                                         CatalogToTwoMassPSC.best >> True,
-                                         TwoMassPSC.h_m < 11)
+        query = (
+            query.switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC)
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                TwoMassPSC.h_m < 11,
+            )
+        )
 
         return query
 
@@ -163,9 +198,11 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
 
-        query = query.where(Gaia_DR3.phot_g_mean_mag > 10,
-                            Gaia_DR3.phot_g_mean_mag < 20,
-                            Gaia_DR3.radial_velocity.is_null())
+        query = query.where(
+            Gaia_DR3.phot_g_mean_mag > 10,
+            Gaia_DR3.phot_g_mean_mag < 20,
+            Gaia_DR3.radial_velocity.is_null(),
+        )
 
         return query
 
@@ -199,4 +236,5 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
                     + " set cadence = '"
                     + current_cadence
                     + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
