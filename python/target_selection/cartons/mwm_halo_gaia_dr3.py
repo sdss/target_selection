@@ -46,6 +46,13 @@ class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
     Instrument: BOSS
     can_offset = True
     Lead contact: Alexander Ji
+
+    Note that there is a carton derived from this *single* carton.
+    The derived carton is called MWM_halo_distant_rrl_boss_triple_Carton.
+    This pattern is true for the other *triple* cartons in this file.
+
+    We do not call this *single* carton as MWM_halo_distant_rrl_boss_Base_Carton since
+    there is a separate carton called MWM_halo_distant_rrl_boss_Carton.
     """
 
     name = "mwm_halo_distant_rrl_boss_single"
@@ -97,6 +104,31 @@ class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
                 )
             )
 
+        return query
+
+
+class MWM_halo_distant_rrl_boss_triple_Carton(MWM_halo_distant_rrl_boss_single_Carton):
+    """mwm_halo_distant_rrl_boss_triple
+    Shorthand name: mwm_halo_distant_rrl_boss_triple
+    Metadata:
+    Priority: 3051
+    Cadence: dark_1x3
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Alexander Ji
+    """
+
+    name = "mwm_halo_distant_rrl_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 3051
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
         return query
 
 
@@ -342,6 +374,30 @@ class MWM_halo_vmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
         return query
 
 
+class MWM_halo_vmp_xp_boss_triple_Carton(MWM_halo_vmp_xp_boss_single_Carton):
+    """
+    mwm_halo_vmp_xp_boss_triple
+    G>13
+    mh_xgboost <= -2.0
+    INSTRUMENT: BOSS
+    CADENCE: dark_1x3
+    PRIORITY: 1851
+    """
+
+    name = "mwm_halo_vmp_xp_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 1851
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+
 class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
     mwm_halo_mp_xp_boss_single
@@ -368,6 +424,30 @@ class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
             Xpfeh_gaia_dr3.mh_xgboost > -2.0,
             Xpfeh_gaia_dr3.mh_xgboost <= -1.5,
         )
+        return query
+
+
+class MWM_halo_mp_xp_boss_triple_Carton(MWM_halo_mp_xp_boss_single_Carton):
+    """
+    mwm_halo_mp_xp_boss_single
+    G>13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: BOSS
+    CADENCE: dark_1x3
+    PRIORITY: 2971
+    """
+
+    name = "mwm_halo_mp_xp_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 2971
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
         return query
 
 
@@ -400,6 +480,30 @@ class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
         return query
 
 
+class MWM_halo_nmp_xp_boss_triple_Carton(MWM_halo_nmp_xp_boss_single_Carton):
+    """
+    mwm_halo_nmp_xp_boss_triple
+    G>13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: BOSS
+    CADENCE: dark_1x3
+    PRIORITY: 6501
+    """
+
+    name = "mwm_halo_nmp_xp_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+
 class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
     mwm_halo_vmp_xp_apogee_single
@@ -422,6 +526,30 @@ class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
     def build_query(self, version_id, query_region=None):
         query = super().build_query(version_id, query_region)
         query = query.where(Gaia_DR3.phot_g_mean_mag <= 13, Xpfeh_gaia_dr3.mh_xgboost <= -2.0)
+        return query
+
+
+class MWM_halo_vmp_xp_apogee_triple_Carton(MWM_halo_vmp_xp_apogee_single_Carton):
+    """
+    mwm_halo_vmp_xp_apogee_triple
+    G <=13
+    mh_xgboost <= -2.0
+    INSTRUMENT: APOGEE
+    CADENCE: dark_1x3
+    PRIORITY: 1851
+    """
+
+    name = "mwm_halo_vmp_xp_apogee_triple"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 1851
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
         return query
 
 
@@ -454,6 +582,30 @@ class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
         return query
 
 
+class MWM_halo_mp_xp_apogee_triple_Carton(MWM_halo_mp_xp_apogee_single_Carton):
+    """
+    mwm_halo_mp_xp_apogee_triple
+    G <=13
+    -2.0 < mh_xgboost <= -1.5
+    INSTRUMENT: APOGEE
+    CADENCE: bright_1x1
+    PRIORITY: 2971
+    """
+
+    name = "mwm_halo_mp_xp_apogee_triple"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 2971
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+
 class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
     mwm_halo_nmp_xp_apogee_single
@@ -480,6 +632,30 @@ class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
             Xpfeh_gaia_dr3.mh_xgboost > -1.5,
             Xpfeh_gaia_dr3.mh_xgboost <= -1.0,
         )
+        return query
+
+
+class MWM_halo_nmp_xp_apogee_triple_Carton(MWM_halo_nmp_xp_apogee_single_Carton):
+    """
+    mwm_halo_nmp_xp_apogee_triple
+    G <=13
+    -1.5 < mh_xgboost <= -1.0
+    INSTRUMENT: APOGEE
+    CADENCE: dark_1x3
+    PRIORITY: 6501
+    """
+
+    name = "mwm_halo_nmp_xp_apogee_triple"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
         return query
 
 
@@ -1058,6 +1234,35 @@ class MWM_halo_local_high_apogee_single_Carton(MWM_halo_local_Base_Carton):
                 )
 
 
+class MWM_halo_local_high_apogee_triple_Carton(MWM_halo_local_high_apogee_single_Carton):
+    """
+    mwm_halo_local_high_apogee_triple
+    vtan >= 150 and parallax_over_error >=10 OR
+    vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
+    G < 13
+    PRIORITY: 2981
+    CADENCE: dark_1x3
+    INSTRUMENT: APOGEE
+    can_offset = True
+    """
+
+    name = "mwm_halo_local_high_apogee_triple"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 2981
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
 class MWM_halo_local_high_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
     mwm_halo_local_high_boss_single
@@ -1131,6 +1336,35 @@ class MWM_halo_local_high_boss_single_Carton(MWM_halo_local_Base_Carton):
                 )
 
 
+class MWM_halo_local_high_boss_triple_Carton(MWM_halo_local_high_boss_single_Carton):
+    """
+    mwm_halo_local_high_boss_triple
+    vtan >= 150 and parallax_over_error >=10 OR
+    vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
+    G >= 13
+    PRIORITY: 2981
+    CADENCE: dark_1x3
+    INSTRUMENT: BOSS
+    can_offset = True
+    """
+
+    name = "mwm_halo_local_high_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 2981
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
 class MWM_halo_local_low_apogee_single_Carton(MWM_halo_local_Base_Carton):
     """
     mwm_halo_local_low_apogee_single
@@ -1201,6 +1435,34 @@ class MWM_halo_local_low_apogee_single_Carton(MWM_halo_local_Base_Carton):
                 )
 
 
+class MWM_halo_local_low_apogee_triple_Carton(MWM_halo_local_low_apogee_single_Carton):
+    """
+    mwm_halo_local_low_apogee_triple
+    vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
+    G < 13
+    PRIORITY: 6501
+    CADENCE: dark_1x3
+    INSTRUMENT: APOGEE
+    can_offset = True
+    """
+
+    name = "mwm_halo_local_low_apogee_triple"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
+
+
 class MWM_halo_local_low_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
     mwm_halo_local_low_boss_single
@@ -1269,6 +1531,34 @@ class MWM_halo_local_low_boss_single_Carton(MWM_halo_local_Base_Carton):
                     + str(current_catalogid)
                     + ";"
                 )
+
+
+class MWM_halo_local_low_boss_triple_Carton(MWM_halo_local_low_boss_single_Carton):
+    """
+    mwm_halo_local_low_boss_triple
+    vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
+    G >= 13
+    PRIORITY: 6501
+    CADENCE: dark_1x3
+    INSTRUMENT: BOSS
+    can_offset = True
+    """
+
+    name = "mwm_halo_local_low_boss_triple"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    program = "mwm_halo"
+    mapper = "MWM"
+    priority = 6501
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        super().post_process(model)
 
 
 class MWM_halo_local_high_apogee_Carton(MWM_halo_local_Base_Carton):
