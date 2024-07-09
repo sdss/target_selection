@@ -62,7 +62,8 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
 class Openfibertargets_mwm_snc_further_ext_apogee_bright_Carton(MWM_snc_further_ext_Base_Carton):
     """Shorthand name: openfibertargets_mwm_snc_further_ext_apogee_bright
     REPLACES openfibertargets_nov2020_24
-    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error, G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
+    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error,
+        G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
     Metadata: can_offset=True
     Priority: 6085
     Cadence: bright_1x1
@@ -94,7 +95,8 @@ class Openfibertargets_mwm_snc_further_ext_apogee_bright_Carton(MWM_snc_further_
 class Openfibertargets_mwm_snc_further_ext_apogee_dark_Carton(MWM_snc_further_ext_Base_Carton):
     """Shorthand name: openfibertargets_mwm_snc_further_ext_apogee_dark
     REPLACES openfibertargets_nov2020_24
-    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error, G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
+    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error,
+        G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
     Metadata: can_offset=True
     Priority: 6085
     Cadence: dark_1x1
@@ -126,7 +128,8 @@ class Openfibertargets_mwm_snc_further_ext_apogee_dark_Carton(MWM_snc_further_ex
 class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_Carton):
     """Shorthand name: openfibertargets_mwm_snc_further_ext_boss
     REPLACES openfibertargets_nov2020_24
-    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error, G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
+    Return columns: Gaia Galactic longitude and latitude, parallax, parallax_error,
+    G, BP, RP, ruwe, phot_bp_rp_excess_factor, astrometric_excess_noise, and 2MASS H
     Metadata: can_offset=True
     Priority: 6086
     Cadence: bright_1x1 for stars with G < 16 and dark_1x1 for stars with G > 16
