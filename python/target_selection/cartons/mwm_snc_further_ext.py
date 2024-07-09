@@ -39,7 +39,7 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
                    | (fn.sqrt(fn.pow(ll - 280.3, 2) + 2 * fn.pow(bb + 33.0, 2)) < 8))
 
         cte = Gaia_DR3.select(Gaia_DR3.source_id)\
-                .where(
+            .where(
             Gaia_DR3.parallax < 10, Gaia_DR3.parallax - Gaia_DR3.parallax_error > 2,
             Gaia_DR3.phot_g_mean_mag + 5 * fn.log10(Gaia_DR3.parallax / 1000) + 5 >
                 19.125 - 0.03225 * (1000 / Gaia_DR3.parallax)
