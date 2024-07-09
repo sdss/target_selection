@@ -50,9 +50,9 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
                 (Gaia_DR3.astrometric_excess_noise < 2) &
                 (Gaia_DR3.ruwe < 1.2) &
                 (Gaia_DR3.phot_bp_rp_excess_factor >
-                     1 + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
+                 1 + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
                 (Gaia_DR3.phot_bp_rp_excess_factor <
-                     1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
+                 1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)) &
                 gal_cut) | ~gal_cut).where(
                         CatalogToGaia_DR3.version_id == version_id,
                         CatalogToGaia_DR3.best >> True).with_cte(cte))
