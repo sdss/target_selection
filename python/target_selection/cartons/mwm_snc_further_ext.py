@@ -45,7 +45,11 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
                 19.125 - 0.03225 * (1000 / Gaia_DR3.parallax)
             ).cte('plx_mag_cte', materialized=True)
 
-        query = (Gaia_DR3.select().join(CatalogToGaia_DR3).join_from(
+        query = (Gaia_DR3.select(Gaia_DR3.source_id, Gaia_DR3.l, Gaia_DR3.b,\
+            Gaia_DR3.parallax, Gaia_DR3.parallax_error, Gaia_DR3.phot_g_mean_mag,\
+            Gaia_DR3.phot_bp_mean_mag, Gaia_DR3.phot_rp_mean_mag, Gaia_DR3.ruwe,\
+            Gaia_DR3.phot_bp_rp_excess_factor, Gaia_DR3.astrometric_excess_noise)\
+            .join(CatalogToGaia_DR3).join_from(
             Gaia_DR3, cte, on=(Gaia_DR3.source_id == cte.c.source_id)).where((
                 (Gaia_DR3.astrometric_excess_noise < 2) &
                 (Gaia_DR3.ruwe < 1.2) &
