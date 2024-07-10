@@ -61,7 +61,7 @@ sphinx-copybutton = ">=0.3.3"
 myst-parser = ">=0.15"
 
 [tool.poetry.scripts]
-target-selection = "target_selection.__main__:target_selection"
+target_selection = "target_selection.__main__:target_selection"
 
 [tool.ruff]
 line-length = 99
