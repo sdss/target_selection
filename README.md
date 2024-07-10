@@ -42,7 +42,7 @@ pip install -e .
 
 We use [ruff](https://docs.astral.sh/ruff/) for both linting, import sorting, and code formatting. The configuration is stored in `pyproject.toml` and it's mainly the default `ruff` configuration (and similar to `flake8`) but with a line length of 99 characters for historical reasons and because it simplifies writing long Peewee/SQLAlchemy query statements. The formatting is similar to [black](https://github.com/psf/black), and thus quite opinionated.
 
-A workflow checks for linting and formatting errors on each commit, and pull requests are blocked until the workflow succeeds. The easiest way to fix these problems is by installing `ruff` and letting it format the code, and then checking if any linting errors remain
+A workflow checks for linting and formatting errors on each commit, and pull requests are blocked until the workflow succeeds. The easiest way to fix these problems is by installing `ruff` and letting it format the code, and then checking if any linting errors remain. The commands `ruff format` and `ruff check` are independent and both must be run.
 
 ```console
 $ pip install ruff
