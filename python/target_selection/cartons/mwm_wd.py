@@ -75,25 +75,6 @@ class MWM_WD_PWD_boss_Carton(BaseCarton):
         return query
 
 
-class MWM_WD_PWD_boss_single_Carton(MWM_WD_PWD_boss_Carton):
-    """mwm_wd_pwd_boss_single -
-    same as mwm_wd_pwd_boss but
-    with cadence=dark_1x3 and adding "2" to each priority.
-    """
-    name = "mwm_wd_pwd_boss_single"
-    mapper = "MWM"
-    category = "science"
-    program = "mwm_wd"
-    instrument = "BOSS"
-    cadence = "dark_1x3"
-    priority = 1402
-    can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
-
 class MWM_WD_Gaia_boss_Carton(BaseCarton):
     """MWM Gaia White Dwarfs.
 
@@ -178,8 +159,23 @@ class MWM_WD_Gaia_boss_Carton(BaseCarton):
         return query
 
 
-class MWM_WD_Gaia_boss_single_Carton(MWM_WD_Gaia_boss_Carton):
+class MWM_WD_PWD_boss_single_Carton(MWM_WD_PWD_boss_Carton):
+    """mwm_wd_pwd_boss_single -
+    same as mwm_wd_pwd_boss but
+    with cadence=dark_1x3 and adding "2" to each priority.
+    """
 
+    name = "mwm_wd_pwd_boss_single"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_wd"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    priority = 1402
+    can_offset = True
+
+
+class MWM_WD_Gaia_boss_single_Carton(MWM_WD_Gaia_boss_Carton):
     """mwm_wd_gaia_boss_single -
     same as mwm_wd_gaia_boss but
     with cadence=dark_1x3 and adding "2" to each priority.
@@ -193,7 +189,3 @@ class MWM_WD_Gaia_boss_single_Carton(MWM_WD_Gaia_boss_Carton):
     cadence = "dark_1x3"
     priority = 1403
     can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
