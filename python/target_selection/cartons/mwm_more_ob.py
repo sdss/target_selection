@@ -41,19 +41,19 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
     INNER JOIN gaiadr1.tmass_original_valid AS tm
     ON tm.tmass_oid = xmatch.tmass_oid
 
-    WHERE parallax < power (10, ((10. - tm.ks_m + 0.) / 5.))
+    WHERE parallax < power (10, ((10. - tm.k_m + 0.) / 5.))
 
-    AND parallax > power(10, ((10. - tm.ks_m - 0.61) / 5.))
+    AND parallax > power(10, ((10. - tm.k_m - 0.61) / 5.))
 
     AND g.phot_g_mean_mag < 16.
-    AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) < 0.10
-    AND tm.j_m - tm.ks_m - 0.25 * (g.phot_g_mean_mag - tm.ks_m) > -0.30
-    AND tm.j_m - tm.h_m < 0.15 * (g.phot_g_mean_mag - tm.ks_m) + 0.05
-    AND tm.j_m - tm.h_m > 0.15 * (g.phot_g_mean_mag - tm.ks_m) - 0.15
-    AND g.phot_g_mean_mag > 2 * (g.phot_g_mean_mag - tm.ks_m) + 3.0
+    AND tm.j_m - tm.k_m - 0.25 * (g.phot_g_mean_mag - tm.k_m) < 0.10
+    AND tm.j_m - tm.k_m - 0.25 * (g.phot_g_mean_mag - tm.k_m) > -0.30
+    AND tm.j_m - tm.h_m < 0.15 * (g.phot_g_mean_mag - tm.k_m) + 0.05
+    AND tm.j_m - tm.h_m > 0.15 * (g.phot_g_mean_mag - tm.k_m) - 0.15
+    AND g.phot_g_mean_mag > 2 * (g.phot_g_mean_mag - tm.k_m) + 3.0
 
     Return columns: Gaia DR3: source_id, ra, dec, parallax, pmra, pmdec,
-    phot_g_mean_mag, phot_bp_mean_mag, phot_rp_mean_mag; 2MASS: j_m, h_m, ks_m
+    phot_g_mean_mag, phot_bp_mean_mag, phot_rp_mean_mag; 2MASS: j_m, h_m, k_m
 
     Metadata: can_offset=True
     Priority: 6085
@@ -92,7 +92,6 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
                 TwoMassPSC.j_m,
                 TwoMassPSC.h_m,
                 TwoMassPSC.k_m,
-                TwoMassPSC.ks_m,
             )
             .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .switch(CatalogToGaia_DR3)
@@ -105,33 +104,30 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
                 CatalogToGaia_DR3.version_id == version_id,
                 CatalogToGaia_DR3.best >> True,
                 CatalogToTwoMassPSC.best >> True,
-                (Gaia_DR3.parallax < peewee.fn.power(10, ((10.0 - TwoMassPSC.ks_m + 0.0) / 5.0))),
-                (Gaia_DR3.parallax > peewee.fn.power(10, ((10.0 - TwoMassPSC.ks_m - 0.61) / 5.0))),
+                (Gaia_DR3.parallax < peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m + 0.0) / 5.0))),
+                (Gaia_DR3.parallax > peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m - 0.61) / 5.0))),
                 Gaia_DR3.phot_g_mean_mag < 16,
                 (
                     TwoMassPSC.j_m
-                    - TwoMassPSC.ks_m
-                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.ks_m)
+                    - TwoMassPSC.k_m
+                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
                     < 0.10
                 ),
                 (
                     TwoMassPSC.j_m
-                    - TwoMassPSC.ks_m
-                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.ks_m)
+                    - TwoMassPSC.k_m
+                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
                     > -0.30
                 ),
                 (
                     TwoMassPSC.j_m - TwoMassPSC.h_m
-                    < 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.ks_m) + 0.05
+                    < 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 0.05
                 ),
                 (
                     TwoMassPSC.j_m - TwoMassPSC.h_m
-                    > 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.ks_m) - 0.15
+                    > 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) - 0.15
                 ),
-                (
-                    Gaia_DR3.phot_g_mean_mag
-                    > 2 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.ks_m) + 3.0
-                ),
+                (Gaia_DR3.phot_g_mean_mag > 2 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 3.0),
             )
         )
 
