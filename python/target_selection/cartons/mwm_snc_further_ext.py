@@ -53,6 +53,7 @@ class MWM_snc_further_ext_Base_Carton(BaseCarton):
 
         query = (
             Gaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
                 Gaia_DR3.source_id,
                 Gaia_DR3.l,
                 Gaia_DR3.b,
