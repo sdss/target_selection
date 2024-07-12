@@ -1,7 +1,10 @@
 '1.2.2':
   xmatch_plan: 1.0.0
   cartons:
-    - openfibertargets_mwm_more_ob_boss
+    - openfibertargets_mwm_hypervelocity_stars_boss
+    - openfibertargets_mwm_snc_further_ext_apogee_bright
+    - openfibertargets_mwm_snc_further_ext_apogee_dark
+    - openfibertargets_mwm_snc_further_ext_boss
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
   schema: sandbox
   magnitudes:
