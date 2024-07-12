@@ -129,10 +129,6 @@ class MWM_halo_distant_rrl_boss_triple_Carton(MWM_halo_distant_rrl_boss_single_C
     priority = 3051
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
 
 class MWM_halo_distant_rrl_boss_Carton(BaseCarton):
     """5.1.34. mwm_halo_distant_rrl_boss
@@ -395,10 +391,6 @@ class MWM_halo_vmp_xp_boss_triple_Carton(MWM_halo_vmp_xp_boss_single_Carton):
     priority = 1851
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
 
 class MWM_halo_mp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
@@ -447,10 +439,6 @@ class MWM_halo_mp_xp_boss_triple_Carton(MWM_halo_mp_xp_boss_single_Carton):
     mapper = "MWM"
     priority = 2971
     can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
 
 
 class MWM_halo_nmp_xp_boss_single_Carton(MWM_halo_mp_xp_Base_Carton):
@@ -501,10 +489,6 @@ class MWM_halo_nmp_xp_boss_triple_Carton(MWM_halo_nmp_xp_boss_single_Carton):
     priority = 6501
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
 
 class MWM_halo_vmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
@@ -549,10 +533,6 @@ class MWM_halo_vmp_xp_apogee_triple_Carton(MWM_halo_vmp_xp_apogee_single_Carton)
     mapper = "MWM"
     priority = 1851
     can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
 
 
 class MWM_halo_mp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
@@ -603,10 +583,6 @@ class MWM_halo_mp_xp_apogee_triple_Carton(MWM_halo_mp_xp_apogee_single_Carton):
     priority = 2971
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
 
 class MWM_halo_nmp_xp_apogee_single_Carton(MWM_halo_mp_xp_Base_Carton):
     """
@@ -655,10 +631,6 @@ class MWM_halo_nmp_xp_apogee_triple_Carton(MWM_halo_nmp_xp_apogee_single_Carton)
     mapper = "MWM"
     priority = 6501
     can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
 
 
 class MWM_halo_mp_xp_dark_Base_Carton(BaseCarton):
@@ -1257,13 +1229,6 @@ class MWM_halo_local_high_apogee_triple_Carton(MWM_halo_local_high_apogee_single
     priority = 2981
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
-    def post_process(self, model):
-        super().post_process(model)
-
 
 class MWM_halo_local_high_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1359,13 +1324,6 @@ class MWM_halo_local_high_boss_triple_Carton(MWM_halo_local_high_boss_single_Car
     priority = 2981
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
-    def post_process(self, model):
-        super().post_process(model)
-
 
 class MWM_halo_local_low_apogee_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1457,13 +1415,6 @@ class MWM_halo_local_low_apogee_triple_Carton(MWM_halo_local_low_apogee_single_C
     priority = 6501
     can_offset = True
 
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
-    def post_process(self, model):
-        super().post_process(model)
-
 
 class MWM_halo_local_low_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1554,13 +1505,6 @@ class MWM_halo_local_low_boss_triple_Carton(MWM_halo_local_low_boss_single_Carto
     mapper = "MWM"
     priority = 6501
     can_offset = True
-
-    def build_query(self, version_id, query_region=None):
-        query = super().build_query(version_id, query_region)
-        return query
-
-    def post_process(self, model):
-        super().post_process(model)
 
 
 class MWM_halo_local_high_apogee_Carton(MWM_halo_local_Base_Carton):
