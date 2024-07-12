@@ -217,7 +217,7 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
 
         cursor = self.database.execute_sql(
             "select catalogid, gaia_dr3_phot_g_mean_mag from "
-            + " sandbox.openfibertargets_mwm_snc_further_ext_boss ;"
+            + " sandbox.temp_openfibertargets_mwm_snc_further_ext_boss ;"
         )
 
         output = cursor.fetchall()
@@ -233,7 +233,7 @@ class Openfibertargets_mwm_snc_further_ext_boss_Carton(MWM_snc_further_ext_Base_
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.openfibertargets_mwm_snc_further_ext_boss "
+                    " update sandbox.temp_openfibertargets_mwm_snc_further_ext_boss "
                     + " set cadence = '"
                     + current_cadence
                     + "'"
