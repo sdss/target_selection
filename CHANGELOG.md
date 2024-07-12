@@ -1,15 +1,17 @@
 # Changelog
 
-## 1.3.1 - July 11, 2024
+## 1.3.1 - July 12, 2024
 
 ### ✨Improved
 
-* Add cartons to target_selection plan 1.2.1
+* Add cartons to target_selection plan 1.2.2
 
 
 ## 1.3.0 - July 10, 2024
 
 ### ✨ Improved
+
+* Add cartons to target_selection plan 1.2.1
 
 * [#455](https://github.com/sdss/target_selection/pull/455) Significant rewrite of the `FileCarton` code to deal with instances of duplicate rows for a single input identifier.
 
