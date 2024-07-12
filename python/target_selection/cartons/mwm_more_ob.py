@@ -103,6 +103,7 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
             .where(
                 CatalogToGaia_DR3.version_id == version_id,
                 CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.version_id == version_id,
                 CatalogToTwoMassPSC.best >> True,
                 (Gaia_DR3.parallax < peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m + 0.0) / 5.0))),
                 (Gaia_DR3.parallax > peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m - 0.61) / 5.0))),
