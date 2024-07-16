@@ -178,6 +178,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
     tile = False
     instrument = "BOSS"
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -576,6 +577,9 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             .distinct([ls.ls_id])  # avoid duplicates - we trust the legacy survey entries
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -597,6 +601,10 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 class BhmSpidersAgnHardCarton(BhmSpidersAgnLsdr10Carton):
     name = "bhm_spiders_agn_hard"
 
+
+class BhmSpidersAgnHard3Carton(BhmSpidersAgnLsdr10Carton):
+    name = "bhm_spiders_agn_hard_3"
+    only_faintest_cadence = True
 
 # # Testing of the North part of lsdr10 (i.e. dr9)
 # # we can get away with just inheriting the selection code from

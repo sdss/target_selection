@@ -40,6 +40,8 @@ radius_apo = 1.49  # degrees
 #  bhm_aqmes_med_faint
 #  bhm_aqmes_wide2
 #  bhm_aqmes_wide2_faint
+#  bhm_aqmes_wide1
+#  bhm_aqmes_wide1_faint
 #  # bhm_aqmes_wide3        # dumped in v0.5
 #  # bhm_aqmes_wide3-faint  # dumped in v0.5
 #  bhm_aqmes_bonus_dark
@@ -157,7 +159,10 @@ class BhmAqmesBaseCarton(BaseCarton):
         # for v1 read cadence from param file rather than from class code
         cadence_v1 = self.parameters.get("cadence", "unknown")
         cadence = peewee.Value(cadence_v1).cast("text")
-        cadence_v0 = peewee.Value(cadence_map_v1_to_v0[cadence_v1]).cast("text")
+        if hasattr(self, 'cadence_v0'):
+            cadence_v0 = peewee.Value(self.cadence_v0)
+        else:
+            cadence_v0 = peewee.Value(cadence_map_v1_to_v0[cadence_v1]).cast("text")
         # cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
         # cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
@@ -317,6 +322,25 @@ class BhmAqmesWide2FaintCarton(BhmAqmesBaseCarton):
 
     name = "bhm_aqmes_wide2_faint"
     # cadence_v0p5 = 'dark_2x4'
+    program = "bhm_filler"
+
+
+class BhmAqmesWide1Carton(BhmAqmesBaseCarton):
+    """
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
+    """
+
+    name = "bhm_aqmes_wide1"
+    cadence_v0 = 'bhm_aqmes_wide_2x4'
+
+
+class BhmAqmesWide1FaintCarton(BhmAqmesBaseCarton):
+    """
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
+    """
+
+    name = "bhm_aqmes_wide1_faint"
+    cadence_v0 = 'bhm_aqmes_wide_2x4'
     program = "bhm_filler"
 
 
