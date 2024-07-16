@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.1 - July 16, 2024
+
+## New
+
+* .flake8 - allow line length up to 100 characters (as it was before)
+* added bhm\_aqmes\_wide1 and bhm\_aqmes\_wide1\_faint cartons
+  * identical to 'wide2' versions, but with a 'dark\_1x4' cadence and +1 added to priorities
+* new '\_3' versions of selected BHM cartons
+  * these new cartons assign targets which prevously had cadence 'dark\_flexible\_4x1' a new cadence of 'dark\_flexible\_3x1'
+  * these new versions only output the subset of targets having cadence (targets with easier cadences are omitted)
+  * the '\_3' versions have target priority incremented by 1
+  * new '\_3' cartons are:
+    * bhm\_csc\_boss\_3
+    * bhm\_gua\_dark\_3
+    * bhm\_spiders\_clusters\_lsdr10\_3
+    * bhm\_spiders\_agn\_lsdr10\_3
+    * bhm\_spiders\_agn\_hard\_3
+    * bhm\_spiders\_agn\_gaiadr3\_3
+    * bhm\_spiders\_agn\_tda\_3
+    * bhm\_spiders\_agn\_sep\_3
+    * bhm\_colr\_galaxies\_lsdr10\_3
+
+
 ## 1.3.0 - July 10, 2024
 
 ### ✨ Improved

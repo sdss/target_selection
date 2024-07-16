@@ -21,10 +21,11 @@ from target_selection.mag_flux import AB2nMgy
 """
 Details: Start here
 https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorithms
+  see particularly: https://wiki.sdss.org/display/BHM/BHM+Cartons+of+Last+Resort
 
 This module provides the following BHM cartons:
 bhm_colr_galaxies_lsdr10
-  see particularly: https://wiki.sdss.org/display/BHM/BHM+Cartons+of+Last+Resort
+bhm_colr_galaxies_lsdr10_3
 
 """
 
@@ -50,6 +51,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
     # cadence = 'dark_1x1'
     instrument = "BOSS"
     can_offset = False
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -154,13 +156,16 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
 
         opt_prov = peewee.Case(None, ((valid, "sdss_fiber2mag_from_lsdr10"),), "undefined")
 
+        cadence1 = self.parameters["cadence1"]
+        cadence2 = self.parameters["cadence2"]
+        cadence3 = self.parameters["cadence3"]
         cadence = peewee.Case(
             None,
             (
-                (ls.fiberflux_r > fiberflux_r_min_for_cadence1, self.parameters["cadence1"]),
-                (ls.fiberflux_r > fiberflux_r_min_for_cadence2, self.parameters["cadence2"]),
+                (ls.fiberflux_r > fiberflux_r_min_for_cadence1, cadence1),
+                (ls.fiberflux_r > fiberflux_r_min_for_cadence2, cadence2),
             ),
-            self.parameters["cadence3"],
+            cadence3,
         )
 
         # compute the abs(Galactic latitude):
@@ -234,6 +239,9 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
             .distinct(c.catalogid)
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         # query_region[0] is ra of center of the region, degrees
         # query_region[1] is dec of center of the region, degrees
         # query_region[2] is radius of the region, degrees
@@ -245,3 +253,8 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
             )
 
         return query
+
+
+class BhmColrGalaxiesLsdr103Carton(BhmColrGalaxiesLsdr10Carton):
+    name = "bhm_colr_galaxies_lsdr10_3"
+    only_faintest_cadence = True

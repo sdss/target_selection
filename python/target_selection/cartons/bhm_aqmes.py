@@ -87,8 +87,12 @@ class BhmAqmesBaseCarton(BaseCarton):
     cadence = None
     cadence_v0p5 = None
 
-    # read the AQMES field centres from a fits file and convert to a list of dicts
-    def get_fieldlist(self, cadence_v1=None):
+    def get_fieldlist(self, cadence_v0=None):
+        """
+        read the AQMES field centres from a fits file and convert to a list of dicts
+        New: it is now the responsibility of the calling function to convert from a
+        v1 cadence into a v0 cadence name
+        """
         stub = self.parameters.get("fieldlist", None)
         if stub is None or stub == "" or stub == "None":
             return None
@@ -104,10 +108,11 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         assert len(hdul[1].data) > 0
 
-        # choose the correct subset of fields based on the cadence name and form a list of dicts
-        # we have to use the v0 cadence names though
-        assert cadence_v1 in cadence_map_v1_to_v0
-        cadence_v0 = cadence_map_v1_to_v0[cadence_v1]
+        # # choose the correct subset of fields based on the cadence name
+        # # and then form a list of dicts
+        # # we have to use the v0 cadence names in the file though
+        # assert cadence_v1 in cadence_map_v1_to_v0
+        # cadence_v0 = cadence_map_v1_to_v0[cadence_v1]
 
         try:
             fieldlist = [
@@ -242,7 +247,9 @@ class BhmAqmesBaseCarton(BaseCarton):
             .distinct([c.catalogid])  # avoid duplicates - trust the catalog
         )
 
-        query = self.append_spatial_query(query, self.get_fieldlist(cadence_v1))
+        # query = self.append_spatial_query(query, self.get_fieldlist(cadence_v1))
+        query = self.append_spatial_query(query,
+                                          self.get_fieldlist(cadence_v0))
 
         return query
 
