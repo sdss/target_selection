@@ -12,7 +12,9 @@
     rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
-    work_mem: '1GB'
+    work_mem: '100MB'
+    enable_bitmapscan: false
+    enable_seqscan: false
 
 '1.2.2':
   xmatch_plan: 1.0.0

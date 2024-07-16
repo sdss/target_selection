@@ -145,7 +145,4 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
                 )
             )
 
-        self.database.execute_sql("SET LOCAL enable_bitmapscan = false;")
-        self.database.execute_sql("SET LOCAL enable_seqscan = false;")
-
         return query
