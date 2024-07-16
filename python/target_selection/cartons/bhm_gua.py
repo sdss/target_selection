@@ -31,7 +31,7 @@ from target_selection.cartons.base import BaseCarton
 #
 # This module provides the following BHM cartons:
 # bhm_gua_dark
-# bhm_gua_dark_3
+# bhm_gua_dark_d3
 # bhm_gua_bright
 #
 # Updated by TD on 27/01/2021 to add v0.5 improvements
@@ -297,8 +297,8 @@ class BhmGuaDarkCarton(BhmGuaBaseCarton):
     name = "bhm_gua_dark"
 
 
-class BhmGuaDark3Carton(BhmGuaBaseCarton):
-    name = "bhm_gua_dark_3"
+class BhmGuaDarkD3Carton(BhmGuaBaseCarton):
+    name = "bhm_gua_dark_d3"
 
 
 class BhmGuaBrightCarton(BhmGuaBaseCarton):

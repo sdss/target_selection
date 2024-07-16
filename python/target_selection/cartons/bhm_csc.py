@@ -36,7 +36,7 @@ from target_selection.mag_flux import AB2Jy, AB2nMgy
 
 # This module provides the following BHM cartons:
 #   bhm_csc_boss
-#   bhm_csc_boss_3
+#   bhm_csc_boss_d3
 #   bhm_csc_apogee
 
 
@@ -254,8 +254,8 @@ class BhmCscBossCarton(BaseCarton):
         return query
 
 
-class BhmCscBoss3Carton(BhmCscBossCarton):
-    name = "bhm_csc_boss_3"
+class BhmCscBossD3Carton(BhmCscBossCarton):
+    name = "bhm_csc_boss_d3"
     only_faintest_cadence = True
 
 

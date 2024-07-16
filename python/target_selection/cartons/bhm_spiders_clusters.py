@@ -54,7 +54,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 # # This file provides the following BHM cartons in v1.0:
 #
 #   bhm_spiders_clusters_lsdr10
-#   bhm_spiders_clusters_lsdr10_3
+#   bhm_spiders_clusters_lsdr10_d3
 #
 # ############################################
 # ############################################
@@ -414,6 +414,6 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
 # END BhmSpidersClustersLsdr10Carton
 # ##################################################################################
 
-class BhmSpidersClustersLsdr103Carton(BhmSpidersClustersLsdr10Carton):
-    name = "bhm_spiders_clusters_lsdr10_3"
+class BhmSpidersClustersLsdr10D3Carton(BhmSpidersClustersLsdr10Carton):
+    name = "bhm_spiders_clusters_lsdr10_d3"
     only_faintest_cadence = True

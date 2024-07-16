@@ -82,6 +82,13 @@ ero_flags_mask = (
 #  *  bhm_spiders_agn_lsdr10
 #  *  bhm_spiders_agn_gaiadr3
 #  *  bhm_spiders_agn_sep
+#  *  bhm_spiders_agn_tda
+#  *  bhm_spiders_agn_hard
+#  *  bhm_spiders_agn_lsdr10_d3
+#  *  bhm_spiders_agn_gaiadr3_d3
+#  *  bhm_spiders_agn_sep_d3
+#  *  bhm_spiders_agn_tda_d3
+#  *  bhm_spiders_agn_hard_d3
 # ############################################
 # ############################################
 # ############################################
@@ -602,8 +609,8 @@ class BhmSpidersAgnHardCarton(BhmSpidersAgnLsdr10Carton):
     name = "bhm_spiders_agn_hard"
 
 
-class BhmSpidersAgnHard3Carton(BhmSpidersAgnLsdr10Carton):
-    name = "bhm_spiders_agn_hard_3"
+class BhmSpidersAgnHardD3Carton(BhmSpidersAgnLsdr10Carton):
+    name = "bhm_spiders_agn_hard_d3"
     only_faintest_cadence = True
 
 # # Testing of the North part of lsdr10 (i.e. dr9)
@@ -971,14 +978,14 @@ class BhmSpidersAgnSepCarton(BhmSpidersAgnGaiadr3Carton):
 
 
 # ##################################################################################
-class BhmSpidersAgnGaiadr33CartonCarton(BhmSpidersAgnGaiadr3Carton):
-    name = "bhm_spiders_agn_gaiadr3_3"
+class BhmSpidersAgnGaiadr3D3CartonCarton(BhmSpidersAgnGaiadr3Carton):
+    name = "bhm_spiders_agn_gaiadr3_d3"
     only_faintest_cadence = True
 
 
 # ##################################################################################
-class BhmSpidersAgnSep3Carton(BhmSpidersAgnGaiadr3Carton):
-    name = "bhm_spiders_agn_sep_3"
+class BhmSpidersAgnSepD3Carton(BhmSpidersAgnGaiadr3Carton):
+    name = "bhm_spiders_agn_sep_d3"
     only_faintest_cadence = True
 
 
@@ -1272,6 +1279,6 @@ class BhmSpidersAgnTdaCarton(BaseCarton):
 
 
 # ##################################################################################
-class BhmSpidersAgnTda3Carton(BhmSpidersAgnTdaCarton):
-    name = "bhm_spiders_agn_tda_3"
+class BhmSpidersAgnTdaD3Carton(BhmSpidersAgnTdaCarton):
+    name = "bhm_spiders_agn_tda_d3"
     only_faintest_cadence = True

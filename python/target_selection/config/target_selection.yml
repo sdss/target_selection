@@ -3,15 +3,15 @@
   cartons:
     - bhm_aqmes_wide1
     - bhm_aqmes_wide1_faint
-    - bhm_csc_boss_3
-    - bhm_gua_dark_3
-    - bhm_spiders_clusters_lsdr10_3
-    - bhm_spiders_agn_lsdr10_3
-    - bhm_spiders_agn_hard_3
-    - bhm_spiders_agn_gaiadr3_3
-    - bhm_spiders_agn_tda_3
-    - bhm_spiders_agn_sep_3
-    - bhm_colr_galaxies_lsdr10_3
+    - bhm_csc_boss_d3
+    - bhm_gua_dark_d3
+    - bhm_spiders_clusters_lsdr10_d3
+    - bhm_spiders_agn_lsdr10_d3
+    - bhm_spiders_agn_hard_d3
+    - bhm_spiders_agn_gaiadr3_d3
+    - bhm_spiders_agn_tda_d3
+    - bhm_spiders_agn_sep_d3
+    - bhm_colr_galaxies_lsdr10_d3
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
   schema: sandbox
   magnitudes:
@@ -38,7 +38,7 @@
       mag_i_min: 19.1
       mag_i_max: 21.0
       cadence: 'dark_1x4'
-    bhm_csc_boss_3:
+    bhm_csc_boss_d3:
       g_psf_mag_min: 14.0
       r_psf_mag_min: 14.0
       i_psf_mag_min: 14.0
@@ -72,7 +72,7 @@
       value: 1.0
       spec_sn_thresh: 1.60
       spec_z_err_thresh: 0.002
-    bhm_gua_dark_3:
+    bhm_gua_dark_d3:
       mag_g_min: 16.5
       mag_g_max: 21.2
       mag_rp_min: 16.5
@@ -83,7 +83,7 @@
       priority: 3401
       value: 0.5
       cadence: 'dark_flexible_3x1'
-    bhm_spiders_clusters_lsdr10_3:
+    bhm_spiders_clusters_lsdr10_d3:
       value_bcg: 5.0
       value_member: 1.0
       ero_version: 'eRASS4_020'
@@ -117,7 +117,7 @@
       priority_floor_member: 1631
       priority_levels: 31
       dpriority_non_core: 2000
-    bhm_spiders_agn_lsdr10_3:
+    bhm_spiders_agn_lsdr10_d3:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method: 'XPS/NWAY'
@@ -163,7 +163,7 @@
       dpriority_det_like: 4
       dpriority_has_spec: 200
       dpriority_non_core: 2000
-    bhm_spiders_agn_hard_3:
+    bhm_spiders_agn_hard_d3:
       value: 1.0
       ero_version: 'eRASS_s1_3B_221031_poscorr'
       xmatch_method: 'XPS/NWAY'
@@ -209,7 +209,7 @@
       dpriority_det_like: 4
       dpriority_has_spec: 200
       dpriority_non_core: 2000
-    bhm_spiders_agn_gaiadr3_3:
+    bhm_spiders_agn_gaiadr3_d3:
       value: 1.0
       ero_version: 'eRASS_s3_1B_221007_poscorr_v007'
       xmatch_method1: 'XPS/NWAY'
@@ -244,7 +244,7 @@
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
-    bhm_spiders_agn_tda_3:
+    bhm_spiders_agn_tda_d3:
       value: 0.0
       ero_version: 'eRASS_s3_1B_220829_poscorr_v006'
       xmatch_method: 'XPS/NWAY_EROTDA'
@@ -266,7 +266,7 @@
       cadence2: 'dark_flexible_2x1'
       cadence3: 'dark_flexible_3x1'
       priority_floor: 1691
-    bhm_spiders_agn_sep_3:
+    bhm_spiders_agn_sep_d3:
       value: 1.0
       ero_version: 'eRASS_s5_V29C'
       xmatch_method1: 'XPS/NWAY'
@@ -301,7 +301,7 @@
       dpriority_has_spec: 200
       in_plane_lat_cut: 15.0
       dpriority_non_core: 2000
-    bhm_colr_galaxies_lsdr10_3:
+    bhm_colr_galaxies_lsdr10_d3:
       priority: 7101
       value: 0.0
       cadence1: 'bright_1x1'

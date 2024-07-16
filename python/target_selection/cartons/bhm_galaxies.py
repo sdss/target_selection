@@ -25,7 +25,7 @@ https://wiki.sdss.org/display/OPS/Defining+target+selection+and+cadence+algorith
 
 This module provides the following BHM cartons:
 bhm_colr_galaxies_lsdr10
-bhm_colr_galaxies_lsdr10_3
+bhm_colr_galaxies_lsdr10_d3
 
 """
 
@@ -255,6 +255,6 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         return query
 
 
-class BhmColrGalaxiesLsdr103Carton(BhmColrGalaxiesLsdr10Carton):
-    name = "bhm_colr_galaxies_lsdr10_3"
+class BhmColrGalaxiesLsdr10D3Carton(BhmColrGalaxiesLsdr10Carton):
+    name = "bhm_colr_galaxies_lsdr10_d3"
     only_faintest_cadence = True
