@@ -105,30 +105,22 @@ class Openfibertargets_mwm_more_ob_boss_Carton(BaseCarton):
                 CatalogToGaia_DR3.best >> True,
                 CatalogToTwoMassPSC.version_id == version_id,
                 CatalogToTwoMassPSC.best >> True,
-                (Gaia_DR3.parallax < peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m + 0.0) / 5.0))),
-                (Gaia_DR3.parallax > peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m - 0.61) / 5.0))),
                 Gaia_DR3.phot_g_mean_mag < 16,
-                (
-                    TwoMassPSC.j_m
-                    - TwoMassPSC.k_m
-                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
-                    < 0.10
-                ),
-                (
-                    TwoMassPSC.j_m
-                    - TwoMassPSC.k_m
-                    - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
-                    > -0.30
-                ),
-                (
-                    TwoMassPSC.j_m - TwoMassPSC.h_m
-                    < 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 0.05
-                ),
-                (
-                    TwoMassPSC.j_m - TwoMassPSC.h_m
-                    > 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) - 0.15
-                ),
-                (Gaia_DR3.phot_g_mean_mag > 2 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 3.0),
+                Gaia_DR3.parallax < peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m + 0.00) / 5.0)),
+                Gaia_DR3.parallax > peewee.fn.power(10, ((10.0 - TwoMassPSC.k_m - 0.61) / 5.0)),
+                TwoMassPSC.j_m
+                - TwoMassPSC.k_m
+                - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
+                < 0.10,
+                TwoMassPSC.j_m
+                - TwoMassPSC.k_m
+                - 0.25 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m)
+                > -0.30,
+                TwoMassPSC.j_m - TwoMassPSC.h_m
+                < 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 0.05,
+                TwoMassPSC.j_m - TwoMassPSC.h_m
+                > 0.15 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) - 0.15,
+                Gaia_DR3.phot_g_mean_mag > 2 * (Gaia_DR3.phot_g_mean_mag - TwoMassPSC.k_m) + 3.0,
             )
         )
 
