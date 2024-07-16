@@ -337,4 +337,10 @@ class MWM_EROSITA_Compact_Boss_Carton(BaseCarton):
 class MWM_EROSITA_Compact_Boss_Shallow_Carton(MWM_EROSITA_Compact_Boss_Carton):
     name = "mwm_erosita_compact_boss_shallow"
     faintest_cadence = "dark_flexible_2x1"
+    faintest_priority = 1812
+
+
+class MWM_EROSITA_Compact_Boss_D3_Carton(MWM_EROSITA_Compact_Boss_Carton):
+    name = "mwm_erosita_compact_boss_d3"
+    faintest_cadence = "dark_flexible_3x1"
     faintest_priority = 1811

@@ -21,7 +21,8 @@
     * bhm\_spiders\_agn\_tda\_d3
     * bhm\_spiders\_agn\_sep\_d3
     * bhm\_colr\_galaxies\_lsdr10\_d3
-
+    * mwm\_erosita\_compact\_boss\_d3
+  * incremented priority of mwm\_erosita\_compact\_boss\_shallow to avoid conflicts with '\_d3'
 
 ## 1.3.0 - July 10, 2024
 
