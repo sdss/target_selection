@@ -113,8 +113,8 @@ class MWM_halo_distant_rrl_boss_triple_Carton(MWM_halo_distant_rrl_boss_single_C
     """mwm_halo_distant_rrl_boss_triple
     Shorthand name: mwm_halo_distant_rrl_boss_triple
     Metadata:
-    Priority: 3051
-    Cadence: dark_1x3
+    Priority: 3049
+    Cadence: dark_flexible_3x1
     Instrument: BOSS
     can_offset = True
     Lead contact: Alexander Ji
@@ -123,10 +123,10 @@ class MWM_halo_distant_rrl_boss_triple_Carton(MWM_halo_distant_rrl_boss_single_C
     name = "mwm_halo_distant_rrl_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 3051
+    priority = 3049
     can_offset = True
 
 
@@ -378,17 +378,17 @@ class MWM_halo_vmp_xp_boss_triple_Carton(MWM_halo_vmp_xp_boss_single_Carton):
     G>13
     mh_xgboost <= -2.0
     INSTRUMENT: BOSS
-    CADENCE: dark_1x3
-    PRIORITY: 1851
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 1849
     """
 
     name = "mwm_halo_vmp_xp_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 1851
+    priority = 1849
     can_offset = True
 
 
@@ -427,17 +427,17 @@ class MWM_halo_mp_xp_boss_triple_Carton(MWM_halo_mp_xp_boss_single_Carton):
     G>13
     -2.0 < mh_xgboost <= -1.5
     INSTRUMENT: BOSS
-    CADENCE: dark_1x3
-    PRIORITY: 2971
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 2969
     """
 
     name = "mwm_halo_mp_xp_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 2971
+    priority = 2969
     can_offset = True
 
 
@@ -476,17 +476,17 @@ class MWM_halo_nmp_xp_boss_triple_Carton(MWM_halo_nmp_xp_boss_single_Carton):
     G>13
     -1.5 < mh_xgboost <= -1.0
     INSTRUMENT: BOSS
-    CADENCE: dark_1x3
-    PRIORITY: 6501
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 6499
     """
 
     name = "mwm_halo_nmp_xp_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 6501
+    priority = 6499
     can_offset = True
 
 
@@ -521,17 +521,17 @@ class MWM_halo_vmp_xp_apogee_triple_Carton(MWM_halo_vmp_xp_apogee_single_Carton)
     G <=13
     mh_xgboost <= -2.0
     INSTRUMENT: APOGEE
-    CADENCE: dark_1x3
-    PRIORITY: 1851
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 1849
     """
 
     name = "mwm_halo_vmp_xp_apogee_triple"
     category = "science"
     instrument = "APOGEE"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 1851
+    priority = 1849
     can_offset = True
 
 
@@ -570,17 +570,17 @@ class MWM_halo_mp_xp_apogee_triple_Carton(MWM_halo_mp_xp_apogee_single_Carton):
     G <=13
     -2.0 < mh_xgboost <= -1.5
     INSTRUMENT: APOGEE
-    CADENCE: bright_1x1
-    PRIORITY: 2971
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 2969
     """
 
     name = "mwm_halo_mp_xp_apogee_triple"
     category = "science"
     instrument = "APOGEE"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 2971
+    priority = 2969
     can_offset = True
 
 
@@ -619,17 +619,17 @@ class MWM_halo_nmp_xp_apogee_triple_Carton(MWM_halo_nmp_xp_apogee_single_Carton)
     G <=13
     -1.5 < mh_xgboost <= -1.0
     INSTRUMENT: APOGEE
-    CADENCE: dark_1x3
-    PRIORITY: 6501
+    CADENCE: dark_flexible_3x1
+    PRIORITY: 6499
     """
 
     name = "mwm_halo_nmp_xp_apogee_triple"
     category = "science"
     instrument = "APOGEE"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 6501
+    priority = 6499
     can_offset = True
 
 
@@ -1214,8 +1214,8 @@ class MWM_halo_local_high_apogee_triple_Carton(MWM_halo_local_high_apogee_single
     vtan >= 150 and parallax_over_error >=10 OR
     vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
     G < 13
-    PRIORITY: 2981
-    CADENCE: dark_1x3
+    PRIORITY: 2979
+    CADENCE: dark_flexible_3x1
     INSTRUMENT: APOGEE
     can_offset = True
     """
@@ -1223,10 +1223,10 @@ class MWM_halo_local_high_apogee_triple_Carton(MWM_halo_local_high_apogee_single
     name = "mwm_halo_local_high_apogee_triple"
     category = "science"
     instrument = "APOGEE"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 2981
+    priority = 2979
     can_offset = True
 
 
@@ -1309,8 +1309,8 @@ class MWM_halo_local_high_boss_triple_Carton(MWM_halo_local_high_boss_single_Car
     vtan >= 150 and parallax_over_error >=10 OR
     vtan >=150 and 3 < M_G < 5 and 10 > parallax_over_error > 5
     G >= 13
-    PRIORITY: 2981
-    CADENCE: dark_1x3
+    PRIORITY: 2979
+    CADENCE: dark_flexible_3x1
     INSTRUMENT: BOSS
     can_offset = True
     """
@@ -1318,10 +1318,10 @@ class MWM_halo_local_high_boss_triple_Carton(MWM_halo_local_high_boss_single_Car
     name = "mwm_halo_local_high_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 2981
+    priority = 2979
     can_offset = True
 
 
@@ -1400,8 +1400,8 @@ class MWM_halo_local_low_apogee_triple_Carton(MWM_halo_local_low_apogee_single_C
     mwm_halo_local_low_apogee_triple
     vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
     G < 13
-    PRIORITY: 6501
-    CADENCE: dark_1x3
+    PRIORITY: 6499
+    CADENCE: dark_flexible_3x1
     INSTRUMENT: APOGEE
     can_offset = True
     """
@@ -1409,10 +1409,10 @@ class MWM_halo_local_low_apogee_triple_Carton(MWM_halo_local_low_apogee_single_C
     name = "mwm_halo_local_low_apogee_triple"
     category = "science"
     instrument = "APOGEE"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 6501
+    priority = 6499
     can_offset = True
 
 
@@ -1491,8 +1491,8 @@ class MWM_halo_local_low_boss_triple_Carton(MWM_halo_local_low_boss_single_Carto
     mwm_halo_local_low_boss_triple
     vtan >=150 and not (3 < M_G < 5) and 10 > parallax_over_error > 5
     G >= 13
-    PRIORITY: 6501
-    CADENCE: dark_1x3
+    PRIORITY: 6499
+    CADENCE: dark_flexible_3x1
     INSTRUMENT: BOSS
     can_offset = True
     """
@@ -1500,10 +1500,10 @@ class MWM_halo_local_low_boss_triple_Carton(MWM_halo_local_low_boss_single_Carto
     name = "mwm_halo_local_low_boss_triple"
     category = "science"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_flexible_3x1"
     program = "mwm_halo"
     mapper = "MWM"
-    priority = 6501
+    priority = 6499
     can_offset = True
 
 
