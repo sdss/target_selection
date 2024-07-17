@@ -613,6 +613,7 @@ class BhmSpidersAgnHardD3Carton(BhmSpidersAgnLsdr10Carton):
     name = "bhm_spiders_agn_hard_d3"
     only_faintest_cadence = True
 
+
 # # Testing of the North part of lsdr10 (i.e. dr9)
 # # we can get away with just inheriting the selection code from
 # # the lsdr10 hemisphere match and adjusting the parameters only

@@ -164,7 +164,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         # for v1 read cadence from param file rather than from class code
         cadence_v1 = self.parameters.get("cadence", "unknown")
         cadence = peewee.Value(cadence_v1).cast("text")
-        if hasattr(self, 'cadence_v0'):
+        if hasattr(self, "cadence_v0"):
             cadence_v0 = peewee.Value(self.cadence_v0)
         else:
             cadence_v0 = peewee.Value(cadence_map_v1_to_v0[cadence_v1]).cast("text")
@@ -248,8 +248,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         )
 
         # query = self.append_spatial_query(query, self.get_fieldlist(cadence_v1))
-        query = self.append_spatial_query(query,
-                                          self.get_fieldlist(cadence_v0))
+        query = self.append_spatial_query(query, self.get_fieldlist(cadence_v0))
 
         return query
 
@@ -338,7 +337,7 @@ class BhmAqmesWide1Carton(BhmAqmesBaseCarton):
     """
 
     name = "bhm_aqmes_wide1"
-    cadence_v0 = 'bhm_aqmes_wide_2x4'
+    cadence_v0 = "bhm_aqmes_wide_2x4"
 
 
 class BhmAqmesWide1FaintCarton(BhmAqmesBaseCarton):
@@ -347,7 +346,7 @@ class BhmAqmesWide1FaintCarton(BhmAqmesBaseCarton):
     """
 
     name = "bhm_aqmes_wide1_faint"
-    cadence_v0 = 'bhm_aqmes_wide_2x4'
+    cadence_v0 = "bhm_aqmes_wide_2x4"
     program = "bhm_filler"
 
 
