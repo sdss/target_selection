@@ -1,4 +1,5 @@
-'1.3.1':
+
+'1.2.4':
   xmatch_plan: 1.0.0
   cartons:
     - bhm_aqmes_wide1
@@ -24,7 +25,9 @@
     rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
-    work_mem: '5GB'
+    work_mem: '200MB'
+    enable_bitmapscan: false
+    enable_seqscan: false
   parameters:
     bhm_aqmes_wide1:
       priority: 1211
@@ -324,6 +327,43 @@
       shape_r_min: 1.0
       min_gal_lat: 18.0
       max_ebv: 0.2
+
+'1.2.3':
+  xmatch_plan: 1.0.0
+  cartons:
+    - openfibertargets_mwm_more_ob_boss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '100MB'
+    enable_bitmapscan: false
+    enable_seqscan: false
+
+'1.2.2':
+  xmatch_plan: 1.0.0
+  cartons:
+    - openfibertargets_mwm_hypervelocity_stars_boss
+    - openfibertargets_mwm_snc_further_ext_apogee_bright
+    - openfibertargets_mwm_snc_further_ext_apogee_dark
+    - openfibertargets_mwm_snc_further_ext_boss
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '5GB'
 
 '1.2.1':
   xmatch_plan: 1.0.0

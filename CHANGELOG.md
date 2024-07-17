@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.3.1 - July 16, 2024
+
+## 1.3.3 - July 18, 2024
 
 ## New
 
-* .flake8 - allow line length up to 100 characters (as it was before)
 * added bhm\_aqmes\_wide1 and bhm\_aqmes\_wide1\_faint cartons
   * identical to 'wide2' versions, but with a 'dark\_1x4' cadence and +1 added to priorities
 * new '\_d3' versions of selected BHM cartons
@@ -24,9 +24,24 @@
     * mwm\_erosita\_compact\_boss\_d3
   * incremented priority of mwm\_erosita\_compact\_boss\_shallow to avoid conflicts with '\_d3'
 
+## 1.3.2 - July 17, 2024
+
+### Improved
+
+* Add cartons to target_selection plan 1.2.3
+
+## 1.3.1 - July 12, 2024
+
+### ✨Improved
+
+* Add cartons to target_selection plan 1.2.2
+
+
 ## 1.3.0 - July 10, 2024
 
 ### ✨ Improved
+
+* Add cartons to target_selection plan 1.2.1
 
 * [#455](https://github.com/sdss/target_selection/pull/455) Significant rewrite of the `FileCarton` code to deal with instances of duplicate rows for a single input identifier.
 

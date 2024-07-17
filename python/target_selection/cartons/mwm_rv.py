@@ -687,3 +687,67 @@ class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
             *mwm_rv_short_condition,
         )
         return query
+
+
+class MWM_bin_rv_short_rgb_apogee_08epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
+    """mwm_bin_rv_short_rgb_apogee_08epoch -
+    same as mwm_bin_rv_short_rgb_apogee but
+    with cadence=bright_8x1 and adding “2” to each priority
+    """
+
+    name = "mwm_bin_rv_short_rgb_apogee_08epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_8x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2537
+    can_offset = False
+
+
+class MWM_bin_rv_short_rgb_apogee_12epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
+    """mwm_bin_rv_short_rgb_apogee_12epoch -
+    same as mwm_bin_rv_short_rgb_apogee but
+    with cadence=bright_12x1 and adding “1” to each priority
+    """
+
+    name = "mwm_bin_rv_short_rgb_apogee_12epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_12x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2536
+    can_offset = False
+
+
+class MWM_bin_rv_short_subgiant_apogee_08epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
+    """mwm_bin_rv_short_subgiant_apogee_08epoch -
+    same as mwm_bin_rv_short_subgiant_apogee but
+    with cadence=bright_8x1 and adding “2” to each priority
+    """
+
+    name = "mwm_bin_rv_short_subgiant_apogee_8epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_8x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2527
+    can_offset = False
+
+
+class MWM_bin_rv_short_subgiant_apogee_12epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
+    """mwm_bin_rv_short_subgiant_apogee_12epoch -
+    same as mwm_bin_rv_short_subgiant_apogee but
+    with cadence=bright_12x1 and adding “1” to each priority
+    """
+
+    name = "mwm_bin_rv_short_subgiant_apogee_12epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_12x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2526
+    can_offset = False
