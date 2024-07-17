@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.2 - July 15, 2024
+## 1.3.2 - July 17, 2024
 
 ### Improved
 
