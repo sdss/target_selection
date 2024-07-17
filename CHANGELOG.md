@@ -1,5 +1,29 @@
 # Changelog
 
+
+## 1.3.3 - July 18, 2024
+
+## New
+
+* added bhm\_aqmes\_wide1 and bhm\_aqmes\_wide1\_faint cartons
+  * identical to 'wide2' versions, but with a 'dark\_1x4' cadence and +1 added to priorities
+* new '\_d3' versions of selected BHM cartons
+  * these new cartons assign targets which prevously had cadence 'dark\_flexible\_4x1' a new cadence of 'dark\_flexible\_3x1'
+  * these new versions only output the subset of targets having cadence (targets with easier cadences are omitted)
+  * the '\_d3' versions have target priority incremented by 1
+  * new '\_d3' cartons are:
+    * bhm\_csc\_boss\_d3
+    * bhm\_gua\_dark\_d3
+    * bhm\_spiders\_clusters\_lsdr10\_d3
+    * bhm\_spiders\_agn\_lsdr10\_d3
+    * bhm\_spiders\_agn\_hard\_d3
+    * bhm\_spiders\_agn\_gaiadr3\_d3
+    * bhm\_spiders\_agn\_tda\_d3
+    * bhm\_spiders\_agn\_sep\_d3
+    * bhm\_colr\_galaxies\_lsdr10\_d3
+    * mwm\_erosita\_compact\_boss\_d3
+  * incremented priority of mwm\_erosita\_compact\_boss\_shallow to avoid conflicts with '\_d3'
+
 ## 1.3.2 - July 17, 2024
 
 ### Improved

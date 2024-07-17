@@ -54,6 +54,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 # # This file provides the following BHM cartons in v1.0:
 #
 #   bhm_spiders_clusters_lsdr10
+#   bhm_spiders_clusters_lsdr10_d3
 #
 # ############################################
 # ############################################
@@ -83,6 +84,7 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
     instrument = "BOSS"
     inertial = True
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -395,6 +397,9 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
             .distinct([ls.ls_id])
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -408,3 +413,8 @@ class BhmSpidersClustersLsdr10Carton(BaseCarton):
 #
 # END BhmSpidersClustersLsdr10Carton
 # ##################################################################################
+
+
+class BhmSpidersClustersLsdr10D3Carton(BhmSpidersClustersLsdr10Carton):
+    name = "bhm_spiders_clusters_lsdr10_d3"
+    only_faintest_cadence = True

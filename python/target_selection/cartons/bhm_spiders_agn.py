@@ -82,6 +82,13 @@ ero_flags_mask = (
 #  *  bhm_spiders_agn_lsdr10
 #  *  bhm_spiders_agn_gaiadr3
 #  *  bhm_spiders_agn_sep
+#  *  bhm_spiders_agn_tda
+#  *  bhm_spiders_agn_hard
+#  *  bhm_spiders_agn_lsdr10_d3
+#  *  bhm_spiders_agn_gaiadr3_d3
+#  *  bhm_spiders_agn_sep_d3
+#  *  bhm_spiders_agn_tda_d3
+#  *  bhm_spiders_agn_hard_d3
 # ############################################
 # ############################################
 # ############################################
@@ -178,6 +185,7 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
     tile = False
     instrument = "BOSS"
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -576,6 +584,9 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
             .distinct([ls.ls_id])  # avoid duplicates - we trust the legacy survey entries
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -598,6 +609,11 @@ class BhmSpidersAgnHardCarton(BhmSpidersAgnLsdr10Carton):
     name = "bhm_spiders_agn_hard"
 
 
+class BhmSpidersAgnHardD3Carton(BhmSpidersAgnLsdr10Carton):
+    name = "bhm_spiders_agn_hard_d3"
+    only_faintest_cadence = True
+
+
 # # Testing of the North part of lsdr10 (i.e. dr9)
 # # we can get away with just inheriting the selection code from
 # # the lsdr10 hemisphere match and adjusting the parameters only
@@ -614,6 +630,7 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
     tile = False
     instrument = "BOSS"
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -924,6 +941,9 @@ class BhmSpidersAgnGaiadr3Carton(BaseCarton):
             .distinct([g3.source_id])  # avoid duplicates - we trust the gaia ids
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -951,10 +971,23 @@ class BhmSpidersAgnGaiadr3BothCarton(BhmSpidersAgnGaiadr3Carton):
     name = "bhm_spiders_agn_gaiadr3_both"
 
 
+# ##################################################################################
 # we can get away with just inheriting the selection code from
 # the gaia dr3 hemisphere match and adjusting the parameters only
 class BhmSpidersAgnSepCarton(BhmSpidersAgnGaiadr3Carton):
     name = "bhm_spiders_agn_sep"
+
+
+# ##################################################################################
+class BhmSpidersAgnGaiadr3D3CartonCarton(BhmSpidersAgnGaiadr3Carton):
+    name = "bhm_spiders_agn_gaiadr3_d3"
+    only_faintest_cadence = True
+
+
+# ##################################################################################
+class BhmSpidersAgnSepD3Carton(BhmSpidersAgnGaiadr3Carton):
+    name = "bhm_spiders_agn_sep_d3"
+    only_faintest_cadence = True
 
 
 class BhmSpidersAgnTdaCarton(BaseCarton):
@@ -965,6 +998,7 @@ class BhmSpidersAgnTdaCarton(BaseCarton):
     tile = False
     instrument = "BOSS"
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         c = Catalog.alias()
@@ -1232,6 +1266,9 @@ class BhmSpidersAgnTdaCarton(BaseCarton):
             .distinct([ls.ls_id])  # avoid duplicates - we trust the legacy survey entries
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -1240,3 +1277,9 @@ class BhmSpidersAgnTdaCarton(BaseCarton):
             )
 
         return query
+
+
+# ##################################################################################
+class BhmSpidersAgnTdaD3Carton(BhmSpidersAgnTdaCarton):
+    name = "bhm_spiders_agn_tda_d3"
+    only_faintest_cadence = True

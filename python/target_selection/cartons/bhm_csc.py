@@ -36,6 +36,7 @@ from target_selection.mag_flux import AB2Jy, AB2nMgy
 
 # This module provides the following BHM cartons:
 #   bhm_csc_boss
+#   bhm_csc_boss_d3
 #   bhm_csc_apogee
 
 
@@ -49,6 +50,7 @@ class BhmCscBossCarton(BaseCarton):
     instrument = "BOSS"
     tile = False
     can_offset = True
+    only_faintest_cadence = False
 
     def build_query(self, version_id, query_region=None):
         x = BHM_CSC_v3.alias()
@@ -239,6 +241,9 @@ class BhmCscBossCarton(BaseCarton):
             .distinct([fn.coalesce(c2g3.catalogid, c2ls.catalogid, c2ps.catalogid)])
         )
 
+        if self.only_faintest_cadence:
+            query = query.where(cadence == cadence3)
+
         if query_region:
             query = query.where(
                 peewee.fn.q3c_radial_query(
@@ -247,6 +252,11 @@ class BhmCscBossCarton(BaseCarton):
             )
 
         return query
+
+
+class BhmCscBossD3Carton(BhmCscBossCarton):
+    name = "bhm_csc_boss_d3"
+    only_faintest_cadence = True
 
 
 # #######
