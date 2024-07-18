@@ -89,7 +89,7 @@ class SdssIdFlat(peewee.Model):
         table_name = "sdss_id_flat"
 
 
-class SdssIdStackedToAdd(peewee.Model):
+class SdssIdStackedAddendum(peewee.Model):
     """ Model for addendum to sdss_id_stacked"""
 
     catalogid21 = peewee.BigIntegerField(index=True)
@@ -103,8 +103,8 @@ class SdssIdStackedToAdd(peewee.Model):
         schema = "sandbox"
 
 
-class SdssIdFlatToAdd(peewee.Model):
-    """ Model for rows to be added to sdss_id_flat """
+class SdssIdFlatAddendum(peewee.Model):
+    """ Model for addendum to sdss_id_flat """
 
     sdss_id = peewee.BigIntegerField()
     catalogid = peewee.BigIntegerField()
@@ -118,7 +118,7 @@ class SdssIdFlatToAdd(peewee.Model):
     class Meta:
         database = database
         schema = "sandbox"
-        table_name = "sdss_id_flat_to_add"
+        table_name = "sdss_id_flat_Addendum"
 
 
 class AppendToTables:
@@ -288,14 +288,14 @@ class AppendToTables:
                 elif row.version_id == 31:
                     TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
 
-    def create_sdss_id_stacked_to_add(self, database, output_name):
+    def create_sdss_id_stacked_addendum(self, database, output_name):
         """ This method matches the previous catalogids with the 'sdss_id' process
         and places them in a temporary table in the sandbox (to be added later). At
         this point, the ra/dec_sdss_id are assigned, which are just the coordinates of
         the most recent catalogid in the match. """
 
-        large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_to_add;
-        CREATE TABLE sandbox.sdss_id_stacked_to_add as (
+        large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_addendum;
+        CREATE TABLE sandbox.sdss_id_stacked_to_addendum as (
             with cat_ids21 as (select distinct tc.catalogid21, cat.lead from
                 sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
             cat_ids25 as (select distinct tc.catalogid25, cat.lead from
@@ -324,40 +324,40 @@ class AppendToTables:
             select * from add_outer31);"""
         self.database.execute_sql(large_cte_query)
 
-        add_ra_dec_columns = """ ALTER TABLE sandbox.sdss_id_stacked_to_add
+        add_ra_dec_columns = """ ALTER TABLE sandbox.sdss_id_stacked_addendum
                                     ADD COLUMN ra_sdss_id double precision;
-                                 ALTER TABLE sandbox.sdss_id_stacked_to_add
+                                 ALTER TABLE sandbox.sdss_id_stacked_addendum
                                     ADD COLUMN dec_sdss_id double precision; """
         self.database.execute_sql(add_ra_dec_columns)
-        SdssIdStackedToAdd._meta.table_name = "sdss_id_stacked_to_add"
+        SdssIdStackedAddendum._meta.table_name = "sdss_id_stacked_addendum"
 
-        ra_dec_update31 = (SdssIdStackedToAdd
+        ra_dec_update31 = (SdssIdStackedAddendum
                            .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
                            .from_(Catalog)
-                           .where(SdssIdStackedToAdd.catalogid31 == Catalog.catalogid)
-                           .where(SdssIdStackedToAdd.catalogid31.is_null(False)))
+                           .where(SdssIdStackedAddendum.catalogid31 == Catalog.catalogid)
+                           .where(SdssIdStackedAddendum.catalogid31.is_null(False)))
 
-        ra_dec_update25 = (SdssIdStackedToAdd
+        ra_dec_update25 = (SdssIdStackedAddendum
                            .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
                            .from_(Catalog)
-                           .where(SdssIdStackedToAdd.catalogid25 == Catalog.catalogid)
-                           .where(SdssIdStackedToAdd.catalogid31.is_null())
-                           .where(SdssIdStackedToAdd.catalogid25.is_null(False)))
+                           .where(SdssIdStackedAddendum.catalogid25 == Catalog.catalogid)
+                           .where(SdssIdStackedAddendum.catalogid31.is_null())
+                           .where(SdssIdStackedAddendum.catalogid25.is_null(False)))
 
-        ra_dec_update21 = (SdssIdStackedToAdd
+        ra_dec_update21 = (SdssIdStackedAddendum
                            .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
                            .from_(Catalog)
-                           .where(SdssIdStackedToAdd.catalogid21 == Catalog.catalogid)
-                           .where(SdssIdStackedToAdd.catalogid31.is_null())
-                           .where(SdssIdStackedToAdd.catalogid25.is_null())
-                           .where(SdssIdStackedToAdd.catalogid21.is_null(False)))
+                           .where(SdssIdStackedAddendum.catalogid21 == Catalog.catalogid)
+                           .where(SdssIdStackedAddendum.catalogid31.is_null())
+                           .where(SdssIdStackedAddendum.catalogid25.is_null())
+                           .where(SdssIdStackedAddendum.catalogid21.is_null(False)))
 
         ra_dec_update31.execute()
         ra_dec_update25.execute()
         ra_dec_update21.execute()
 
     def add_to_sdss_id_stacked(self, database):
-        """ This method adds the previously made sdss_id_stached_to_add to sdss_id_stacked """
+        """ This method adds the previously made sdss_id_stached_addendum to sdss_id_stacked """
 
         sid_stacked_f = [SdssIdStacked.catalogid21,
                          SdssIdStacked.catalogid25,
@@ -365,31 +365,31 @@ class AppendToTables:
                          SdssIdStacked.ra_sdss_id,
                          SdssIdStacked.dec_sdss_id]
 
-        to_add = SdssIdStackedToAdd.select(SdssIdStackedToAdd.catalogid21,
-                                           SdssIdStackedToAdd.catalogid25,
-                                           SdssIdStackedToAdd.catalogid31,
-                                           SdssIdStackedToAdd.ra_sdss_id,
-                                           SdssIdStackedToAdd.dec_sdss_id).tuples()
+        to_add = SdssIdStackedAddendum.select(SdssIdStackedAddendum.catalogid21,
+                                              SdssIdStackedAddendum.catalogid25,
+                                              SdssIdStackedAddendum.catalogid31,
+                                              SdssIdStackedAddendum.ra_sdss_id,
+                                              SdssIdStackedAddendum.dec_sdss_id).tuples()
         with self.database.atomic():
             SdssIdStacked.insert_many(to_add, fields=sid_stacked_f).execute()
 
-    def create_sdss_id_flat_to_add(self, database):
+    def create_sdss_id_flat_addendum(self, database):
         """ This method takes the new sdss_id rows in sdss_id_stacked and
         adds them to a temporary table in the sandbox in the sdss_id_flat format.
         Here, the ra/dec_catalogid are populated with the specific values associated
         with the catalogid. """
 
-        if SdssIdFlatToAdd.table_exists():
-            self.database.drop_tables([SdssIdFlatToAdd])
-            self.database.create_tables([SdssIdFlatToAdd])
+        if SdssIdFlatAddendum.table_exists():
+            self.database.drop_tables([SdssIdFlatAddendum])
+            self.database.create_tables([SdssIdFlatAddendum])
         else:
-            self.database.create_tables([SdssIdFlatToAdd])
+            self.database.create_tables([SdssIdFlatAddendum])
 
-        sid_flat_fields = [SdssIdFlatToAdd.sdss_id,
-                           SdssIdFlatToAdd.catalogid,
-                           SdssIdFlatToAdd.version_id,
-                           SdssIdFlatToAdd.ra_sdss_id,
-                           SdssIdFlatToAdd.dec_sdss_id]
+        sid_flat_fields = [SdssIdFlatAddendum.sdss_id,
+                           SdssIdFlatAddendum.catalogid,
+                           SdssIdFlatAddendum.version_id,
+                           SdssIdFlatAddendum.ra_sdss_id,
+                           SdssIdFlatAddendum.dec_sdss_id]
 
         max_sdss_id = SdssIdFlat.select(fn.MAX(SdssIdFlat.sdss_id)).scalar()
 
@@ -402,7 +402,7 @@ class AppendToTables:
                             .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
 
         with self.database.atomic():
-            SdssIdFlatToAdd.insert_many(sid_flat_add_v21, fields=sid_flat_fields).execute()
+            SdssIdFlatAddendum.insert_many(sid_flat_add_v21, fields=sid_flat_fields).execute()
 
         sid_flat_add_v25 = (SdssIdStacked.select(SdssIdStacked.sdss_id,
                                                  SdssIdStacked.catalogid25,
@@ -413,7 +413,7 @@ class AppendToTables:
                             .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
 
         with self.database.atomic():
-            SdssIdFlatToAdd.insert_many(sid_flat_add_v25, fields=sid_flat_fields).execute()
+            SdssIdFlatAddendum.insert_many(sid_flat_add_v25, fields=sid_flat_fields).execute()
 
         sid_flat_add_v31 = (SdssIdStacked.select(SdssIdStacked.sdss_id,
                                                  SdssIdStacked.catalogid31,
@@ -423,27 +423,27 @@ class AppendToTables:
                             .where(SdssIdStacked.catalogid31.is_null(False))
                             .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
         with self.database.atomic():
-            SdssIdFlatToAdd.insert_many(sid_flat_add_v31, fields=sid_flat_fields).execute()
+            SdssIdFlatAddendum.insert_many(sid_flat_add_v31, fields=sid_flat_fields).execute()
 
-        cte = (SdssIdFlatToAdd
-               .select(SdssIdFlatToAdd.catalogid, fn.COUNT("*").alias('ct'))
-               .group_by(SdssIdFlatToAdd.catalogid)
+        cte = (SdssIdFlatAddendum
+               .select(SdssIdFlatAddendum.catalogid, fn.COUNT("*").alias('ct'))
+               .group_by(SdssIdFlatAddendum.catalogid)
                .cte('catid_n_associated', columns=("catalogid", "ct")))
 
-        (SdssIdFlatToAdd.update(n_associated=cte.c.ct)
-                        .from_(cte)
-                        .where(SdssIdFlatToAdd.catalogid == cte.c.catalogid)
-                        .with_cte(cte)
-                        .execute())
+        (SdssIdFlatAddendum.update(n_associated=cte.c.ct)
+                           .from_(cte)
+                           .where(SdssIdFlatAddendum.catalogid == cte.c.catalogid)
+                           .with_cte(cte)
+                           .execute())
 
-        (SdssIdFlatToAdd.update(ra_catalogid=Catalog.ra,
-                                dec_catalogid=Catalog.dec)
-                        .from_(Catalog)
-                        .where(SdssIdFlatToAdd.catalogid == Catalog.catalogid)
-                        .execute())
+        (SdssIdFlatAddendum.update(ra_catalogid=Catalog.ra,
+                                   dec_catalogid=Catalog.dec)
+                           .from_(Catalog)
+                           .where(SdssIdFlatAddendum.catalogid == Catalog.catalogid)
+                           .execute())
 
     def add_to_sdss_id_flat(self, database):
-        """ This method adds sdss_id_flat_to_add to sdss_id_flat """
+        """ This method adds sdss_id_flat_addendum to sdss_id_flat """
 
         sid_flat_f = [SdssIdFlat.sdss_id,
                       SdssIdFlat.catalogid,
@@ -454,26 +454,30 @@ class AppendToTables:
                       SdssIdFlat.ra_catalogid,
                       SdssIdFlat.dec_catalogid]
 
-        to_add = SdssIdFlatToAdd.select(SdssIdFlatToAdd.sdss_id,
-                                        SdssIdFlatToAdd.catalogid,
-                                        SdssIdFlatToAdd.version_id,
-                                        SdssIdFlatToAdd.ra_sdss_id,
-                                        SdssIdFlatToAdd.dec_sdss_id,
-                                        SdssIdFlatToAdd.n_associated,
-                                        SdssIdFlatToAdd.ra_catalogid,
-                                        SdssIdFlatToAdd.dec_catalogid).tuples()
+        to_add = SdssIdFlatAddendum.select(SdssIdFlatAddendum.sdss_id,
+                                           SdssIdFlatAddendum.catalogid,
+                                           SdssIdFlatAddendum.version_id,
+                                           SdssIdFlatAddendum.ra_sdss_id,
+                                           SdssIdFlatAddendum.dec_sdss_id,
+                                           SdssIdFlatAddendum.n_associated,
+                                           SdssIdFlatAddendum.ra_catalogid,
+                                           SdssIdFlatAddendum.dec_catalogid).tuples()
 
         with self.database.atomic():
             SdssIdFlat.insert_many(to_add, fields=sid_flat_f).execute()
 
 
 """
-EXAMPLE OF USAGE
+EXAMPLE OF ADDING A SERIED OF CATALOGIDS
 foo = AppendToTables(database, catalogid_list=[list, of, integer, catalogids])
 output_name = foo.run_MetaXMatch(database)
 foo.create_temp_catalogid_lists(database, output_name)
-foo.create_sdss_id_stacked_to_add(database, output_name)
+foo.create_sdss_id_stacked_addendum(database, output_name)
 foo.add_to_sdss_id_stacked(database)
-foo.create_sdss_id_flat_to_add(database)
+foo.create_sdss_id_flat_addendum(database)
 foo.add_to_sdss_id_flat(database)
+"""
+
+"""
+EXAMPLE OF ADDING MISSING CATALOGIDS IN A TABLE
 """
