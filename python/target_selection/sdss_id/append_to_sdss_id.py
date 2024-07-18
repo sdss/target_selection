@@ -16,8 +16,7 @@ from .create_catalogidx_to_catalogidy import (
     MetaXMatch,
     TempMatch,
     UniqueMatch,
-    create_unique_from_region,
-)
+    create_unique_from_region)
 
 database.connect(dbname="sdss5db", user="sdss_user")
 
