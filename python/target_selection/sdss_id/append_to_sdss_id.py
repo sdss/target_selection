@@ -118,7 +118,7 @@ class SdssIdFlatAddendum(peewee.Model):
     class Meta:
         database = database
         schema = "sandbox"
-        table_name = "sdss_id_flat_Addendum"
+        table_name = "sdss_id_flat_addendum"
 
 
 class AppendToTables:
