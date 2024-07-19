@@ -10,6 +10,7 @@ import abc
 import datetime
 import inspect
 import re
+import time
 import warnings
 
 import numpy
@@ -310,6 +311,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 execute_sql(f"CREATE TABLE IF NOT EXISTS {path} AS " + query_sql, params)
 
         self.log.info(f"Created table {path!r} in {timer.interval:.3f} s.")
+
+        # sleep to give enough time for table column information to be updated
+        # in postgresql
+        time.sleep(30)
 
         self.RModel = self.get_model()
 
