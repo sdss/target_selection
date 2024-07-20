@@ -1,10 +1,9 @@
 '1.2.4':
   xmatch_plan: 1.0.0
   cartons:
-    - bhm_spiders_agn_sep_d3
-    - bhm_colr_galaxies_lsdr10_d3
-    - mwm_erosita_compact_boss_d3
-    - mwm_erosita_compact_boss_shallow
+    - bhm_gua_dark_d3
+    - bhm_spiders_agn_hard_d3
+    - bhm_spiders_agn_tda_d3
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
   schema: sandbox
   magnitudes:
