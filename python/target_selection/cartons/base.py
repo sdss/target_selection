@@ -316,8 +316,8 @@ class BaseCarton(metaclass=abc.ABCMeta):
         #        execute_sql = self.database.execute_sql
         self.database.execute_sql("COMMIT;")
 
-        # sleep to give enough time for table column information to be updated
-        # in postgresql
+        # call sleep() to give enough time for table column information
+        # to be updated in postgresql
         time.sleep(30)
 
         self.RModel = self.get_model()
