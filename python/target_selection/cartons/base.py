@@ -10,7 +10,6 @@ import abc
 import datetime
 import inspect
 import re
-import time
 import warnings
 
 import numpy
@@ -312,14 +311,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.info(f"Created table {path!r} in {timer.interval:.3f} s.")
 
-        # Note that at the top of this method we have the below statement.
+        # Note that above execute_sql() is the same as below
+        # self.database.execute_sql() since at the top of this method
+        # we have the below statement.
         #        execute_sql = self.database.execute_sql
+
         self.database.execute_sql("COMMIT;")
-
-        # call sleep() to give enough time for table column information
-        # to be updated in postgresql
-        time.sleep(30)
-
         self.RModel = self.get_model()
 
         self.log.debug("Adding columns and indexes.")
