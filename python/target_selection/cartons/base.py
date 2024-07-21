@@ -311,6 +311,12 @@ class BaseCarton(metaclass=abc.ABCMeta):
 
         self.log.info(f"Created table {path!r} in {timer.interval:.3f} s.")
 
+        # Note that above execute_sql() is the same as below
+        # self.database.execute_sql() since at the top of this method
+        # we have the below statement.
+        #        execute_sql = self.database.execute_sql
+
+        self.database.execute_sql("COMMIT;")
         self.RModel = self.get_model()
 
         self.log.debug("Adding columns and indexes.")
@@ -773,6 +779,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.log.debug(f"Writing table to {filename}.")
 
         if not self.RModel:
+            self.database.execute_sql("COMMIT;")
             self.RModel = self.get_model()
 
         if mode == "results":
@@ -885,6 +892,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 raise ValueError(f'Invalid mode {mode!r}. Use "fail", "overwrite", or "append".')
 
         if self.RModel is None:
+            self.database.execute_sql("COMMIT;")
             RModel = self.get_model()
         else:
             RModel = self.RModel

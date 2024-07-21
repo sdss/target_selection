@@ -600,6 +600,9 @@ class BhmSpidersAgnLsdr10Carton(BaseCarton):
 #
 # END BhmSpidersAgnLsdr10Carton
 # ##################################################################################
+class BhmSpidersAgnLsdr10D3Carton(BhmSpidersAgnLsdr10Carton):
+    name = "bhm_spiders_agn_lsdr10_d3"
+    only_faintest_cadence = True
 
 
 # we can get away with just inheriting the selection code from

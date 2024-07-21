@@ -1,10 +1,10 @@
 # Changelog
 
-
-## 1.3.3 - July 18, 2024
+## 1.3.3 - July 21, 2024
 
 ## New
 
+* add cartons to target_selection plan 1.2.4
 * added bhm\_aqmes\_wide1 and bhm\_aqmes\_wide1\_faint cartons
   * identical to 'wide2' versions, but with a 'dark\_1x4' cadence and +1 added to priorities
 * new '\_d3' versions of selected BHM cartons
