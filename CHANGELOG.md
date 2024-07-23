@@ -1,10 +1,11 @@
 # Changelog
 
-## 1.3.4 - July 22, 2024
+## 1.3.4 - July 23, 2024
 
 ## New
 
 * add cartons to target_selection plan 1.2.5
+* pyproject.toml: edit include parameter
 
 ## 1.3.3 - July 21, 2024
 
