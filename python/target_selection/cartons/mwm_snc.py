@@ -140,7 +140,8 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     Shorthand name:  mwm_snc_100pc_boss
     https://sdss-wiki.atlassian.net/wiki/spaces/OPS/pages/13707660/Cartons+for+post+v1
 
-    Existing carton code: https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_snc.py
+    Existing carton code:
+    https://github.com/sdss/target_selection/blob/main/python/target_selection/cartons/mwm_snc.py
 
     Simplified Description of selection criteria :
     Select everything within 100pc (i.e. parallax > 10mas) and Gaia-G
@@ -149,13 +150,14 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     For details, see here. Pseudo-code: For the pseduo-code, I will shorten
     it and use the definition of "gal_cut" from the existing carton code.
     Also, the red text below is what is being added to the target selection
-    compared to the original v1 carton. (parallax > 0) & (parallax -
-    parallax_error > 10) & (phot_g_mean_mag > 10) &
+    compared to the original v1 carton.
+    (parallax > 0) & (parallax - parallax_error > 10) & (phot_g_mean_mag > 10) &
     ((astrometric_excess_noise < 2) & (ll >= 20) & (ll <= 340) & gal_cut) |
-    ((astrometric_excess_noise < 2) & (ruwe < 1.2) & (1 + 0.015 *
-    (phot_bp_mean_mag - phot_rp_mean_mag)^2 < phot_bp_rp_excess_factor) &
-    (phot_bp_rp_excess_factor < 1.3 + 0.06 * (phot_bp_mean_mag -
-    phot_rp_mean_mag)^2) & (ll < 20 | ll > 340) & gal_cut) | ~gal_cut)
+    ((astrometric_excess_noise < 2) & (ruwe < 1.2) &
+    ((1 + 0.015 * (phot_bp_mean_mag - phot_rp_mean_mag)^2) < phot_bp_rp_excess_factor) &
+    (phot_bp_rp_excess_factor <
+    (1.3 + 0.06 * (phot_bp_mean_mag - phot_rp_mean_mag)^2)) &
+    ((ll < 20) | (ll > 340)) & gal_cut) | ~gal_cut)
 
     Return columns: Same columns as before + astrometric_excess_noise,
     phot_bp_rp_excess_factor, ruwe, phot_bp_mean_mag , phot_rp_mean_mag
@@ -203,8 +205,14 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
                     < Gaia_DR3.phot_bp_rp_excess_factor
                 )
                 & (
-                    (Gaia_DR3.phot_bp_rp_excess_factor
-                    < (1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)))
+                    (
+                        Gaia_DR3.phot_bp_rp_excess_factor
+                        < (
+                            1.3
+                            + 0.06
+                            * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)
+                        )
+                    )
                     & ((ll < 20) | (ll > 340))
                     & gal_cut
                 )
