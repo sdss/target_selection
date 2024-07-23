@@ -199,13 +199,13 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
                 (Gaia_DR3.astrometric_excess_noise < 2)
                 & (Gaia_DR3.ruwe < 1.2)
                 & (
-                    1 + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)
+                    (1 + 0.015 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2))
                     < Gaia_DR3.phot_bp_rp_excess_factor
                 )
                 & (
-                    Gaia_DR3.phot_bp_rp_excess_factor
-                    < 1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)
-                    & (ll < 20 | ll > 340)
+                    (Gaia_DR3.phot_bp_rp_excess_factor
+                    < (1.3 + 0.06 * fn.pow(Gaia_DR3.phot_bp_mean_mag - Gaia_DR3.phot_rp_mean_mag, 2)))
+                    & ((ll < 20) | (ll > 340))
                     & gal_cut
                 )
                 | ~gal_cut
