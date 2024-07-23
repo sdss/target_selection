@@ -110,7 +110,8 @@ class MWM_halo_distant_rrl_boss_single_Carton(BaseCarton):
 
 
 class MWM_halo_distant_rrl_boss_triple_Carton(MWM_halo_distant_rrl_boss_single_Carton):
-    """mwm_halo_distant_rrl_boss_triple
+    """
+    mwm_halo_distant_rrl_boss_triple
     Shorthand name: mwm_halo_distant_rrl_boss_triple
     Metadata:
     Priority: 3049
