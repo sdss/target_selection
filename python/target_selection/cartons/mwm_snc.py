@@ -176,6 +176,7 @@ class MWM_SNC_100pc_BOSS_Carton(MWM_SNC_100pc_Carton):
     program = "mwm_snc"
     mapper = "MWM"
     instrument = "BOSS"
+    cadence = None  # cadence is set in post_process()
     priority = 1800
     can_offset = True
 
@@ -254,6 +255,7 @@ class MWM_SNC_100pc_BOSS_single_Carton(MWM_SNC_100pc_BOSS_Carton):
     program = "mwm_snc"
     mapper = "MWM"
     instrument = "BOSS"
+    cadence = None  # cadence is set in post_process()
     priority = 1801
     can_offset = True
 
