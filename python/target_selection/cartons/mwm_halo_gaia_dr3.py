@@ -1230,6 +1230,56 @@ class MWM_halo_local_high_apogee_triple_Carton(MWM_halo_local_high_apogee_single
     priority = 2979
     can_offset = True
 
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_halo_local_high_apogee_triple " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select catalogid, vtan, "
+            + "parallax_over_error, phot_g_mean_mag, parallax from "
+            + " sandbox.temp_mwm_halo_local_high_apogee_triple ;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            # current_vtan = output[i][1]
+            current_parallax_over_error = output[i][2]
+            current_phot_g_mean_mag = output[i][3]
+            current_parallax = output[i][4]
+
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
+
+            is_m_g_3to5 = (3 < current_m_g) and (current_m_g < 5)
+            is_parallax_over_error_5to10 = (5 < current_parallax_over_error) and (
+                current_parallax_over_error < 10
+            )
+
+            # Below we do not check for vtan > 150 since
+            # the query in base class build_query() has vtan > 150
+            #
+            # We do not check for parallax_over_error > 5 since
+            # the query in base class build_query() has parallax_over_error > 5
+
+            if (is_m_g_3to5 and is_parallax_over_error_5to10) or (
+                current_parallax_over_error >= 10
+            ):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_local_high_apogee_triple "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
+
 
 class MWM_halo_local_high_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1325,6 +1375,56 @@ class MWM_halo_local_high_boss_triple_Carton(MWM_halo_local_high_boss_single_Car
     priority = 2979
     can_offset = True
 
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_halo_local_high_boss_triple " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select catalogid, vtan, "
+            + "parallax_over_error, phot_g_mean_mag, parallax from "
+            + " sandbox.temp_mwm_halo_local_high_boss_triple ;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            # current_vtan = output[i][1]
+            current_parallax_over_error = output[i][2]
+            current_phot_g_mean_mag = output[i][3]
+            current_parallax = output[i][4]
+
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
+
+            is_m_g_3to5 = (3 < current_m_g) and (current_m_g < 5)
+            is_parallax_over_error_5to10 = (5 < current_parallax_over_error) and (
+                current_parallax_over_error < 10
+            )
+
+            # Below we do not check for vtan > 150 since
+            # the query in base class build_query() has vtan > 150
+            #
+            # We do not check for parallax_over_error > 5 since
+            # the query in base class build_query() has parallax_over_error > 5
+
+            if (is_m_g_3to5 and is_parallax_over_error_5to10) or (
+                current_parallax_over_error >= 10
+            ):
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_local_high_boss_triple "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
+
 
 class MWM_halo_local_low_apogee_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1416,6 +1516,54 @@ class MWM_halo_local_low_apogee_triple_Carton(MWM_halo_local_low_apogee_single_C
     priority = 6499
     can_offset = True
 
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_halo_local_low_apogee_triple " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select catalogid, vtan, "
+            + "parallax_over_error, phot_g_mean_mag, parallax from "
+            + " sandbox.temp_mwm_halo_local_low_apogee_triple ;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            # current_vtan = output[i][1]
+            current_parallax_over_error = output[i][2]
+            current_phot_g_mean_mag = output[i][3]
+            current_parallax = output[i][4]
+
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
+
+            is_m_g_3to5 = (3 < current_m_g) and (current_m_g < 5)
+            is_parallax_over_error_5to10 = (5 < current_parallax_over_error) and (
+                current_parallax_over_error < 10
+            )
+
+            # Below we do not check for vtan > 150 since
+            # the query in base class build_query() has vtan > 150
+            #
+            # We do not check for parallax_over_error > 5 since
+            # the query in base class build_query() has parallax_over_error > 5
+
+            if (not is_m_g_3to5) and is_parallax_over_error_5to10:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_local_low_apogee_triple "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
+
 
 class MWM_halo_local_low_boss_single_Carton(MWM_halo_local_Base_Carton):
     """
@@ -1506,6 +1654,54 @@ class MWM_halo_local_low_boss_triple_Carton(MWM_halo_local_low_boss_single_Carto
     mapper = "MWM"
     priority = 6499
     can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_halo_local_low_boss_triple " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select catalogid, vtan, "
+            + "parallax_over_error, phot_g_mean_mag, parallax from "
+            + " sandbox.temp_mwm_halo_local_low_boss_triple ;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+            # current_vtan = output[i][1]
+            current_parallax_over_error = output[i][2]
+            current_phot_g_mean_mag = output[i][3]
+            current_parallax = output[i][4]
+
+            # The 'where' clause in the query in build_query() ensures
+            # that current_phot_g_mean_mag and current_parallax are not null.
+            current_m_g = current_phot_g_mean_mag - (10 - 5 * math.log10(current_parallax))
+
+            is_m_g_3to5 = (3 < current_m_g) and (current_m_g < 5)
+            is_parallax_over_error_5to10 = (5 < current_parallax_over_error) and (
+                current_parallax_over_error < 10
+            )
+
+            # Below we do not check for vtan > 150 since
+            # the query in base class build_query() has vtan > 150
+            #
+            # We do not check for parallax_over_error > 5 since
+            # the query in base class build_query() has parallax_over_error > 5
+
+            if (not is_m_g_3to5) and is_parallax_over_error_5to10:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_halo_local_low_boss_triple "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
 
 
 class MWM_halo_local_high_apogee_Carton(MWM_halo_local_Base_Carton):
