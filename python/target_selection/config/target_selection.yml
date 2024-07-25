@@ -8,10 +8,6 @@
     - mwm_halo_vmp_xp_apogee_triple
     - mwm_halo_mp_xp_apogee_triple
     - mwm_halo_nmp_xp_apogee_triple
-    - mwm_halo_local_high_apogee_triple
-    - mwm_halo_local_high_boss_triple
-    - mwm_halo_local_low_apogee_triple
-    - mwm_halo_local_low_boss_triple
   open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
   schema: sandbox
   magnitudes:
