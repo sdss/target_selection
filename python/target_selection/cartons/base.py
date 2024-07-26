@@ -186,6 +186,10 @@ class BaseCarton(metaclass=abc.ABCMeta):
     def get_model(self):
         """Returns a Peewee model for the temporary table using reflection."""
 
+        # peewee has a Model class, BaseModel class, and ModelBase class.
+        # The below Model class is different from peewee Model class
+        # The below BaseModel class is from sdssdb.peewee.
+        # It is different from peewee BaseModel class.
         class Model(BaseModel):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
