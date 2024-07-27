@@ -692,7 +692,7 @@ class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
 class MWM_bin_rv_short_rgb_apogee_08epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
     """mwm_bin_rv_short_rgb_apogee_08epoch -
     same as mwm_bin_rv_short_rgb_apogee but
-    with cadence=bright_8x1 and adding “2” to each priority
+    with cadence=bright_8x1 and priority=2537
     """
 
     name = "mwm_bin_rv_short_rgb_apogee_08epoch"
@@ -702,13 +702,13 @@ class MWM_bin_rv_short_rgb_apogee_08epoch_Carton(MWM_bin_rv_short_rgb_apogee_Car
     program = "mwm_bin"
     mapper = "MWM"
     priority = 2537
-    can_offset = False
+    can_offset = True
 
 
 class MWM_bin_rv_short_rgb_apogee_12epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
     """mwm_bin_rv_short_rgb_apogee_12epoch -
     same as mwm_bin_rv_short_rgb_apogee but
-    with cadence=bright_12x1 and adding “1” to each priority
+    with cadence=bright_12x1 and priority=2536
     """
 
     name = "mwm_bin_rv_short_rgb_apogee_12epoch"
@@ -718,13 +718,13 @@ class MWM_bin_rv_short_rgb_apogee_12epoch_Carton(MWM_bin_rv_short_rgb_apogee_Car
     program = "mwm_bin"
     mapper = "MWM"
     priority = 2536
-    can_offset = False
+    can_offset = True
 
 
 class MWM_bin_rv_short_subgiant_apogee_08epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
     """mwm_bin_rv_short_subgiant_apogee_08epoch -
     same as mwm_bin_rv_short_subgiant_apogee but
-    with cadence=bright_8x1 and adding “2” to each priority
+    with cadence=bright_8x1 and priority=2527
     """
 
     name = "mwm_bin_rv_short_subgiant_apogee_8epoch"
@@ -734,13 +734,13 @@ class MWM_bin_rv_short_subgiant_apogee_08epoch_Carton(MWM_bin_rv_short_subgiant_
     program = "mwm_bin"
     mapper = "MWM"
     priority = 2527
-    can_offset = False
+    can_offset = True
 
 
 class MWM_bin_rv_short_subgiant_apogee_12epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
     """mwm_bin_rv_short_subgiant_apogee_12epoch -
     same as mwm_bin_rv_short_subgiant_apogee but
-    with cadence=bright_12x1 and adding “1” to each priority
+    with cadence=bright_12x1 and priority=2526
     """
 
     name = "mwm_bin_rv_short_subgiant_apogee_12epoch"
@@ -750,4 +750,4 @@ class MWM_bin_rv_short_subgiant_apogee_12epoch_Carton(MWM_bin_rv_short_subgiant_
     program = "mwm_bin"
     mapper = "MWM"
     priority = 2526
-    can_offset = False
+    can_offset = True
