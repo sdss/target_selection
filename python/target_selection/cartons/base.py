@@ -187,9 +187,23 @@ class BaseCarton(metaclass=abc.ABCMeta):
         """Returns a Peewee model for the temporary table using reflection."""
 
         # peewee has a Model class, BaseModel class, and ModelBase class.
-        # The below Model class is different from peewee Model class
+        # The below Model class is different from peewee Model class.
         # The below BaseModel class is from sdssdb.peewee.
         # It is different from peewee BaseModel class.
+        #
+        # The below line is from sdssdb/peewee/__init__.py
+        #
+        #     class BaseModel(Model, metaclass=ReflectMeta):
+        #
+        # The above line, relates the below Model class to
+        # the ReflectMeta metaclass.
+        # Inside the ReflectMeta metaclass is the code in __new__()
+        # which generates the Model class.
+        #
+        # So defining the Model class here leads to creation of
+        # the Model class. Later below we have the statement
+        # "return Model" which is the last statement of get_model().
+        #
         class Model(BaseModel):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
