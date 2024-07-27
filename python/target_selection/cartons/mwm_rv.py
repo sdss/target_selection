@@ -727,7 +727,7 @@ class MWM_bin_rv_short_subgiant_apogee_08epoch_Carton(MWM_bin_rv_short_subgiant_
     with cadence=bright_8x1 and priority=2527
     """
 
-    name = "mwm_bin_rv_short_subgiant_apogee_8epoch"
+    name = "mwm_bin_rv_short_subgiant_apogee_08epoch"
     category = "science"
     instrument = "APOGEE"
     cadence = "bright_8x1"
