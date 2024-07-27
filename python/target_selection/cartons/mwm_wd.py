@@ -40,7 +40,7 @@ class MWM_WD_PWD_boss_Carton(BaseCarton):
     category = "science"
     program = "mwm_wd"
     instrument = "BOSS"
-    cadence = "dark_2x1"
+    cadence = "dark_2x2"
     priority = 1400
     can_offset = True
 
@@ -102,7 +102,7 @@ class MWM_WD_Gaia_boss_Carton(BaseCarton):
     category = "science"
     program = "mwm_wd"
     instrument = "BOSS"
-    cadence = "dark_2x1"
+    cadence = "dark_2x2"
     priority = 1401
     can_offset = True
 
@@ -159,33 +159,163 @@ class MWM_WD_Gaia_boss_Carton(BaseCarton):
         return query
 
 
-class MWM_WD_PWD_boss_single_Carton(MWM_WD_PWD_boss_Carton):
-    """mwm_wd_pwd_boss_single -
-    same as mwm_wd_pwd_boss but
-    with cadence=dark_1x3 and adding "2" to each priority.
+class MWM_WD_PWD_boss_2x1_Carton(MWM_WD_PWD_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_pwd_boss_2x1
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1402
+    Cadence:  dark_2x1
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
     """
 
-    name = "mwm_wd_pwd_boss_single"
+    name = "mwm_wd_pwd_boss_2x1"
     mapper = "MWM"
     category = "science"
     program = "mwm_wd"
     instrument = "BOSS"
-    cadence = "dark_1x3"
+    cadence = "dark_2x1"
     priority = 1402
     can_offset = True
 
 
-class MWM_WD_Gaia_boss_single_Carton(MWM_WD_Gaia_boss_Carton):
-    """mwm_wd_gaia_boss_single -
-    same as mwm_wd_gaia_boss but
-    with cadence=dark_1x3 and adding "2" to each priority.
+class MWM_WD_PWD_boss_1x3_Carton(MWM_WD_PWD_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_pwd_boss_1x3
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1404
+    Cadence:  dark_1x3
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
     """
 
-    name = "mwm_wd_gaia_boss_single"
+    name = "mwm_wd_pwd_boss_1x3"
     mapper = "MWM"
     category = "science"
     program = "mwm_wd"
     instrument = "BOSS"
     cadence = "dark_1x3"
+    priority = 1404
+    can_offset = True
+
+
+class MWM_WD_PWD_boss_1x2_Carton(MWM_WD_PWD_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_pwd_boss_1x2
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1406
+    Cadence:  dark_1x2
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
+    """
+
+    name = "mwm_wd_pwd_boss_1x2"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_wd"
+    instrument = "BOSS"
+    cadence = "dark_1x2"
+    priority = 1406
+    can_offset = True
+
+
+class MWM_WD_Gaia_boss_2x1_Carton(MWM_WD_Gaia_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_gaia_boss_2x1
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1403
+    Cadence:  dark_2x1
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
+    """
+
+    name = "mwm_wd_gaia_boss_2x1"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_wd"
+    instrument = "BOSS"
+    cadence = "dark_2x1"
     priority = 1403
+    can_offset = True
+
+
+class MWM_WD_Gaia_boss_1x3_Carton(MWM_WD_Gaia_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_gaia_boss_1x3
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1405
+    Cadence:  dark_1x3
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
+    """
+
+    name = "mwm_wd_gaia_boss_1x3"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_wd"
+    instrument = "BOSS"
+    cadence = "dark_1x3"
+    priority = 1405
+    can_offset = True
+
+
+class MWM_WD_Gaia_boss_1x2_Carton(MWM_WD_Gaia_boss_Carton):
+    """
+    Shorthand name:  mwm_wd_gaia_boss_1x2
+
+    Existing carton code:
+    Simplified Description of selection criteria :
+    Unchanged from previous version of mwm_wd_pwd_boss
+    Pseudo-code: ---
+    Return columns: Same as previous
+    Metadata:
+    Priority: 1407
+    Cadence:  dark_1x2
+    Instrument: BOSS
+    can_offset = True
+    Lead contact: Nikola Gentile Fusillo
+    """
+
+    name = "mwm_wd_gaia_boss_1x2"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_wd"
+    instrument = "BOSS"
+    cadence = "dark_1x2"
+    priority = 1407
     can_offset = True
