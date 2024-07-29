@@ -21,9 +21,6 @@ from sdssdb.peewee.sdss5db.targetdb import Target
 
 import target_selection
 
-from .append_to_sdss_id import SdssIdFlat
-
-
 database.connect(dbname='sdss5db', user="sdss_user")  # Use 'sdss' to get read/write permissions
 
 
@@ -318,9 +315,9 @@ class MetaXMatch:
         # already in sdss_id_flat
         
         if self.outer_join_sdss_id:
-            cte_targetids = (cte_targetids.join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
-                                                on=(rel_table.catalogid == SdssIdFlat.catalogid))
-                                          .where(SdssIdFlat.catalogid).is_null())
+            cte_targetids = (cte_targetids.join(target_selection.sdss_id.SdssIdFlat, join_type=JOIN.LEFT_OUTER,
+                                                on=(rel_table.catalogid == target_selection.sdss_id.SdssIdFlat.catalogid))
+                                          .where(target_selection.sdss_id.SdssIdFlat.catalogid.is_null()))
 
         cte_targetids = cte_targetids.cte('cte_targets')
 
