@@ -153,7 +153,7 @@ class AppendToTables:
                       "show_first": 20,
                       "split_insert_nunmber": 100000,
                       "database_options": {"enable_hashjoin": "false"},
-                      "split_query": [['panstarrs1', 522000000000000, 5000000000000]],
+                      # "split_query": [['panstarrs1', 522000000000000, 5000000000000]],
                       "individual_table": individual_table}
         self.config = config
 
@@ -481,4 +481,7 @@ foo.add_to_sdss_id_flat(database)
 
 """
 EXAMPLE OF ADDING MISSING CATALOGIDS IN A TABLE
+foo = AppendToTables(database, individual_table='catalogdb.catalog_to_too_target')
+output_name = foo.run_MetaXMatch(database)
+
 """
