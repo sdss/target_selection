@@ -1,5 +1,11 @@
 # Changelog
 
+# 1.3.9 - July 30, 2024
+
+## New
+
+* add cartons to target_selection plan 1.2.10
+
 # 1.3.8 - July 29, 2024
 
 ## New
