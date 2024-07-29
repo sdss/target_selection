@@ -163,7 +163,8 @@ class AppendToTables:
          and catalogidx_to_catalogidy_?_unique tables.
         """
         metax = MetaXMatch(config_filename=None, database=database, from_yaml=False,
-                           from_dict=True, config_dict=self.config)
+                           from_dict=True, config_dict=self.config, 
+                           outer_join_sdss_id=True)
 
         metax.run()
         create_unique_from_region(metax.output_name)

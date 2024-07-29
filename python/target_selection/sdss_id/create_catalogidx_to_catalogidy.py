@@ -13,11 +13,13 @@ from itertools import combinations
 import numpy as np
 import peewee
 import yaml
-from peewee import fn
+from peewee import JOIN, fn
 from playhouse.postgres_ext import ArrayField
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
 from sdssdb.peewee.sdss5db.targetdb import Target
+
+from .append_to_sdss_id import SdssIdFlat
 
 import target_selection
 
@@ -96,11 +98,14 @@ class MetaXMatch:
         log_file, and split_inrest_number.
     save_log_output : bool
         Save output to a file? Default is False.
+    outer_join_sdss_id : bool
+        Only use catalogids not associated with an sdss_id?
     """
 
     def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False,
-                 config_dict=None, save_log_output=False):
+                 config_dict=None, save_log_output=False, outer_join_sdss_id=True):
         self.database = database
+        self.outer_join_sdss_id = outer_join_sdss_id
         if from_yaml:
             config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
         elif from_dict:
@@ -308,6 +313,14 @@ class MetaXMatch:
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             cte_targetids = cte_targetids.where(Target.ra.between(ra_start, ra_stop))
+
+        # If outer_join_sdss_id is True, only match in the catalogids that aren't
+        # already in sdss_id_flat
+        
+        if self.outer_join_sdss_id:
+            cte_targetids = (cte_targetids.join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
+                                                on=(rel_table.catalogid == SdssIdFlat.catalogid))
+                                          .where(SdssIdFlat.catalogid).is_null())
 
         cte_targetids = cte_targetids.cte('cte_targets')
 
