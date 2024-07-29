@@ -101,3 +101,64 @@ If using Visual Studio Code, it is recommended to install the [ruff](https://mar
 ```
 
 which will apply the formatting and linting automatically on save.
+
+### Working with `sdssdb`
+
+Often developing `target_selection` requires concurrent changes to [sdssdb](https://github.com/sdss/sdssdb). This presents a bit of a challenge to keep everything in sync and provide a convenient developing environment.
+
+The recommended way to develop with `target_selection` and `sdssdb` is to install `sdssdb` in editable mode in the `target_selection` environment. To do this run
+
+```bash
+pip install -e <PATH-TO-SDSSDB-ROOT-DIR>
+```
+
+After this if you run
+
+```bash
+pip list | grep sdssdb
+```
+
+you should see a path next to the version, indicating that `sdssdb` is being imported from that path. Any local changes in that path will be applied when `target_selection` imports `sdssdb`.
+
+### Updating `sdssdb` and other dependencies before tagging
+
+When tagging `target_selection` please make sure that you've tagged `sdssdb` (if needed) and that the lockfile reflects the change. First you'll need to install [poetry](https://python-poetry.org/docs/#installation) (this should only be required once). Follow the installation instructions there, but a recommended way to install is:
+
+1. Install [pipx](https://pipx.pypa.io/stable/installation/). Follow the instructions for your system, but generally `pip install pipx` works fine.
+2. Use `pipx` to install `poetry` with
+
+    ```bash
+    pipx install poetry
+    ```
+
+3. Ensure that the `poetry` executable can be found. If you execute `poetry` in your shell and that files, make sure that you have `$HOME/.local/bin` in your `$PATH` or follow other `pipx` instructions.
+
+Once `poetry` is installed follow these instructions:
+
+1. If there are changes in `sdssdb` that affect `target_selection`, tag `sdssdb`. Please do update the `sdssdb` [change log](https://github.com/sdss/sdssdb/blob/main/CHANGELOG.rst) adding the header indicating the date in which the release was made. Note that you don't necessarily need to do this every time that `target_selection` is tagged, only when the new `target_selection` tag depends on untagged changes in `sdssdb`.
+
+2. Update the `version` in `pyproject.toml` to the release version.
+
+3. Update the dependency for `sdssdb` in `pyproject.toml` for example if `sdssdb` 0.14.1 has just been tagged, change
+
+    ```toml
+    sdssdb = "0.14.0"
+    ```
+
+    to
+
+    ```toml
+    sdssdb = "0.14.1"
+    ```
+
+4. Recreate the lockfile with
+
+    ```bash
+    poetry lock
+    ```
+
+    It may take a bit of time for `poetry` to detect a recently released version of `sdss`. You may want to run `poetry lock --no-cache` which will take a bit longer but should grab the new package as long as PyPI has updated its internal cache.
+
+    Note that `poetry lock` *will not* update the version of `sdssdb` in your virtual environment, only the lockfile. If you do want to update the dependency and the lockfile use `poetry update sdssdb` (or `poetry update` to update all the dependencies).
+
+5. Commit the new changes (including the `poetry.lock` file) and tag the new version of `target_selection`.
