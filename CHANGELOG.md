@@ -1,45 +1,58 @@
 # Changelog
 
-# 1.3.9 - July 29, 2024
+## Next version
 
-## New
+### 📖 Documentation
+
+* [#480](https://github.com/sdss/target_selection/pull/480) Update `README.md` with instructions for parallel development and tagging of `sdssdb` and `target_selection`.
+
+
+## 1.3.9 - July 29, 2024
+
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.10
 
-# 1.3.8 - July 29, 2024
 
-## New
+## 1.3.8 - July 29, 2024
+
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.9
 
+
 ## 1.3.7 - July 28, 2024
 
-## New
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.8
 
+
 ## 1.3.6 - July 27, 2024
 
-## New
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.7
 
+
 ## 1.3.5 - July 24, 2024
 
-## New
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.6
 
+
 ## 1.3.4 - July 23, 2024
 
-## New
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.5
 * pyproject.toml: edit include parameter
 
+
 ## 1.3.3 - July 21, 2024
 
-## New
+### 🚀 New
 
 * add cartons to target_selection plan 1.2.4
 * added bhm\_aqmes\_wide1 and bhm\_aqmes\_wide1\_faint cartons
@@ -61,15 +74,17 @@
     * mwm\_erosita\_compact\_boss\_d3
   * incremented priority of mwm\_erosita\_compact\_boss\_shallow to avoid conflicts with '\_d3'
 
+
 ## 1.3.2 - July 17, 2024
 
-### Improved
+### ✨ Improved
 
 * Add cartons to target_selection plan 1.2.3
 
+
 ## 1.3.1 - July 12, 2024
 
-### ✨Improved
+### ✨ Improved
 
 * Add cartons to target_selection plan 1.2.2
 
