@@ -39,7 +39,6 @@
     work_mem: '200MB'
     enable_bitmapscan: false
     enable_seqscan: false
-
 '1.2.8':
   xmatch_plan: 1.0.0
   cartons:

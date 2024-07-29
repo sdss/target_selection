@@ -2,6 +2,11 @@
 
 ## Next version
 
+### 🔧 Fixed
+
+* [#481](https://github.com/sdss/target_selection/pull/481) Explicitely force the reflection cache to be update after the carton temporary table has been created.
+
+
 ### 📖 Documentation
 
 * [#480](https://github.com/sdss/target_selection/pull/480) Update `README.md` with instructions for parallel development and tagging of `sdssdb` and `target_selection`.
