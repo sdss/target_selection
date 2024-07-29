@@ -1,6 +1,6 @@
 # Changelog
 
-# 1.3.9 - July 30, 2024
+# 1.3.9 - July 29, 2024
 
 ## New
 
