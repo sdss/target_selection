@@ -218,7 +218,11 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 database = self.database
                 table_name = self.table_name
                 schema = self.schema
-                reflection_options = {"skip_foreign_keys": True, "use_peewee_reflection": False}
+                reflection_options = {
+                    "skip_foreign_keys": True,
+                    "use_peewee_reflection": False,
+                    "force": True,
+                }
                 use_reflection = True
 
         if not Model.table_exists():
