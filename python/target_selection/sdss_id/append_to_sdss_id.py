@@ -7,6 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import os
+from datetime import date
 
 import peewee
 from peewee import JOIN, fn
@@ -63,6 +64,7 @@ class SdssIdStacked(peewee.Model):
     catalogid31 = peewee.BigIntegerField()
     ra_sdss_id = peewee.DoubleField()
     dec_sdss_id = peewee.DoubleField()
+    last_updated = peewee.DateField()
 
     class Meta:
         database = database
@@ -97,6 +99,7 @@ class SdssIdStackedAddendum(peewee.Model):
     catalogid31 = peewee.BigIntegerField(index=True)
     ra_sdss_id = peewee.DoubleField()
     dec_sdss_id = peewee.DoubleField()
+    last_updated = peewee.DateField()
 
     class Meta:
         database = database
@@ -330,6 +333,13 @@ class AppendToTables:
                                  ALTER TABLE sandbox.sdss_id_stacked_addendum
                                     ADD COLUMN dec_sdss_id double precision; """
         self.database.execute_sql(add_ra_dec_columns)
+
+        add_last_updated_column = f""" ALTER TABLE sandbox.sdss_id_stacked_addendum
+                                           ADD COLUMN last_updated DATE;
+                                       UPDATE sandbox.sdss_id_stacked_addendum SET
+                                           last_updated = '{str(date.today())}'"""
+        self.database.execute_sql(add_last_updated_column)
+
         SdssIdStackedAddendum._meta.table_name = "sdss_id_stacked_addendum"
 
         ra_dec_update31 = (SdssIdStackedAddendum
@@ -364,13 +374,15 @@ class AppendToTables:
                          SdssIdStacked.catalogid25,
                          SdssIdStacked.catalogid31,
                          SdssIdStacked.ra_sdss_id,
-                         SdssIdStacked.dec_sdss_id]
+                         SdssIdStacked.dec_sdss_id,
+                         SdssIdStacked.last_updated]
 
         to_add = SdssIdStackedAddendum.select(SdssIdStackedAddendum.catalogid21,
                                               SdssIdStackedAddendum.catalogid25,
                                               SdssIdStackedAddendum.catalogid31,
                                               SdssIdStackedAddendum.ra_sdss_id,
-                                              SdssIdStackedAddendum.dec_sdss_id).tuples()
+                                              SdssIdStackedAddendum.dec_sdss_id,
+                                              SdssIdStackedAddendum.last_updated).tuples()
         with self.database.atomic():
             SdssIdStacked.insert_many(to_add, fields=sid_stacked_f).execute()
 
