@@ -481,7 +481,7 @@ class AppendToTables:
 
 
 """
-EXAMPLE OF ADDING A SERIED OF CATALOGIDS
+EXAMPLE OF ADDING A SERIES OF CATALOGIDS
 foo = AppendToTables(database, catalogid_list=[list, of, integer, catalogids])
 output_name = foo.run_MetaXMatch(database)
 foo.create_temp_catalogid_lists(database, output_name)
@@ -492,8 +492,12 @@ foo.add_to_sdss_id_flat(database)
 """
 
 """
-EXAMPLE OF ADDING MISSING CATALOGIDS IN A TABLE
+EXAMPLE OF ADDING MISSING CATALOGIDS FROM A TABLE
 foo = AppendToTables(database, individual_table='catalogdb.catalog_to_too_target')
 output_name = foo.run_MetaXMatch(database)
-
+foo.create_temp_catalogid_lists(database, output_name)
+foo.create_sdss_id_stacked_addendum(database, output_name)
+foo.add_to_sdss_id_stacked(database)
+foo.create_sdss_id_flat_addendum(database)
+foo.add_to_sdss_id_flat(database)
 """
