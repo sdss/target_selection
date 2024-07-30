@@ -299,7 +299,7 @@ class AppendToTables:
         the most recent catalogid in the match. """
 
         large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_addendum;
-        CREATE TABLE sandbox.sdss_id_stacked_to_addendum as (
+        CREATE TABLE sandbox.sdss_id_stacked_addendum as (
             with cat_ids21 as (select distinct tc.catalogid21, cat.lead from
                 sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),
             cat_ids25 as (select distinct tc.catalogid25, cat.lead from
