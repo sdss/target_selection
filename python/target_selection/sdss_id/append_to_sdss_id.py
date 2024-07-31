@@ -145,7 +145,7 @@ class AppendToTables:
                       # "split_query": [['panstarrs1',522000000000000,5000000000000]],
                       "catalogid_list": catalogid_list}
 
-        else:
+        elif self.individual_table is not None:
             if "." in self.individual_table:
                 self.ind_table_clean = self.individual_table.split(".")[-1]
 
@@ -158,6 +158,14 @@ class AppendToTables:
                       "database_options": {"enable_hashjoin": "false"},
                       # "split_query": [['panstarrs1', 522000000000000, 5000000000000]],
                       "individual_table": individual_table}
+        else:
+            config = {"version_ids_to_match": [21, 25, 31],
+                      "individual_xmatch_config":
+                      self.dir_path + "/config/individual_crossmatches.yml",
+                      "log_file": "catalogidx_to_catalogidy_all_target.log",
+                      "show_first": 20,
+                      "split_insert_nunmber": 100000,
+                      "database_options": {"enable_hashjoin": "false"}}
         self.config = config
 
     def run_MetaXMatch(self, database):
