@@ -509,3 +509,14 @@ foo.add_to_sdss_id_stacked(database)
 foo.create_sdss_id_flat_addendum(database)
 foo.add_to_sdss_id_flat(database)
 """
+
+"""
+EXAMPLE OF ADDING MISSING CATALOGIDS FROM TARGETDB
+foo = AppendToTables(database)
+output_name = foo.run_MetaXMatch(database)
+foo.create_temp_catalogid_lists(database, output_name)
+foo.create_sdss_id_stacked_addendum(database, output_name)
+foo.add_to_sdss_id_stacked(database)
+foo.create_sdss_id_flat_addendum(database)
+foo.add_to_sdss_id_flat(database)
+"""
