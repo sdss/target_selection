@@ -215,7 +215,7 @@ class AppendToTables:
 
         v21_cid_query_y = (TempMatch
                            .select(TempMatch.catalogidy.alias('catalogid21'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidy) &
+                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
                                               (Catalog.lead == TempMatch.lead)))
                            .switch(TempMatch)
                            .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
@@ -225,7 +225,7 @@ class AppendToTables:
 
         v25_cid_query_y = (TempMatch
                            .select(TempMatch.catalogidy.alias('catalogid25'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidy) &
+                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
                                               (Catalog.lead == TempMatch.lead)))
                            .switch(TempMatch)
                            .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
@@ -235,7 +235,7 @@ class AppendToTables:
 
         v31_cid_query_y = (TempMatch
                            .select(TempMatch.catalogidy.alias('catalogid31'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidy) &
+                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
                                               (Catalog.lead == TempMatch.lead)))
                            .switch(TempMatch)
                            .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
