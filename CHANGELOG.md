@@ -2,6 +2,12 @@
 
 ## Next version
 
+## 1.3.10 - July 30, 2024
+
+### 🚀 New
+
+* add cartons to target_selection plan 1.2.11
+
 ### 🔧 Fixed
 
 * [#481](https://github.com/sdss/target_selection/pull/481) Explicitely force the reflection cache to be update after the carton temporary table has been created.
