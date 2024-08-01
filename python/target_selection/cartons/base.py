@@ -209,10 +209,6 @@ class BaseCarton(metaclass=abc.ABCMeta):
         class Model(BaseModel):
             catalogid = peewee.BigIntegerField(primary_key=True)
             selected = peewee.BooleanField()
-            cadence = peewee.TextField()
-            instrument = peewee.TextField()
-            priority = peewee.IntegerField()
-            selected = peewee.BooleanField()
 
             class Meta:
                 database = self.database
