@@ -18,15 +18,23 @@ from typing import TYPE_CHECKING, Literal, Sequence, overload
 import enlighten
 import healpy
 import numpy
+import numpy.typing as npt
 import pandas
 import peewee
-from astropy.coordinates import SkyCoord, match_coordinates_sky
+import polars
+from astropy import units as uu
+from astropy.coordinates import SkyCoord, match_coordinates_sky, search_around_sky
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from mocpy import MOC
+from pydantic import BaseModel, ConfigDict
 
 from target_selection import log
 from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
+
+
+if TYPE_CHECKING:
+    from sdssdb.connection import PeeweeDatabaseConnection
 
 
 warnings.filterwarnings("ignore", ".*invalid value encountered in power.*")
@@ -37,6 +45,90 @@ _known_flux_zpts = {
     "Jy": 8.9,
     "mJy": 16.4,
     "uJy": 23.9,
+}
+
+
+class CatalogueParams(BaseModel):
+    """A model to hold the parameters for a catalogue."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ra_column: str
+    dec_column: str
+    mag_column: str | None = None
+    radius_column: str | None = None
+    is_flux: bool = False
+    flux_unit: str = "nMgy"
+    mag_threshold: float = 14.0
+    min_separation: float = 5.0
+    scale_a: float = 0.2
+    scale_b: float = 1.5
+
+
+DEFAULT_CATALOGUE_PARAMS = {
+    "twomass_psc": {
+        "ra_column": "ra",
+        "dec_column": "decl",
+        "mag_column": "h_m",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "gaia_dr2_source": {
+        "ra_column": "ra",
+        "dec_column": "dec",
+        "mag_column": "phot_g_mean_mag",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "gaia_dr3_source": {
+        "ra_column": "ra",
+        "dec_column": "dec",
+        "mag_column": "phot_g_mean_mag",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "panstarrs1": {
+        "ra_column": "ra",
+        "dec_column": "dec",
+        "mag_column": "r_stk_psf_flux",
+        "is_flux": True,
+        "flux_unit": "Jy",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "legacy_survey_dr8": {
+        "ra_column": "ra",
+        "dec_column": "dec",
+        "mag_column": "flux_r",
+        "is_flux": True,
+        "flux_unit": "nMgy",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "tycho2": {
+        "ra_column": "ramdeg",
+        "dec_column": "demdeg",
+        "mag_column": "vtmag",
+        "mag_threshold": 14.0,
+        "min_separation": 5.0,
+        "scale_a": 0.2,
+        "scale_b": 1.5,
+    },
+    "twomass_xsc": {
+        "ra_column": "ra",
+        "dec_column": "decl",
+        "radius_column": "r_ext",
+    },
 }
 
 
@@ -1072,3 +1164,186 @@ def create_veto_mask(
         m.write(moc_filename, format="fits", overwrite=overwrite)
 
     return ipix
+
+
+@overload
+def is_valid_sky(
+    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    database: PeeweeDatabaseConnection | None,
+    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    param_overrides: dict | None = None,
+    return_dataframe: Literal[False] = False,
+) -> npt.NDArray[numpy.bool_]: ...
+
+
+@overload
+def is_valid_sky(
+    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    database: PeeweeDatabaseConnection | None,
+    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    param_overrides: dict | None = None,
+    return_dataframe: Literal[True] = True,
+) -> tuple[npt.NDArray[numpy.bool_], polars.DataFrame]: ...
+
+
+def is_valid_sky(
+    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    database: PeeweeDatabaseConnection | None,
+    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    param_overrides: dict | None = None,
+    return_dataframe: bool = False,
+) -> npt.NDArray[numpy.bool_] | tuple[npt.NDArray[numpy.bool_], polars.DataFrame]:
+    """Check if a set of coordinates are valid sky positions.
+
+    Parameters
+    ----------
+    coords
+        An ``Nx2`` array with the RA/Dec coordinates to check.
+    database
+        A valid database connection.
+    catalogues
+        A list of catalogues to check the positions against. Must be valid tables in
+        ``sdss5db.catalogdb``.
+    param_overrides
+        A dictionary with overrides for the catalogue parameters. See `.DEFAULT_CATALOGUE_PARAMS`
+        for a list of the default parameters. The parameters defined here are merged on top of
+        `.DEFAULT_CATALOGUE_PARAMS` and used to query the database.
+
+    Returns
+    -------
+    valid
+        A boolean array with the same length as the input coordinates indicating if the
+        positions are valid sky regions.
+
+    """
+
+    mask = numpy.zeros(len(coords), dtype=numpy.bool_)
+
+    # Sanity checks.
+    coords = numpy.atleast_2d(coords)
+    assert len(coords.shape) == 2 and coords.shape[1] == 2, "coords must be a Nx2 array."
+
+    assert database.connected, "database is not connected."
+    for cat_name in catalogues:
+        assert database.table_exists(cat_name, schema="catalogdb"), f"Table {cat_name} not found."
+
+    # Create the output dataframe.
+    df = (
+        polars.from_numpy(
+            coords,
+            schema={"ra": polars.Float64, "dec": polars.Float64},
+            orient="row",
+        )
+        .with_columns(**{cat: polars.lit(True, polars.Boolean) for cat in catalogues})
+        .with_row_count("n")
+    )
+
+    # Get and validate catalogue parameters.
+    c_params: dict[str, CatalogueParams] = {}
+    for cat_name in catalogues:
+        if cat_name in DEFAULT_CATALOGUE_PARAMS:
+            default_params = DEFAULT_CATALOGUE_PARAMS[cat_name].copy()
+
+            # This should always be true, but check that the default parameters match the model.
+            CatalogueParams(**default_params)
+
+        else:
+            if param_overrides is None or cat_name not in param_overrides:
+                raise ValueError(
+                    f"Catalogue {cat_name} has no defaults and was not found in param_overrides."
+                )
+            default_params = {}
+
+        # Update the default params with the overrides.
+        default_params.update((param_overrides or {}).get(cat_name, {}))
+
+        c_params[cat_name] = CatalogueParams(**default_params)
+
+    # Calculate the centre and radius of the region to query to include all the input positions.
+    ra_cen = coords[:, 0].mean()
+    dec_cen = coords[:, 1].mean()
+    cen = SkyCoord(ra=ra_cen, dec=dec_cen, unit="deg")
+    coords_ap = SkyCoord(ra=coords[:, 0], dec=coords[:, 1], unit="deg")
+    sep = coords_ap.separation(cen)
+    radius = sep.max().deg + 0.1  # Add a small buffer to account for edge effects.
+
+    # Iterate over each catalogue and query sources in the region.
+    for cat_name, cat_params in c_params.items():
+        radius_select = ""
+        if cat_params.radius_column is not None:
+            radius_select = f"{cat_params.radius_column} AS radius"
+
+        mag_or_flux_select = ""
+        if cat_params.mag_column is not None:
+            mag_or_flux_select = f"{cat_params.mag_column} AS mag_or_flux"
+
+        selects = [
+            f"{cat_params.ra_column} AS ra",
+            f"{cat_params.dec_column} AS dec",
+            mag_or_flux_select,
+            radius_select,
+        ]
+        print(selects)
+        select = ", ".join([sel for sel in selects if sel != ""])
+        query = (
+            f"SELECT {select} "
+            f"FROM catalogdb.{cat_name} "
+            f"WHERE q3c_radial_query({cat_params.ra_column}, {cat_params.dec_column}, "
+            f"{ra_cen}, {dec_cen}, {radius})"
+        )
+
+        if not cat_params.is_flux and cat_params.mag_column is not None:
+            query += f" AND {cat_params.mag_column} <= {cat_params.mag_threshold}"
+
+        b_targets = polars.read_database(query, database)
+        if cat_params.mag_column is not None:
+            if cat_params.is_flux:
+                zpt = _known_flux_zpts[cat_params.flux_unit]
+                b_targets = b_targets.with_columns(mag=zpt - 2.5 * polars.col.mag_or_flux.log10())
+            else:
+                b_targets = b_targets.with_columns(mag=polars.col.mag_or_flux)
+
+        if cat_params.radius_column is not None:
+            b_targets = b_targets.with_columns(min_sep=cat_params.min_separation)
+            b_targets = b_targets.with_columns(min_sep=polars.max_horizontal("radius", "min_sep"))
+        else:
+            b_targets = b_targets.with_columns(
+                min_sep=(
+                    cat_params.min_separation
+                    + (cat_params.mag_threshold - polars.col.mag).pow(cat_params.scale_b)
+                    / cat_params.scale_a
+                )
+            ).with_row_count(name="n")
+
+        b_targets_ap = SkyCoord(
+            ra=b_targets["ra"].to_numpy(),
+            dec=b_targets["dec"].to_numpy(),
+            unit="deg",
+        )
+
+        # For each bright target, get all the input coordinate matches that are within the
+        # maximum minimum separation (search_around_sky only accepts a scalar separation).
+        idx1, idx2, sep2d, _ = search_around_sky(
+            b_targets_ap,
+            coords_ap,
+            b_targets["min_sep"].to_numpy().max() * uu.arcsec,
+        )
+
+        # Get the real minimum separation for the matched bright targets.
+        min_sep = b_targets[idx1]["min_sep"].to_numpy()
+
+        # Get the matches that are really within the minimum separation per bright target.
+        idx2_min_sep = idx2[sep2d.arcsec < min_sep]
+        idx2_min_sep.sort()
+
+        # Mark the entries in that are within minimum separation as NOT skies.
+        df[idx2_min_sep, cat_name] = False
+
+    # Create the valid sky mask but combining all the catalogues.
+    valid_df = df.select(*catalogues)
+    mask = valid_df.fold(lambda s1, s2: s1 & s2).to_numpy().astype(numpy.bool_)
+
+    if return_dataframe:
+        return (mask, df)
+
+    return mask

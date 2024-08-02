@@ -41,6 +41,8 @@ mocpy = "^0"
 pymoc = "^0"
 gala = "^1.6.1"
 dustmaps = "1.0.10"
+pydantic = "^2.8.2"
+adbc-driver-postgresql = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = ">=7.9.0"
@@ -60,6 +62,7 @@ furo = ">=2021.6.18"
 sphinx-autobuild = ">=2021.3.14"
 sphinx-copybutton = ">=0.3.3"
 myst-parser = ">=0.15"
+pandas-stubs = ">=2.2.2.240603"
 
 [tool.poetry.scripts]
 target_selection = "target_selection.__main__:target_selection"
