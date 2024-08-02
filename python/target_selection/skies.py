@@ -1169,7 +1169,7 @@ def create_veto_mask(
 @overload
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection | None,
+    database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
     return_dataframe: Literal[False] = False,
@@ -1179,7 +1179,7 @@ def is_valid_sky(
 @overload
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection | None,
+    database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
     return_dataframe: Literal[True] = True,
@@ -1188,7 +1188,7 @@ def is_valid_sky(
 
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection | None,
+    database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
     return_dataframe: bool = False,
