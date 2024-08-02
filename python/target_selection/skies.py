@@ -1283,7 +1283,7 @@ def is_valid_sky(
             mag_or_flux_select,
             radius_select,
         ]
-        print(selects)
+
         select = ", ".join([sel for sel in selects if sel != ""])
         query = (
             f"SELECT {select} "
