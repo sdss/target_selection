@@ -6,10 +6,14 @@
 # @Filename: skies.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+from __future__ import annotations
+
 import multiprocessing
 import os
 import warnings
 from functools import partial
+
+from typing import TYPE_CHECKING, Literal, Sequence, overload
 
 import enlighten
 import healpy
@@ -36,7 +40,7 @@ _known_flux_zpts = {
 }
 
 
-def nested_regrade(pixels, nside_in, nside_out):
+def nested_regrade(pixels: int | numpy.ndarray, nside_in: int, nside_out: int):
     r"""Returns the parent/children pixels from a given HealPix nested pixel.
 
     The HealPix nested mode follows a quadrilateral tree pixel scheme (see
@@ -115,21 +119,21 @@ def nested_regrade(pixels, nside_in, nside_out):
 
 
 def downsample(
-    df,
-    nsample=2048,
-    tile_column="tile_32",
-    tile_nside=32,
-    candidate_nside=32768,
-    downsample_nside=256,
-    downsample_data=None,
-    seed=None,
+    df: pandas.DataFrame,
+    nsample: int = 2048,
+    tile_column: str = "tile_32",
+    tile_nside: int = 32,
+    candidate_nside: int = 32768,
+    downsample_nside: int = 256,
+    downsample_data: pandas.DataFrame | None = None,
+    seed: int | None = None,
 ):
     """Downsamples valid sky positions for a tile."""
 
     df["selected"] = False
 
     if "down_pix" not in df:
-        df.loc[:, "down_pix"] = nested_regrade(df.index, candidate_nside, downsample_nside)
+        df.loc[:, "down_pix"] = nested_regrade(df.index.values, candidate_nside, downsample_nside)
 
     if downsample_data is not None:
         cond = True
@@ -215,29 +219,32 @@ def downsample(
 
 
 def _process_tile(
-    tile,
-    database_params=None,
-    candidate_nside=None,
-    tile_nside=None,
-    query=None,
-    min_separation=None,
-    is_flux=False,
-    flux_unit="nMgy",
-    mag_threshold=None,
-    scale_a=0.2,
-    scale_b=1,
-    nsample=None,
-    downsample_data=None,
-    downsample_nside=None,
-    calculate_min_separation=True,
-    seed=None,
+    tile: int,
+    database_params: dict,
+    candidate_nside: int,
+    tile_nside: int,
+    query: str,
+    min_separation: float,
+    is_flux: bool,
+    flux_unit: str,
+    mag_threshold: float | None,
+    scale_a: float,
+    scale_b: float,
+    nsample: int,
+    downsample_data: pandas.DataFrame | None,
+    downsample_nside: int,
+    calculate_min_separation: bool,
+    seed: int | None,
 ):
     """Processes a tile from catalogue data."""
 
-    db = peewee.PostgresqlDatabase(**database_params)
+    db_params = database_params.copy()
+    database = db_params.pop("database")
+
+    db = peewee.PostgresqlDatabase(database, **db_params)
     db.connect()
 
-    targets = pandas.read_sql(query.format(tile=tile), db)
+    targets = pandas.read_sql(query.format(tile=tile), db)  # type: ignore
 
     db.close()
 
@@ -382,7 +389,7 @@ def get_sky_table(
     tiles=None,
     tile_nside=32,
     candidate_nside=32768,
-    min_separation=10,
+    min_separation=10.0,
     ra_column="ra",
     dec_column="dec",
     mag_column=None,
@@ -564,7 +571,7 @@ def get_sky_table(
         seed=seed,
     )
 
-    all_skies = None
+    all_skies: pandas.DataFrame | None = None
 
     with multiprocessing.Pool(n_cpus) as pool:
         for tile_skies in pool.imap_unordered(process_tile, tiles, chunksize=5):
@@ -594,7 +601,7 @@ def get_sky_table(
     if downsample_nside is not None:
         all_skies = all_skies.astype({"down_pix": numpy.int32})
 
-    all_skies.to_hdf(output, "data")
+    all_skies.to_hdf(output, key="data")
 
     return all_skies
 
@@ -649,7 +656,13 @@ def plot_sky_density(file_or_data, nside, pix_column=None, nside_plot=32, **kwar
 
 
 def plot_skies(
-    file_or_data, ra, dec, radius=1.5, targets=None, show_sky_buffer=False, buffer_radius=10.0
+    file_or_data,
+    ra,
+    dec,
+    radius=1.5,
+    targets=None,
+    show_sky_buffer=False,
+    buffer_radius=10.0,
 ):
     """Plots the skies (and optionally targets) in a regions.
 
@@ -879,7 +892,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     else:
         warnings.warn("Found file tmass_xsc_skies.h5", TargetSelectionUserWarning)
 
-    skies = None
+    skies: pandas.DataFrame | None = None
     col_order = []
 
     for file_ in [
@@ -897,6 +910,8 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
             continue
 
         table = pandas.read_hdf(file_).drop_duplicates()
+        assert isinstance(table, pandas.DataFrame)
+
         table.rename(
             columns={
                 "sep_neighbour": f"sep_neighbour_{table_name}",
@@ -921,9 +936,11 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
             if col in skies:
                 col_order.append(col)
 
+    assert skies is not None
     skies = skies.loc[:, ["ra", "dec", "down_pix", "tile_32"] + col_order]
+
     for col in skies:
-        if col.startswith("valid_") or col.startswith("selected_"):
+        if str(col).startswith("valid_") or str(col).startswith("selected_"):
             skies[col].fillna(False, inplace=True)
 
     # Now do some masking based on healpixels that are flagged by a
@@ -947,7 +964,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
 
     skies.tile_32 = skies.tile_32.astype(int)
     skies.down_pix = skies.down_pix.astype(int)
-    skies.to_hdf("skies.h5", "data")
+    skies.to_hdf("skies.h5", key="data")
 
 
 def create_veto_mask(
