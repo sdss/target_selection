@@ -315,9 +315,12 @@ class MetaXMatch:
         # already in sdss_id_flat
         
         if self.outer_join_sdss_id:
-            cte_targetids = (cte_targetids.join(target_selection.sdss_id.SdssIdFlat, join_type=JOIN.LEFT_OUTER,
-                                                on=(rel_table.catalogid == target_selection.sdss_id.SdssIdFlat.catalogid))
-                                          .where(target_selection.sdss_id.SdssIdFlat.catalogid.is_null()))
+            cte_targetids = (cte_targetids.join(target_selection.sdss_id.SdssIdFlat, 
+                                                join_type=JOIN.LEFT_OUTER,
+                                                on=(rel_table.catalogid ==
+                                                    target_selection.sdss_id.SdssIdFlat.catalogid))
+                                          .where(target_selection.sdss_id.SdssIdFlat
+                                                                 .catalogid.is_null()))
 
         cte_targetids = cte_targetids.cte('cte_targets')
 
@@ -415,7 +418,8 @@ class MetaXMatch:
             self.database.drop_tables([TempMatch])
             self.log.info(f'Dropped table {TempMatch._meta.table_name}')
 
-        self.database.create_tables([TempMatch])
+        # self.database.create_tables([TempMatch])
+        TempMatch.create_table()
         self.log.info(f'Created table {TempMatch._meta.table_name}')
 
         for curr_table in tables_to_process:
