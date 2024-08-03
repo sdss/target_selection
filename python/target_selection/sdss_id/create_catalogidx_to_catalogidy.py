@@ -422,6 +422,16 @@ class MetaXMatch:
         TempMatch.create_table()
         self.log.info(f'Created table {TempMatch._meta.table_name}')
 
+        add_index_TempMatch = f"""CREATE INDEX {self.output_name}_catalogidx_idx ON
+                                    sandbox.{self.output_name} (catalogidx);
+                                  CREATE INDEX {self.output_name}_catalogidy_idy ON
+                                    sandbox.{self.output_name} (catalogidy);
+                                  CREATE INDEX {self.output_name}_version_idx_idx ON
+                                    sandbox.{self.output_name} (version_idx);
+                                  CREATE INDEX {self.output_name}_version_idy_idy ON
+                                    sandbox.{self.output_name} (version_idy);"""
+        self.database.execute_sql(add_index_TempMatch)
+
         for curr_table in tables_to_process:
             t1 = time.time()
             logname = 'Running table ' + curr_table
@@ -487,6 +497,15 @@ def create_unique_from_region(input_tablename, save_log_output=False):
         log.info(f'Dropped table {output_tablename}')
     # database.create_tables([UniqueMatch])
     UniqueMatch.create_table()
+    add_index_UniqueMatch = f"""CREATE INDEX {output_tablename}_catalogidx_idx ON
+                                    sandbox.{output_tablename} (catalogidx);
+                                CREATE INDEX {output_tablename}_catalogidy_idy ON
+                                    sandbox.{output_tablename} (catalogidy);
+                                CREATE INDEX {output_tablename}_version_idx_idx ON
+                                    sandbox.{output_tablename} (version_idx);
+                                CREATE INDEX {output_tablename}_version_idy_idy ON
+                                    sandbox.{output_tablename} (version_idy);"""
+    database.execute_sql(add_index_UniqueMatch)
     log.info(f'Created table {output_tablename}')
     TempMatch._meta.table_name = input_tablename
     query = (TempMatch

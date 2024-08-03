@@ -260,6 +260,14 @@ class AppendToTables:
         TempCatalogidV25.create_table()
         TempCatalogidV31.create_table()
 
+        temp_catalodids_indexes = """ CREATE INDEX temp_catalogid_v21_catalogid21_idx ON
+                                        sandbox.temp_catalogid_v21 (catalogid21);
+                                      CREATE INDEX temp_catalogid_v25_catalogid25_idx ON
+                                        sandbox.temp_catalogid_v25 (catalogid25);
+                                      CREATE INDEX temp_catalogid_v31_catalogid31_idx ON
+                                        sandbox.temp_catalogid_v31 (catalogid31); """
+        self.database.execute_sql(temp_catalodids_indexes)
+
         TempCatalogidV21.insert_from(v21_cid_query_x, [TempCatalogidV21.catalogid21]).execute()
         TempCatalogidV21.insert_from(v21_cid_query_y, [TempCatalogidV21.catalogid21]).execute()
         TempCatalogidV25.insert_from(v25_cid_query_x, [TempCatalogidV25.catalogid25]).execute()
