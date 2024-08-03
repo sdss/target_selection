@@ -255,7 +255,10 @@ class AppendToTables:
             if table.table_exists():
                 database.drop_tables([table])
 
-        self.database.create_tables([TempCatalogidV21, TempCatalogidV25, TempCatalogidV31])
+        # self.database.create_tables([TempCatalogidV21, TempCatalogidV25, TempCatalogidV31])
+        TempCatalogidV21.create_table()
+        TempCatalogidV25.create_table()
+        TempCatalogidV31.create_table()
 
         TempCatalogidV21.insert_from(v21_cid_query_x, [TempCatalogidV21.catalogid21]).execute()
         TempCatalogidV21.insert_from(v21_cid_query_y, [TempCatalogidV21.catalogid21]).execute()
@@ -348,6 +351,14 @@ class AppendToTables:
                                            last_updated = '{str(date.today())}'"""
         self.database.execute_sql(add_last_updated_column)
 
+        create_indexes = """ CREATE INDEX sdss_id_stacked_addendum_catalogid21_idx ON
+                                sandbox.sdss_id_stacked_addendum (catalogid21);
+                             CREATE INDEX sdss_id_stacked_addendum_catalogid25_idx ON
+                                sandbox.sdss_id_stacked_addendum (catalogid25);
+                             CREATE INDEX sdss_id_stacked_addendum_catalogid31_idx ON
+                                sandbox.sdss_id_stacked_addendum (catalogid31); """
+        self.database.execute_sql(create_indexes)
+
         SdssIdStackedAddendum._meta.table_name = "sdss_id_stacked_addendum"
 
         ra_dec_update31 = (SdssIdStackedAddendum
@@ -402,9 +413,11 @@ class AppendToTables:
 
         if SdssIdFlatAddendum.table_exists():
             self.database.drop_tables([SdssIdFlatAddendum])
-            self.database.create_tables([SdssIdFlatAddendum])
+            # self.database.create_tables([SdssIdFlatAddendum])
+            SdssIdFlatAddendum.create_table()
         else:
-            self.database.create_tables([SdssIdFlatAddendum])
+            # self.database.create_tables([SdssIdFlatAddendum])
+            SdssIdFlatAddendum.create_table()
 
         sid_flat_fields = [SdssIdFlatAddendum.sdss_id,
                            SdssIdFlatAddendum.catalogid,
