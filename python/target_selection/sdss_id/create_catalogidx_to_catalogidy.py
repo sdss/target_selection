@@ -485,7 +485,8 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     if UniqueMatch.table_exists():
         database.drop_tables([UniqueMatch])
         log.info(f'Dropped table {output_tablename}')
-    database.create_tables([UniqueMatch])
+    # database.create_tables([UniqueMatch])
+    UniqueMatch.create_table()
     log.info(f'Created table {output_tablename}')
     TempMatch._meta.table_name = input_tablename
     query = (TempMatch
