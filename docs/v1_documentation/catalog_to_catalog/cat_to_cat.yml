@@ -1,9 +1,0 @@
-xmatch_plans: ['0.5.0', '1.0.0']
-individual_xmatch_config: individual_crossmatches.yml
-log_file: catalog_v0p5_to_v1p0.log
-show_first: 20
-split_insert_nunmber: 1000000
-database_options:
-    enable_hashjoin: false
-split_query:
-    - ['panstarrs1',522000000000000,5000000000000]
