@@ -323,12 +323,12 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
 
         total_num_rows = output[0][0]
 
-        # This num_rows_selected must be the same as in
+        # This selected_num_rows must be the same as in
         # mwm_galactic_core_dist_apogee_extra
-        num_rows_selected = 4000000
+        selected_num_rows = 4000000
 
-        b = [True] * num_rows_selected
-        c = [False] * (total_num_rows - num_rows_selected)
+        b = [True] * selected_num_rows
+        c = [False] * (total_num_rows - selected_num_rows)
         is_selected = b + c
 
         # This random seed must be the same as in
@@ -401,12 +401,12 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
 
         total_num_rows = output[0][0]
 
-        # This num_rows_selected must be the same as in
+        # This selected_num_rows must be the same as in
         # mwm_galactic_core_dist_apogee_sparse
-        num_rows_selected = 4000000
+        selected_num_rows = 4000000
 
-        b = [True] * num_rows_selected
-        c = [False] * (total_num_rows - num_rows_selected)
+        b = [True] * selected_num_rows
+        c = [False] * (total_num_rows - selected_num_rows)
         is_selected = b + c
 
         # This random seed must be the same as in
