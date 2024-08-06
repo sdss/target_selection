@@ -288,7 +288,7 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
     """mwm_galactic_core_dist_apogee_sparse
     Short description: Sparse-sampled Galactic Genesis sample.
     First do an initial selection as in mwm_galactic_core_dist_apogee and order by catalogid.
-    Then randomly select 4000000 of the sources using a fixed random seed.
+    Then randomly select exactly 4000000 of the sources using a fixed random seed.
     Metadata:
     Priority: 2710
     Cadence: bright_1x1
