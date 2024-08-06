@@ -1292,6 +1292,7 @@ def is_valid_sky(
             query += f" AND {cat_params.mag_column} <= {cat_params.mag_threshold}"
 
         b_targets = polars.read_database(query, database)
+
         if cat_params.mag_column is not None:
             if cat_params.is_flux:
                 zpt = _known_flux_zpts[cat_params.flux_unit]
