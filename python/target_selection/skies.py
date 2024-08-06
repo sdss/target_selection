@@ -1217,8 +1217,6 @@ def is_valid_sky(
 
     """
 
-    mask = numpy.zeros(len(coords), dtype=numpy.bool_)
-
     # Sanity checks.
     coords = numpy.atleast_2d(coords)
     assert len(coords.shape) == 2 and coords.shape[1] == 2, "coords must be a Nx2 array."
