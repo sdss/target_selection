@@ -288,7 +288,7 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
     """mwm_galactic_core_dist_apogee_sparse
     Short description: Sparse-sampled Galactic Genesis sample.
     First do an initial selection as in mwm_galactic_core_dist_apogee and order by catalogid.
-    Then select 2/3 of the sources using a fixed random seed.
+    Then randomly select 4000000 of the sources using a fixed random seed.
     Metadata:
     Priority: 2710
     Cadence: bright_1x1
@@ -315,6 +315,27 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
             "update sandbox.temp_mwm_galactic_core_dist_apogee_sparse " + "set selected = false;"
         )
 
+        cursor = self.database.execute_sql(
+            "select count(1) from " + " sandbox.temp_mwm_galactic_core_dist_apogee_sparse ;"
+        )
+
+        output = cursor.fetchall()
+
+        total_num_rows = output[0][0]
+
+        # This num_rows_selected must be the same as in
+        # mwm_galactic_core_dist_apogee_extra
+        num_rows_selected = 4000000
+
+        b = [True] * num_rows_selected
+        c = [False] * (total_num_rows - num_rows_selected)
+        is_selected = b + c
+
+        # This random seed must be the same as in
+        # mwm_galactic_core_dist_apogee_extra
+        random.seed(6789)
+        random.shuffle(is_selected)
+
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
@@ -325,14 +346,12 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
 
         output = cursor.fetchall()
 
-        # This random seed must be the same as in
-        # mwm_galactic_core_dist_apogee_extra
-        random.seed(6789)
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_random = random.randrange(3)
-            # randomly select 2/3 of the sources
-            if (current_random == 0) or (current_random == 1):
+
+            # This condition is opposite of the condition in
+            # mwm_galactic_core_dist_apogee_extra
+            if is_selected[i] is True:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_galactic_core_dist_apogee_sparse "
                     + " set selected = true "
@@ -374,6 +393,27 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
             "update sandbox.temp_mwm_galactic_core_dist_apogee_extra " + "set selected = false;"
         )
 
+        cursor = self.database.execute_sql(
+            "select count(1) from " + " sandbox.temp_mwm_galactic_core_dist_apogee_extra ;"
+        )
+
+        output = cursor.fetchall()
+
+        total_num_rows = output[0][0]
+
+        # This num_rows_selected must be the same as in
+        # mwm_galactic_core_dist_apogee_sparse
+        num_rows_selected = 4000000
+
+        b = [True] * num_rows_selected
+        c = [False] * (total_num_rows - num_rows_selected)
+        is_selected = b + c
+
+        # This random seed must be the same as in
+        # mwm_galactic_core_dist_apogee_sparse
+        random.seed(6789)
+        random.shuffle(is_selected)
+
         # The below "order by catalogid" ensures that the random selection
         # further below gives the same result every time we run this carton.
         cursor = self.database.execute_sql(
@@ -384,15 +424,14 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
 
         output = cursor.fetchall()
 
-        # This random seed must be the same as in
-        # mwm_galactic_core_dist_apogee_sparse
-        random.seed(6789)
         for i in range(len(output)):
             current_catalogid = output[i][0]
-            current_random = random.randrange(3)
+
             # select those sources which were not selected in
+            # mwm_galactic_core_dist_apogee_sparse.
+            # Hence, this condition is opposite of the condition in
             # mwm_galactic_core_dist_apogee_sparse
-            if current_random == 2:
+            if is_selected is False:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_galactic_core_dist_apogee_extra "
                     + " set selected = true "
