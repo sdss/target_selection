@@ -431,7 +431,7 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
             # mwm_galactic_core_dist_apogee_sparse.
             # Hence, this condition is opposite of the condition in
             # mwm_galactic_core_dist_apogee_sparse
-            if is_selected is False:
+            if is_selected[i] is False:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_galactic_core_dist_apogee_extra "
                     + " set selected = true "
