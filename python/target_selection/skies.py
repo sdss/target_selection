@@ -1243,10 +1243,6 @@ def is_valid_sky(
     for cat_name in catalogues:
         if cat_name in DEFAULT_CATALOGUE_PARAMS:
             default_params = DEFAULT_CATALOGUE_PARAMS[cat_name].copy()
-
-            # This should always be true, but check that the default parameters match the model.
-            CatalogueParams(**default_params)
-
         else:
             if param_overrides is None or cat_name not in param_overrides:
                 raise ValueError(
