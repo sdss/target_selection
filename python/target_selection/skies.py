@@ -1334,7 +1334,7 @@ def is_valid_sky(
         # Mark the entries in that are within minimum separation as NOT skies.
         df[idx2_min_sep, cat_name] = False
 
-    # Create the valid sky mask but combining all the catalogues.
+    # Create the valid sky mask by combining all the catalogues.
     valid_df = df.select(*catalogues)
     mask = valid_df.fold(lambda s1, s2: s1 & s2).to_numpy().astype(numpy.bool_)
 
