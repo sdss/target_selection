@@ -243,7 +243,7 @@ class MWM_SNC_100pc_BOSS_single_Carton(MWM_SNC_100pc_BOSS_Carton):
     is the cadence and priority.
 
     Metadata:
-    Priority: 1801
+    Priority: 1806
     Cadence:  if G < 16, bright_1x1 ; if G > 16, dark_1x1
     Instrument: BOSS
     can_offset = True
@@ -256,7 +256,7 @@ class MWM_SNC_100pc_BOSS_single_Carton(MWM_SNC_100pc_BOSS_Carton):
     mapper = "MWM"
     instrument = "BOSS"
     cadence = None  # cadence is set in post_process()
-    priority = 1801
+    priority = 1806
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
