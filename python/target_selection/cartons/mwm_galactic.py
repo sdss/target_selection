@@ -325,8 +325,8 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
 
         # This selected_fraction must be the same as in
         # mwm_galactic_core_dist_apogee_extra
-        selected_fraction = (2.0/3.0)
-        selected_num_rows = int(selected_fraction*total_num_rows)
+        selected_fraction = 2.0 / 3.0
+        selected_num_rows = int(selected_fraction * total_num_rows)
 
         b = [True] * selected_num_rows
         c = [False] * (total_num_rows - selected_num_rows)
@@ -404,8 +404,8 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
 
         # This selected_fraction must be the same as in
         # mwm_galactic_core_dist_apogee_sparse
-        selected_fraction = (2.0/3.0)
-        selected_num_rows = int(selected_fraction*total_num_rows)
+        selected_fraction = 2.0 / 3.0
+        selected_num_rows = int(selected_fraction * total_num_rows)
 
         b = [True] * selected_num_rows
         c = [False] * (total_num_rows - selected_num_rows)
