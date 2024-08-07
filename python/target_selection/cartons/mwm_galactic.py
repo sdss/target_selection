@@ -288,7 +288,7 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
     """mwm_galactic_core_dist_apogee_sparse
     Short description: Sparse-sampled Galactic Genesis sample.
     First do an initial selection as in mwm_galactic_core_dist_apogee and order by catalogid.
-    Then randomly select 4000000 of the sources using a fixed random seed.
+    Then randomly select exactly 2/3 of the sources using a fixed random seed.
     Metadata:
     Priority: 2710
     Cadence: bright_1x1
@@ -323,9 +323,10 @@ class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_
 
         total_num_rows = output[0][0]
 
-        # This selected_num_rows must be the same as in
+        # This selected_fraction must be the same as in
         # mwm_galactic_core_dist_apogee_extra
-        selected_num_rows = 4000000
+        selected_fraction = (2.0/3.0)
+        selected_num_rows = int(selected_fraction*total_num_rows)
 
         b = [True] * selected_num_rows
         c = [False] * (total_num_rows - selected_num_rows)
@@ -401,9 +402,10 @@ class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_C
 
         total_num_rows = output[0][0]
 
-        # This selected_num_rows must be the same as in
+        # This selected_fraction must be the same as in
         # mwm_galactic_core_dist_apogee_sparse
-        selected_num_rows = 4000000
+        selected_fraction = (2.0/3.0)
+        selected_num_rows = int(selected_fraction*total_num_rows)
 
         b = [True] * selected_num_rows
         c = [False] * (total_num_rows - selected_num_rows)
