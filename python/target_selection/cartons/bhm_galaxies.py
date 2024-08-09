@@ -6,17 +6,15 @@
 # @Filename: bhm_galaxies.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import numpy
+import pandas
 import peewee
-
-from sdssdb.peewee.sdss5db.catalogdb import (
-    Catalog,
-    CatalogToLegacy_Survey_DR10,
-    Legacy_Survey_DR10,
-)
+from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
+                                             CatalogToLegacy_Survey_DR10,
+                                             Legacy_Survey_DR10)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy
-
 
 """
 Details: Start here
@@ -65,8 +63,8 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         instrument = peewee.Value(self.instrument)
         # cadence = peewee.Value(self.parameters.get('cadence', self.cadence))
 
-        dered_flux_z_min = AB2nMgy(self.parameters["dered_mag_z_max"])
-        dered_fiberflux_z_min = AB2nMgy(self.parameters["dered_fibermag_z_max"])
+        # dered_flux_z_min = AB2nMgy(self.parameters["dered_mag_z_max"])  # moved to post_process
+        # dered_fiberflux_z_min = AB2nMgy(self.parameters["dered_fibermag_z_max"])  # ditto
         fiberflux_z_min = AB2nMgy(self.parameters["fibermag_z_max"])
         fiberflux_z_max = AB2nMgy(self.parameters["fibermag_z_min"])
         fiberflux_r_min = AB2nMgy(self.parameters["fibermag_r_max"])
@@ -169,6 +167,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         )
 
         # compute the abs(Galactic latitude):
+        # we return this in the query result, and then and test aginst it in post_process
         gal_lat = peewee.fn.abs(
             90.0 - peewee.fn.q3c_dist(north_gal_pole_ra, north_gal_pole_dec, c.ra, c.dec)
         )
@@ -219,11 +218,11 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 c2ls.version_id == version_id,
                 ls.type != "PSF",
                 ls.parallax <= 0.0,
-                ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,
+                # ls.flux_z > dered_flux_z_min * ls.mw_transmission_z,  # moved to post_process
+                # ls.fiberflux_z > dered_fiberflux_z_min * ls.mw_transmission_z,  # ditto
                 ls.fiberflux_g > fiberflux_g_min,
                 ls.fiberflux_r > fiberflux_r_min,
                 ls.fiberflux_z > fiberflux_z_min,
-                ls.fiberflux_z > dered_fiberflux_z_min * ls.mw_transmission_z,
                 ls.fiberflux_g < fiberflux_g_max,
                 ls.fiberflux_r < fiberflux_r_max,
                 ls.fiberflux_z < fiberflux_z_max,
@@ -231,7 +230,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ~(ls.gaia_phot_g_mean_mag.between(0.1, self.parameters["gaia_g_mag_limit"])),
                 ~(ls.gaia_phot_rp_mean_mag.between(0.1, self.parameters["gaia_rp_mag_limit"])),
                 ls.shape_r >= self.parameters["shape_r_min"],
-                gal_lat > self.parameters["min_gal_lat"],
+                # gal_lat > self.parameters["min_gal_lat"],  # moved to post_process
                 ls.ebv < self.parameters["max_ebv"],
                 (ls.maskbits.bin_and(maskbits_mask) == 0),  # avoid bad ls data
                 # (ls.fitbits.bin_and(fitbits_mask) == 0),  # avoid bad ls fits
@@ -253,6 +252,43 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
             )
 
         return query
+
+    def post_process(self, model, **kwargs):
+        """Runs post-process."""
+        dered_flux_z_min = AB2nMgy(self.parameters["dered_mag_z_max"])
+        dered_fiberflux_z_min = AB2nMgy(self.parameters["dered_fibermag_z_max"])
+
+        data = pandas.read_sql(f"SELECT catalogid,abs_gal_lat,flux_z,fiberflux_z from {self.path}",
+                               self.database)
+        valid = (
+            numpy.where(data["abs_gal_lat"] > self.parameters["min_gal_lat"],
+                        True, False) &
+            numpy.where(data["flux_z"] > dered_flux_z_min * data["mw_transmission_z"],
+                        True, False) &
+            numpy.where(data["fiberflux_z"] > dered_fiberflux_z_min * data["mw_transmission_z"],
+                        True, False)
+        )
+
+        data = data[valid]
+
+        valid_cids = data.catalogid.values
+
+        # This way seems faster than updating from a list of values.
+        values_cids = ",".join(f"({vc})" for vc in valid_cids)
+        self.database.execute_sql(
+            "CREATE TEMP TABLE valid_cids AS SELECT * "
+            f"FROM (VALUES {values_cids}) "
+            "AS t (catalogid)"
+        )
+        self.database.execute_sql("CREATE INDEX ON valid_cids (catalogid);")
+        self.database.execute_sql(f"UPDATE {self.path} SET selected = false")
+        self.database.execute_sql(
+            f"UPDATE {self.path} SET selected = true "
+            "FROM valid_cids vc "
+            f"WHERE {self.path}.catalogid = vc.catalogid"
+        )
+
+        return super().post_process(model, **kwargs)
 
 
 class BhmColrGalaxiesLsdr10D3Carton(BhmColrGalaxiesLsdr10Carton):
