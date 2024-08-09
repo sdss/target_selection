@@ -749,3 +749,9 @@ class MWM_SNC_100pc_low_lum__BOSS_Carton(MWM_SNC_100pc_BOSS_Carton):
         )
 
         return query
+
+    # We have set the cadence above so we do not want to run
+    # the post_process() of the base class MWM_SNC_100pc_BOSS_Carton.
+    # Hence, we have the below do-nothing post_process().
+    def post_process(self, model, **kwargs):
+        return model
