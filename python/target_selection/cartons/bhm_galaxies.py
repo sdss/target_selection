@@ -240,7 +240,7 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         )
 
         if self.only_faintest_cadence:
-            query = query.where(cadence == cadence3)
+            query = query.where(ls.fiberflux_r <= fiberflux_r_min_for_cadence2)
 
         # query_region[0] is ra of center of the region, degrees
         # query_region[1] is dec of center of the region, degrees
