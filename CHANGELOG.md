@@ -2,7 +2,7 @@
 
 ## Next version
 
-## 1.3.13 - August 2, 2024
+## 1.3.13 - August 10, 2024
 
 ### 🚀 New
 
