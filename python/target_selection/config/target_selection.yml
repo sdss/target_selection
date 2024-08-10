@@ -1,6 +1,8 @@
 '1.2.14':
   xmatch_plan: 1.0.0
   cartons:
+    - mwm_snc_100pc_boss_single
+    - mwm_snc_100pc_bright_boss_single
     - mwm_snc_100pc_low_lum_boss_single
     - mwm_galactic_core_dist_apogee_sparse
     - mwm_galactic_core_dist_apogee_extra
