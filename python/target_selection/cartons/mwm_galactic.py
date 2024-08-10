@@ -6,6 +6,8 @@
 # @Filename: mwm_galactic.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+import random
+
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import (
@@ -280,3 +282,162 @@ class MWM_Galactic_Core_Dist_apogee_Carton(BaseCarton):
             )
 
         return query
+
+
+class MWM_Galactic_Core_Dist_apogee_sparse_Carton(MWM_Galactic_Core_Dist_apogee_Carton):
+    """mwm_galactic_core_dist_apogee_sparse
+    Short description: Sparse-sampled Galactic Genesis sample.
+    First do an initial selection as in mwm_galactic_core_dist_apogee and order by catalogid.
+    Then randomly select exactly 2/3 of the sources using a fixed random seed.
+    Metadata:
+    Priority: 2710
+    Cadence: bright_1x1
+    Instrument: APOGEE
+    can_offset = True
+    Lead contact: Michael Blanton
+    """
+
+    name = "mwm_galactic_core_dist_apogee_sparse"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
+    priority = 2710
+    program = "mwm_galactic"
+    mapper = "MWM"
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_galactic_core_dist_apogee_sparse " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select count(1) from " + " sandbox.temp_mwm_galactic_core_dist_apogee_sparse ;"
+        )
+
+        output = cursor.fetchall()
+
+        total_num_rows = output[0][0]
+
+        # This selected_fraction must be the same as in
+        # mwm_galactic_core_dist_apogee_extra
+        selected_fraction = 2.0 / 3.0
+        selected_num_rows = int(selected_fraction * total_num_rows)
+
+        b = [True] * selected_num_rows
+        c = [False] * (total_num_rows - selected_num_rows)
+        is_selected = b + c
+
+        # This random seed must be the same as in
+        # mwm_galactic_core_dist_apogee_extra
+        random.seed(6789)
+        random.shuffle(is_selected)
+
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
+        cursor = self.database.execute_sql(
+            "select catalogid from "
+            + " sandbox.temp_mwm_galactic_core_dist_apogee_sparse "
+            + " order by catalogid;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+
+            # This condition is opposite of the condition in
+            # mwm_galactic_core_dist_apogee_extra
+            if is_selected[i] is True:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_galactic_core_dist_apogee_sparse "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )
+
+
+class MWM_Galactic_Core_Dist_apogee_extra_Carton(MWM_Galactic_Core_Dist_apogee_Carton):
+    """mwm_galactic_core_dist_apogee_extra
+    Short description: Complement of above carton mwm_galactic_core_dist_apogee_sparse.
+    First do an initial selection as in mwm_galactic_core_dist_apogee and order by catalogid.
+    Then select those targets which were NOT selected in
+    above carton mwm_galactic_core_dist_apogee_sparse.
+    Metadata:
+    Priority: 2711
+    Cadence: bright_1x1
+    Instrument: APOGEE
+    can_offset = True
+    Lead contact: Michael Blanton
+    """
+
+    name = "mwm_galactic_core_dist_apogee_extra"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
+    priority = 2711
+    program = "mwm_galactic"
+    mapper = "MWM"
+    can_offset = True
+
+    def build_query(self, version_id, query_region=None):
+        query = super().build_query(version_id, query_region)
+        return query
+
+    def post_process(self, model):
+        cursor = self.database.execute_sql(
+            "update sandbox.temp_mwm_galactic_core_dist_apogee_extra " + "set selected = false;"
+        )
+
+        cursor = self.database.execute_sql(
+            "select count(1) from " + " sandbox.temp_mwm_galactic_core_dist_apogee_extra ;"
+        )
+
+        output = cursor.fetchall()
+
+        total_num_rows = output[0][0]
+
+        # This selected_fraction must be the same as in
+        # mwm_galactic_core_dist_apogee_sparse
+        selected_fraction = 2.0 / 3.0
+        selected_num_rows = int(selected_fraction * total_num_rows)
+
+        b = [True] * selected_num_rows
+        c = [False] * (total_num_rows - selected_num_rows)
+        is_selected = b + c
+
+        # This random seed must be the same as in
+        # mwm_galactic_core_dist_apogee_sparse
+        random.seed(6789)
+        random.shuffle(is_selected)
+
+        # The below "order by catalogid" ensures that the random selection
+        # further below gives the same result every time we run this carton.
+        cursor = self.database.execute_sql(
+            "select catalogid from "
+            + " sandbox.temp_mwm_galactic_core_dist_apogee_extra "
+            + " order by catalogid;"
+        )
+
+        output = cursor.fetchall()
+
+        for i in range(len(output)):
+            current_catalogid = output[i][0]
+
+            # select those sources which were not selected in
+            # mwm_galactic_core_dist_apogee_sparse.
+            # Hence, this condition is opposite of the condition in
+            # mwm_galactic_core_dist_apogee_sparse
+            if is_selected[i] is False:
+                self.database.execute_sql(
+                    " update sandbox.temp_mwm_galactic_core_dist_apogee_extra "
+                    + " set selected = true "
+                    + " where catalogid = "
+                    + str(current_catalogid)
+                    + ";"
+                )

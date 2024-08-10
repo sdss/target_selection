@@ -1,3 +1,25 @@
+'1.2.14':
+  xmatch_plan: 1.0.0
+  cartons:
+    - mwm_snc_100pc_boss_single
+    - mwm_snc_100pc_bright_boss_single
+    - mwm_snc_100pc_low_lum_boss_single
+    - mwm_galactic_core_dist_apogee_sparse
+    - mwm_galactic_core_dist_apogee_extra
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '200MB'
+    enable_bitmapscan: false
+    enable_seqscan: false
+
 '1.2.13':
   xmatch_plan: 1.0.0
   cartons:
