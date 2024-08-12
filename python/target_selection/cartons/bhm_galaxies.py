@@ -9,12 +9,16 @@
 import numpy
 import pandas
 import peewee
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog,
-                                             CatalogToLegacy_Survey_DR10,
-                                             Legacy_Survey_DR10)
+
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToLegacy_Survey_DR10,
+    Legacy_Survey_DR10,
+)
 
 from target_selection.cartons.base import BaseCarton
 from target_selection.mag_flux import AB2nMgy
+
 
 """
 Details: Start here
@@ -268,17 +272,21 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 "ls10_fiberflux_z,ls10_mw_transmission_z "
                 f"from {self.path}"
             ),
-            self.database)
-
-        valid = numpy.where(
-            (data["abs_gal_lat"] > self.parameters["min_gal_lat"]) &
-            (data["ls10_flux_z"] > dered_flux_z_min * data["ls10_mw_transmission_z"]) &
-            (data["ls10_fiberflux_z"] > dered_fiberflux_z_min * data["ls10_mw_transmission_z"]),
-            True, False,
+            self.database,
         )
 
-        print("During post-processing we down-selected "
-              f"{numpy.count_nonzero(valid)}/{len(data)} rows")
+        valid = numpy.where(
+            (data["abs_gal_lat"] > self.parameters["min_gal_lat"])
+            & (data["ls10_flux_z"] > dered_flux_z_min * data["ls10_mw_transmission_z"])
+            & (data["ls10_fiberflux_z"] > dered_fiberflux_z_min * data["ls10_mw_transmission_z"]),
+            True,
+            False,
+        )
+
+        print(
+            "During post-processing we down-selected "
+            f"{numpy.count_nonzero(valid)}/{len(data)} rows"
+        )
 
         data = data[valid]
 
