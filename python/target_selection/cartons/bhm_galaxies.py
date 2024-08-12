@@ -205,10 +205,12 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 ls.flux_r.alias("ls10_flux_r"),  # extra
                 ls.flux_i.alias("ls10_flux_i"),  # extra
                 ls.flux_z.alias("ls10_flux_z"),  # extra
+                ls.fiberflux_z.alias("ls10_fiberflux_z"),  # extra
                 ls.ebv.alias("ls10_ebv"),  # extra
+                ls.mw_transmission_z.alias("ls10_mw_transmission_z"),  # extra
+                ls.shape_r.alias("ls10_shape_r"),  # extra
                 ls.maskbits.alias("ls10_maskbits"),  # extra
                 ls.fitbits.alias("ls10_fitbits"),  # extra
-                ls.mw_transmission_z.alias("ls10_mw_transmission_z"),  # extra
                 gal_lat.alias("abs_gal_lat"),  # extra
             )
             .join(c2ls)
@@ -235,6 +237,8 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
                 (ls.maskbits.bin_and(maskbits_mask) == 0),  # avoid bad ls data
                 # (ls.fitbits.bin_and(fitbits_mask) == 0),  # avoid bad ls fits
             )
+            # .where(c.catalogid.between(63050396500000000,   # debug
+            #                            63050396550000000))  # debug
             .distinct(c.catalogid)
         )
 
@@ -258,16 +262,23 @@ class BhmColrGalaxiesLsdr10Carton(BaseCarton):
         dered_flux_z_min = AB2nMgy(self.parameters["dered_mag_z_max"])
         dered_fiberflux_z_min = AB2nMgy(self.parameters["dered_fibermag_z_max"])
 
-        data = pandas.read_sql(f"SELECT catalogid,abs_gal_lat,flux_z,fiberflux_z from {self.path}",
-                               self.database)
-        valid = (
-            numpy.where(data["abs_gal_lat"] > self.parameters["min_gal_lat"],
-                        True, False) &
-            numpy.where(data["flux_z"] > dered_flux_z_min * data["mw_transmission_z"],
-                        True, False) &
-            numpy.where(data["fiberflux_z"] > dered_fiberflux_z_min * data["mw_transmission_z"],
-                        True, False)
+        data = pandas.read_sql(
+            (
+                "SELECT catalogid,abs_gal_lat,ls10_flux_z,"
+                "ls10_fiberflux_z,ls10_mw_transmission_z "
+                f"from {self.path}"
+            ),
+            self.database)
+
+        valid = numpy.where(
+            (data["abs_gal_lat"] > self.parameters["min_gal_lat"]) &
+            (data["ls10_flux_z"] > dered_flux_z_min * data["ls10_mw_transmission_z"]) &
+            (data["ls10_fiberflux_z"] > dered_fiberflux_z_min * data["ls10_mw_transmission_z"]),
+            True, False,
         )
+
+        print("During post-processing we down-selected "
+              f"{numpy.count_nonzero(valid)}/{len(data)} rows")
 
         data = data[valid]
 

@@ -13,7 +13,6 @@
     gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
   database_options:
     work_mem: '2000MB'
-    enable_bitmapscan: false
   parameters:
     bhm_colr_galaxies_lsdr10_d3:
       priority: 7101
