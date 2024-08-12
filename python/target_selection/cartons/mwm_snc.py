@@ -686,7 +686,7 @@ class MWM_SNC_100pc_bright_BOSS_single_Carton(MWM_SNC_100pc_BOSS_Carton):
             if current_phot_g_mean_mag < 18:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_100pc_bright_boss_single "
-                    + " set cadence = 'bright_1x1 ' "
+                    + " set cadence = 'bright_1x1' "
                     + " where catalogid = "
                     + str(current_catalogid)
                     + ";"
@@ -694,7 +694,7 @@ class MWM_SNC_100pc_bright_BOSS_single_Carton(MWM_SNC_100pc_BOSS_Carton):
             else:
                 self.database.execute_sql(
                     " update sandbox.temp_mwm_snc_100pc_bright_boss_single "
-                    + " set cadence = 'dark_1x1 ' "
+                    + " set cadence = 'dark_1x1' "
                     + " where catalogid = "
                     + str(current_catalogid)
                     + ";"
