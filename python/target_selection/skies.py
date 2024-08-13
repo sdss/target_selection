@@ -23,11 +23,16 @@ import pandas
 import peewee
 import polars
 from astropy import units as uu
-from astropy.coordinates import SkyCoord, match_coordinates_sky, search_around_sky
+from astropy.coordinates import (
+    SkyCoord,
+    match_coordinates_sky,
+    search_around_sky,
+)
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from mocpy import MOC
 from pydantic import BaseModel, ConfigDict
+from scipy.stats import circmean
 
 from target_selection import log
 from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
@@ -1172,6 +1177,7 @@ def is_valid_sky(
     database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
+    fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: Literal[False] = False,
 ) -> npt.NDArray[numpy.bool_]: ...
 
@@ -1182,6 +1188,7 @@ def is_valid_sky(
     database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
+    fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: Literal[True] = True,
 ) -> tuple[npt.NDArray[numpy.bool_], polars.DataFrame]: ...
 
@@ -1191,6 +1198,7 @@ def is_valid_sky(
     database: PeeweeDatabaseConnection,
     catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
     param_overrides: dict | None = None,
+    fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: bool = False,
 ) -> npt.NDArray[numpy.bool_] | tuple[npt.NDArray[numpy.bool_], polars.DataFrame]:
     """Check if a set of coordinates are valid sky positions.
@@ -1208,6 +1216,12 @@ def is_valid_sky(
         A dictionary with overrides for the catalogue parameters. See `.DEFAULT_CATALOGUE_PARAMS`
         for a list of the default parameters. The parameters defined here are merged on top of
         `.DEFAULT_CATALOGUE_PARAMS` and used to query the database.
+    fibre_radius
+        The radius of the fibre in arcsec. If 'APO' or 'LCO', the default values for the
+        respective telescopes are used. Any candidate coordinate that is within this radius
+        of a catalogue target is marked as not a sky.
+    return_dataframe
+        If `True`, returns a dataframe with the results.
 
     Returns
     -------
@@ -1224,6 +1238,11 @@ def is_valid_sky(
     assert database.connected, "database is not connected."
     for cat_name in catalogues:
         assert database.table_exists(cat_name, schema="catalogdb"), f"Table {cat_name} not found."
+
+    if fibre_radius == "APO":
+        fibre_radius = 1.0
+    elif fibre_radius == "LCO":
+        fibre_radius = 0.654
 
     # Create the output dataframe.
     df = (
@@ -1254,7 +1273,7 @@ def is_valid_sky(
         c_params[cat_name] = CatalogueParams(**default_params)
 
     # Calculate the centre and radius of the region to query to include all the input positions.
-    ra_cen = coords[:, 0].mean()
+    ra_cen = circmean(coords[:, 0], 360)
     dec_cen = coords[:, 1].mean()
     cen = SkyCoord(ra=ra_cen, dec=dec_cen, unit="deg")
     coords_ap = SkyCoord(ra=coords[:, 0], dec=coords[:, 1], unit="deg")
@@ -1286,17 +1305,30 @@ def is_valid_sky(
             f"{ra_cen}, {dec_cen}, {radius})"
         )
 
-        if not cat_params.is_flux and cat_params.mag_column is not None:
-            query += f" AND {cat_params.mag_column} <= {cat_params.mag_threshold}"
+        # Get all the targets in the query region.
+        q_targets = polars.read_database(query, database)
 
-        b_targets = polars.read_database(query, database)
+        # Check which of our candidate coordinates would be within a fibre radius of any
+        # of the catalogue targets. Mark those as NOT skies regardless of the magnitude.
+        q_targets_ap = SkyCoord(
+            ra=q_targets["ra"].to_numpy(),
+            dec=q_targets["dec"].to_numpy(),
+            unit="deg",
+        )
 
+        _, sep2d, _ = match_coordinates_sky(coords_ap, q_targets_ap)
+        fibre_mask = sep2d.arcsec > fibre_radius  # True if nothing found within fibre_radius
+        df = df.with_columns(polars.Series(fibre_mask, dtype=polars.Boolean).alias(cat_name))
+
+        # Now that we have checked the closest neighbour, keep only the "bright" targets
+        # by applying the magniture threshold, and calculate the target magnitude and separation.
         if cat_params.mag_column is not None:
             if cat_params.is_flux:
                 zpt = _known_flux_zpts[cat_params.flux_unit]
-                b_targets = b_targets.with_columns(mag=zpt - 2.5 * polars.col.mag_or_flux.log10())
+                b_targets = q_targets.with_columns(mag=zpt - 2.5 * polars.col.mag_or_flux.log10())
             else:
-                b_targets = b_targets.with_columns(mag=polars.col.mag_or_flux)
+                b_targets = q_targets.with_columns(mag=polars.col.mag_or_flux)
+            b_targets = b_targets.filter(polars.col.mag_or_flux <= cat_params.mag_threshold)
 
         if cat_params.radius_column is not None:
             b_targets = b_targets.with_columns(min_sep=cat_params.min_separation)

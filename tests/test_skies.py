@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from sdssdb.connection import PeeweeDatabaseConnection
 
 
-pytestmark = [pytest.mark.xfail(reason="Fails due to missing database connection.")]
+# pytestmark = [pytest.mark.xfail(reason="Fails due to missing database connection.")]
 
 
 @pytest.fixture()
@@ -40,18 +40,37 @@ def database():
 
 
 @pytest.fixture()
-def sky_candidates():
+def fibermap():
     confSummary_path = pathlib.Path(__file__).parent / "data" / "confSummary-15130.par"
-    confSummary = yanny(str(confSummary_path))["FIBERMAP"]
+    fibermap = yanny(str(confSummary_path))["FIBERMAP"]
 
-    not_on_target = confSummary[
-        (confSummary["fiberType"] != "METROLOGY")
-        & (confSummary["on_target"] == 0)
-        & (confSummary["ra"] >= 0)
-        & (confSummary["dec"] > -999)
+    yield fibermap
+
+
+@pytest.fixture()
+def sky_candidates(fibermap):
+    not_on_target = fibermap[
+        (fibermap["fiberType"] != "METROLOGY")
+        & (fibermap["on_target"] == 0)
+        & (fibermap["ra"] >= 0)
+        & (fibermap["dec"] > -999)
     ]
 
     yield numpy.array(not_on_target[["ra", "dec"]].tolist(), dtype="f8")
+
+
+@pytest.fixture()
+def assigned_targets(fibermap):
+    assigned = fibermap[
+        (fibermap["fiberType"] != "METROLOGY")
+        & (fibermap["on_target"] == 1)
+        & (fibermap["valid"] == 1)
+        & (fibermap["category"] == "science")
+        & (fibermap["ra"] >= 0)
+        & (fibermap["dec"] > -999)
+    ]
+
+    yield numpy.array(assigned[["ra", "dec"]].tolist(), dtype="f8")
 
 
 def test_database(database: PeeweeDatabaseConnection):
@@ -73,3 +92,23 @@ def test_is_valid_sky(database: PeeweeDatabaseConnection, sky_candidates: numpy.
 
     assert (~mask).sum() == 30
     assert df.filter(polars.col.gaia_dr3_source.not_()).height == 21
+
+
+def test_is_valid_sky_assigned(
+    database: PeeweeDatabaseConnection,
+    assigned_targets: numpy.ndarray,
+):
+    mask = is_valid_sky(
+        assigned_targets,
+        database,
+        catalogues=["gaia_dr3_source", "twomass_psc"],
+        return_dataframe=False,
+    )
+
+    assert isinstance(mask, numpy.ndarray)
+
+    # The majority of the assigned targets should not be a valid sky since they are targeting
+    # an object. A small fraction show as valid because they were selected from catalogues that
+    # we didn't test for.
+    assert len(mask) == 321
+    assert mask.sum() == 26
