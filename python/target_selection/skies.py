@@ -1306,7 +1306,8 @@ def is_valid_sky(
         )
 
         # Get all the targets in the query region.
-        q_targets = polars.read_database(query, database)
+        if len(q_targets) == 0:
+            continue
 
         # Check which of our candidate coordinates would be within a fibre radius of any
         # of the catalogue targets. Mark those as NOT skies regardless of the magnitude.
