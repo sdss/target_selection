@@ -2,6 +2,12 @@
 
 ## Next version
 
+ 1.3.15 - August 13 2024
+
+### 🚀 New
+
+* add cartons to target_selection plan 1.2.16
+
 # 1.3.14 - August 12 2024
 
 ### 🚀 New
