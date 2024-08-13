@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from sdssdb.connection import PeeweeDatabaseConnection
 
 
-# pytestmark = [pytest.mark.xfail(reason="Fails due to missing database connection.")]
+pytestmark = [pytest.mark.xfail(reason="Fails due to missing database connection.")]
 
 
 @pytest.fixture()
