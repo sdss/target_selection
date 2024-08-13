@@ -28,11 +28,13 @@ from astropy.coordinates import (
     match_coordinates_sky,
     search_around_sky,
 )
+from astropy.time import Time
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from mocpy import MOC
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from scipy.stats import circmean
+from typing_extensions import Self
 
 from target_selection import log
 from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
@@ -60,6 +62,9 @@ class CatalogueParams(BaseModel):
 
     ra_column: str
     dec_column: str
+    pmra_column: str | None = None
+    pmdec_column: str | None = None
+    ref_epoch: float | str | None = None
     mag_column: str | None = None
     radius_column: str | None = None
     is_flux: bool = False
@@ -68,6 +73,19 @@ class CatalogueParams(BaseModel):
     min_separation: float = 5.0
     scale_a: float = 0.2
     scale_b: float = 1.5
+
+    @model_validator(mode="after")
+    def check_pm_fields(self) -> Self:
+        """Check that all the pm fields are set or null."""
+
+        if self.pmra_column is not None or self.pmdec_column is not None:
+            assert (
+                self.pmra_column is not None and self.pmdec_column is not None
+            ), "both pmra_column and pmdec_column must be set."
+
+            assert self.ref_epoch is not None, "ref_epoch must be set if pmra_column is set."
+
+        return self
 
 
 DEFAULT_CATALOGUE_PARAMS = {
@@ -83,6 +101,9 @@ DEFAULT_CATALOGUE_PARAMS = {
     "gaia_dr2_source": {
         "ra_column": "ra",
         "dec_column": "dec",
+        "pmra_column": "pmra",
+        "pmdec_column": "pmdec",
+        "ref_epoch": 2015.5,
         "mag_column": "phot_g_mean_mag",
         "mag_threshold": 14.0,
         "min_separation": 5.0,
@@ -92,6 +113,9 @@ DEFAULT_CATALOGUE_PARAMS = {
     "gaia_dr3_source": {
         "ra_column": "ra",
         "dec_column": "dec",
+        "pmra_column": "pmra",
+        "pmdec_column": "pmdec",
+        "ref_epoch": 2016,
         "mag_column": "phot_g_mean_mag",
         "mag_threshold": 14.0,
         "min_separation": 5.0,
@@ -112,6 +136,9 @@ DEFAULT_CATALOGUE_PARAMS = {
     "legacy_survey_dr8": {
         "ra_column": "ra",
         "dec_column": "dec",
+        "pmra_column": "pmra",
+        "pmdec_column": "pmdec",
+        "ref_epoch": "ref_epoch",
         "mag_column": "flux_r",
         "is_flux": True,
         "flux_unit": "nMgy",
@@ -123,6 +150,9 @@ DEFAULT_CATALOGUE_PARAMS = {
     "tycho2": {
         "ra_column": "ramdeg",
         "dec_column": "demdeg",
+        "pmra_column": "pmra",
+        "pmdec_column": "pmde",
+        "ref_epoch": 2000.0,
         "mag_column": "vtmag",
         "mag_threshold": 14.0,
         "min_separation": 5.0,
@@ -1175,8 +1205,9 @@ def create_veto_mask(
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
     database: PeeweeDatabaseConnection,
-    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    catalogues: list | None = None,
     param_overrides: dict | None = None,
+    epoch: float | None = None,
     fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: Literal[False] = False,
 ) -> npt.NDArray[numpy.bool_]: ...
@@ -1186,8 +1217,9 @@ def is_valid_sky(
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
     database: PeeweeDatabaseConnection,
-    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    catalogues: list | None = None,
     param_overrides: dict | None = None,
+    epoch: float | None = None,
     fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: Literal[True] = True,
 ) -> tuple[npt.NDArray[numpy.bool_], polars.DataFrame]: ...
@@ -1196,8 +1228,9 @@ def is_valid_sky(
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
     database: PeeweeDatabaseConnection,
-    catalogues: list = list(DEFAULT_CATALOGUE_PARAMS),
+    catalogues: list | None = None,
     param_overrides: dict | None = None,
+    epoch: float | None = None,
     fibre_radius: float | Literal["APO", "LCO"] = 1.0,
     return_dataframe: bool = False,
 ) -> npt.NDArray[numpy.bool_] | tuple[npt.NDArray[numpy.bool_], polars.DataFrame]:
@@ -1211,11 +1244,15 @@ def is_valid_sky(
         A valid database connection.
     catalogues
         A list of catalogues to check the positions against. Must be valid tables in
-        ``sdss5db.catalogdb``.
+        ``sdss5db.catalogdb``. Defaults to the keys in `.DEFAULT_CATALOGUE_PARAMS`.
     param_overrides
         A dictionary with overrides for the catalogue parameters. See `.DEFAULT_CATALOGUE_PARAMS`
         for a list of the default parameters. The parameters defined here are merged on top of
         `.DEFAULT_CATALOGUE_PARAMS` and used to query the database.
+    epoch
+        The epoch of the coordinates as a Julian date. If `None`, the current epoch is assumed.
+        This is only used to propagate catalogue coordinates with proper motions to the same
+        epoch as the candidate coordinates.
     fibre_radius
         The radius of the fibre in arcsec. If 'APO' or 'LCO', the default values for the
         respective telescopes are used. Any candidate coordinate that is within this radius
@@ -1236,6 +1273,8 @@ def is_valid_sky(
     assert len(coords.shape) == 2 and coords.shape[1] == 2, "coords must be a Nx2 array."
 
     assert database.connected, "database is not connected."
+
+    catalogues = catalogues or list(DEFAULT_CATALOGUE_PARAMS)
     for cat_name in catalogues:
         assert database.table_exists(cat_name, schema="catalogdb"), f"Table {cat_name} not found."
 
@@ -1243,6 +1282,11 @@ def is_valid_sky(
         fibre_radius = 1.0
     elif fibre_radius == "LCO":
         fibre_radius = 0.654
+
+    if epoch is None:
+        epoch_ap = Time.now()
+    else:
+        epoch_ap = Time(epoch, format="jd")
 
     # Create the output dataframe.
     df = (
@@ -1290,12 +1334,21 @@ def is_valid_sky(
         if cat_params.mag_column is not None:
             mag_or_flux_select = f"{cat_params.mag_column} AS mag_or_flux"
 
+        pm_selects = []
+        has_pm: bool = False
+        if cat_params.pmra_column:
+            pm_selects.append(f"{cat_params.pmra_column} AS pmra")
+            pm_selects.append(f"{cat_params.pmdec_column} AS pmdec")
+            pm_selects.append(f"{cat_params.ref_epoch} AS ref_epoch")
+            has_pm = True
+
         selects = [
             f"{cat_params.ra_column} AS ra",
             f"{cat_params.dec_column} AS dec",
             mag_or_flux_select,
             radius_select,
         ]
+        selects += pm_selects
 
         select = ", ".join([sel for sel in selects if sel != ""])
         query = (
@@ -1306,16 +1359,29 @@ def is_valid_sky(
         )
 
         # Get all the targets in the query region.
+        q_targets = polars.read_database(query, database).with_row_count(name="n")
+        if cat_params.ref_epoch is not None:
+            q_targets = q_targets.cast({"ref_epoch": polars.Float32})
+
         if len(q_targets) == 0:
             continue
 
         # Check which of our candidate coordinates would be within a fibre radius of any
         # of the catalogue targets. Mark those as NOT skies regardless of the magnitude.
-        q_targets_ap = SkyCoord(
-            ra=q_targets["ra"].to_numpy(),
-            dec=q_targets["dec"].to_numpy(),
-            unit="deg",
-        )
+        ra = q_targets["ra"].to_numpy()
+        dec = q_targets["dec"].to_numpy()
+        if has_pm:
+            epoch_delta = epoch_ap.jyear - q_targets["ref_epoch"].to_numpy()
+
+            pmra_deg = q_targets["pmra"].to_numpy() / 3600.0 / 1000.0
+            pmdec_deg = q_targets["pmdec"].to_numpy() / 3600.0 / 1000.0
+            pmra_deg[numpy.isnan(pmra_deg)] = 0.0
+            pmdec_deg[numpy.isnan(pmdec_deg)] = 0.0
+
+            ra = ra + pmra_deg * epoch_delta / numpy.cos(numpy.radians(dec))
+            dec = dec + pmdec_deg * epoch_delta
+
+        q_targets_ap = SkyCoord(ra=ra, dec=dec, unit="deg")
 
         _, sep2d, _ = match_coordinates_sky(coords_ap, q_targets_ap)
         fibre_mask = sep2d.arcsec > fibre_radius  # True if nothing found within fibre_radius
@@ -1330,6 +1396,8 @@ def is_valid_sky(
             else:
                 b_targets = q_targets.with_columns(mag=polars.col.mag_or_flux)
             b_targets = b_targets.filter(polars.col.mag_or_flux <= cat_params.mag_threshold)
+        else:
+            b_targets = q_targets
 
         if cat_params.radius_column is not None:
             b_targets = b_targets.with_columns(min_sep=cat_params.min_separation)
@@ -1341,13 +1409,9 @@ def is_valid_sky(
                     + (cat_params.mag_threshold - polars.col.mag).pow(cat_params.scale_b)
                     / cat_params.scale_a
                 )
-            ).with_row_count(name="n")
+            )
 
-        b_targets_ap = SkyCoord(
-            ra=b_targets["ra"].to_numpy(),
-            dec=b_targets["dec"].to_numpy(),
-            unit="deg",
-        )
+        b_targets_ap = q_targets_ap[b_targets["n"].to_numpy()]
 
         # For each bright target, get all the input coordinate matches that are within the
         # maximum minimum separation (search_around_sky only accepts a scalar separation).
