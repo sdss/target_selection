@@ -42,8 +42,9 @@ pymoc = "^0"
 gala = "^1.6.1"
 dustmaps = "1.0.10"
 pydantic = "^2.8.2"
-adbc-driver-postgresql = "^1.1.0"
 typing-extensions = ">=4.12.2"
+pyarrow = "*"
+adbc-driver-postgresql = "*"
 
 [tool.poetry.group.dev.dependencies]
 ipython = ">=7.9.0"
