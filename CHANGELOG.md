@@ -2,12 +2,20 @@
 
 ## Next version
 
+ 
+## 1.3.15 - August 13 2024
+
+### 🚀 New
+
+* add cartons to target_selection plan 1.2.16
+
 ### ✨ Improved
 
 * [#488](https://github.com/sdss/target_selection/pull/488) Added `is_valid_sky()` function.
 
 
 ## 1.3.14 - August 12 2024
+ 
 
 ### 🚀 New
 
