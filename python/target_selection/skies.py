@@ -1324,6 +1324,12 @@ def is_valid_sky(
     sep = coords_ap.separation(cen)
     radius = sep.max().deg + 0.1  # Add a small buffer to account for edge effects.
 
+    if radius > 3:
+        raise ValueError(
+            "The radius of the region to query is too large. "
+            "Please provide coordinates that span a smaller region."
+        )
+
     # Iterate over each catalogue and query sources in the region.
     for cat_name, cat_params in c_params.items():
         radius_select = ""
