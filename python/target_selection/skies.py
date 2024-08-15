@@ -13,11 +13,7 @@ import os
 import warnings
 from functools import partial
 
-<<<<<<< HEAD
-from typing import TYPE_CHECKING, Literal, Sequence, overload
-=======
 from typing import Literal, Sequence, overload
->>>>>>> albireox/coord-is-sky
 
 import enlighten
 import healpy
@@ -39,18 +35,11 @@ from mocpy import MOC
 from pydantic import BaseModel, ConfigDict, model_validator
 from scipy.stats import circmean
 from typing_extensions import Self
-<<<<<<< HEAD
-=======
 
 from sdssdb.connection import PeeweeDatabaseConnection
->>>>>>> albireox/coord-is-sky
 
 from target_selection import log
 from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
-
-
-if TYPE_CHECKING:
-    from sdssdb.connection import PeeweeDatabaseConnection
 
 
 warnings.filterwarnings("ignore", ".*invalid value encountered in power.*")
