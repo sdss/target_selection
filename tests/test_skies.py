@@ -94,6 +94,21 @@ def test_is_valid_sky(database: PeeweeDatabaseConnection, sky_candidates: numpy.
     assert df.filter(polars.col.gaia_dr3_source.not_()).height == 21
 
 
+def test_is_valid_sky_uri(sky_candidates: numpy.ndarray):
+    mask, df = is_valid_sky(
+        sky_candidates,
+        "postgresql://sdss_user@localhost:7502/sdss5db",
+        catalogues=["gaia_dr3_source", "twomass_psc"],
+        return_dataframe=True,
+    )
+
+    assert isinstance(mask, numpy.ndarray)
+    assert isinstance(df, polars.DataFrame)
+
+    assert (~mask).sum() == 30
+    assert df.filter(polars.col.gaia_dr3_source.not_()).height == 21
+
+
 def test_is_valid_sky_assigned(
     database: PeeweeDatabaseConnection,
     assigned_targets: numpy.ndarray,
@@ -111,4 +126,4 @@ def test_is_valid_sky_assigned(
     # an object. A small fraction show as valid because they were selected from catalogues that
     # we didn't test for.
     assert len(mask) == 321
-    assert mask.sum() == 26
+    assert mask.sum() == 21

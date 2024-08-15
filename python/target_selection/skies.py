@@ -13,7 +13,11 @@ import os
 import warnings
 from functools import partial
 
+<<<<<<< HEAD
 from typing import TYPE_CHECKING, Literal, Sequence, overload
+=======
+from typing import Literal, Sequence, overload
+>>>>>>> albireox/coord-is-sky
 
 import enlighten
 import healpy
@@ -35,6 +39,11 @@ from mocpy import MOC
 from pydantic import BaseModel, ConfigDict, model_validator
 from scipy.stats import circmean
 from typing_extensions import Self
+<<<<<<< HEAD
+=======
+
+from sdssdb.connection import PeeweeDatabaseConnection
+>>>>>>> albireox/coord-is-sky
 
 from target_selection import log
 from target_selection.exceptions import TargetSelectionError, TargetSelectionUserWarning
@@ -1204,7 +1213,7 @@ def create_veto_mask(
 @overload
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection,
+    database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
     epoch: float | None = None,
@@ -1216,7 +1225,7 @@ def is_valid_sky(
 @overload
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection,
+    database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
     epoch: float | None = None,
@@ -1227,7 +1236,7 @@ def is_valid_sky(
 
 def is_valid_sky(
     coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
-    database: PeeweeDatabaseConnection,
+    database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
     epoch: float | None = None,
@@ -1241,7 +1250,8 @@ def is_valid_sky(
     coords
         An ``Nx2`` array with the RA/Dec coordinates to check.
     database
-        A valid database connection.
+        A valid database connection, either an ``sdssdb.connection.PeeweeDatabaseConnection``
+        or a valid Postgresql connection string.
     catalogues
         A list of catalogues to check the positions against. Must be valid tables in
         ``sdss5db.catalogdb``. Defaults to the keys in `.DEFAULT_CATALOGUE_PARAMS`.
@@ -1272,11 +1282,13 @@ def is_valid_sky(
     coords = numpy.atleast_2d(coords)
     assert len(coords.shape) == 2 and coords.shape[1] == 2, "coords must be a Nx2 array."
 
-    assert database.connected, "database is not connected."
-
     catalogues = catalogues or list(DEFAULT_CATALOGUE_PARAMS)
-    for cat_name in catalogues:
-        assert database.table_exists(cat_name, schema="catalogdb"), f"Table {cat_name} not found."
+
+    if not isinstance(database, str):
+        assert database.connected, "database is not connected."
+
+        for cat_name in catalogues:
+            assert database.table_exists(cat_name, "catalogdb"), f"Table {cat_name} not found."
 
     if fibre_radius == "APO":
         fibre_radius = 1.0
@@ -1365,7 +1377,13 @@ def is_valid_sky(
         )
 
         # Get all the targets in the query region.
-        q_targets = polars.read_database(query, database).with_row_count(name="n")
+        if isinstance(database, str):
+            q_targets = polars.read_database_uri(query, database, engine="adbc")
+        else:
+            q_targets = polars.read_database(query, database)
+
+        q_targets = q_targets.with_row_count(name="n")
+
         if cat_params.ref_epoch is not None:
             q_targets = q_targets.cast({"ref_epoch": polars.Float32})
 
