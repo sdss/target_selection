@@ -13,6 +13,7 @@ import peewee
 from peewee import JOIN, fn
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
+from sdssdb.peewee.sdss5db.targetdb import Target
 
 from .create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
                                               UniqueMatch,
@@ -289,7 +290,7 @@ class AppendToTables:
                     TempCatalogidV25.insert(catalogid25=row.catalogid).execute()
                 elif row.version_id == 31:
                     TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
-        else:
+        elif self.individual_table is not None:
             try:
                 ind_table = self.database.models[self.individual_table]
             except:
@@ -304,6 +305,21 @@ class AppendToTables:
                                      .where(SdssIdFlat.catalogid.is_null()))
 
             for row in ind_table_input_query:
+                if row.version_id == 21:
+                    TempCatalogidV21.insert(catalogid21=row.catalogid).execute()
+                elif row.version_id == 25:
+                    TempCatalogidV25.insert(catalogid25=row.catalogid).execute()
+                elif row.version_id == 31:
+                    TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
+        else:
+            target_input_query = (Catalog.select(Catalog.catalgid, Catalog.version_id)
+                                  .join(Target,
+                                        on=(Catalog.catalogid == Target.catalogid))
+                                  .join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
+                                        on=(SdssIdFlat.catalogid == Catalog.catalogid))
+                                  .where(SdssIdFlat.catalogid.is_null()))
+           
+            for row in target_input_query:
                 if row.version_id == 21:
                     TempCatalogidV21.insert(catalogid21=row.catalogid).execute()
                 elif row.version_id == 25:
