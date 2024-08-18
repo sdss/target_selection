@@ -312,7 +312,7 @@ class AppendToTables:
                 elif row.version_id == 31:
                     TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
         else:
-            target_input_query = (Catalog.select(Catalog.catalgid, Catalog.version_id)
+            target_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
                                   .join(Target,
                                         on=(Catalog.catalogid == Target.catalogid))
                                   .join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
