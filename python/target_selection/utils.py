@@ -199,6 +199,8 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
     """Temporarily a database configuration parameter."""
 
     new_value = new_value.upper()
+    orig_value = None
+    value_changed = None
 
     try:
         orig_value = database.execute_sql(f"SHOW {parameter}").fetchone()[0].upper()
