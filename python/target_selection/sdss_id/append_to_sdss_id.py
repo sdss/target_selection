@@ -84,6 +84,7 @@ class SdssIdFlat(peewee.Model):
     n_associated = peewee.SmallIntegerField()
     ra_catalogid = peewee.DoubleField()
     dec_catalogid = peewee.DoubleField()
+    rank = peewee.SmallIntegerField()
     pk = peewee.BigAutoField(primary_key=True)
 
     class Meta:
@@ -118,6 +119,7 @@ class SdssIdFlatAddendum(peewee.Model):
     n_associated = peewee.SmallIntegerField(null=True)
     ra_catalogid = peewee.DoubleField(null=True)
     dec_catalogid = peewee.DoubleField(null=True)
+    rank = peewee.SmallIntegerField()
 
     class Meta:
         database = database
@@ -499,6 +501,16 @@ class AppendToTables:
                            .from_(Catalog)
                            .where(SdssIdFlatAddendum.catalogid == Catalog.catalogid)
                            .execute())
+        
+        ranked_values = (SdssIdFlatAddendum
+                         .select(SdssIdFlatAddendum.pk, 
+                                 fn.RANK().over(partition_by=[SdssIdFlatAddendum.catalogid],
+                                                order_by=[SdssIdFlatAddendum.sdss_id])
+                                          .alias('rank')))
+        
+        (SdssIdFlatAddendum.update(rank=ranked_values.c.rank)
+                           .from_(ranked_values)
+                           .where(SdssIdFlatAddendum.pk == ranked_values.c.pk))
 
     def add_to_sdss_id_flat(self, database):
         """ This method adds sdss_id_flat_addendum to sdss_id_flat """
@@ -510,7 +522,8 @@ class AppendToTables:
                       SdssIdFlat.dec_sdss_id,
                       SdssIdFlat.n_associated,
                       SdssIdFlat.ra_catalogid,
-                      SdssIdFlat.dec_catalogid]
+                      SdssIdFlat.dec_catalogid,
+                      SdssIdFlat.Rank]
 
         to_add = SdssIdFlatAddendum.select(SdssIdFlatAddendum.sdss_id,
                                            SdssIdFlatAddendum.catalogid,
@@ -519,7 +532,8 @@ class AppendToTables:
                                            SdssIdFlatAddendum.dec_sdss_id,
                                            SdssIdFlatAddendum.n_associated,
                                            SdssIdFlatAddendum.ra_catalogid,
-                                           SdssIdFlatAddendum.dec_catalogid).tuples()
+                                           SdssIdFlatAddendum.dec_catalogid,
+                                           SdssIdFlatAddendum.rank).tuples()
 
         with self.database.atomic():
             SdssIdFlat.insert_many(to_add, fields=sid_flat_f).execute()
