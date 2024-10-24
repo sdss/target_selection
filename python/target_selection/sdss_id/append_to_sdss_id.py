@@ -501,16 +501,19 @@ class AppendToTables:
                            .from_(Catalog)
                            .where(SdssIdFlatAddendum.catalogid == Catalog.catalogid)
                            .execute())
-        
+
         ranked_values = (SdssIdFlatAddendum
-                         .select(SdssIdFlatAddendum.pk, 
+                         .select(SdssIdFlatAddendum.catalogid,
+                                 SdssIdFlatAddendum.sdss_id,
                                  fn.RANK().over(partition_by=[SdssIdFlatAddendum.catalogid],
                                                 order_by=[SdssIdFlatAddendum.sdss_id])
                                           .alias('rank')))
-        
+
         (SdssIdFlatAddendum.update(rank=ranked_values.c.rank)
                            .from_(ranked_values)
-                           .where(SdssIdFlatAddendum.pk == ranked_values.c.pk))
+                           .where((SdssIdFlatAddendum.catalogid == ranked_values.c.catalogid) &
+                                  (SdssIdFlatAddendum.sdss_id == ranked_values.c.sdss_id))
+                           .execute())
 
     def add_to_sdss_id_flat(self, database):
         """ This method adds sdss_id_flat_addendum to sdss_id_flat """
