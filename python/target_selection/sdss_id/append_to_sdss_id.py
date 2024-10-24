@@ -526,7 +526,7 @@ class AppendToTables:
                       SdssIdFlat.n_associated,
                       SdssIdFlat.ra_catalogid,
                       SdssIdFlat.dec_catalogid,
-                      SdssIdFlat.Rank]
+                      SdssIdFlat.rank]
 
         to_add = SdssIdFlatAddendum.select(SdssIdFlatAddendum.sdss_id,
                                            SdssIdFlatAddendum.catalogid,
