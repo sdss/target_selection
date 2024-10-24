@@ -21,6 +21,12 @@
         - allwise
         - glimpse
         - glimpse360
+        - allstar_dr17_synspec_rev1
+        - marvels_dr11_star
+        - marvels_dr12_star
+        - sdss_dr17_specobj
+        - mangatarget
+        - mastar_goodstars
 '0.5.0':
     run_id: 3
     version_id: 25
