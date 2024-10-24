@@ -1,0 +1,83 @@
+'1.0.0':
+    run_id: 7
+    version_id: 31
+    order:
+        - gaia_dr3_source
+        - gaia_dr2_source
+        - legacy_survey_dr10
+        - legacy_survey_dr8
+        - panstarrs1
+        - tic_v8
+        - tic_v8_extended
+        - sdss_dr13_photoobj_primary
+        - twomass_psc
+        - kepler_input_10
+        - tycho2
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - milliquas_7_7
+        - uvotssc1
+        - xmm_om_suss_5_0
+        - allwise
+        - glimpse
+        - glimpse360
+        - allstar_dr17_synspec_rev1
+        - marvels_dr11_star
+        - marvels_dr12_star
+        - sdss_dr17_specobj
+        - mangatarget
+        - mastar_goodstars
+'0.5.0':
+    run_id: 3
+    version_id: 25
+    order:
+        - tic_v8
+        - tic_v8_extended
+        - legacy_survey_dr8
+        - panstarrs1
+        - sdss_dr13_photoobj_primary
+        - sdss_dr16_specobj
+        - skymapper_dr2
+        - kepler_input_10
+        - bhm_rm_v0
+        - ps1_g18
+        - tycho2
+        - gaia_qso
+        - bhm_csc
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - supercosmos
+        - bhm_efeds_veto
+        - twoqz_sixqz
+        - catwise2020
+        - allwise
+        - glimpse
+        - glimpse360
+        - uvotssc1
+        - xmm_om_suss_4_1'
+'0.0.1':
+    run_id: 0
+    version_id: 21
+    order:
+        - tic_v8
+        - legacy_survey_dr8
+        - sdss_dr13_photoobj_primary
+        - sdss_dr16_specobj
+        - skymapper_dr1_1
+        - kepler_input_10
+        - bhm_rm_v0
+        - ps1_g18
+        - tycho2
+        - gaia_qso
+        - bhm_csc
+        - gaia_dr2_wd_sdss
+        - guvcat
+        - allwise
+        - unwise
+        - catwise
+        - glimpse
+        - uvotssc1
+        - xmm_om_suss_4_1
+
+
+
