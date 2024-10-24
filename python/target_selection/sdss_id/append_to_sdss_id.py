@@ -84,7 +84,7 @@ class SdssIdFlat(peewee.Model):
     n_associated = peewee.SmallIntegerField()
     ra_catalogid = peewee.DoubleField()
     dec_catalogid = peewee.DoubleField()
-    rank = peewee.SmallIntegerField()
+    rank = peewee.SmallIntegerField(null=False)
     pk = peewee.BigAutoField(primary_key=True)
 
     class Meta:
@@ -119,7 +119,7 @@ class SdssIdFlatAddendum(peewee.Model):
     n_associated = peewee.SmallIntegerField(null=True)
     ra_catalogid = peewee.DoubleField(null=True)
     dec_catalogid = peewee.DoubleField(null=True)
-    rank = peewee.SmallIntegerField()
+    rank = peewee.SmallIntegerField(null=True)
 
     class Meta:
         database = database
