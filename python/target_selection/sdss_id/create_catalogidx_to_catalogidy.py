@@ -497,13 +497,13 @@ def create_unique_from_region(input_tablename, save_log_output=False):
         log.info(f'Dropped table {output_tablename}')
     # database.create_tables([UniqueMatch])
     UniqueMatch.create_table()
-    add_index_UniqueMatch = f"""CREATE INDEX {output_tablename}_catalogidx_idx ON
+    add_index_UniqueMatch = f"""CREATE INDEX ON
                                     sandbox.{output_tablename} (catalogidx);
-                                CREATE INDEX {output_tablename}_catalogidy_idy ON
+                                CREATE INDEX ON
                                     sandbox.{output_tablename} (catalogidy);
-                                CREATE INDEX {output_tablename}_version_idx_idx ON
+                                CREATE INDEX ON
                                     sandbox.{output_tablename} (version_idx);
-                                CREATE INDEX {output_tablename}_version_idy_idy ON
+                                CREATE INDEX ON
                                     sandbox.{output_tablename} (version_idy);"""
     database.execute_sql(add_index_UniqueMatch)
     log.info(f'Created table {output_tablename}')
