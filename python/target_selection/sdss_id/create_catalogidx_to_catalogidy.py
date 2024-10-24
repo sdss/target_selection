@@ -384,7 +384,7 @@ class MetaXMatch:
                 if len(results_list) == 0:
                     continue
                 if not split:
-                    self.log.info(f'Ingesting part {npart+1} out of {parts}')
+                    self.log.info(f'Ingesting part {npart + 1} out of {parts}')
                 first_el = npart * self.split_insert_nunmber
                 last_el = (npart + 1) * self.split_insert_nunmber
                 curr_results = results_list[first_el:last_el]
@@ -422,13 +422,13 @@ class MetaXMatch:
         TempMatch.create_table()
         self.log.info(f'Created table {TempMatch._meta.table_name}')
 
-        add_index_TempMatch = f"""CREATE INDEX {self.output_name}_catalogidx_idx ON
+        add_index_TempMatch = f"""CREATE INDEX ON
                                     sandbox.{self.output_name} (catalogidx);
-                                  CREATE INDEX {self.output_name}_catalogidy_idy ON
+                                  CREATE INDEX ON
                                     sandbox.{self.output_name} (catalogidy);
-                                  CREATE INDEX {self.output_name}_version_idx_idx ON
+                                  CREATE INDEX ON
                                     sandbox.{self.output_name} (version_idx);
-                                  CREATE INDEX {self.output_name}_version_idy_idy ON
+                                  CREATE INDEX ON
                                     sandbox.{self.output_name} (version_idy);"""
         self.database.execute_sql(add_index_TempMatch)
 
@@ -457,15 +457,15 @@ class MetaXMatch:
                     tf_iter = time.time()
                     self.log.info(f'Ingested {curr_pairs} to output table using targetid range '
                                   f'{min_targetid} to {max_targetid} '
-                                  f'in {(tf_iter-ti_iter):.2f} seconds')
+                                  f'in {(tf_iter - ti_iter):.2f} seconds')
             else:
                 ntargetids, npairs = self.match_in_table(curr_table)
             t2 = time.time()
             self.log.info(f'Found {ntargetids} targetids with multiple catalogids associated')
             self.log.info(f'{npairs} valid catalogid pairs were ingested to output table ')
-            self.log.info(f'Table {curr_table} was processed in {(t2-t1):.2f} seconds')
+            self.log.info(f'Table {curr_table} was processed in {(t2 - t1):.2f} seconds')
         t3 = time.time()
-        self.log.info(f'The entire match took {(t3-t0):.2f} seconds')
+        self.log.info(f'The entire match took {(t3 - t0):.2f} seconds')
 
 
 def create_unique_from_region(input_tablename, save_log_output=False):
@@ -528,7 +528,7 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     n_unique = insert_query.execute()
     tf = time.time()
     log.info(f'Created unique pairs table with {n_unique} '
-             f'entries in {(tf-ti):.2f} seconds')
+             f'entries in {(tf - ti):.2f} seconds')
 
 
 """
