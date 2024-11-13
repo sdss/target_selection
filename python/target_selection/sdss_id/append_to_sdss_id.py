@@ -11,14 +11,15 @@ from datetime import date
 
 import peewee
 from peewee import JOIN, fn
-
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
 from sdssdb.peewee.sdss5db.targetdb import Target
 
-from .create_catalogidx_to_catalogidy import (MetaXMatch, TempMatch,
-                                              UniqueMatch,
-                                              create_unique_from_region)
-
+from .create_catalogidx_to_catalogidy import (
+    MetaXMatch,
+    TempMatch,
+    UniqueMatch,
+    create_unique_from_region,
+)
 
 database.connect(dbname="sdss5db", user="sdss_user")
 
