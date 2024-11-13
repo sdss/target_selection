@@ -1132,7 +1132,13 @@ class XMatchPlanner(object):
             self._temp_count = 0
 
     def run(
-        self, vacuum=False, analyze=False, from_=None, force=False, dry_run=False, keep_temp=False
+        self,
+        vacuum=False,
+        analyze=False,
+        from_=None,
+        force=False,
+        dry_run=False,
+        keep_temp=False,
     ):
         """Runs the cross-matching process.
 
@@ -1500,7 +1506,10 @@ class XMatchPlanner(object):
                     join_rel_model.catalogid,
                     peewee.Value(True).alias("best"),
                 )
-                .where(join_rel_model.version_id == self.version_id, join_rel_model.best >> True)
+                .where(
+                    join_rel_model.version_id == self.version_id,
+                    join_rel_model.best >> True,
+                )
                 .where(
                     ~fn.EXISTS(
                         rel_model_sb.select(SQL("1")).where(
@@ -1952,7 +1961,11 @@ class XMatchPlanner(object):
 
                 temp_table = peewee.Table(temp_model_name)
 
-                fields = [TempCatalog.catalogid, TempCatalog.lead, TempCatalog.version_id]
+                fields = [
+                    TempCatalog.catalogid,
+                    TempCatalog.lead,
+                    TempCatalog.version_id,
+                ]
                 select_columns = [
                     temp_table.c.catalogid,
                     peewee.Value(table_name),
