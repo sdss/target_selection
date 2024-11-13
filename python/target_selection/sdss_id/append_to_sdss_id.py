@@ -11,7 +11,6 @@ from datetime import date
 
 import peewee
 from peewee import JOIN, fn
-
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, database
 from sdssdb.peewee.sdss5db.targetdb import Target
 
