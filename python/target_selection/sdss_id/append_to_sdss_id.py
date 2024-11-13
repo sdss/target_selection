@@ -128,7 +128,27 @@ class SdssIdFlatAddendum(peewee.Model):
 
 
 class AppendToTables:
-    """foobar"""
+    """Adds new objects to the sdss_id tables.
+
+    This class automatically uses the correlation method MetaXMatch and 
+    then has methods to put these objects through the sdss_id process. This
+    can be done for 1) a list of catalogids, 2) a catalog_to_? table in 
+    catalogdb, or 3) all of targetdb.target
+
+    Examples of how to run this class for each case are included at the end of 
+    the file append_to_sdss_id.py
+
+    Parameters
+    ----------
+    database : peewee:PostgresqlDatabase
+        A `peewee:PostgresqlDatabase` to the database the tables to
+        cross-match.
+    individual_table : str
+        The table to add to the crossmatch in the form of catalogdb.catalog_to_?
+        For example individual_table="catalogdb.catalog_to_too_target"
+    catalogid_list : list
+        A list of catalogids from the database
+    """
 
     def __init__(self, database, individual_table=None, catalogid_list=None):
         self.database = database

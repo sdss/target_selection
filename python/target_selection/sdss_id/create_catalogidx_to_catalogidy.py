@@ -96,7 +96,8 @@ class MetaXMatch:
     save_log_output : bool
         Save output to a file? Default is False.
     outer_join_sdss_id : bool
-        Only use catalogids not associated with an sdss_id?
+        Only use catalogids not associated with an sdss_id? If True, a match will be done to only
+        run the catalogids through MetaXMatch that are not already in the sdss_id tables
     """
 
     def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False,
