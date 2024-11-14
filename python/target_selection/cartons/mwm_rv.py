@@ -7,15 +7,19 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import math
-import random
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToTIC_v8,
-                                             CatalogToTwoMassPSC, Gaia_DR3,
-                                             SDSS_DR17_APOGEE_Allstarmerge,
-                                             TIC_v8, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToGaia_DR3,
+    CatalogToTIC_v8,
+    CatalogToTwoMassPSC,
+    Gaia_DR3,
+    SDSS_DR17_APOGEE_Allstarmerge,
+    TIC_v8,
+    TwoMassPSC,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -120,18 +124,15 @@ from target_selection.cartons import BaseCarton
 # Below we use GaiaEDR3 and not GaiaDR3 since the dist_src column
 # does not have GaiaDR3
 
-mwm_rv_long_condition = (SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
-                         SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 6,  # old 3,
-                         peewee.fn.trim(SDSS_DR17_APOGEE_Allstarmerge.dist_src) ==
-                         'GaiaEDR3',
-                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
-                          '%APOGEE_SHORT%') |
-                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
-                          '%APOGEE_INTERMEDIATE%') |
-                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
-                          '%APOGEE_LONG%') |
-                         (SDSS_DR17_APOGEE_Allstarmerge.targflags %
-                          '%APOGEE2_%BIN_%'))
+mwm_rv_long_condition = (
+    SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,  # old 12.8,
+    SDSS_DR17_APOGEE_Allstarmerge.nvisits >= 6,  # old 3,
+    peewee.fn.trim(SDSS_DR17_APOGEE_Allstarmerge.dist_src) == "GaiaEDR3",
+    (SDSS_DR17_APOGEE_Allstarmerge.targflags % "%APOGEE_SHORT%")
+    | (SDSS_DR17_APOGEE_Allstarmerge.targflags % "%APOGEE_INTERMEDIATE%")
+    | (SDSS_DR17_APOGEE_Allstarmerge.targflags % "%APOGEE_LONG%")
+    | (SDSS_DR17_APOGEE_Allstarmerge.targflags % "%APOGEE2_%BIN_%"),
+)
 
 
 # old class name MWM_RV_Long_FPS_Carton(BaseCarton):
@@ -174,12 +175,12 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
     # it can be set in post_process().
     # If cadence is not None here then
     # it cannot be set in post_process().
-    name = 'mwm_bin_rv_long_apogee'  # old name = 'mwm_rv_long_fps'
-    category = 'science'
-    instrument = 'APOGEE'
+    name = "mwm_bin_rv_long_apogee"  # old name = 'mwm_rv_long_fps'
+    category = "science"
+    instrument = "APOGEE"
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 1810
     can_offset = True
 
@@ -191,47 +192,54 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
     # ltrim('2M20', '2M') will also trim the second 2.
 
     def build_query(self, version_id, query_region=None):
-
-        query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid,
-                         SDSS_DR17_APOGEE_Allstarmerge.apogee_id,
-                         SDSS_DR17_APOGEE_Allstarmerge.nvisits,
-                         SDSS_DR17_APOGEE_Allstarmerge.ra.alias('allstarmerge_ra'),
-                         SDSS_DR17_APOGEE_Allstarmerge.dec.alias('allstarmerge_dec'),
-                         SDSS_DR17_APOGEE_Allstarmerge.pmra.alias('allstarmerge_pmra'),
-                         SDSS_DR17_APOGEE_Allstarmerge.pmdec.alias('allstarmerge_pmdec'),
-                         SDSS_DR17_APOGEE_Allstarmerge.h,
-                         SDSS_DR17_APOGEE_Allstarmerge.baseline,
-                         SDSS_DR17_APOGEE_Allstarmerge.fields,
-                         SDSS_DR17_APOGEE_Allstarmerge.teff_avg,  # old teff
-                         SDSS_DR17_APOGEE_Allstarmerge.logg_avg,  # old logg
-                         SDSS_DR17_APOGEE_Allstarmerge.dist,
-                         SDSS_DR17_APOGEE_Allstarmerge.dist_src
-                         )
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(SDSS_DR17_APOGEE_Allstarmerge,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        *mwm_rv_long_condition,
-                        SDSS_DR17_APOGEE_Allstarmerge.h < 11.5))
+        query = (
+            Catalog.select(
+                CatalogToTIC_v8.catalogid,
+                SDSS_DR17_APOGEE_Allstarmerge.apogee_id,
+                SDSS_DR17_APOGEE_Allstarmerge.nvisits,
+                SDSS_DR17_APOGEE_Allstarmerge.ra.alias("allstarmerge_ra"),
+                SDSS_DR17_APOGEE_Allstarmerge.dec.alias("allstarmerge_dec"),
+                SDSS_DR17_APOGEE_Allstarmerge.pmra.alias("allstarmerge_pmra"),
+                SDSS_DR17_APOGEE_Allstarmerge.pmdec.alias("allstarmerge_pmdec"),
+                SDSS_DR17_APOGEE_Allstarmerge.h,
+                SDSS_DR17_APOGEE_Allstarmerge.baseline,
+                SDSS_DR17_APOGEE_Allstarmerge.fields,
+                SDSS_DR17_APOGEE_Allstarmerge.teff_avg,  # old teff
+                SDSS_DR17_APOGEE_Allstarmerge.logg_avg,  # old logg
+                SDSS_DR17_APOGEE_Allstarmerge.dist,
+                SDSS_DR17_APOGEE_Allstarmerge.dist_src,
+            )
+            .join(CatalogToTIC_v8, on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .join(
+                SDSS_DR17_APOGEE_Allstarmerge,
+                on=(
+                    TwoMassPSC.designation
+                    == peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, "2M", "")
+                ),
+            )
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                *mwm_rv_long_condition,
+                SDSS_DR17_APOGEE_Allstarmerge.h < 11.5,
+            )
+        )
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
     def post_process(self, model):
@@ -247,8 +255,9 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
         # teff_avg and logg_avg are from SDSS_DR17_APOGEE_Allstarmerge
         # old name was teff, logg
         cursor = self.database.execute_sql(
-            "select catalogid, nvisits, h, teff_avg, logg_avg from " +
-            " sandbox.temp_mwm_bin_rv_long_apogee ;")
+            "select catalogid, nvisits, h, teff_avg, logg_avg from "
+            + " sandbox.temp_mwm_bin_rv_long_apogee ;"
+        )
 
         output = cursor.fetchall()
 
@@ -260,19 +269,22 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
             # current_logg_avg = output[i][4]
 
             nn = 3 * math.ceil((18 - current_nvisits) / 3)
-            if (nn < 6):
+            if nn < 6:
                 nn = 6
 
-            if (current_h > 10.8):
-                current_cadence = 'bright_' + str(nn) + 'x2'
+            if current_h > 10.8:
+                current_cadence = "bright_" + str(nn) + "x2"
             else:
-                current_cadence = 'bright_' + str(nn) + 'x1'
+                current_cadence = "bright_" + str(nn) + "x1"
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_long_apogee " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_bin_rv_long_apogee "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 # Below is from the comments for
@@ -304,28 +316,34 @@ class MWM_bin_rv_long_apogee_Carton(BaseCarton):
 #       OR tm.rd_flg='222')
 # AND g.parallax_error/g.parallax < 0.2
 
-mwm_rv_short_condition = (TwoMassPSC.j_msigcom <= 0.1,
-                          TwoMassPSC.h_msigcom <= 0.1,
-                          TwoMassPSC.k_msigcom <= 0.1,
-                          ((TwoMassPSC.ph_qual == 'AAA') |
-                           (TwoMassPSC.ph_qual == 'AAB') |
-                           (TwoMassPSC.ph_qual == 'ABA') |
-                           (TwoMassPSC.ph_qual == 'BAA') |
-                           (TwoMassPSC.ph_qual == 'ABB') |
-                           (TwoMassPSC.ph_qual == 'BAB') |
-                           (TwoMassPSC.ph_qual == 'BBA') |
-                           (TwoMassPSC.ph_qual == 'BBB')),
-                          TwoMassPSC.prox >= 6,
-                          TwoMassPSC.cc_flg == '000',
-                          TwoMassPSC.gal_contam == 0,
-                          ((TwoMassPSC.rd_flg == '111') |
-                           (TwoMassPSC.rd_flg == '112') |
-                           (TwoMassPSC.rd_flg == '121') |
-                           (TwoMassPSC.rd_flg == '211') |
-                           (TwoMassPSC.rd_flg == '122') |
-                           (TwoMassPSC.rd_flg == '212') |
-                           (TwoMassPSC.rd_flg == '221') |
-                           (TwoMassPSC.rd_flg == '222')))
+mwm_rv_short_condition = (
+    TwoMassPSC.j_msigcom <= 0.1,
+    TwoMassPSC.h_msigcom <= 0.1,
+    TwoMassPSC.k_msigcom <= 0.1,
+    (
+        (TwoMassPSC.ph_qual == "AAA")
+        | (TwoMassPSC.ph_qual == "AAB")
+        | (TwoMassPSC.ph_qual == "ABA")
+        | (TwoMassPSC.ph_qual == "BAA")
+        | (TwoMassPSC.ph_qual == "ABB")
+        | (TwoMassPSC.ph_qual == "BAB")
+        | (TwoMassPSC.ph_qual == "BBA")
+        | (TwoMassPSC.ph_qual == "BBB")
+    ),
+    TwoMassPSC.prox >= 6,
+    TwoMassPSC.cc_flg == "000",
+    TwoMassPSC.gal_contam == 0,
+    (
+        (TwoMassPSC.rd_flg == "111")
+        | (TwoMassPSC.rd_flg == "112")
+        | (TwoMassPSC.rd_flg == "121")
+        | (TwoMassPSC.rd_flg == "211")
+        | (TwoMassPSC.rd_flg == "122")
+        | (TwoMassPSC.rd_flg == "212")
+        | (TwoMassPSC.rd_flg == "221")
+        | (TwoMassPSC.rd_flg == "222")
+    ),
+)
 
 
 class MWM_bin_rv_short_Base_Carton(BaseCarton):
@@ -383,60 +401,65 @@ class MWM_bin_rv_short_Base_Carton(BaseCarton):
     # major modification of the old v0.5 query.
 
     def build_query(self, version_id, query_region=None):
-        query = (Catalog
-                 .select(Catalog.catalogid,
-                         Catalog.ra,
-                         Catalog.dec,
-                         Catalog.pmra,
-                         Catalog.pmdec,
-                         Gaia_DR3.ref_epoch,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.parallax,
-                         Gaia_DR3.parallax_error,
-                         Gaia_DR3.phot_g_mean_mag,
-                         Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag,
-                         Gaia_DR3.logg_gspphot,
-                         Gaia_DR3.teff_gspphot,
-                         TwoMassPSC.j_m,
-                         TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         Gaia_DR3.pmra.alias('gaia_dr3_pmra'),
-                         Gaia_DR3.pmdec.alias('gaia_dr3_pmdec'))
-                 .join(CatalogToGaia_DR3,
-                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(Catalog)
-                 .join(CatalogToTwoMassPSC,
-                       on=(Catalog.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC,
-                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .where(CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        TwoMassPSC.ext_key >> None,
-                        Gaia_DR3.parallax.is_null(False),
-                        Gaia_DR3.parallax > 0,))
+        query = (
+            Catalog.select(
+                Catalog.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                Catalog.pmra,
+                Catalog.pmdec,
+                Gaia_DR3.ref_epoch,
+                Gaia_DR3.source_id,
+                Gaia_DR3.parallax,
+                Gaia_DR3.parallax_error,
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag,
+                Gaia_DR3.logg_gspphot,
+                Gaia_DR3.teff_gspphot,
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.pmra.alias("gaia_dr3_pmra"),
+                Gaia_DR3.pmdec.alias("gaia_dr3_pmdec"),
+            )
+            .join(CatalogToGaia_DR3, on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(Catalog)
+            .join(CatalogToTwoMassPSC, on=(Catalog.catalogid == CatalogToTwoMassPSC.catalogid))
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                TwoMassPSC.ext_key >> None,
+                Gaia_DR3.parallax.is_null(False),
+                Gaia_DR3.parallax > 0,
+            )
+        )
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
 
 class MWM_bin_rv_short_mdwarf_Base_Carton(MWM_bin_rv_short_Base_Carton):
-    """ 5.1.25. mwm_bin_rv_short_mdwarf
+    """5.1.25. mwm_bin_rv_short_mdwarf
     This base carton contains the M Dwarf stars originally in mwm_bin_rv_short
 
     Shorthand name:  mwm_bin_rv_short_mdwarf  (Formally mwm_rv_short_fps/mwm_bin_rv_short)
@@ -478,55 +501,52 @@ class MWM_bin_rv_short_mdwarf_Base_Carton(MWM_bin_rv_short_Base_Carton):
     """
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m > 7,
-                            TwoMassPSC.h_m < 11.5,
-                            Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m > 2,
-                            ((Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m) * 2 + 0.6)
-                            < (TwoMassPSC.h_m -
-                               5 * peewee.fn.log10(1000 / Gaia_DR3.parallax) + 5))
+        query = query.where(
+            TwoMassPSC.h_m > 7,
+            TwoMassPSC.h_m < 11.5,
+            Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m > 2,
+            ((Gaia_DR3.phot_rp_mean_mag - TwoMassPSC.k_m) * 2 + 0.6)
+            < (TwoMassPSC.h_m - 5 * peewee.fn.log10(1000 / Gaia_DR3.parallax) + 5),
+        )
         return query
 
 
 class MWM_bin_rv_short_mdwarf_apogee_18epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
-
-    name = 'mwm_bin_rv_short_mdwarf_apogee_18epoch'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    name = "mwm_bin_rv_short_mdwarf_apogee_18epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_18x1"
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 1305
     can_offset = False
 
 
 class MWM_bin_rv_short_mdwarf_apogee_12epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
-
-    name = 'mwm_bin_rv_short_mdwarf_apogee_12epoch'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_12x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    name = "mwm_bin_rv_short_mdwarf_apogee_12epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_12x1"
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 1306
     can_offset = False
 
 
 class MWM_bin_rv_short_mdwarf_apogee_08epoch(MWM_bin_rv_short_mdwarf_Base_Carton):
-
-    name = 'mwm_bin_rv_short_mdwarf_apogee_08epoch'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_8x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    name = "mwm_bin_rv_short_mdwarf_apogee_08epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_8x1"
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 1307
     can_offset = False
 
 
 class MWM_bin_rv_short_subgiant_apogee_Carton(MWM_bin_rv_short_Base_Carton):
-    """ 5.1.26. mwm_bin_rv_short_subgiant_apogee
+    """5.1.26. mwm_bin_rv_short_subgiant_apogee
     This carton contains subgiant stars and lower red giant branch stars
     originally in mwm_bin_rv_short
 
@@ -574,26 +594,27 @@ class MWM_bin_rv_short_subgiant_apogee_Carton(MWM_bin_rv_short_Base_Carton):
     Lead contact:  Nicholas Troup Nathan De Lee
     """
 
-    name = 'mwm_bin_rv_short_subgiant_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    name = "mwm_bin_rv_short_subgiant_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_18x1"
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 2525
     can_offset = False
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m > 7,
-                            TwoMassPSC.h_m < 10.8,
-                            Gaia_DR3.logg_gspphot > 3.0,
-                            Gaia_DR3.logg_gspphot < 4.1,
-                            Gaia_DR3.teff_gspphot < 7000,
-                            Gaia_DR3.teff_gspphot > 4500,
-                            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
-                            *mwm_rv_short_condition)
+        query = query.where(
+            TwoMassPSC.h_m > 7,
+            TwoMassPSC.h_m < 10.8,
+            Gaia_DR3.logg_gspphot > 3.0,
+            Gaia_DR3.logg_gspphot < 4.1,
+            Gaia_DR3.teff_gspphot < 7000,
+            Gaia_DR3.teff_gspphot > 4500,
+            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
+            *mwm_rv_short_condition,
+        )
         return query
 
 
@@ -645,51 +666,88 @@ class MWM_bin_rv_short_rgb_apogee_Carton(MWM_bin_rv_short_Base_Carton):
     Lead contact:  Nicholas Troup Nathan De Lee
     """
 
-    name = 'mwm_bin_rv_short_rgb_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_18x1'
-    program = 'mwm_bin'
-    mapper = 'MWM'
+    name = "mwm_bin_rv_short_rgb_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_18x1"
+    program = "mwm_bin"
+    mapper = "MWM"
     priority = 2535
     can_offset = False
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region)
-        query = query.where(TwoMassPSC.h_m > 7,
-                            TwoMassPSC.h_m < 10.8,
-                            Gaia_DR3.logg_gspphot > 1.2,
-                            Gaia_DR3.logg_gspphot <= 3.0,
-                            Gaia_DR3.teff_gspphot < 5500,
-                            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
-                            *mwm_rv_short_condition)
+        query = query.where(
+            TwoMassPSC.h_m > 7,
+            TwoMassPSC.h_m < 10.8,
+            Gaia_DR3.logg_gspphot > 1.2,
+            Gaia_DR3.logg_gspphot <= 3.0,
+            Gaia_DR3.teff_gspphot < 5500,
+            Gaia_DR3.parallax_error / Gaia_DR3.parallax < 0.2,
+            *mwm_rv_short_condition,
+        )
         return query
 
-    def post_process(self, model):
-        """
-        a set random seed, select 1/2 of the targets
-        """
 
-        cursor = self.database.execute_sql(
-            "update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-            "set selected = false;")
+class MWM_bin_rv_short_rgb_apogee_08epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
+    """mwm_bin_rv_short_rgb_apogee_08epoch -
+    same as mwm_bin_rv_short_rgb_apogee but
+    with cadence=bright_8x1 and priority=2537
+    """
 
-        # The below "order by catalogid" ensures that the random selection
-        # further below gives the same result every time we run this carton.
-        cursor = self.database.execute_sql(
-            "select catalogid from " +
-            " sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-            " order by catalogid;")
+    name = "mwm_bin_rv_short_rgb_apogee_08epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_8x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2537
+    can_offset = True
 
-        output = cursor.fetchall()
 
-        random.seed(9123)
-        for i in range(len(output)):
-            current_catalogid = output[i][0]
-            current_random = random.randrange(2)
-            if (current_random == 0):
-                self.database.execute_sql(
-                    " update sandbox.temp_mwm_bin_rv_short_rgb_apogee " +
-                    " set selected = true " +
-                    " where catalogid = " + str(current_catalogid) + ";")
+class MWM_bin_rv_short_rgb_apogee_12epoch_Carton(MWM_bin_rv_short_rgb_apogee_Carton):
+    """mwm_bin_rv_short_rgb_apogee_12epoch -
+    same as mwm_bin_rv_short_rgb_apogee but
+    with cadence=bright_12x1 and priority=2536
+    """
+
+    name = "mwm_bin_rv_short_rgb_apogee_12epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_12x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2536
+    can_offset = True
+
+
+class MWM_bin_rv_short_subgiant_apogee_08epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
+    """mwm_bin_rv_short_subgiant_apogee_08epoch -
+    same as mwm_bin_rv_short_subgiant_apogee but
+    with cadence=bright_8x1 and priority=2527
+    """
+
+    name = "mwm_bin_rv_short_subgiant_apogee_08epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_8x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2527
+    can_offset = True
+
+
+class MWM_bin_rv_short_subgiant_apogee_12epoch_Carton(MWM_bin_rv_short_subgiant_apogee_Carton):
+    """mwm_bin_rv_short_subgiant_apogee_12epoch -
+    same as mwm_bin_rv_short_subgiant_apogee but
+    with cadence=bright_12x1 and priority=2526
+    """
+
+    name = "mwm_bin_rv_short_subgiant_apogee_12epoch"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_12x1"
+    program = "mwm_bin"
+    mapper = "MWM"
+    priority = 2526
+    can_offset = True

@@ -11,12 +11,17 @@ import pandas
 import peewee
 
 from sdssdb.peewee.sdss5db import targetdb
-from sdssdb.peewee.sdss5db.catalogdb import (GLIMPSE, AllWise, Catalog,
-                                             CatalogToAllWise,
-                                             CatalogToGaia_DR3,
-                                             CatalogToGLIMPSE,
-                                             CatalogToTwoMassPSC, Gaia_DR3,
-                                             TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    GLIMPSE,
+    AllWise,
+    Catalog,
+    CatalogToAllWise,
+    CatalogToGaia_DR3,
+    CatalogToGLIMPSE,
+    CatalogToTwoMassPSC,
+    Gaia_DR3,
+    TwoMassPSC,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -33,6 +38,7 @@ def lbp2xyz(ll, bb, pp):
 
     return x, y, z
 
+
 # subselect() is used in post_process() to randomly select a subset
 # from the results of the  query in build_query().
 # Hence, the query in build_query() uses order_by().
@@ -43,19 +49,19 @@ def lbp2xyz(ll, bb, pp):
 def subselect(data, othersel, downsampledby=1):
     """Turn x, y, z into pixel; bin up to see where we are missing."""
 
-    ll = data['gallong']
-    bb = data['gallat']
-    xyz = lbp2xyz(ll, bb, data['parallax'])
+    ll = data["gallong"]
+    bb = data["gallat"]
+    xyz = lbp2xyz(ll, bb, data["parallax"])
 
     dustsel = numpy.ones(len(data), numpy.bool)
 
     ranges = [[-5, 5], [-5, 5], [-0.2, 0.2]]
     resolution = 0.1
 
-    countshape = [numpy.round((r[1] - r[0]) / resolution).astype('i4') + 2 for r in ranges]
+    countshape = [numpy.round((r[1] - r[0]) / resolution).astype("i4") + 2 for r in ranges]
 
     coords = [
-        numpy.clip(numpy.floor((c - r[0]) / resolution).astype('i4'), -1, s - 2) + 1
+        numpy.clip(numpy.floor((c - r[0]) / resolution).astype("i4"), -1, s - 2) + 1
         for (c, r, s) in zip(xyz, ranges, countshape)
     ]
     centers = [
@@ -112,7 +118,7 @@ def map_coordinates_wrap(grid, coord, **kw):
         gridpts,
         outputcoordnorm,
         cval=0.0,
-        mode='constant',
+        mode="constant",
         **kw,
     )
 
@@ -122,15 +128,15 @@ def map_coordinates_wrap(grid, coord, **kw):
 
 
 def jkselect(data):
-    jk0 = data['j_ks_0']
-    return (jk0 > 0.7) & (data['hmag'] < 11)
+    jk0 = data["j_ks_0"]
+    return (jk0 > 0.7) & (data["hmag"] < 11)
 
 
 def ghselect(data):
-    gaiag = data['gaiamag']
-    return (data['hmag'] < 11) & numpy.where(
+    gaiag = data["gaiamag"]
+    return (data["hmag"] < 11) & numpy.where(
         numpy.isfinite(gaiag),
-        gaiag - data['hmag'] > 3.5,
+        gaiag - data["hmag"] > 3.5,
         True,
     )
 
@@ -177,12 +183,12 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_dust_core_apogee'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_dust'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "mwm_dust_core_apogee"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_dust"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     priority = 2720
     can_offset = True
 
@@ -191,16 +197,17 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
 
     def build_query(self, version_id, query_region=None):
         # Get the plan used to run mwm_galactic_core_apogee.
-        if self.name == 'mwm_dust_core_apogee':
-            self.mwm_galactic_carton = 'mwm_galactic_core_apogee'
-        elif self.name == 'mwm_dust_core_dist_apogee':
-            self.mwm_galactic_carton = 'mwm_galactic_core_dist_apogee'
+        if self.name == "mwm_dust_core_apogee":
+            self.mwm_galactic_carton = "mwm_galactic_core_apogee"
+        elif self.name == "mwm_dust_core_dist_apogee":
+            self.mwm_galactic_carton = "mwm_galactic_core_dist_apogee"
         else:
-            raise ValueError(f'Invalid carton {self.name}.')
+            raise ValueError(f"Invalid carton {self.name}.")
 
         if self.parameters:
-            self.mwm_galactic_plan = self.parameters.get(self.mwm_galactic_carton + '_plan',
-                                                         self.plan)
+            self.mwm_galactic_plan = self.parameters.get(
+                self.mwm_galactic_carton + "_plan", self.plan
+            )
         else:
             self.mwm_galactic_plan = self.plan
 
@@ -215,7 +222,7 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
             .exists()
         )
         if not gg_exists:
-            raise RuntimeError(self.mwm_galactic_carton + ' has not been loaded yet.')
+            raise RuntimeError(self.mwm_galactic_carton + " has not been loaded yet.")
 
         fn = peewee.fn
 
@@ -223,7 +230,7 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         ph_qual = TwoMassPSC.ph_qual
         cc_flg = TwoMassPSC.cc_flg
         rd_flg = TwoMassPSC.rd_flg
-        rd_flag_1 = peewee.fn.substr(rd_flg, 2, 1).cast('integer')
+        rd_flag_1 = peewee.fn.substr(rd_flg, 2, 1).cast("integer")
         gal_contam = TwoMassPSC.gal_contam
 
         gallong = Gaia_DR3.l
@@ -253,16 +260,16 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         query = (
             Gaia_DR3.select(
                 CatalogToGaia_DR3.catalogid,
-                peewee.Value(False).alias('selected'),  # Set selected to False
-                Gaia_DR3.source_id.alias('gaia_souce_id'),
+                peewee.Value(False).alias("selected"),  # Set selected to False
+                Gaia_DR3.source_id.alias("gaia_souce_id"),
                 Gaia_DR3.l.alias("gallong"),
                 Gaia_DR3.b.alias("gallat"),
                 Gaia_DR3.parallax,
                 Gaia_DR3.phot_g_mean_mag,
                 TwoMassPSC.h_m,
                 TwoMassPSC.k_m,
-                aks.alias('a_ks'),
-                j_ks_0.alias('j_ks_0'),
+                aks.alias("a_ks"),
+                j_ks_0.alias("j_ks_0"),
             )
             .join(CatalogToGaia_DR3)
             .join(
@@ -312,9 +319,9 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
                 absmag < 2.6,
             )
             .where(
-                ph_qual.regexp('.(A|B).'),
+                ph_qual.regexp(".(A|B)."),
                 gal_contam == 0,
-                peewee.fn.substr(cc_flg, 2, 1) == '0',
+                peewee.fn.substr(cc_flg, 2, 1) == "0",
                 rd_flag_1 > 0,
                 rd_flag_1 <= 3,
             )
@@ -347,7 +354,7 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         """
 
         data = pandas.read_sql(
-            f'SELECT * FROM {model._meta.schema}.{model._meta.table_name};',
+            f"SELECT * FROM {model._meta.schema}.{model._meta.table_name};",
             self.database,
         )
 
@@ -376,8 +383,8 @@ class MWM_Dust_Core_apogee_Carton(BaseCarton):
         dust_gg_subsel = subselect(data, gg_mask)
         dust_gg_cid = peewee.ValuesList(
             zip(data.catalogid[dust_gg_subsel]),
-            columns=('catalogid',),
-            alias='vl',
+            columns=("catalogid",),
+            alias="vl",
         )
 
         (
@@ -403,4 +410,4 @@ class MWM_Dust_Core_Dist_apogee_Carton(MWM_Dust_Core_apogee_Carton):
 
     """
 
-    name = 'mwm_dust_core_dist_apogee'
+    name = "mwm_dust_core_dist_apogee"

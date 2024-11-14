@@ -48,10 +48,10 @@ Below is the command to run target_selection for the plan 0.9.1.::
   python target_selection -u sdss run 0.9.1 &
 
 If you want to overwrite the results of the previous run of the above command then run the below command. Note that some options go before the 'run' and some go after the 'run'.::
- 
+
   python target_selection  -u sdss run --overwrite 0.9.1 &
 
-The above command runs all the cartons listed in target_selection.yml for 0.9.1. 
+The above command runs all the cartons listed in target_selection.yml for 0.9.1.
 If you only want to run one carton (e.g. mwm_xyz) then run the below command.::
 
   python target_selection  -u sdss run --overwrite --include mwm_xyz  0.9.1 &
@@ -61,9 +61,10 @@ Run the below command for more information about target_selection.::
   python target_selection run --help
 
 For open fiber cartons:
- Cartons will be run for all the FITS files which are in the target_selection.yml variable open_fiber_path. 
-If you do not want to run any open fiber cartons then set the variable open_fiber_path to a non-existent directory.
-If you want to run open fiber cartons for only some FITS files, you can specify them in a file called open_fiber_file_list.txt and put the file in the directory open_fiber_path.
+  - Cartons will be run for all the FITS files which are in the target_selection.yml variable open_fiber_path.
+  - If you do not want to run any open fiber cartons then set the variable open_fiber_path to a non-existent directory.
+  - If you want to run open fiber cartons for only some FITS files, you can specify them in a file called open_fiber_file_list.txt and put the file in the directory open_fiber_path.
+
 The FITS files must be in the format specified in CartonImportTable.pdf in the below link.
 
 https://wiki.sdss.org/display/OPS/Open+Fiber+Implementation

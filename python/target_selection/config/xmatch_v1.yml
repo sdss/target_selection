@@ -1,3 +1,183 @@
+'1.1.5':
+    run_id: 14
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: full
+    version_id: 31
+    order:
+        - mastar_goodstars
+    tables:
+        mastar_goodstars:
+            ra_column: ra
+            dec_column: dec
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+'1.1.4':
+    run_id: 13
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'sdss_dr17_specobj'
+        - 'catalog_to_sdss_dr17_specobj'
+    version_id: 31
+    order:
+        - mangatarget
+    tables:
+        mangatarget:
+            ra_column: catalog_ra
+            dec_column: catalog_dec
+            skip_phases: [2]
+    join_paths:
+        - ['mangatarget', 'sdss_dr17_specobj', 'catalog_to_sdss_dr17_specobj', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+'1.1.3':
+    run_id: 12
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'sdss_dr13_photoobj'
+        - 'sdss_dr13_photoobj_primary'
+        - 'catalog_to_sdss_dr13_photoobj_primary'
+    version_id: 31
+    order:
+        - sdss_dr17_specobj
+    tables:
+        sdss_dr17_specobj:
+            ra_column: plug_ra
+            dec_column: plug_dec
+    join_paths:
+        - ['sdss_dr17_specobj', 'sdss_dr13_photoobj', 'sdss_dr13_photoobj_primary', 'catalog_to_sdss_dr13_photoobj_primary', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+'1.1.2':
+    run_id: 11
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'tycho2'
+        - 'catalog_to_tycho2'
+        - 'twomass_psc'
+        - 'catalog_to_twomass_psc'
+    version_id: 31
+    order:
+        - marvels_dr12_star
+    tables:
+        marvels_dr12_star:
+            ra_column: ra_final
+            dec_column: dec_final
+    join_paths:
+        - ['marvels_dr12_star', 'tycho2', 'catalog_to_tycho2', 'catalog']
+        - ['marvels_dr12_star', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+'1.1.1':
+    run_id: 9
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'tycho2'
+        - 'catalog_to_tycho2'
+        - 'twomass_psc'
+        - 'catalog_to_twomass_psc'
+    version_id: 31
+    order:
+        - marvels_dr11_star
+    tables:
+        marvels_dr11_star:
+            ra_column: ra_final
+            dec_column: dec_final
+    join_paths:
+        - ['marvels_dr11_star', 'tycho2', 'catalog_to_tycho2', 'catalog']
+        - ['marvels_dr11_star', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
+'1.1.0':
+    run_id: 8
+    query_radius: 1.0
+    show_sql: True
+    schema: catalogdb
+    output_table: catalog
+    start_node: gaia_dr3_source
+    debug: true
+    log_path: xmatch_{plan}.log
+    path_mode: config_list
+    extra_nodes:
+        - 'gaia_dr3_source'
+        - 'catalog_to_gaia_dr3_source'
+        - 'twomass_psc'
+        - 'catalog_to_twomass_psc'
+    version_id: 31
+    order:
+        - allstar_dr17_synspec_rev1
+    tables:
+        allstar_dr17_synspec_rev1:
+            ra_column: ra
+            dec_column: dec
+            pmra_column: gaiaedr3_pmra
+            pmdec_column: gaiaedr3_pmdec
+            is_pmra_cos: true
+            parallax_column: gaiaedr3_parallax
+            has_missing_coordinates: true
+            epoch: 2016.0
+    join_paths:
+        - ['allstar_dr17_synspec_rev1', 'gaia_dr3_source', 'catalog_to_gaia_dr3_source', 'catalog']
+        - ['allstar_dr17_synspec_rev1', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+    database_options:
+        work_mem: '10GB'
+        temp_buffers: '5GB'
+        maintenance_work_mem: '5GB'
+        enable_hashjoin: false
+
 '1.0.0':
     run_id: 7
     query_radius: 1.0

@@ -31,12 +31,13 @@ from target_selection.cartons.base import BaseCarton
 #
 # This module provides the following BHM cartons:
 # bhm_gua_dark
+# bhm_gua_dark_d3
 # bhm_gua_bright
 #
 # Updated by TD on 27/01/2021 to add v0.5 improvements
 # switch to a q3c join to sdss_dr16_specobj
 
-'''
+"""
   pseudo-SQL
 
     both Cartons:
@@ -71,11 +72,11 @@ from target_selection.cartons.base import BaseCarton
                   t.rp > 13.5 AND
                   (t.g < 18.5 OR t.rp < 18.5)
                 )
-'''
+"""
 
 
 class BhmGuaBaseCarton(BaseCarton):
-    '''
+    """
     Parent class that provides the basic selections for both Gaia UnWISE AGN cartons
     To be sub-classed, not to be called directly.
 
@@ -84,16 +85,16 @@ class BhmGuaBaseCarton(BaseCarton):
 
     Cadence+priority per target depends on brightness
     Keep the two bhm_gua_* cartons separate to enable overlap in brightness ranges
-    '''
+    """
 
-    name = 'bhm_gua_base'
-    category = 'science'
-    mapper = 'BHM'
-    program = 'bhm_filler'
+    name = "bhm_gua_base"
+    category = "science"
+    mapper = "BHM"
+    program = "bhm_filler"
     tile = False
     priority = None
     cadence = None
-    instrument = 'BOSS'
+    instrument = "BOSS"
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
@@ -102,8 +103,8 @@ class BhmGuaBaseCarton(BaseCarton):
         g2 = Gaia_DR2.alias()
         t = Gaia_unWISE_AGN.alias()
 
-        spec_sn_thresh = self.parameters['spec_sn_thresh']
-        spec_z_err_thresh = self.parameters['spec_z_err_thresh']
+        spec_sn_thresh = self.parameters["spec_sn_thresh"]
+        spec_z_err_thresh = self.parameters["spec_z_err_thresh"]
 
         # #########################################################################
         # prepare the spectroscopy catalogue
@@ -114,7 +115,7 @@ class BhmGuaBaseCarton(BaseCarton):
         ss19 = SDSS_DR19p_Speclite.alias()
         s19 = (
             ss19.select(
-                ss19.pk.alias('s19_pk'),
+                ss19.pk.alias("s19_pk"),
             )
             .where(
                 ss19.sn_median_all >= spec_sn_thresh,
@@ -123,14 +124,14 @@ class BhmGuaBaseCarton(BaseCarton):
                 ss19.z_err > 0.0,
                 ss19.specprimary > 0,
             )
-            .alias('s19')
+            .alias("s19")
         )
 
         # set the Carton priority+values here - read from yaml
-        priority = peewee.Value(int(self.parameters.get('priority', 10000)))
-        value = peewee.Value(self.parameters.get('value', 1.0)).cast('float')
+        priority = peewee.Value(int(self.parameters.get("priority", 10000)))
+        value = peewee.Value(self.parameters.get("value", 1.0)).cast("float")
         inertial = peewee.Value(True)
-        cadence = peewee.Value(self.parameters['cadence'])
+        cadence = peewee.Value(self.parameters["cadence"])
         instrument = peewee.Value(self.instrument)
 
         # compute transformed SDSS mags for pointlike and extended sources separately
@@ -167,32 +168,50 @@ class BhmGuaBaseCarton(BaseCarton):
         #  z = (t.g + coeffs['z0_p'] + coeffs['z1_p'] * bp_rp + coeffs['z2_p'] * bp_rp * bp_rp +
         #       coeffs['z3_p'] * bp_rp * bp_rp * bp_rp)
 
-        g = (g2.phot_g_mean_mag + coeffs['g0_p'] + coeffs['g1_p'] * g2.bp_rp +
-             coeffs['g2_p'] * g2.bp_rp * g2.bp_rp +
-             coeffs['g3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
-        r = (g2.phot_g_mean_mag + coeffs['r0_p'] + coeffs['r1_p'] * g2.bp_rp +
-             coeffs['r2_p'] * g2.bp_rp * g2.bp_rp +
-             coeffs['r3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
-        i = (g2.phot_g_mean_mag + coeffs['i0_p'] + coeffs['i1_p'] * g2.bp_rp +
-             coeffs['i2_p'] * g2.bp_rp * g2.bp_rp +
-             coeffs['i3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
-        z = (g2.phot_g_mean_mag + coeffs['z0_p'] + coeffs['z1_p'] * g2.bp_rp +
-             coeffs['z2_p'] * g2.bp_rp * g2.bp_rp +
-             coeffs['z3_p'] * g2.bp_rp * g2.bp_rp * g2.bp_rp)
+        g = (
+            g2.phot_g_mean_mag
+            + coeffs["g0_p"]
+            + coeffs["g1_p"] * g2.bp_rp
+            + coeffs["g2_p"] * g2.bp_rp * g2.bp_rp
+            + coeffs["g3_p"] * g2.bp_rp * g2.bp_rp * g2.bp_rp
+        )
+        r = (
+            g2.phot_g_mean_mag
+            + coeffs["r0_p"]
+            + coeffs["r1_p"] * g2.bp_rp
+            + coeffs["r2_p"] * g2.bp_rp * g2.bp_rp
+            + coeffs["r3_p"] * g2.bp_rp * g2.bp_rp * g2.bp_rp
+        )
+        i = (
+            g2.phot_g_mean_mag
+            + coeffs["i0_p"]
+            + coeffs["i1_p"] * g2.bp_rp
+            + coeffs["i2_p"] * g2.bp_rp * g2.bp_rp
+            + coeffs["i3_p"] * g2.bp_rp * g2.bp_rp * g2.bp_rp
+        )
+        z = (
+            g2.phot_g_mean_mag
+            + coeffs["z0_p"]
+            + coeffs["z1_p"] * g2.bp_rp
+            + coeffs["z2_p"] * g2.bp_rp * g2.bp_rp
+            + coeffs["z3_p"] * g2.bp_rp * g2.bp_rp * g2.bp_rp
+        )
 
         # validity checks - set limits semi-manually
         bp_rp_min = 0.0
         bp_rp_max = 1.8
-        valid = (g2.phot_g_mean_mag.between(0.1, 29.9) &
-                 g2.phot_bp_mean_mag.between(0.1, 29.9) &
-                 g2.phot_rp_mean_mag.between(0.1, 29.9) &
-                 g2.bp_rp.between(bp_rp_min, bp_rp_max))
+        valid = (
+            g2.phot_g_mean_mag.between(0.1, 29.9)
+            & g2.phot_bp_mean_mag.between(0.1, 29.9)
+            & g2.phot_rp_mean_mag.between(0.1, 29.9)
+            & g2.bp_rp.between(bp_rp_min, bp_rp_max)
+        )
 
-        opt_prov = peewee.Case(None, ((valid, 'sdss_psfmag_from_gaiadr2'),), 'undefined')
-        magnitude_g = peewee.Case(None, ((valid, g),), 'NaN')
-        magnitude_r = peewee.Case(None, ((valid, r),), 'NaN')
-        magnitude_i = peewee.Case(None, ((valid, i),), 'NaN')
-        magnitude_z = peewee.Case(None, ((valid, z),), 'NaN')
+        opt_prov = peewee.Case(None, ((valid, "sdss_psfmag_from_gaiadr2"),), "undefined")
+        magnitude_g = peewee.Case(None, ((valid, g),), "NaN")
+        magnitude_r = peewee.Case(None, ((valid, r),), "NaN")
+        magnitude_i = peewee.Case(None, ((valid, i),), "NaN")
+        magnitude_z = peewee.Case(None, ((valid, z),), "NaN")
 
         # Create temporary tables for the base query and the Q3C cross-match
         # tables.
@@ -200,28 +219,28 @@ class BhmGuaBaseCarton(BaseCarton):
         query = (
             c.select(
                 c.catalogid,
-                c.ra,   # extra
-                c.dec,   # extra
-                t.gaia_sourceid.alias('gaia_dr2_source_id'),   # extra
-                t.unwise_objid,   # extra
-                priority.alias('priority'),
-                value.alias('value'),
-                inertial.alias('inertial'),
-                cadence.alias('cadence'),
-                instrument.alias('instrument'),
-                opt_prov.alias('optical_prov'),
-                magnitude_g.alias('g'),
-                magnitude_r.alias('r'),
-                magnitude_i.alias('i'),
-                magnitude_z.alias('z'),
-                g2.phot_g_mean_mag.alias('gaia_g'),
-                g2.phot_bp_mean_mag.alias('bp'),
-                g2.phot_rp_mean_mag.alias('rp'),
-                t.w1.alias('gua_w1'),   # extra
-                t.w2.alias('gua_w2'),   # extra
-                t.prob_rf.alias('gua_prob_rf'),   # extra
-                t.phot_z.alias('gua_phot_z'),   # extra
-                s19.c.s19_pk.alias('s19_pk'),  # extra
+                c.ra,  # extra
+                c.dec,  # extra
+                t.gaia_sourceid.alias("gaia_dr2_source_id"),  # extra
+                t.unwise_objid,  # extra
+                priority.alias("priority"),
+                value.alias("value"),
+                inertial.alias("inertial"),
+                cadence.alias("cadence"),
+                instrument.alias("instrument"),
+                opt_prov.alias("optical_prov"),
+                magnitude_g.alias("g"),
+                magnitude_r.alias("r"),
+                magnitude_i.alias("i"),
+                magnitude_z.alias("z"),
+                g2.phot_g_mean_mag.alias("gaia_g"),
+                g2.phot_bp_mean_mag.alias("bp"),
+                g2.phot_rp_mean_mag.alias("rp"),
+                t.w1.alias("gua_w1"),  # extra
+                t.w2.alias("gua_w2"),  # extra
+                t.prob_rf.alias("gua_prob_rf"),  # extra
+                t.phot_z.alias("gua_phot_z"),  # extra
+                s19.c.s19_pk.alias("s19_pk"),  # extra
                 # rely on the centralised magnitude routines for 'real' griz, bp,rp,gaia_g
             )
             .join(c2g2)
@@ -230,8 +249,7 @@ class BhmGuaBaseCarton(BaseCarton):
             # joining to spectroscopy
             .switch(c)
             .join(c2s19, JOIN.LEFT_OUTER)
-            .join(s19, JOIN.LEFT_OUTER,
-                  on=(s19.c.s19_pk == c2s19.target_id))
+            .join(s19, JOIN.LEFT_OUTER, on=(s19.c.s19_pk == c2s19.target_id))
             .where(
                 c.version_id == version_id,
                 c2g2.version_id == version_id,
@@ -240,12 +258,12 @@ class BhmGuaBaseCarton(BaseCarton):
                 # fn.coalesce(c2s19.best, True) >> True,
             )
             .where(
-                (t.prob_rf >= self.parameters['prob_rf_min']),
-                (g2.phot_g_mean_mag >= self.parameters['mag_g_min']),
-                (g2.phot_rp_mean_mag >= self.parameters['mag_rp_min']),
+                (t.prob_rf >= self.parameters["prob_rf_min"]),
+                (g2.phot_g_mean_mag >= self.parameters["mag_g_min"]),
+                (g2.phot_rp_mean_mag >= self.parameters["mag_rp_min"]),
                 (
-                    (g2.phot_g_mean_mag < self.parameters['mag_g_max']) |
-                    (g2.phot_rp_mean_mag < self.parameters['mag_rp_max'])
+                    (g2.phot_g_mean_mag < self.parameters["mag_g_max"])
+                    | (g2.phot_rp_mean_mag < self.parameters["mag_rp_max"])
                 ),
             )
             # then reject any GUA targets with existing good DR19p spectroscopy
@@ -259,32 +277,37 @@ class BhmGuaBaseCarton(BaseCarton):
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(c.ra,
-                                                       c.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    c.ra, c.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
 
 
 class BhmGuaDarkCarton(BhmGuaBaseCarton):
-    '''
+    """
     -------  bhm_gua_dark   ------
     SQL as above plus:
 
         AND ( gua.g > 16.x AND gua.rp > 16.x)
-    '''
-    name = 'bhm_gua_dark'
+    """
+
+    name = "bhm_gua_dark"
+
+
+class BhmGuaDarkD3Carton(BhmGuaBaseCarton):
+    name = "bhm_gua_dark_d3"
 
 
 class BhmGuaBrightCarton(BhmGuaBaseCarton):
-    '''
+    """
     ------  bhm_gua_bright   ------
     SQL as above plus:
 
         AND ( gua.g < 18.x OR gua.rp < 18.x)
 
-    '''
-    name = 'bhm_gua_bright'
+    """
+
+    name = "bhm_gua_bright"

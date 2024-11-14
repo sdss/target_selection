@@ -8,9 +8,15 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (BestBrightest, Catalog,
-                                             CatalogToAllWise, CatalogToTIC_v8,
-                                             Gaia_DR2, SkyMapperGaia, TIC_v8)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    BestBrightest,
+    Catalog,
+    CatalogToAllWise,
+    CatalogToTIC_v8,
+    Gaia_DR2,
+    SkyMapperGaia,
+    TIC_v8,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -47,34 +53,38 @@ class MWM_Halo_Best_Brightest_Base_Carton(BaseCarton):
     """
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToAllWise
-                 .select(CatalogToAllWise.catalogid,
-                         BestBrightest.designation,
-                         Gaia_DR2.phot_g_mean_mag,
-                         Gaia_DR2.parallax,
-                         Gaia_DR2.parallax_error,
-                         BestBrightest.version)
-                 .join(BestBrightest,
-                       on=(BestBrightest.cntr == CatalogToAllWise.target_id))
-                 .switch(CatalogToAllWise)
-                 .join(CatalogToTIC_v8,
-                       on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8)
-                 .join(Gaia_DR2)
-                 .where(CatalogToAllWise.version_id == version_id,
-                        CatalogToAllWise.best >> True,
-                        CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True))
+        query = (
+            CatalogToAllWise.select(
+                CatalogToAllWise.catalogid,
+                BestBrightest.designation,
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.parallax,
+                Gaia_DR2.parallax_error,
+                BestBrightest.version,
+            )
+            .join(BestBrightest, on=(BestBrightest.cntr == CatalogToAllWise.target_id))
+            .switch(CatalogToAllWise)
+            .join(CatalogToTIC_v8, on=(CatalogToAllWise.catalogid == CatalogToTIC_v8.catalogid))
+            .join(TIC_v8)
+            .join(Gaia_DR2)
+            .where(
+                CatalogToAllWise.version_id == version_id,
+                CatalogToAllWise.best >> True,
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToAllWise, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToAllWise, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -82,22 +92,20 @@ class MWM_Halo_Best_Brightest_Base_Carton(BaseCarton):
 class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
     """MWM Halo B&B targets for BOSS."""
 
-    name = 'mwm_halo_bb_boss'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_filler'
-    instrument = 'BOSS'
-    cadence = 'bright_1x1'
+    name = "mwm_halo_bb_boss"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_filler"
+    instrument = "BOSS"
+    cadence = "bright_1x1"
     priority = None
 
     def build_query(self, version_id, query_region=None):
-
         query = super().build_query(version_id, query_region=query_region)
 
         return query
 
     def post_process(self, model, **kwargs):
-
         version = model.version
         g = model.phot_g_mean_mag
         parallax = model.parallax
@@ -108,65 +116,74 @@ class MWM_Halo_Best_Brightest_BOSS_Carton(MWM_Halo_Best_Brightest_Base_Carton):
         #   ((G - 10 + 5*log10(parallax) < 5) OR (parallax < 5*parallax_error))
         # Priority 6050
         # Expect 66808 sources
-        (model.update({model.priority: 6050})
+        (
+            model.update({model.priority: 6050})
             .where(version == 2)
             .where(g < 16)
             .where(parallax > 0)
-            .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
+            .where((abs_g < 5) | (parallax < 5 * parallax_error))
+        ).execute()
 
         # BB2: Select (Best & Brightest catalog version = 1) AND (Gaia G < 16) AND
         #   ((G - 10 + 5*log10(parallax) < 5) OR (parallax < 5*parallax_error))
         # Priority 6060
         # Expect 114667 sources
-        (model.update({model.priority: 6060})
+        (
+            model.update({model.priority: 6060})
             .where(version == 1)
             .where(g < 16)
             .where(parallax > 0)
-            .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
+            .where((abs_g < 5) | (parallax < 5 * parallax_error))
+        ).execute()
 
         # BB3: Select (Best & Brightest catalog version = 2) AND (Gaia G >= 16) AND
         #   ((G - 10 + 5*log10(parallax) < 5) OR (parallax < 5*parallax_error))
         # Priority 6065
         # Expect 25894 sources
-        (model.update({model.priority: 6065})
+        (
+            model.update({model.priority: 6065})
             .where(version == 2)
             .where(g >= 16)
             .where(parallax > 0)
-            .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
+            .where((abs_g < 5) | (parallax < 5 * parallax_error))
+        ).execute()
 
         # BB4: Select (Best & Brightest catalog version = 1) AND (Gaia G >= 16) AND
         #   ((G - 10 + 5*log10(parallax) < 5) OR (parallax < 5*parallax_error))
         # Priority 6075
         # Expect 25894 sources
-        (model.update({model.priority: 6075})
+        (
+            model.update({model.priority: 6075})
             .where(version == 1)
             .where(g >= 16)
             .where(parallax > 0)
-            .where((abs_g < 5) | (parallax < 5 * parallax_error))).execute()
+            .where((abs_g < 5) | (parallax < 5 * parallax_error))
+        ).execute()
 
         # BB5: (Best & Brightest catalog version = 2) AND (Gaia G < 16) AND
         #   not in mwm_halo_bb1
         # Priority 6080
         # Expect 108439 sources
-        (model.update({model.priority: 6080})
+        (
+            model.update({model.priority: 6080})
             .where(version == 2)
             .where(g < 16)
-            .where((parallax < 0) |
-                   ~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
+            .where((parallax < 0) | ~((abs_g < 5) | (parallax < 5 * parallax_error)))
+        ).execute()
 
         # BB6: (Best & Brightest catalog version = 1) AND (Gaia G < 16) AND
         #   not in mwm_halo_bb2
         # Priority 6085
         # Expect 195816 sources
-        (model.update({model.priority: 6085})
+        (
+            model.update({model.priority: 6085})
             .where(version == 1)
             .where(g < 16)
-            .where((parallax < 0) |
-                   ~((abs_g < 5) | (parallax < 5 * parallax_error)))).execute()
+            .where((parallax < 0) | ~((abs_g < 5) | (parallax < 5 * parallax_error)))
+        ).execute()
 
         # Assign a base priority to the remaining targets
-        (model.update({model.priority: 6090})
-            .where(model.priority.is_null())).execute()
+        (model.update({model.priority: 6090}).where(model.priority.is_null())).execute()
 
 
 class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
@@ -181,28 +198,30 @@ class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
     """
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid,
-                         SkyMapperGaia.gaia_source_id,
-                         Gaia_DR2.phot_g_mean_mag)
-                 .join(TIC_v8)
-                 .join(SkyMapperGaia,
-                       on=(TIC_v8.gaia_int == SkyMapperGaia.gaia_source_id))
-                 .join(Gaia_DR2,
-                       on=(Gaia_DR2.source_id == SkyMapperGaia.gaia_source_id))
-                 .where(SkyMapperGaia.feh < -1.7,
-                        CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True))
+        query = (
+            CatalogToTIC_v8.select(
+                CatalogToTIC_v8.catalogid, SkyMapperGaia.gaia_source_id, Gaia_DR2.phot_g_mean_mag
+            )
+            .join(TIC_v8)
+            .join(SkyMapperGaia, on=(TIC_v8.gaia_int == SkyMapperGaia.gaia_source_id))
+            .join(Gaia_DR2, on=(Gaia_DR2.source_id == SkyMapperGaia.gaia_source_id))
+            .where(
+                SkyMapperGaia.feh < -1.7,
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -210,22 +229,20 @@ class MWM_Halo_SkyMapper_Base_Carton(BaseCarton):
 class MWM_Halo_SkyMapper_BOSS_Carton(MWM_Halo_SkyMapper_Base_Carton):
     """MWM Halo SkyMapper BOSS targets."""
 
-    name = 'mwm_halo_sm_boss'
-    mapper = 'MWM'
-    category = 'science'
-    program = 'mwm_filler'
-    instrument = 'BOSS'
-    cadence = 'bright_1x1'
+    name = "mwm_halo_sm_boss"
+    mapper = "MWM"
+    category = "science"
+    program = "mwm_filler"
+    instrument = "BOSS"
+    cadence = "bright_1x1"
     priority = None
 
     def build_query(self, version_id, **kwargs):
-
         query = super().build_query(version_id, **kwargs)
 
         return query
 
     def post_process(self, model, **kwargs):
-
         # Select (SkyMapper Fe/H < -1.7) AND (Gaia G < 16)
         # Priority 6055
         # Expect 49457 sources

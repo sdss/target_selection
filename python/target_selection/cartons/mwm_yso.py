@@ -8,14 +8,22 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (MIPSGAL, AllWise, Catalog,
-                                             CatalogToAllWise,
-                                             CatalogToGaia_DR3,
-                                             CatalogToTIC_v8,
-                                             CatalogToTwoMassPSC, Gaia_DR2,
-                                             Gaia_DR3, Sagitta_EDR3, TIC_v8,
-                                             TwoMassPSC, YSO_Clustering,
-                                             Zari18pms)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    MIPSGAL,
+    AllWise,
+    Catalog,
+    CatalogToAllWise,
+    CatalogToGaia_DR3,
+    CatalogToTIC_v8,
+    CatalogToTwoMassPSC,
+    Gaia_DR2,
+    Gaia_DR3,
+    Sagitta_EDR3,
+    TIC_v8,
+    TwoMassPSC,
+    YSO_Clustering,
+    Zari18pms,
+)
 
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
@@ -59,47 +67,55 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_disk_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_disk_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToAllWise,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
-                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToAllWise.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR3.parallax > 0.3))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToGaia_DR3)
+            .join(CatalogToAllWise, on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+            .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToAllWise.best >> True,
+                TwoMassPSC.h_m < 13,
+                (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                Gaia_DR3.parallax > 0.3,
+            )
+        )
 
         # There can be cases in which the same catalogid has multiple entries
         # in a catalog_to_x table since the same physical object
@@ -113,20 +129,22 @@ class MWM_YSO_Disk_APOGEE_Carton(BaseCarton):
         # table catalogdb.gaia_dr3_source.
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_YSO_Disk_APOGEE_Single_Carton(MWM_YSO_Disk_APOGEE_Carton):
-    name = 'mwm_yso_disk_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_disk_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -170,60 +188,70 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
     on RP instead of H
     """
 
-    name = 'mwm_yso_disk_boss'
-    category = 'science'
+    name = "mwm_yso_disk_boss"
+    category = "science"
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToAllWise,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
-                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToAllWise.best >> True,
-                        Gaia_DR3.phot_rp_mean_mag < 15.5,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        Gaia_DR3.parallax > 0.3))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToGaia_DR3)
+            .join(CatalogToAllWise, on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+            .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToAllWise.best >> True,
+                Gaia_DR3.phot_rp_mean_mag < 15.5,
+                (AllWise.w1mpro - AllWise.w2mpro) > 0.25,
+                (AllWise.w2mpro - AllWise.w3mpro) > 0.50,
+                (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                Gaia_DR3.parallax > 0.3,
+            )
+        )
 
         # Gaia_DR3 pweewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
         #
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -237,8 +265,8 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr3_rp from " +
-            " sandbox.temp_mwm_yso_disk_boss ;")
+            "select catalogid, gaia_dr3_rp from " + " sandbox.temp_mwm_yso_disk_boss ;"
+        )
 
         output = cursor.fetchall()
 
@@ -246,44 +274,52 @@ class MWM_YSO_Disk_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if (current_rp < 14.76):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_3x1'
-            elif (current_rp < 15.075):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_4x1'
-            elif (current_rp < 15.29):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_5x1'
-            elif (current_rp < 15.5):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_6x1'
+            if current_rp < 14.76:
+                current_instrument = "BOSS"
+                current_cadence = "bright_3x1"
+            elif current_rp < 15.075:
+                current_instrument = "BOSS"
+                current_cadence = "bright_4x1"
+            elif current_rp < 15.29:
+                current_instrument = "BOSS"
+                current_cadence = "bright_5x1"
+            elif current_rp < 15.5:
+                current_instrument = "BOSS"
+                current_cadence = "bright_6x1"
             else:
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_disk_boss ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None')
+                raise TargetSelectionError(
+                    "error in mwm_yso_disk_boss "
+                    + "post_process(): "
+                    + "instrument = None, cadence= None"
+                )
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_disk_boss " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_disk_boss "
+                    + " set instrument = '"
+                    + current_instrument
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_disk_boss " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_disk_boss "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 class MWM_YSO_Disk_BOSS_Single_Carton(MWM_YSO_Disk_BOSS_Carton):
-    name = 'mwm_yso_disk_boss_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_disk_boss_single"
+    cadence = "bright_1x1"
     priority = 2706
-    instrument = 'BOSS'
+    instrument = "BOSS"
 
     def post_process(self, model):
         pass
@@ -333,69 +369,75 @@ class MWM_YSO_Embedded_APOGEE_Carton(BaseCarton):
                                   compared to v0.5
     """
 
-    name = 'mwm_yso_embedded_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_embedded_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (AllWise
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         TwoMassPSC.ra.alias('twomass_psc_ra'),
-                         TwoMassPSC.decl.alias('twomass_psc_decl'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(CatalogToTIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (Gaia_DR2.phot_g_mean_mag > 18.5) |
-                        (Gaia_DR2.phot_g_mean_mag >> None),
-                        (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
-                        (AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5,
-                        (AllWise.w1mpro - AllWise.w2mpro) > 0.50,
-                        (AllWise.w2mpro - AllWise.w3mpro) > 1.00,
-                        (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
-                        (AllWise.w3mpro - AllWise.w4mpro) >
-                        (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1,
-                        ((AllWise.h_m_2mass - AllWise.k_m_2mass) >  # added for v1.0
-                         (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25))))
+        query = (
+            AllWise.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                TwoMassPSC.ra.alias("twomass_psc_ra"),
+                TwoMassPSC.decl.alias("twomass_psc_decl"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .switch(TIC_v8)
+            .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .switch(TIC_v8)
+            .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                TwoMassPSC.h_m < 13,
+                (Gaia_DR2.phot_g_mean_mag > 18.5) | (Gaia_DR2.phot_g_mean_mag >> None),
+                (AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.0,
+                (AllWise.h_m_2mass - AllWise.k_m_2mass) > 0.5,
+                (AllWise.w1mpro - AllWise.w2mpro) > 0.50,
+                (AllWise.w2mpro - AllWise.w3mpro) > 1.00,
+                (AllWise.w3mpro - AllWise.w4mpro) > 1.50,
+                (AllWise.w3mpro - AllWise.w4mpro) > (AllWise.w1mpro - AllWise.w2mpro) * 0.8 + 1.1,
+                (
+                    (AllWise.h_m_2mass - AllWise.k_m_2mass)  # added for v1.0
+                    > (0.65 * (AllWise.j_m_2mass - AllWise.h_m_2mass) - 0.25)
+                ),
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
 
 class MWM_YSO_Embedded_APOGEE_Single_Carton(MWM_YSO_Embedded_APOGEE_Carton):
-    name = 'mwm_yso_embedded_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_embedded_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -433,12 +475,12 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_nebula_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_nebula_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
@@ -458,56 +500,63 @@ class MWM_YSO_Nebula_APOGEE_Carton(BaseCarton):
     # S2_5 query below has the same part before where() as S2 query.
 
     def build_query(self, version_id, query_region=None):
-
-        query = (AllWise
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         TwoMassPSC.ra.alias('twomass_psc_ra'),
-                         TwoMassPSC.decl.alias('twomass_psc_decl'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(TIC_v8)
-                 .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(CatalogToTIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13,
-                        (((AllWise.w2mpro - AllWise.w3mpro) > 4) &
-                         (AllWise.w4mpro >> None)) |
-                        ((AllWise.w3mpro >> None) &
-                         (AllWise.w4mpro >> None) &
-                         ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.1)),
-                        ((Gaia_DR2.b > -5) & (Gaia_DR2.b < 5)) |
-                        ((Gaia_DR2.b < -5) & (Gaia_DR2.l > 180)) |
-                        ((Gaia_DR2.b >> None) & (Gaia_DR2.l >> None))))
+        query = (
+            AllWise.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                TwoMassPSC.ra.alias("twomass_psc_ra"),
+                TwoMassPSC.decl.alias("twomass_psc_decl"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(TIC_v8.allwise == AllWise.designation))
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .switch(TIC_v8)
+            .join(Gaia_DR2, peewee.JOIN.LEFT_OUTER, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .switch(TIC_v8)
+            .join(CatalogToTIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                TwoMassPSC.h_m < 13,
+                (((AllWise.w2mpro - AllWise.w3mpro) > 4) & (AllWise.w4mpro >> None))
+                | (
+                    (AllWise.w3mpro >> None)
+                    & (AllWise.w4mpro >> None)
+                    & ((AllWise.j_m_2mass - AllWise.h_m_2mass) > 1.1)
+                ),
+                ((Gaia_DR2.b > -5) & (Gaia_DR2.b < 5))
+                | ((Gaia_DR2.b < -5) & (Gaia_DR2.l > 180))
+                | ((Gaia_DR2.b >> None) & (Gaia_DR2.l >> None)),
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
 
 class MWM_YSO_Nebula_APOGEE_Single_Carton(MWM_YSO_Nebula_APOGEE_Carton):
-    name = 'mwm_yso_nebula_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_nebula_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -561,96 +610,103 @@ class MWM_YSO_Variable_APOGEE_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_variable_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_variable_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToAllWise,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
-                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToAllWise.best >> True,
-                        Gaia_DR3.phot_g_mean_mag < 18.5,
-                        TwoMassPSC.h_m < 13,
-                        Gaia_DR3.parallax > 0.3,
-                        Gaia_DR3.bp_rp * 2.5 + 2.5 >
-                        Gaia_DR3.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        Gaia_DR3.bp_rp * 2.5 - 1 <
-                        Gaia_DR3.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error,
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error * 0.75,
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error <
-                        peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                            Gaia_DR3.phot_g_mean_flux_over_error, 0.75),
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error <
-                        peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                            Gaia_DR3.phot_g_mean_flux_over_error, 0.95),
-                        peewee.fn.log(
-                            peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                            Gaia_DR3.phot_bp_mean_flux_over_error) * 5 + 11 <
-                        Gaia_DR3.phot_bp_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        Gaia_DR3.bp_rp > 1.3,
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error > 0.02))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToGaia_DR3)
+            .join(CatalogToAllWise, on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+            .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToAllWise.best >> True,
+                Gaia_DR3.phot_g_mean_mag < 18.5,
+                TwoMassPSC.h_m < 13,
+                Gaia_DR3.parallax > 0.3,
+                Gaia_DR3.bp_rp * 2.5 + 2.5
+                > Gaia_DR3.phot_g_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                Gaia_DR3.bp_rp * 2.5 - 1
+                < Gaia_DR3.phot_g_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                > peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                > peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs)
+                / Gaia_DR3.phot_g_mean_flux_over_error
+                * 0.75,
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                < peewee.fn.power(
+                    peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                    0.75,
+                ),
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                < peewee.fn.power(
+                    peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                    0.95,
+                ),
+                peewee.fn.log(
+                    peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                )
+                * 5
+                + 11
+                < Gaia_DR3.phot_bp_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                Gaia_DR3.bp_rp > 1.3,
+                peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error
+                > 0.02,
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                > 0.02,
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                > 0.02,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
 
 class MWM_YSO_Variable_APOGEE_Single_Carton(MWM_YSO_Variable_APOGEE_Carton):
-    name = 'mwm_yso_variable_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_variable_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -710,91 +766,98 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
     RP magnitude check added to the previous selection
     """
 
-    name = 'mwm_yso_variable_boss'
-    category = 'science'
+    name = "mwm_yso_variable_boss"
+    category = "science"
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         AllWise.designation.alias('allwise_designation'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m,
-                         Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToAllWise,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
-                 .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.best >> True,
-                        CatalogToAllWise.best >> True,
-                        Gaia_DR3.phot_rp_mean_mag < 15.5,
-                        Gaia_DR3.phot_g_mean_mag < 18.5,
-                        TwoMassPSC.h_m < 13,
-                        Gaia_DR3.parallax > 0.3,
-                        Gaia_DR3.bp_rp * 2.5 + 2.5 >
-                        Gaia_DR3.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        Gaia_DR3.bp_rp * 2.5 - 1 <
-                        Gaia_DR3.phot_g_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error,
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error >
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error * 0.75,
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error <
-                        peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                            Gaia_DR3.phot_g_mean_flux_over_error, 0.75),
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error <
-                        peewee.fn.power(
-                            peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                            Gaia_DR3.phot_g_mean_flux_over_error, 0.95),
-                        peewee.fn.log(
-                            peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                            Gaia_DR3.phot_bp_mean_flux_over_error) * 5 + 11 <
-                        Gaia_DR3.phot_bp_mean_mag -
-                        5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
-                        Gaia_DR3.bp_rp > 1.3,
-                        peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) /
-                        Gaia_DR3.phot_g_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) /
-                        Gaia_DR3.phot_bp_mean_flux_over_error > 0.02,
-                        peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) /
-                        Gaia_DR3.phot_rp_mean_flux_over_error > 0.02))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                AllWise.designation.alias("allwise_designation"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(CatalogToGaia_DR3)
+            .join(CatalogToAllWise, on=(CatalogToGaia_DR3.catalogid == CatalogToAllWise.catalogid))
+            .join(AllWise, on=(CatalogToAllWise.target_id == AllWise.cntr))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.best >> True,
+                CatalogToAllWise.best >> True,
+                Gaia_DR3.phot_rp_mean_mag < 15.5,
+                Gaia_DR3.phot_g_mean_mag < 18.5,
+                TwoMassPSC.h_m < 13,
+                Gaia_DR3.parallax > 0.3,
+                Gaia_DR3.bp_rp * 2.5 + 2.5
+                > Gaia_DR3.phot_g_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                Gaia_DR3.bp_rp * 2.5 - 1
+                < Gaia_DR3.phot_g_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                > peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                > peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs)
+                / Gaia_DR3.phot_g_mean_flux_over_error
+                * 0.75,
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                < peewee.fn.power(
+                    peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                    0.75,
+                ),
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                < peewee.fn.power(
+                    peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error,
+                    0.95,
+                ),
+                peewee.fn.log(
+                    peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                )
+                * 5
+                + 11
+                < Gaia_DR3.phot_bp_mean_mag - 5 * (peewee.fn.log(1000 / Gaia_DR3.parallax) - 1),
+                Gaia_DR3.bp_rp > 1.3,
+                peewee.fn.sqrt(Gaia_DR3.phot_g_n_obs) / Gaia_DR3.phot_g_mean_flux_over_error
+                > 0.02,
+                peewee.fn.sqrt(Gaia_DR3.phot_bp_n_obs) / Gaia_DR3.phot_bp_mean_flux_over_error
+                > 0.02,
+                peewee.fn.sqrt(Gaia_DR3.phot_rp_n_obs) / Gaia_DR3.phot_rp_mean_flux_over_error
+                > 0.02,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
     def post_process(self, model):
@@ -807,8 +870,8 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr3_rp from " +
-            " sandbox.temp_mwm_yso_variable_boss ;")
+            "select catalogid, gaia_dr3_rp from " + " sandbox.temp_mwm_yso_variable_boss ;"
+        )
 
         output = cursor.fetchall()
 
@@ -816,44 +879,52 @@ class MWM_YSO_Variable_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if (current_rp < 14.76):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_3x1'
-            elif (current_rp < 15.075):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_4x1'
-            elif (current_rp < 15.29):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_5x1'
-            elif (current_rp < 15.5):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_6x1'
+            if current_rp < 14.76:
+                current_instrument = "BOSS"
+                current_cadence = "bright_3x1"
+            elif current_rp < 15.075:
+                current_instrument = "BOSS"
+                current_cadence = "bright_4x1"
+            elif current_rp < 15.29:
+                current_instrument = "BOSS"
+                current_cadence = "bright_5x1"
+            elif current_rp < 15.5:
+                current_instrument = "BOSS"
+                current_cadence = "bright_6x1"
             else:
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_variable_boss ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None')
+                raise TargetSelectionError(
+                    "error in mwm_yso_variable_boss "
+                    + "post_process(): "
+                    + "instrument = None, cadence= None"
+                )
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_variable_boss " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_variable_boss "
+                    + " set instrument = '"
+                    + current_instrument
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_variable_boss " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_variable_boss "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 class MWM_YSO_Variable_BOSS_Single_Carton(MWM_YSO_Variable_BOSS_Carton):
-    name = 'mwm_yso_variable_boss_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_variable_boss_single"
+    cadence = "bright_1x1"
     priority = 2706
-    instrument = 'BOSS'
+    instrument = "BOSS"
 
     def post_process(self, model):
         pass
@@ -926,12 +997,12 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_cmz_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_cmz_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
@@ -959,57 +1030,72 @@ class MWM_YSO_CMZ_APOGEE_Carton(BaseCarton):
     # so the join with Catalog doesn't give us anything extra and it's a costly join.
 
     def build_query(self, version_id, query_region=None):
-
         # after the first left outer join, the later joins must
         # also be left outer joins
-        query = (CatalogToTwoMassPSC.select(
-            CatalogToTwoMassPSC.catalogid,
-            Gaia_DR3.source_id,
-            Gaia_DR3.ra.alias('gaia_dr3_ra'),
-            Gaia_DR3.dec.alias('gaia_dr3_dec'),
-            TwoMassPSC.pts_key,
-            TwoMassPSC.designation.alias('twomass_psc_designation'),
-            TwoMassPSC.j_m, TwoMassPSC.h_m,
-            TwoMassPSC.k_m, MIPSGAL.mag_3_6,
-            MIPSGAL.mag_4_5,
-            MIPSGAL.mag_5_8, MIPSGAL.mag_8_0,
-            MIPSGAL.mag_24,
-            MIPSGAL.hmag, Gaia_DR3.parallax,
-            MIPSGAL.glon, MIPSGAL.glat)
-            .join(TwoMassPSC,
-                  on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-            .join(MIPSGAL,
-                  on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
+        query = (
+            CatalogToTwoMassPSC.select(
+                CatalogToTwoMassPSC.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                MIPSGAL.mag_3_6,
+                MIPSGAL.mag_4_5,
+                MIPSGAL.mag_5_8,
+                MIPSGAL.mag_8_0,
+                MIPSGAL.mag_24,
+                MIPSGAL.hmag,
+                Gaia_DR3.parallax,
+                MIPSGAL.glon,
+                MIPSGAL.glat,
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .join(MIPSGAL, on=(MIPSGAL.twomass_name == TwoMassPSC.designation))
             .switch(CatalogToTwoMassPSC)
-            .join(CatalogToGaia_DR3, peewee.JOIN.LEFT_OUTER,
-                  on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid))
-            .join(Gaia_DR3, peewee.JOIN.LEFT_OUTER,
-                  on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(
+                CatalogToGaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToTwoMassPSC.catalogid == CatalogToGaia_DR3.catalogid),
+            )
+            .join(
+                Gaia_DR3,
+                peewee.JOIN.LEFT_OUTER,
+                on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id),
+            )
             .distinct(CatalogToTwoMassPSC.catalogid)
-            .where(CatalogToTwoMassPSC.version_id == version_id,
-                   CatalogToTwoMassPSC.best >> True,  # See below for CatalogToGaia_DR3.best
-                   MIPSGAL.hmag < 13,
-                   (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
-                   ((Gaia_DR3.parallax < 0.2) & (CatalogToGaia_DR3.best >> True)) |
-                   (Gaia_DR3.parallax >> None)))
+            .where(
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,  # See below for CatalogToGaia_DR3.best
+                MIPSGAL.hmag < 13,
+                (MIPSGAL.mag_8_0 - MIPSGAL.mag_24) > 2.5,
+                ((Gaia_DR3.parallax < 0.2) & (CatalogToGaia_DR3.best >> True))
+                | (Gaia_DR3.parallax >> None),
+            )
+        )
         # above condition (Gaia_DR3.parallax >> None) ensures that
         # that we get the rows from the left outer join
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTwoMassPSC, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTwoMassPSC, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_YSO_CMZ_APOGEE_Single_Carton(MWM_YSO_CMZ_APOGEE_Carton):
-    name = 'mwm_yso_cmz_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_cmz_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -1038,12 +1124,12 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
 
     """
 
-    name = 'mwm_yso_cluster_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_cluster_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
@@ -1056,40 +1142,49 @@ class MWM_YSO_Cluster_APOGEE_Carton(BaseCarton):
     # REFERENCES gaia_dr2_source(source_id)
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         YSO_Clustering.twomass,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         YSO_Clustering.j, YSO_Clustering.h,
-                         YSO_Clustering.k, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .join(YSO_Clustering,
-                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        YSO_Clustering.h < 13,
-                        YSO_Clustering.age < 7.5))
+        query = (
+            CatalogToTIC_v8.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                YSO_Clustering.twomass,
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                YSO_Clustering.j,
+                YSO_Clustering.h,
+                YSO_Clustering.k,
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .join(YSO_Clustering, on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                YSO_Clustering.h < 13,
+                YSO_Clustering.age < 7.5,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_YSO_Cluster_APOGEE_Single_Carton(MWM_YSO_Cluster_APOGEE_Carton):
-    name = 'mwm_yso_cluster_apogee_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_cluster_apogee_single"
+    cadence = "bright_1x1"
     priority = 2706
 
 
@@ -1125,12 +1220,12 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
     assigning cadence and faint limit for carton based on RP instead of H
     """
 
-    name = 'mwm_yso_cluster_boss'
-    category = 'science'
+    name = "mwm_yso_cluster_boss"
+    category = "science"
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2705
     can_offset = True
 
@@ -1143,33 +1238,42 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
     # REFERENCES gaia_dr2_source(source_id)
 
     def build_query(self, version_id, query_region=None):
-
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         YSO_Clustering.twomass,
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         YSO_Clustering.j, YSO_Clustering.h,
-                         YSO_Clustering.k, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .join(YSO_Clustering,
-                       on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5,
-                        YSO_Clustering.age < 7.5))
+        query = (
+            CatalogToTIC_v8.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                YSO_Clustering.twomass,
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                YSO_Clustering.j,
+                YSO_Clustering.h,
+                YSO_Clustering.k,
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .join(YSO_Clustering, on=(Gaia_DR2.source_id == YSO_Clustering.source_id))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                Gaia_DR2.phot_rp_mean_mag < 15.5,
+                YSO_Clustering.age < 7.5,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -1183,8 +1287,8 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_cluster_boss ;")
+            "select catalogid, gaia_dr2_rp from " + " sandbox.temp_mwm_yso_cluster_boss ;"
+        )
 
         output = cursor.fetchall()
 
@@ -1192,44 +1296,52 @@ class MWM_YSO_Cluster_BOSS_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if (current_rp < 14.76):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_3x1'
-            elif (current_rp < 15.075):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_4x1'
-            elif (current_rp < 15.29):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_5x1'
-            elif (current_rp < 15.5):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_6x1'
+            if current_rp < 14.76:
+                current_instrument = "BOSS"
+                current_cadence = "bright_3x1"
+            elif current_rp < 15.075:
+                current_instrument = "BOSS"
+                current_cadence = "bright_4x1"
+            elif current_rp < 15.29:
+                current_instrument = "BOSS"
+                current_cadence = "bright_5x1"
+            elif current_rp < 15.5:
+                current_instrument = "BOSS"
+                current_cadence = "bright_6x1"
             else:
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_cluster_boss ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None')
+                raise TargetSelectionError(
+                    "error in mwm_yso_cluster_boss "
+                    + "post_process(): "
+                    + "instrument = None, cadence= None"
+                )
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_cluster_boss " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_cluster_boss "
+                    + " set instrument = '"
+                    + current_instrument
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_cluster_boss " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_cluster_boss "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 class MWM_YSO_Cluster_BOSS_Single_Carton(MWM_YSO_Cluster_BOSS_Carton):
-    name = 'mwm_yso_cluster_boss_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_cluster_boss_single"
+    cadence = "bright_1x1"
     priority = 2706
-    instrument = 'BOSS'
+    instrument = "BOSS"
 
     def post_process(self, model):
         pass
@@ -1263,58 +1375,68 @@ class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_apogee_sagitta_edr3'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_pms_apogee_sagitta_edr3"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2700
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         # join with Sagitta_EDR3 (we use Gaia_DR3 for query)
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC,
-                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .switch(Gaia_DR3)
-                 .join(Sagitta_EDR3,
-                       on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        TwoMassPSC.h_m < 13))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .switch(Gaia_DR3)
+            .join(Sagitta_EDR3, on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                TwoMassPSC.h_m < 13,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Single_Carton(MWM_YSO_PMS_APOGEE_Sagitta_EDR3_Carton):
-    name = 'mwm_yso_pms_apogee_sagitta_edr3_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_pms_apogee_sagitta_edr3_single"
+    cadence = "bright_1x1"
     priority = 2701  # pms so different from other single cartons
 
 
@@ -1346,54 +1468,63 @@ class MWM_YSO_PMS_APOGEE_Zari18pms_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_apogee_zari18pms'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_3x1'
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    name = "mwm_yso_pms_apogee_zari18pms"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_3x1"
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2700
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         # join with Zari18pms (we use Gaia_DR2 for query and not Gaia_DR3)
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation.alias('twomass_psc_designation'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         TwoMassPSC.j_m, TwoMassPSC.h_m,
-                         TwoMassPSC.k_m, Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
-                 .join(Zari18pms,
-                       on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m < 13))
+        query = (
+            CatalogToTIC_v8.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation.alias("twomass_psc_designation"),
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                TwoMassPSC.j_m,
+                TwoMassPSC.h_m,
+                TwoMassPSC.k_m,
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .switch(TIC_v8)
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .switch(Gaia_DR2)
+            .join(Zari18pms, on=(Gaia_DR2.source_id == Zari18pms.source))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                TwoMassPSC.h_m < 13,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
 
 class MWM_YSO_PMS_APOGEE_Zari18pms_Single_Carton(MWM_YSO_PMS_APOGEE_Zari18pms_Carton):
-    name = 'mwm_yso_pms_apogee_zari18pms_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_pms_apogee_zari18pms_single"
+    cadence = "bright_1x1"
     priority = 2701  # pms so different from other single cartons
 
 
@@ -1427,40 +1558,47 @@ class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_boss_sagitta_edr3'
-    category = 'science'
+    name = "mwm_yso_pms_boss_sagitta_edr3"
+    category = "science"
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2700
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         # join with Sagitta_EDR3 (we use Gaia_DR3 for query)
-        query = (CatalogToGaia_DR3
-                 .select(CatalogToGaia_DR3.catalogid, Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         Gaia_DR3.phot_g_mean_mag, Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag.alias('gaia_dr3_rp'),
-                         Gaia_DR3.parallax)
-                 .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .join(Sagitta_EDR3,
-                       on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        Gaia_DR3.phot_rp_mean_mag < 15.5))
+        query = (
+            CatalogToGaia_DR3.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag.alias("gaia_dr3_rp"),
+                Gaia_DR3.parallax,
+            )
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(Sagitta_EDR3, on=(Gaia_DR3.source_id == Sagitta_EDR3.source_id))
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                Gaia_DR3.phot_rp_mean_mag < 15.5,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -1474,8 +1612,8 @@ class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr3_rp from " +
-            " sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 ;")
+            "select catalogid, gaia_dr3_rp from " + " sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 ;"
+        )
 
         output = cursor.fetchall()
 
@@ -1483,44 +1621,52 @@ class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if (current_rp < 14.76):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_3x1'
-            elif (current_rp < 15.075):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_4x1'
-            elif (current_rp < 15.29):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_5x1'
-            elif (current_rp < 15.5):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_6x1'
+            if current_rp < 14.76:
+                current_instrument = "BOSS"
+                current_cadence = "bright_3x1"
+            elif current_rp < 15.075:
+                current_instrument = "BOSS"
+                current_cadence = "bright_4x1"
+            elif current_rp < 15.29:
+                current_instrument = "BOSS"
+                current_cadence = "bright_5x1"
+            elif current_rp < 15.5:
+                current_instrument = "BOSS"
+                current_cadence = "bright_6x1"
             else:
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_pms_boss_sagitta_edr3 ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None')
+                raise TargetSelectionError(
+                    "error in mwm_yso_pms_boss_sagitta_edr3 "
+                    + "post_process(): "
+                    + "instrument = None, cadence= None"
+                )
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 "
+                    + " set instrument = '"
+                    + current_instrument
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_pms_boss_sagitta_edr3 "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 class MWM_YSO_PMS_BOSS_Sagitta_EDR3_Single_Carton(MWM_YSO_PMS_BOSS_Sagitta_EDR3_Carton):
-    name = 'mwm_yso_pms_boss_sagitta_edr3_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_pms_boss_sagitta_edr3_single"
+    cadence = "bright_1x1"
     priority = 2701  # pms so different from other single cartons
-    instrument = 'BOSS'
+    instrument = "BOSS"
 
     def post_process(self, model):
         pass
@@ -1556,44 +1702,51 @@ class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
     # Sagitta_EDR3(CatalogdbModel)--->'catalogdb.sagitta_edr3'
     # TwoMassPSC(CatalogdbModel)--->'catalogdb.twomass_psc'
 
-    name = 'mwm_yso_pms_boss_zari18pms'
-    category = 'science'
+    name = "mwm_yso_pms_boss_zari18pms"
+    category = "science"
     instrument = None  # instrument is set in post_process()
     cadence = None  # cadence is set in post_process()
-    program = 'mwm_yso'
-    mapper = 'MWM'
+    program = "mwm_yso"
+    mapper = "MWM"
     priority = 2700
     can_offset = True
 
     def build_query(self, version_id, query_region=None):
-
         # join with Zari18pms (we use Gaia_DR2 for query and not Gaia_DR3)
-        query = (CatalogToTIC_v8
-                 .select(CatalogToTIC_v8.catalogid, Gaia_DR2.source_id,
-                         Gaia_DR2.ra.alias('gaia_dr2_ra'),
-                         Gaia_DR2.dec.alias('gaia_dr2_dec'),
-                         Gaia_DR2.phot_g_mean_mag, Gaia_DR2.phot_bp_mean_mag,
-                         Gaia_DR2.phot_rp_mean_mag.alias('gaia_dr2_rp'),
-                         Gaia_DR2.parallax)
-                 .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .switch(TIC_v8)
-                 .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .switch(Gaia_DR2)
-                 .join(Zari18pms,
-                       on=(Gaia_DR2.source_id == Zari18pms.source))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        Gaia_DR2.phot_rp_mean_mag < 15.5))
+        query = (
+            CatalogToTIC_v8.select(
+                CatalogToTIC_v8.catalogid,
+                Gaia_DR2.source_id,
+                Gaia_DR2.ra.alias("gaia_dr2_ra"),
+                Gaia_DR2.dec.alias("gaia_dr2_dec"),
+                Gaia_DR2.phot_g_mean_mag,
+                Gaia_DR2.phot_bp_mean_mag,
+                Gaia_DR2.phot_rp_mean_mag.alias("gaia_dr2_rp"),
+                Gaia_DR2.parallax,
+            )
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .switch(TIC_v8)
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .switch(Gaia_DR2)
+            .join(Zari18pms, on=(Gaia_DR2.source_id == Zari18pms.source))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                Gaia_DR2.phot_rp_mean_mag < 15.5,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToTIC_v8, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToTIC_v8, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query
 
@@ -1607,8 +1760,8 @@ class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
         """
 
         cursor = self.database.execute_sql(
-            "select catalogid, gaia_dr2_rp from " +
-            " sandbox.temp_mwm_yso_pms_boss_zari18pms ;")
+            "select catalogid, gaia_dr2_rp from " + " sandbox.temp_mwm_yso_pms_boss_zari18pms ;"
+        )
 
         output = cursor.fetchall()
 
@@ -1616,44 +1769,52 @@ class MWM_YSO_PMS_BOSS_Zari18pms_Carton(BaseCarton):
             current_catalogid = output[i][0]
             current_rp = output[i][1]
 
-            if (current_rp < 14.76):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_3x1'
-            elif (current_rp < 15.075):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_4x1'
-            elif (current_rp < 15.29):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_5x1'
-            elif (current_rp < 15.5):
-                current_instrument = 'BOSS'
-                current_cadence = 'bright_6x1'
+            if current_rp < 14.76:
+                current_instrument = "BOSS"
+                current_cadence = "bright_3x1"
+            elif current_rp < 15.075:
+                current_instrument = "BOSS"
+                current_cadence = "bright_4x1"
+            elif current_rp < 15.29:
+                current_instrument = "BOSS"
+                current_cadence = "bright_5x1"
+            elif current_rp < 15.5:
+                current_instrument = "BOSS"
+                current_cadence = "bright_6x1"
             else:
                 # All cases should be covered above so we should not get here.
                 current_instrument = None
                 current_cadence = None
-                raise TargetSelectionError('error in mwm_yso_pms_boss_zari18pms ' +
-                                           'post_process(): ' +
-                                           'instrument = None, cadence= None')
+                raise TargetSelectionError(
+                    "error in mwm_yso_pms_boss_zari18pms "
+                    + "post_process(): "
+                    + "instrument = None, cadence= None"
+                )
 
             if current_instrument is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms " +
-                    " set instrument = '" + current_instrument + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms "
+                    + " set instrument = '"
+                    + current_instrument
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
             if current_cadence is not None:
                 self.database.execute_sql(
-                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms " +
-                    " set cadence = '" + current_cadence + "'"
-                    " where catalogid = " + str(current_catalogid) + ";")
+                    " update sandbox.temp_mwm_yso_pms_boss_zari18pms "
+                    + " set cadence = '"
+                    + current_cadence
+                    + "'"
+                    " where catalogid = " + str(current_catalogid) + ";"
+                )
 
 
 class MWM_YSO_PMS_BOSS_Zari18pms_Single_Carton(MWM_YSO_PMS_BOSS_Zari18pms_Carton):
-    name = 'mwm_yso_pms_boss_zari18pms_single'
-    cadence = 'bright_1x1'
+    name = "mwm_yso_pms_boss_zari18pms_single"
+    cadence = "bright_1x1"
     priority = 2701  # pms so different from other single cartons
-    instrument = 'BOSS'
+    instrument = "BOSS"
 
     def post_process(self, model):
         pass
