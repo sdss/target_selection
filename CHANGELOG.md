@@ -6,6 +6,10 @@
 
 * Fixed a bug in the cross-match code that would cross-match the input table against all versions in ``catalog`` for addendum runs.
 
+### ⚙️ Engineering
+
+* Use `taiki-e/create-gh-release-action@v1` to automate the release text generation in the release action.
+
 
 ## 1.3.15 - August 13 2024
 
