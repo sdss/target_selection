@@ -28,6 +28,7 @@ database.connect(dbname="sdss5db", user="sdss_user")
 
 class TempCatalogidV21(peewee.Model):
     """Model for a temporary table of all catalogids within a version."""
+
     pk = peewee.PrimaryKeyField()
     catalogid21 = peewee.BigIntegerField(index=True, null=False)
 
@@ -39,6 +40,7 @@ class TempCatalogidV21(peewee.Model):
 
 class TempCatalogidV25(peewee.Model):
     """Model for a temporary table of all catalogids within a version."""
+
     pk = peewee.PrimaryKeyField()
     catalogid25 = peewee.BigIntegerField(index=True, null=False)
 
@@ -50,6 +52,7 @@ class TempCatalogidV25(peewee.Model):
 
 class TempCatalogidV31(peewee.Model):
     """Model for a temporary table of all catalogids within a version."""
+
     pk = peewee.PrimaryKeyField()
     catalogid31 = peewee.BigIntegerField(index=True, null=False)
 
@@ -60,7 +63,7 @@ class TempCatalogidV31(peewee.Model):
 
 
 class SdssIdStacked(peewee.Model):
-    """ Model for catalogdb sdss_id_stacked"""
+    """Model for catalogdb sdss_id_stacked"""
 
     sdss_id = peewee.BigAutoField(primary_key=True)
     catalogid21 = peewee.BigIntegerField()
@@ -77,7 +80,7 @@ class SdssIdStacked(peewee.Model):
 
 
 class SdssIdFlat(peewee.Model):
-    """ Model for catalogdb sdss_id_flat"""
+    """Model for catalogdb sdss_id_flat"""
 
     sdss_id = peewee.BigIntegerField()
     catalogid = peewee.BigIntegerField()
@@ -97,7 +100,7 @@ class SdssIdFlat(peewee.Model):
 
 
 class SdssIdStackedAddendum(peewee.Model):
-    """ Model for addendum to sdss_id_stacked"""
+    """Model for addendum to sdss_id_stacked"""
 
     catalogid21 = peewee.BigIntegerField(index=True)
     catalogid25 = peewee.BigIntegerField(index=True)
@@ -112,7 +115,7 @@ class SdssIdStackedAddendum(peewee.Model):
 
 
 class SdssIdFlatAddendum(peewee.Model):
-    """ Model for addendum to sdss_id_flat """
+    """Model for addendum to sdss_id_flat"""
 
     sdss_id = peewee.BigIntegerField()
     catalogid = peewee.BigIntegerField()
@@ -133,12 +136,12 @@ class SdssIdFlatAddendum(peewee.Model):
 class AppendToTables:
     """Adds new objects to the sdss_id tables.
 
-    This class automatically uses the correlation method MetaXMatch and 
+    This class automatically uses the correlation method MetaXMatch and
     then has methods to put these objects through the sdss_id process. This
-    can be done for 1) a list of catalogids, 2) a catalog_to_? table in 
+    can be done for 1) a list of catalogids, 2) a catalog_to_? table in
     catalogdb, or 3) all of targetdb.target
 
-    Examples of how to run this class for each case are included at the end of 
+    Examples of how to run this class for each case are included at the end of
     the file append_to_sdss_id.py
 
     Parameters
@@ -161,121 +164,171 @@ class AppendToTables:
         self.dir_path = os.path.dirname(__file__)
 
         if self.catalogid_list is not None:
-            config = {"version_ids_to_match": [21, 25, 31],
-                      "individual_xmatch_config":
-                      self.dir_path + "/config/individual_crossmatches.yml",
-                      "log_file": "catalogidx_to_catalogidy_from_list.log",
-                      "show_first": 20,
-                      "split_insert_nunmber": 100000,
-                      "database_options": {"enable_hashjoin": "false"},
-                      # "split_query": [['panstarrs1',522000000000000,5000000000000]],
-                      "catalogid_list": catalogid_list}
+            config = {
+                "version_ids_to_match": [21, 25, 31],
+                "individual_xmatch_config": self.dir_path + "/config/individual_crossmatches.yml",
+                "log_file": "catalogidx_to_catalogidy_from_list.log",
+                "show_first": 20,
+                "split_insert_nunmber": 100000,
+                "database_options": {"enable_hashjoin": "false"},
+                # "split_query": [['panstarrs1',522000000000000,5000000000000]],
+                "catalogid_list": catalogid_list,
+            }
 
         elif self.individual_table is not None:
             if "." in self.individual_table:
                 self.ind_table_clean = self.individual_table.split(".")[-1]
 
-            config = {"version_ids_to_match": [21, 25, 31],
-                      "individual_xmatch_config":
-                      self.dir_path + "/config/individual_crossmatches.yml",
-                      "log_file": f"catalogidx_to_catalogidy_{self.ind_table_clean}.log",
-                      "show_first": 20,
-                      "split_insert_nunmber": 100000,
-                      "database_options": {"enable_hashjoin": "false"},
-                      # "split_query": [['panstarrs1', 522000000000000, 5000000000000]],
-                      "individual_table": individual_table}
+            config = {
+                "version_ids_to_match": [21, 25, 31],
+                "individual_xmatch_config": self.dir_path + "/config/individual_crossmatches.yml",
+                "log_file": f"catalogidx_to_catalogidy_{self.ind_table_clean}.log",
+                "show_first": 20,
+                "split_insert_nunmber": 100000,
+                "database_options": {"enable_hashjoin": "false"},
+                # "split_query": [['panstarrs1', 522000000000000, 5000000000000]],
+                "individual_table": individual_table,
+            }
         else:
-            config = {"version_ids_to_match": [21, 25, 31],
-                      "individual_xmatch_config":
-                      self.dir_path + "/config/individual_crossmatches.yml",
-                      "log_file": "catalogidx_to_catalogidy_all_target.log",
-                      "show_first": 20,
-                      "split_insert_nunmber": 100000,
-                      "database_options": {"enable_hashjoin": "false"}}
+            config = {
+                "version_ids_to_match": [21, 25, 31],
+                "individual_xmatch_config": self.dir_path + "/config/individual_crossmatches.yml",
+                "log_file": "catalogidx_to_catalogidy_all_target.log",
+                "show_first": 20,
+                "split_insert_nunmber": 100000,
+                "database_options": {"enable_hashjoin": "false"},
+            }
         self.config = config
 
     def run_MetaXMatch(self, database):
-        """ This takes in an individual catalog_to_? table (labeled 'individual_table') or a
-         list of catalogids and creates the catalogidx_to_catalogidy_?
-         and catalogidx_to_catalogidy_?_unique tables.
+        """This takes in an individual catalog_to_? table (labeled 'individual_table') or a
+        list of catalogids and creates the catalogidx_to_catalogidy_?
+        and catalogidx_to_catalogidy_?_unique tables.
         """
-        metax = MetaXMatch(config_filename=None, database=database, from_yaml=False,
-                           from_dict=True, config_dict=self.config, 
-                           outer_join_sdss_id=True)
+        metax = MetaXMatch(
+            config_filename=None,
+            database=database,
+            from_yaml=False,
+            from_dict=True,
+            config_dict=self.config,
+            outer_join_sdss_id=True,
+        )
 
         metax.run()
         create_unique_from_region(metax.output_name)
         return metax.output_name
 
     def create_temp_catalogid_lists(self, database, output_name):
-        """ This method takes the newly created catalogidx_to_catalogidy table and
+        """This method takes the newly created catalogidx_to_catalogidy table and
         creates three aggregate tables in the sandbox containing all of the possible
         catalogids to be matched. This is also where the process restricts the matching of
         catalogids to 1) those which are labeled a 'best' match and 2) catalogids which have an
-        inter-crossmatch match on that catalogid's lead catalog """
+        inter-crossmatch match on that catalogid's lead catalog"""
 
         TempMatch._meta.table_name = output_name
         UniqueMatch._meta.table_name = output_name + "_unique"
 
-        v21_cid_query_x = (TempMatch
-                           .select(TempMatch.catalogidx.alias('catalogid21'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidx == SdssIdStacked.catalogid21))
-                           .where((TempMatch.version_idx == 21) &
-                                  (SdssIdStacked.catalogid21.is_null())))
+        v21_cid_query_x = (
+            TempMatch.select(TempMatch.catalogidx.alias("catalogid21"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidx == SdssIdStacked.catalogid21),
+            )
+            .where((TempMatch.version_idx == 21) & (SdssIdStacked.catalogid21.is_null()))
+        )
 
-        v25_cid_query_x = (TempMatch
-                           .select(TempMatch.catalogidx.alias('catalogid25'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidx == SdssIdStacked.catalogid25))
-                           .where((TempMatch.version_idx == 25) &
-                                  (SdssIdStacked.catalogid25.is_null())))
+        v25_cid_query_x = (
+            TempMatch.select(TempMatch.catalogidx.alias("catalogid25"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidx == SdssIdStacked.catalogid25),
+            )
+            .where((TempMatch.version_idx == 25) & (SdssIdStacked.catalogid25.is_null()))
+        )
 
-        v31_cid_query_x = (TempMatch
-                           .select(TempMatch.catalogidx.alias('catalogid31'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidx == SdssIdStacked.catalogid31))
-                           .where((TempMatch.version_idx == 31) &
-                                  (SdssIdStacked.catalogid31.is_null())))
+        v31_cid_query_x = (
+            TempMatch.select(TempMatch.catalogidx.alias("catalogid31"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidx == SdssIdStacked.catalogid31),
+            )
+            .where((TempMatch.version_idx == 31) & (SdssIdStacked.catalogid31.is_null()))
+        )
 
-        v21_cid_query_y = (TempMatch
-                           .select(TempMatch.catalogidy.alias('catalogid21'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidy == SdssIdStacked.catalogid21))
-                           .where((TempMatch.version_idy == 21) &
-                                  (SdssIdStacked.catalogid21.is_null())))
+        v21_cid_query_y = (
+            TempMatch.select(TempMatch.catalogidy.alias("catalogid21"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidy == SdssIdStacked.catalogid21),
+            )
+            .where((TempMatch.version_idy == 21) & (SdssIdStacked.catalogid21.is_null()))
+        )
 
-        v25_cid_query_y = (TempMatch
-                           .select(TempMatch.catalogidy.alias('catalogid25'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidy == SdssIdStacked.catalogid25))
-                           .where((TempMatch.version_idy == 25) &
-                                  (SdssIdStacked.catalogid25.is_null())))
+        v25_cid_query_y = (
+            TempMatch.select(TempMatch.catalogidy.alias("catalogid25"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidy == SdssIdStacked.catalogid25),
+            )
+            .where((TempMatch.version_idy == 25) & (SdssIdStacked.catalogid25.is_null()))
+        )
 
-        v31_cid_query_y = (TempMatch
-                           .select(TempMatch.catalogidy.alias('catalogid31'))
-                           .join(Catalog, on=((Catalog.catalogid == TempMatch.catalogidx) &
-                                              (Catalog.lead == TempMatch.lead)))
-                           .switch(TempMatch)
-                           .join(SdssIdStacked, join_type=JOIN.LEFT_OUTER,
-                                 on=(TempMatch.catalogidy == SdssIdStacked.catalogid31))
-                           .where((TempMatch.version_idy == 31) &
-                                  (SdssIdStacked.catalogid31.is_null())))
+        v31_cid_query_y = (
+            TempMatch.select(TempMatch.catalogidy.alias("catalogid31"))
+            .join(
+                Catalog,
+                on=(
+                    (Catalog.catalogid == TempMatch.catalogidx) & (Catalog.lead == TempMatch.lead)
+                ),
+            )
+            .switch(TempMatch)
+            .join(
+                SdssIdStacked,
+                join_type=JOIN.LEFT_OUTER,
+                on=(TempMatch.catalogidy == SdssIdStacked.catalogid31),
+            )
+            .where((TempMatch.version_idy == 31) & (SdssIdStacked.catalogid31.is_null()))
+        )
 
         for table in [TempCatalogidV21, TempCatalogidV25, TempCatalogidV31]:
             if table.table_exists():
@@ -302,11 +355,16 @@ class AppendToTables:
         TempCatalogidV31.insert_from(v31_cid_query_y, [TempCatalogidV31.catalogid31]).execute()
 
         if self.catalogid_list is not None:
-            catid_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
-                                 .join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
-                                       on=(SdssIdFlat.catalogid == Catalog.catalogid))
-                                 .where(Catalog.catalogid << self.catalogid_list)
-                                 .where(SdssIdFlat.catalogid.is_null()))
+            catid_input_query = (
+                Catalog.select(Catalog.catalogid, Catalog.version_id)
+                .join(
+                    SdssIdFlat,
+                    join_type=JOIN.LEFT_OUTER,
+                    on=(SdssIdFlat.catalogid == Catalog.catalogid),
+                )
+                .where(Catalog.catalogid << self.catalogid_list)
+                .where(SdssIdFlat.catalogid.is_null())
+            )
 
             for row in catid_input_query:
                 if row.version_id == 21:
@@ -319,15 +377,20 @@ class AppendToTables:
             try:
                 ind_table = self.database.models[self.individual_table]
             except:
-                raise ValueError("Could not find the table in database model: " +
-                                 self.individual_table)
+                raise ValueError(
+                    "Could not find the table in database model: " + self.individual_table
+                )
 
-            ind_table_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
-                                     .join(ind_table,
-                                           on=(Catalog.catalogid == ind_table.catalogid))
-                                     .join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
-                                           on=(SdssIdFlat.catalogid == Catalog.catalogid))
-                                     .where(SdssIdFlat.catalogid.is_null()))
+            ind_table_input_query = (
+                Catalog.select(Catalog.catalogid, Catalog.version_id)
+                .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
+                .join(
+                    SdssIdFlat,
+                    join_type=JOIN.LEFT_OUTER,
+                    on=(SdssIdFlat.catalogid == Catalog.catalogid),
+                )
+                .where(SdssIdFlat.catalogid.is_null())
+            )
 
             for row in ind_table_input_query:
                 if row.version_id == 21:
@@ -337,13 +400,17 @@ class AppendToTables:
                 elif row.version_id == 31:
                     TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
         else:
-            target_input_query = (Catalog.select(Catalog.catalogid, Catalog.version_id)
-                                  .join(Target,
-                                        on=(Catalog.catalogid == Target.catalogid))
-                                  .join(SdssIdFlat, join_type=JOIN.LEFT_OUTER,
-                                        on=(SdssIdFlat.catalogid == Catalog.catalogid))
-                                  .where(SdssIdFlat.catalogid.is_null()))
-           
+            target_input_query = (
+                Catalog.select(Catalog.catalogid, Catalog.version_id)
+                .join(Target, on=(Catalog.catalogid == Target.catalogid))
+                .join(
+                    SdssIdFlat,
+                    join_type=JOIN.LEFT_OUTER,
+                    on=(SdssIdFlat.catalogid == Catalog.catalogid),
+                )
+                .where(SdssIdFlat.catalogid.is_null())
+            )
+
             for row in target_input_query:
                 if row.version_id == 21:
                     TempCatalogidV21.insert(catalogid21=row.catalogid).execute()
@@ -353,10 +420,10 @@ class AppendToTables:
                     TempCatalogidV31.insert(catalogid31=row.catalogid).execute()
 
     def create_sdss_id_stacked_addendum(self, database, output_name):
-        """ This method matches the previous catalogids with the 'sdss_id' process
+        """This method matches the previous catalogids with the 'sdss_id' process
         and places them in a temporary table in the sandbox (to be added later). At
         this point, the ra/dec_sdss_id are assigned, which are just the coordinates of
-        the most recent catalogid in the match. """
+        the most recent catalogid in the match."""
 
         large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_addendum;
         CREATE TABLE sandbox.sdss_id_stacked_addendum as (
@@ -410,55 +477,62 @@ class AppendToTables:
 
         SdssIdStackedAddendum._meta.table_name = "sdss_id_stacked_addendum"
 
-        ra_dec_update31 = (SdssIdStackedAddendum
-                           .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
-                           .from_(Catalog)
-                           .where(SdssIdStackedAddendum.catalogid31 == Catalog.catalogid)
-                           .where(SdssIdStackedAddendum.catalogid31.is_null(False)))
+        ra_dec_update31 = (
+            SdssIdStackedAddendum.update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
+            .from_(Catalog)
+            .where(SdssIdStackedAddendum.catalogid31 == Catalog.catalogid)
+            .where(SdssIdStackedAddendum.catalogid31.is_null(False))
+        )
 
-        ra_dec_update25 = (SdssIdStackedAddendum
-                           .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
-                           .from_(Catalog)
-                           .where(SdssIdStackedAddendum.catalogid25 == Catalog.catalogid)
-                           .where(SdssIdStackedAddendum.catalogid31.is_null())
-                           .where(SdssIdStackedAddendum.catalogid25.is_null(False)))
+        ra_dec_update25 = (
+            SdssIdStackedAddendum.update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
+            .from_(Catalog)
+            .where(SdssIdStackedAddendum.catalogid25 == Catalog.catalogid)
+            .where(SdssIdStackedAddendum.catalogid31.is_null())
+            .where(SdssIdStackedAddendum.catalogid25.is_null(False))
+        )
 
-        ra_dec_update21 = (SdssIdStackedAddendum
-                           .update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
-                           .from_(Catalog)
-                           .where(SdssIdStackedAddendum.catalogid21 == Catalog.catalogid)
-                           .where(SdssIdStackedAddendum.catalogid31.is_null())
-                           .where(SdssIdStackedAddendum.catalogid25.is_null())
-                           .where(SdssIdStackedAddendum.catalogid21.is_null(False)))
+        ra_dec_update21 = (
+            SdssIdStackedAddendum.update(ra_sdss_id=Catalog.ra, dec_sdss_id=Catalog.dec)
+            .from_(Catalog)
+            .where(SdssIdStackedAddendum.catalogid21 == Catalog.catalogid)
+            .where(SdssIdStackedAddendum.catalogid31.is_null())
+            .where(SdssIdStackedAddendum.catalogid25.is_null())
+            .where(SdssIdStackedAddendum.catalogid21.is_null(False))
+        )
 
         ra_dec_update31.execute()
         ra_dec_update25.execute()
         ra_dec_update21.execute()
 
     def add_to_sdss_id_stacked(self, database):
-        """ This method adds the previously made sdss_id_stached_addendum to sdss_id_stacked """
+        """This method adds the previously made sdss_id_stached_addendum to sdss_id_stacked"""
 
-        sid_stacked_f = [SdssIdStacked.catalogid21,
-                         SdssIdStacked.catalogid25,
-                         SdssIdStacked.catalogid31,
-                         SdssIdStacked.ra_sdss_id,
-                         SdssIdStacked.dec_sdss_id,
-                         SdssIdStacked.last_updated]
+        sid_stacked_f = [
+            SdssIdStacked.catalogid21,
+            SdssIdStacked.catalogid25,
+            SdssIdStacked.catalogid31,
+            SdssIdStacked.ra_sdss_id,
+            SdssIdStacked.dec_sdss_id,
+            SdssIdStacked.last_updated,
+        ]
 
-        to_add = SdssIdStackedAddendum.select(SdssIdStackedAddendum.catalogid21,
-                                              SdssIdStackedAddendum.catalogid25,
-                                              SdssIdStackedAddendum.catalogid31,
-                                              SdssIdStackedAddendum.ra_sdss_id,
-                                              SdssIdStackedAddendum.dec_sdss_id,
-                                              SdssIdStackedAddendum.last_updated).tuples()
+        to_add = SdssIdStackedAddendum.select(
+            SdssIdStackedAddendum.catalogid21,
+            SdssIdStackedAddendum.catalogid25,
+            SdssIdStackedAddendum.catalogid31,
+            SdssIdStackedAddendum.ra_sdss_id,
+            SdssIdStackedAddendum.dec_sdss_id,
+            SdssIdStackedAddendum.last_updated,
+        ).tuples()
         with self.database.atomic():
             SdssIdStacked.insert_many(to_add, fields=sid_stacked_f).execute()
 
     def create_sdss_id_flat_addendum(self, database):
-        """ This method takes the new sdss_id rows in sdss_id_stacked and
+        """This method takes the new sdss_id rows in sdss_id_stacked and
         adds them to a temporary table in the sandbox in the sdss_id_flat format.
         Here, the ra/dec_catalogid are populated with the specific values associated
-        with the catalogid. """
+        with the catalogid."""
 
         if SdssIdFlatAddendum.table_exists():
             self.database.drop_tables([SdssIdFlatAddendum])
@@ -468,98 +542,130 @@ class AppendToTables:
             # self.database.create_tables([SdssIdFlatAddendum])
             SdssIdFlatAddendum.create_table()
 
-        sid_flat_fields = [SdssIdFlatAddendum.sdss_id,
-                           SdssIdFlatAddendum.catalogid,
-                           SdssIdFlatAddendum.version_id,
-                           SdssIdFlatAddendum.ra_sdss_id,
-                           SdssIdFlatAddendum.dec_sdss_id]
+        sid_flat_fields = [
+            SdssIdFlatAddendum.sdss_id,
+            SdssIdFlatAddendum.catalogid,
+            SdssIdFlatAddendum.version_id,
+            SdssIdFlatAddendum.ra_sdss_id,
+            SdssIdFlatAddendum.dec_sdss_id,
+        ]
 
         max_sdss_id = SdssIdFlat.select(fn.MAX(SdssIdFlat.sdss_id)).scalar()
 
-        sid_flat_add_v21 = (SdssIdStacked.select(SdssIdStacked.sdss_id,
-                                                 SdssIdStacked.catalogid21,
-                                                 peewee.Value(21),
-                                                 SdssIdStacked.ra_sdss_id,
-                                                 SdssIdStacked.dec_sdss_id)
-                            .where(SdssIdStacked.catalogid21.is_null(False))
-                            .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
+        sid_flat_add_v21 = (
+            SdssIdStacked.select(
+                SdssIdStacked.sdss_id,
+                SdssIdStacked.catalogid21,
+                peewee.Value(21),
+                SdssIdStacked.ra_sdss_id,
+                SdssIdStacked.dec_sdss_id,
+            )
+            .where(SdssIdStacked.catalogid21.is_null(False))
+            .where(SdssIdStacked.sdss_id > max_sdss_id)
+            .tuples()
+        )
 
         with self.database.atomic():
             SdssIdFlatAddendum.insert_many(sid_flat_add_v21, fields=sid_flat_fields).execute()
 
-        sid_flat_add_v25 = (SdssIdStacked.select(SdssIdStacked.sdss_id,
-                                                 SdssIdStacked.catalogid25,
-                                                 peewee.Value(25),
-                                                 SdssIdStacked.ra_sdss_id,
-                                                 SdssIdStacked.dec_sdss_id)
-                            .where(SdssIdStacked.catalogid25.is_null(False))
-                            .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
+        sid_flat_add_v25 = (
+            SdssIdStacked.select(
+                SdssIdStacked.sdss_id,
+                SdssIdStacked.catalogid25,
+                peewee.Value(25),
+                SdssIdStacked.ra_sdss_id,
+                SdssIdStacked.dec_sdss_id,
+            )
+            .where(SdssIdStacked.catalogid25.is_null(False))
+            .where(SdssIdStacked.sdss_id > max_sdss_id)
+            .tuples()
+        )
 
         with self.database.atomic():
             SdssIdFlatAddendum.insert_many(sid_flat_add_v25, fields=sid_flat_fields).execute()
 
-        sid_flat_add_v31 = (SdssIdStacked.select(SdssIdStacked.sdss_id,
-                                                 SdssIdStacked.catalogid31,
-                                                 peewee.Value(31),
-                                                 SdssIdStacked.ra_sdss_id,
-                                                 SdssIdStacked.dec_sdss_id)
-                            .where(SdssIdStacked.catalogid31.is_null(False))
-                            .where(SdssIdStacked.sdss_id > max_sdss_id).tuples())
+        sid_flat_add_v31 = (
+            SdssIdStacked.select(
+                SdssIdStacked.sdss_id,
+                SdssIdStacked.catalogid31,
+                peewee.Value(31),
+                SdssIdStacked.ra_sdss_id,
+                SdssIdStacked.dec_sdss_id,
+            )
+            .where(SdssIdStacked.catalogid31.is_null(False))
+            .where(SdssIdStacked.sdss_id > max_sdss_id)
+            .tuples()
+        )
         with self.database.atomic():
             SdssIdFlatAddendum.insert_many(sid_flat_add_v31, fields=sid_flat_fields).execute()
 
-        cte = (SdssIdFlatAddendum
-               .select(SdssIdFlatAddendum.catalogid, fn.COUNT("*").alias('ct'))
-               .group_by(SdssIdFlatAddendum.catalogid)
-               .cte('catid_n_associated', columns=("catalogid", "ct")))
+        cte = (
+            SdssIdFlatAddendum.select(SdssIdFlatAddendum.catalogid, fn.COUNT("*").alias("ct"))
+            .group_by(SdssIdFlatAddendum.catalogid)
+            .cte("catid_n_associated", columns=("catalogid", "ct"))
+        )
 
-        (SdssIdFlatAddendum.update(n_associated=cte.c.ct)
-                           .from_(cte)
-                           .where(SdssIdFlatAddendum.catalogid == cte.c.catalogid)
-                           .with_cte(cte)
-                           .execute())
+        (
+            SdssIdFlatAddendum.update(n_associated=cte.c.ct)
+            .from_(cte)
+            .where(SdssIdFlatAddendum.catalogid == cte.c.catalogid)
+            .with_cte(cte)
+            .execute()
+        )
 
-        (SdssIdFlatAddendum.update(ra_catalogid=Catalog.ra,
-                                   dec_catalogid=Catalog.dec)
-                           .from_(Catalog)
-                           .where(SdssIdFlatAddendum.catalogid == Catalog.catalogid)
-                           .execute())
+        (
+            SdssIdFlatAddendum.update(ra_catalogid=Catalog.ra, dec_catalogid=Catalog.dec)
+            .from_(Catalog)
+            .where(SdssIdFlatAddendum.catalogid == Catalog.catalogid)
+            .execute()
+        )
 
-        ranked_values = (SdssIdFlatAddendum
-                         .select(SdssIdFlatAddendum.catalogid,
-                                 SdssIdFlatAddendum.sdss_id,
-                                 fn.RANK().over(partition_by=[SdssIdFlatAddendum.catalogid],
-                                                order_by=[SdssIdFlatAddendum.sdss_id])
-                                          .alias('rank')))
+        ranked_values = SdssIdFlatAddendum.select(
+            SdssIdFlatAddendum.catalogid,
+            SdssIdFlatAddendum.sdss_id,
+            fn.RANK()
+            .over(
+                partition_by=[SdssIdFlatAddendum.catalogid], order_by=[SdssIdFlatAddendum.sdss_id]
+            )
+            .alias("rank"),
+        )
 
-        (SdssIdFlatAddendum.update(rank=ranked_values.c.rank)
-                           .from_(ranked_values)
-                           .where((SdssIdFlatAddendum.catalogid == ranked_values.c.catalogid) &
-                                  (SdssIdFlatAddendum.sdss_id == ranked_values.c.sdss_id))
-                           .execute())
+        (
+            SdssIdFlatAddendum.update(rank=ranked_values.c.rank)
+            .from_(ranked_values)
+            .where(
+                (SdssIdFlatAddendum.catalogid == ranked_values.c.catalogid)
+                & (SdssIdFlatAddendum.sdss_id == ranked_values.c.sdss_id)
+            )
+            .execute()
+        )
 
     def add_to_sdss_id_flat(self, database):
-        """ This method adds sdss_id_flat_addendum to sdss_id_flat """
+        """This method adds sdss_id_flat_addendum to sdss_id_flat"""
 
-        sid_flat_f = [SdssIdFlat.sdss_id,
-                      SdssIdFlat.catalogid,
-                      SdssIdFlat.version_id,
-                      SdssIdFlat.ra_sdss_id,
-                      SdssIdFlat.dec_sdss_id,
-                      SdssIdFlat.n_associated,
-                      SdssIdFlat.ra_catalogid,
-                      SdssIdFlat.dec_catalogid,
-                      SdssIdFlat.rank]
+        sid_flat_f = [
+            SdssIdFlat.sdss_id,
+            SdssIdFlat.catalogid,
+            SdssIdFlat.version_id,
+            SdssIdFlat.ra_sdss_id,
+            SdssIdFlat.dec_sdss_id,
+            SdssIdFlat.n_associated,
+            SdssIdFlat.ra_catalogid,
+            SdssIdFlat.dec_catalogid,
+            SdssIdFlat.rank,
+        ]
 
-        to_add = SdssIdFlatAddendum.select(SdssIdFlatAddendum.sdss_id,
-                                           SdssIdFlatAddendum.catalogid,
-                                           SdssIdFlatAddendum.version_id,
-                                           SdssIdFlatAddendum.ra_sdss_id,
-                                           SdssIdFlatAddendum.dec_sdss_id,
-                                           SdssIdFlatAddendum.n_associated,
-                                           SdssIdFlatAddendum.ra_catalogid,
-                                           SdssIdFlatAddendum.dec_catalogid,
-                                           SdssIdFlatAddendum.rank).tuples()
+        to_add = SdssIdFlatAddendum.select(
+            SdssIdFlatAddendum.sdss_id,
+            SdssIdFlatAddendum.catalogid,
+            SdssIdFlatAddendum.version_id,
+            SdssIdFlatAddendum.ra_sdss_id,
+            SdssIdFlatAddendum.dec_sdss_id,
+            SdssIdFlatAddendum.n_associated,
+            SdssIdFlatAddendum.ra_catalogid,
+            SdssIdFlatAddendum.dec_catalogid,
+            SdssIdFlatAddendum.rank,
+        ).tuples()
 
         with self.database.atomic():
             SdssIdFlat.insert_many(to_add, fields=sid_flat_f).execute()

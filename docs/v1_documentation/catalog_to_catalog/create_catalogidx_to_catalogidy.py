@@ -22,11 +22,12 @@ from sdssdb.peewee.sdss5db.targetdb import Target
 import target_selection
 
 
-database.connect(dbname='sdss5db', user="sdss_user")  # Use 'sdss' to get read/write permissions
+database.connect(dbname="sdss5db", user="sdss_user")  # Use 'sdss' to get read/write permissions
 
 
 class TempMatch(peewee.Model):
     """Model for the first output table with all the matches."""
+
     pk = peewee.PrimaryKeyField()
     lead = peewee.TextField(null=False)
     catalogidx = peewee.BigIntegerField(index=True, null=False)
@@ -36,11 +37,12 @@ class TempMatch(peewee.Model):
 
     class Meta:
         database = database
-        schema = 'sandbox'
+        schema = "sandbox"
 
 
 class UniqueMatch(peewee.Model):
     """Model for the final table with unique pairs of catalogids"""
+
     pk = peewee.PrimaryKeyField()
     catalogidx = peewee.BigIntegerField(index=True, null=False)
     catalogidy = peewee.BigIntegerField(index=True, null=False)
@@ -51,7 +53,7 @@ class UniqueMatch(peewee.Model):
 
     class Meta:
         database = database
-        schema = 'sandbox'
+        schema = "sandbox"
 
 
 class MetaXMatch:
@@ -98,30 +100,43 @@ class MetaXMatch:
         Save output to a file? Default is False.
     """
 
-    def __init__(self, database, config_filename=None, from_yaml=True, from_dict=False,
-                 config_dict=None, save_log_output=False):
+    def __init__(
+        self,
+        database,
+        config_filename=None,
+        from_yaml=True,
+        from_dict=False,
+        config_dict=None,
+        save_log_output=False,
+    ):
         self.database = database
         if from_yaml:
-            config = yaml.load(open(config_filename, 'r'), Loader=yaml.SafeLoader)
+            config = yaml.load(open(config_filename, "r"), Loader=yaml.SafeLoader)
         elif from_dict:
             if type(config_dict) is not dict:
                 raise ValueError("config must be a dict")
             config = config_dict
 
-        log_filename = config['log_file']
+        log_filename = config["log_file"]
         self.log = target_selection.log
         if save_log_output:
-            log_path_and_name = os.path.realpath('./' + log_filename)
-            self.log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+            log_path_and_name = os.path.realpath("./" + log_filename)
+            self.log.start_file_logger(log_path_and_name, rotating=False, mode="a")
             self.log.sh.setLevel(0)
 
-        ind_xmatch_info_filename = config['individual_xmatch_config']
-        ind_xmatch_config = yaml.load(open(ind_xmatch_info_filename, 'r'),
-                                      Loader=yaml.SafeLoader)
-        self.version_ids_to_match = config['version_ids_to_match']
+        ind_xmatch_info_filename = config["individual_xmatch_config"]
+        ind_xmatch_config = yaml.load(open(ind_xmatch_info_filename, "r"), Loader=yaml.SafeLoader)
+        self.version_ids_to_match = config["version_ids_to_match"]
 
-        optional_parameters = ['sample_region', 'database_options', 'show_first', 'split_query',
-                               'ra_region', 'individual_table', 'catalogid_list']
+        optional_parameters = [
+            "sample_region",
+            "database_options",
+            "show_first",
+            "split_query",
+            "ra_region",
+            "individual_table",
+            "catalogid_list",
+        ]
 
         # All the optional parameters present in the configuration file are stored directly
         # As attributes of the MetaXMatch object and for the ones that are not the attribute
@@ -139,68 +154,67 @@ class MetaXMatch:
         if self.sample_region:
             racen, deccen, radius = self.sample_region
             st_dec = str(deccen)
-            if '-' not in st_dec:
-                st_dec = 'pos' + st_dec
+            if "-" not in st_dec:
+                st_dec = "pos" + st_dec
             else:
-                st_dec = st_dec.replace('-', 'neg')
-            output_name = (f'catalogidx_to_catalogidy'
-                           f'_ra{racen}_dec{st_dec}_rad{int(radius)}')
-            log_message = f'###  Using ra={racen:5.1f}  dec={deccen:5.1f}  rad={radius:04.1f}  ###'
+                st_dec = st_dec.replace("-", "neg")
+            output_name = f"catalogidx_to_catalogidy" f"_ra{racen}_dec{st_dec}_rad{int(radius)}"
+            log_message = f"###  Using ra={racen:5.1f}  dec={deccen:5.1f}  rad={radius:04.1f}  ###"
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             if ra_start >= ra_stop:
                 raise ValueError("Starting RA must be smaller than stopping RA!")
-            output_name = (f'catalogidx_to_catalogidy'
-                           f'_ra{int(ra_start)}_ra{int(ra_stop)}')
-            log_message = f'###  Using ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}               ###'
+            output_name = f"catalogidx_to_catalogidy" f"_ra{int(ra_start)}_ra{int(ra_stop)}"
+            log_message = f"###  Using ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}               ###"
         elif self.individual_table:
             ind_table = self.individual_table
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
-            output_name = (f'catalogidx_to_catalogidy'
-                           f'_{ind_table}')
-            log_message = f'###  Using catalogids from file  {ind_table}              ###'
+            output_name = f"catalogidx_to_catalogidy" f"_{ind_table}"
+            log_message = f"###  Using catalogids from file  {ind_table}              ###"
         elif self.catalogid_list:
-            output_name = ('catalogidx_to_catalogidy_from_catalogid_list')
-            log_message = '### Using catalogids from a given list                    ###'
+            output_name = "catalogidx_to_catalogidy_from_catalogid_list"
+            log_message = "### Using catalogids from a given list                    ###"
         else:
-            output_name = 'catalogidx_to_catalogidy_all'
-            log_message = '###            Using Full SKY             ###'
+            output_name = "catalogidx_to_catalogidy_all"
+            log_message = "###            Using Full SKY             ###"
 
         if self.ra_region and self.individual_table:
             ra_start, ra_stop = self.ra_region
             ind_table = self.individual_table
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
-            output_name = (f'catalogidx_to_catalogidy'
-                           f'_{ind_table}'
-                           f'_ra{int(ra_start)}_ra{int(ra_stop)}')
-            log_message = f'###  Using catalogids from file  {ind_table} ' + \
-                          f' in ra={ra_start:5.1f} to ra={ra_stop:5.1f} ###'
+            output_name = (
+                f"catalogidx_to_catalogidy" f"_{ind_table}" f"_ra{int(ra_start)}_ra{int(ra_stop)}"
+            )
+            log_message = (
+                f"###  Using catalogids from file  {ind_table} "
+                + f" in ra={ra_start:5.1f} to ra={ra_stop:5.1f} ###"
+            )
 
         self.output_name = output_name
-        self.log.info(' ')
-        self.log.info('#' * 45)
+        self.log.info(" ")
+        self.log.info("#" * 45)
         self.log.info(log_message)
-        self.log.info('#' * 45)
+        self.log.info("#" * 45)
 
-        all_tables = [set(ind_xmatch_config[k]['order']) for k in ind_xmatch_config.keys()]
+        all_tables = [set(ind_xmatch_config[k]["order"]) for k in ind_xmatch_config.keys()]
         intersecting_tables = set()
         for i_comb in list(combinations([i for i in range(len(all_tables))], 2)):
-            intersecting_tables = intersecting_tables | \
-                (all_tables[i_comb[0]] & all_tables[i_comb[1]])
+            intersecting_tables = intersecting_tables | (
+                all_tables[i_comb[0]] & all_tables[i_comb[1]]
+            )
 
         intersecting_tables = list(intersecting_tables)
         intersecting_tables.sort()
         self.intersecting_tables = intersecting_tables
-        self.log.info(f'The intersecting tables to match are: {intersecting_tables}')
-        self.split_insert_nunmber = config['split_insert_nunmber']
+        self.log.info(f"The intersecting tables to match are: {intersecting_tables}")
+        self.split_insert_nunmber = config["split_insert_nunmber"]
 
         if self.split_query:
             self.split_query_info = {el[0]: (el[1], el[2]) for el in self.split_query}
 
     def match_in_table(self, name, split=False, min_targetid=0, max_targetid=0):
-
         """This method takes as argument the name of the table to be matched to
         do the query and find the catalogid pairs. This method can also be used
         with argument split=True in which case argument min_targetid, and max_targetid are used
@@ -229,24 +243,30 @@ class MetaXMatch:
         max_targetid : int
             maximum target_id to be used for this specific query
 
-            """
+        """
 
         # First we set the database options for the query
         if self.database_options:
             for param in self.database_options:
                 value = self.database_options[param]
-                setting_message = f'SET {param}={value!r};'
+                setting_message = f"SET {param}={value!r};"
                 self.database.execute_sql(setting_message)
                 self.log.info(setting_message)
 
-        temp_fields = [TempMatch.lead, TempMatch.catalogidx, TempMatch.catalogidy,
-                       TempMatch.version_idx, TempMatch.version_idy]
+        temp_fields = [
+            TempMatch.lead,
+            TempMatch.catalogidx,
+            TempMatch.catalogidy,
+            TempMatch.version_idx,
+            TempMatch.version_idy,
+        ]
 
         db_models = self.database.models
 
-        tables = [db_models['catalogdb.' + name] for name in self.intersecting_tables]
-        rel_tables = [db_models['catalogdb.catalog_to_' + name]
-                      for name in self.intersecting_tables]
+        tables = [db_models["catalogdb." + name] for name in self.intersecting_tables]
+        rel_tables = [
+            db_models["catalogdb.catalog_to_" + name] for name in self.intersecting_tables
+        ]
 
         index = self.intersecting_tables.index(name)
         table = tables[index]
@@ -257,51 +277,52 @@ class MetaXMatch:
             try:
                 ind_table = db_models[self.individual_table]
             except:
-                raise ValueError("Could not find the table in database model: " +
-                                 self.individual_table)
+                raise ValueError(
+                    "Could not find the table in database model: " + self.individual_table
+                )
 
-            if self.individual_table == 'catalogdb.catalog_to_' + name:
-                cte_targetids = (Catalog.select(rel_table.target_id,
-                                                Catalog.ra, Catalog.dec)
-                                 .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                                 .where((rel_table.version << self.version_ids_to_match) &
-                                        (rel_table.best))
-                                 .distinct(rel_table.target_id))
+            if self.individual_table == "catalogdb.catalog_to_" + name:
+                cte_targetids = (
+                    Catalog.select(rel_table.target_id, Catalog.ra, Catalog.dec)
+                    .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                    .where((rel_table.version << self.version_ids_to_match) & (rel_table.best))
+                    .distinct(rel_table.target_id)
+                )
 
             else:
-                cte_targetids = (Catalog.select(rel_table.target_id,
-                                                Catalog.ra, Catalog.dec)
-                                 .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
-                                 .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                                 .where((rel_table.version << self.version_ids_to_match) &
-                                        (rel_table.best))
-                                 .distinct(rel_table.target_id))
+                cte_targetids = (
+                    Catalog.select(rel_table.target_id, Catalog.ra, Catalog.dec)
+                    .join(ind_table, on=(Catalog.catalogid == ind_table.catalogid))
+                    .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                    .where((rel_table.version << self.version_ids_to_match) & (rel_table.best))
+                    .distinct(rel_table.target_id)
+                )
 
         elif self.catalogid_list:
-            cte_targetids = (Catalog.select(rel_table.target_id,
-                                            Catalog.ra, Catalog.dec)
-                             .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
-                             .where(((rel_table.version << self.version_ids_to_match) &
-                                     (rel_table.best)))
-                             .where(Catalog.catalogid << self.catalogid_list)
-                             .distinct(rel_table.target_id))
+            cte_targetids = (
+                Catalog.select(rel_table.target_id, Catalog.ra, Catalog.dec)
+                .join(rel_table, on=(Catalog.catalogid == rel_table.catalogid))
+                .where(((rel_table.version << self.version_ids_to_match) & (rel_table.best)))
+                .where(Catalog.catalogid << self.catalogid_list)
+                .distinct(rel_table.target_id)
+            )
 
         else:
-            cte_targetids = (Target.select(rel_table.target_id,
-                                           Target.ra, Target.dec)
-                             .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
-                             .where((rel_table.version << self.version_ids_to_match) &
-                                    (rel_table.best))
-                             .distinct(rel_table.target_id))
+            cte_targetids = (
+                Target.select(rel_table.target_id, Target.ra, Target.dec)
+                .join(rel_table, on=(Target.catalogid == rel_table.catalogid))
+                .where((rel_table.version << self.version_ids_to_match) & (rel_table.best))
+                .distinct(rel_table.target_id)
+            )
 
         # If sample_region or ra_region is included in the configuration file,
         # then the entire process is restricted to that region
 
         if self.sample_region:
             racen, deccen, radius = self.sample_region
-            cte_targetids = cte_targetids.where(fn.q3c_radial_query(Target.ra,
-                                                Target.dec,
-                                                racen, deccen, radius))
+            cte_targetids = cte_targetids.where(
+                fn.q3c_radial_query(Target.ra, Target.dec, racen, deccen, radius)
+            )
         elif self.ra_region and self.individual_table:
             ra_start, ra_stop = self.ra_region
             cte_targetids = cte_targetids.where(Catalog.ra.between(ra_start, ra_stop))
@@ -309,28 +330,33 @@ class MetaXMatch:
             ra_start, ra_stop = self.ra_region
             cte_targetids = cte_targetids.where(Target.ra.between(ra_start, ra_stop))
 
-        cte_targetids = cte_targetids.cte('cte_targets')
+        cte_targetids = cte_targetids.cte("cte_targets")
 
-        query = (rel_table
-                 .select(rel_table.target_id,
-                         peewee.Value(tablename).alias('table'),
-                         fn.array_agg(rel_table.catalogid)
-                           .over(partition_by=rel_table.target_id).alias('catalogids'),
-                         fn.array_agg(rel_table.version_id)
-                           .over(partition_by=rel_table.target_id).alias('version_ids'))
-                 .join(cte_targetids, on=(rel_table.target_id == cte_targetids.c.target_id))
-                 .where((rel_table.version << self.version_ids_to_match) &
-                        (rel_table.best))
-                 .distinct(rel_table.target_id)
-                 .with_cte(cte_targetids))
+        query = (
+            rel_table.select(
+                rel_table.target_id,
+                peewee.Value(tablename).alias("table"),
+                fn.array_agg(rel_table.catalogid)
+                .over(partition_by=rel_table.target_id)
+                .alias("catalogids"),
+                fn.array_agg(rel_table.version_id)
+                .over(partition_by=rel_table.target_id)
+                .alias("version_ids"),
+            )
+            .join(cte_targetids, on=(rel_table.target_id == cte_targetids.c.target_id))
+            .where((rel_table.version << self.version_ids_to_match) & (rel_table.best))
+            .distinct(rel_table.target_id)
+            .with_cte(cte_targetids)
+        )
 
         if split:
-            query = query.where(rel_table.target_id >= min_targetid,
-                                rel_table.target_id < max_targetid)
+            query = query.where(
+                rel_table.target_id >= min_targetid, rel_table.target_id < max_targetid
+            )
 
         if not split:
-            self.log.info(' ')
-            self.log.info(' ')
+            self.log.info(" ")
+            self.log.info(" ")
 
         # of catalogids associated to it where one comes from the first crossmatch run and
         # the other one from the second crossmatch run
@@ -341,21 +367,29 @@ class MetaXMatch:
         nres = 0
         for entry in res:
             nres += 1
-            catids = entry['catalogids']
-            verids = entry['version_ids']
+            catids = entry["catalogids"]
+            verids = entry["version_ids"]
             catid_combs = list(combinations(catids, 2))  # Check all the pairs of catalogid's
             verid_combs = list(combinations(verids, 2))  # Check all the pairs of version_id's
-            ind_valid = [ind for ind in range(len(catid_combs))
-                         if catid_combs[ind][0] != catid_combs[ind][1]]
+            ind_valid = [
+                ind
+                for ind in range(len(catid_combs))
+                if catid_combs[ind][0] != catid_combs[ind][1]
+            ]
             for ind_comb in ind_valid:  # For each pair comming from different version_id's
                 npair += 1
                 sorted_catids = np.sort(catid_combs[ind_comb])
                 sorted_verids = np.sort(verid_combs[ind_comb])
-                curr_tuple = (entry['table'], sorted_catids[0], sorted_catids[1],
-                              sorted_verids[0], sorted_verids[1])
+                curr_tuple = (
+                    entry["table"],
+                    sorted_catids[0],
+                    sorted_catids[1],
+                    sorted_verids[0],
+                    sorted_verids[1],
+                )
                 results_list.append(curr_tuple)
                 if self.show_first and npair <= self.show_first and not split:
-                    tuple_log = str(npair) + '  ' + '  '.join([str(el) for el in curr_tuple])
+                    tuple_log = str(npair) + "  " + "  ".join([str(el) for el in curr_tuple])
                     self.log.info(tuple_log)
 
         # In this final part we go over the results and split it in chunks of N entries
@@ -364,14 +398,14 @@ class MetaXMatch:
         parts = int((len(results_list) - 1) / self.split_insert_nunmber) + 1
 
         # Check if connection has timed out. Reconnect if it has
-        database.connect(dbname='sdss5db', user="sdss_user", reuse_if_open=True)
+        database.connect(dbname="sdss5db", user="sdss_user", reuse_if_open=True)
 
         for npart in range(parts):
             with self.database.atomic():
                 if len(results_list) == 0:
                     continue
                 if not split:
-                    self.log.info(f'Ingesting part {npart+1} out of {parts}')
+                    self.log.info(f"Ingesting part {npart+1} out of {parts}")
                 first_el = npart * self.split_insert_nunmber
                 last_el = (npart + 1) * self.split_insert_nunmber
                 curr_results = results_list[first_el:last_el]
@@ -403,45 +437,50 @@ class MetaXMatch:
         self.database.bind([TempMatch])
         if TempMatch.table_exists():
             self.database.drop_tables([TempMatch])
-            self.log.info(f'Dropped table {TempMatch._meta.table_name}')
+            self.log.info(f"Dropped table {TempMatch._meta.table_name}")
 
         self.database.create_tables([TempMatch])
-        self.log.info(f'Created table {TempMatch._meta.table_name}')
+        self.log.info(f"Created table {TempMatch._meta.table_name}")
 
         for curr_table in tables_to_process:
             t1 = time.time()
-            logname = 'Running table ' + curr_table
-            self.log.info('-' * 52)
-            self.log.info(f'|{logname:^50}|')
-            self.log.info('-' * 52)
+            logname = "Running table " + curr_table
+            self.log.info("-" * 52)
+            self.log.info(f"|{logname:^50}|")
+            self.log.info("-" * 52)
 
             if self.split_query and curr_table in self.split_query_info.keys():
                 ntargetids, npairs = 0, 0
-                self.log.info(f'Doing the query of {curr_table} splitting by targetid')
+                self.log.info(f"Doing the query of {curr_table} splitting by targetid")
                 max_tar, bin_tar = self.split_query_info[curr_table]
-                self.log.info(f'Using binning={bin_tar} and max value ={max_tar}')
+                self.log.info(f"Using binning={bin_tar} and max value ={max_tar}")
                 min_targetid, max_targetid = 0, bin_tar
-                while (min_targetid < max_tar):
+                while min_targetid < max_tar:
                     ti_iter = time.time()
-                    curr_targetids, curr_pairs = self.match_in_table(curr_table, split=True,
-                                                                     min_targetid=min_targetid,
-                                                                     max_targetid=max_targetid)
+                    curr_targetids, curr_pairs = self.match_in_table(
+                        curr_table,
+                        split=True,
+                        min_targetid=min_targetid,
+                        max_targetid=max_targetid,
+                    )
                     ntargetids += curr_targetids
                     npairs += curr_pairs
                     min_targetid += bin_tar
                     max_targetid += bin_tar
                     tf_iter = time.time()
-                    self.log.info(f'Ingested {curr_pairs} to output table using targetid range '
-                                  f'{min_targetid} to {max_targetid} '
-                                  f'in {(tf_iter-ti_iter):.2f} seconds')
+                    self.log.info(
+                        f"Ingested {curr_pairs} to output table using targetid range "
+                        f"{min_targetid} to {max_targetid} "
+                        f"in {(tf_iter-ti_iter):.2f} seconds"
+                    )
             else:
                 ntargetids, npairs = self.match_in_table(curr_table)
             t2 = time.time()
-            self.log.info(f'Found {ntargetids} targetids with multiple catalogids associated')
-            self.log.info(f'{npairs} valid catalogid pairs were ingested to output table ')
-            self.log.info(f'Table {curr_table} was processed in {(t2-t1):.2f} seconds')
+            self.log.info(f"Found {ntargetids} targetids with multiple catalogids associated")
+            self.log.info(f"{npairs} valid catalogid pairs were ingested to output table ")
+            self.log.info(f"Table {curr_table} was processed in {(t2-t1):.2f} seconds")
         t3 = time.time()
-        self.log.info(f'The entire match took {(t3-t0):.2f} seconds')
+        self.log.info(f"The entire match took {(t3-t0):.2f} seconds")
 
 
 def create_unique_from_region(input_tablename, save_log_output=False):
@@ -466,35 +505,38 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     log = target_selection.log
     if save_log_output:
         log_path_and_name = os.path.realpath("./" + input_tablename + "_unique_table_creation.log")
-        log.start_file_logger(log_path_and_name, rotating=False, mode='a')
+        log.start_file_logger(log_path_and_name, rotating=False, mode="a")
 
     if UniqueMatch.table_exists():
         database.drop_tables([UniqueMatch])
-        log.info(f'Dropped table {output_tablename}')
+        log.info(f"Dropped table {output_tablename}")
     database.create_tables([UniqueMatch])
-    log.info(f'Created table {output_tablename}')
+    log.info(f"Created table {output_tablename}")
     TempMatch._meta.table_name = input_tablename
-    query = (TempMatch
-             .select(TempMatch.catalogidx,
-                     TempMatch.catalogidy,
-                     TempMatch.version_idx,
-                     TempMatch.version_idy,
-                     fn.array_agg(TempMatch.lead),
-                     fn.count(TempMatch.lead))
-             .group_by(TempMatch.catalogidx,
-                       TempMatch.catalogidy,
-                       TempMatch.version_idx,
-                       TempMatch.version_idy))
+    query = TempMatch.select(
+        TempMatch.catalogidx,
+        TempMatch.catalogidy,
+        TempMatch.version_idx,
+        TempMatch.version_idy,
+        fn.array_agg(TempMatch.lead),
+        fn.count(TempMatch.lead),
+    ).group_by(
+        TempMatch.catalogidx, TempMatch.catalogidy, TempMatch.version_idx, TempMatch.version_idy
+    )
 
-    fields = [UniqueMatch.catalogidx, UniqueMatch.catalogidy,
-              UniqueMatch.version_idx, UniqueMatch.version_idy,
-              UniqueMatch.match_tables, UniqueMatch.n_tables]
+    fields = [
+        UniqueMatch.catalogidx,
+        UniqueMatch.catalogidy,
+        UniqueMatch.version_idx,
+        UniqueMatch.version_idy,
+        UniqueMatch.match_tables,
+        UniqueMatch.n_tables,
+    ]
 
     insert_query = UniqueMatch.insert_from(query, fields).returning()
     n_unique = insert_query.execute()
     tf = time.time()
-    log.info(f'Created unique pairs table with {n_unique} '
-             f'entries in {(tf-ti):.2f} seconds')
+    log.info(f"Created unique pairs table with {n_unique} " f"entries in {(tf-ti):.2f} seconds")
 
 
 """
