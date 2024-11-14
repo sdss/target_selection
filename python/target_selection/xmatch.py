@@ -1689,7 +1689,11 @@ class XMatchPlanner(object):
         else:
             q3c_dist = fn.q3c_dist(model_ra, model_dec, source.ra, source.dec)
             q3c_join = fn.q3c_join(
-                model_ra, model_dec, source.ra, source.dec, query_radius / 3600.0
+                model_ra,
+                model_dec,
+                source.ra,
+                source.dec,
+                query_radius / 3600.0,
             )
 
         # Get the cross-matched catalogid and model target pk (target_id),
@@ -1710,7 +1714,8 @@ class XMatchPlanner(object):
             xmatched = xmatched.where(self._get_ls8_where(model))
         if table_name == "legacy_survey_dr10":
             xmatched = xmatched.where(
-                model.survey_primary >> True, fn.coalesce(model.ref_cat, "") != "T2"
+                model.survey_primary >> True,
+                fn.coalesce(model.ref_cat, "") != "T2",
             )
 
         # This may break the use of the index but I think it's needed if
@@ -1723,7 +1728,8 @@ class XMatchPlanner(object):
         # We'll partition over each group of targets that match the same
         # catalogid and mark the one with the smallest distance to it as best.
         partition = fn.first_value(xmatched.c.target_id).over(
-            partition_by=[xmatched.c.catalogid], order_by=[xmatched.c.distance.asc()]
+            partition_by=[xmatched.c.catalogid],
+            order_by=[xmatched.c.distance.asc()],
         )
         best = peewee.Value(partition == xmatched.c.target_id)
 
@@ -1771,6 +1777,12 @@ class XMatchPlanner(object):
                     )
                 )
             )
+
+        # Make sure we are only spatially cross-matching against targets from the same
+        # cross-match. This only matters for addendum runs because in those we are also
+        # cross-matching against the existing catalogdb.catalog table which contains multiple
+        # versions.
+        in_query = in_query.where(xmatched.c.version_id == self.version_id)
 
         with Timer() as timer:
             with self.database.atomic():

@@ -2,7 +2,11 @@
 
 ## Next version
 
- 
+### 🔧 Fixed
+
+* Fixed a bug in the cross-match code that would cross-match the input table against all versions in ``catalog`` for addendum runs.
+
+
 ## 1.3.15 - August 13 2024
 
 ### 🚀 New
@@ -15,7 +19,6 @@
 
 
 ## 1.3.14 - August 12 2024
- 
 
 ### 🚀 New
 
