@@ -15,6 +15,7 @@ import click
 import pandas
 from peewee import SQL, DoesNotExist, ProgrammingError, fn
 
+
 __all__ = [
     "Timer",
     "sql_apply_pm",
@@ -53,9 +54,7 @@ class Timer:
         return time.time() - self.start
 
 
-def sql_apply_pm(
-    ra_field, dec_field, pmra_field, pmdec_field, epoch_delta, is_pmra_cos=True
-):
+def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field, epoch_delta, is_pmra_cos=True):
     """Constructs a SQL expression for applying proper motions to RA/Dec.
 
     Parameters
@@ -285,14 +284,10 @@ def remove_version(
         print("Removed entry in 'version'.")
 
 
-def vacuum_table(
-    database, table_name, vacuum=True, analyze=True, maintenance_work_mem="50GB"
-):
+def vacuum_table(database, table_name, vacuum=True, analyze=True, maintenance_work_mem="50GB"):
     """Vacuums and analyses a table."""
 
-    statement = (
-        ("VACUUM " if vacuum else "") + ("ANALYZE " if analyze else "") + table_name
-    )
+    statement = ("VACUUM " if vacuum else "") + ("ANALYZE " if analyze else "") + table_name
 
     with database.atomic():
         # Change isolation level to allow executing commands such as VACUUM.
