@@ -1,5 +1,12 @@
 # Changelog
 
+## Next version
+
+### 🚀 New
+
+* [#425](https://github.com/sdss/target_selection/pull/425) New code to update the ``sdss_id`` tables by @zachway1996
+
+
 ## 1.3.16 - November 13, 2024
 
 ### 🔧 Fixed
