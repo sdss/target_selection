@@ -347,7 +347,7 @@ def get_configuration_values(database, parameters):
                 value = database.execute_sql(f"SHOW {parameter}").fetchone()[0]
                 values[parameter] = value
             except ProgrammingError:
-                pass
+                database.rollback()
 
     return values
 
