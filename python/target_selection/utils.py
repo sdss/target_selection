@@ -13,8 +13,7 @@ import time
 
 import click
 import pandas
-from peewee import SQL, DoesNotExist, fn
-
+from peewee import SQL, DoesNotExist, ProgrammingError, fn
 
 __all__ = [
     "Timer",
@@ -54,7 +53,9 @@ class Timer:
         return time.time() - self.start
 
 
-def sql_apply_pm(ra_field, dec_field, pmra_field, pmdec_field, epoch_delta, is_pmra_cos=True):
+def sql_apply_pm(
+    ra_field, dec_field, pmra_field, pmdec_field, epoch_delta, is_pmra_cos=True
+):
     """Constructs a SQL expression for applying proper motions to RA/Dec.
 
     Parameters
@@ -221,7 +222,12 @@ def set_config_parameter(database, parameter, new_value, reset=True, log=None):
 
 
 def remove_version(
-    database, plan, schema="catalogdb", table="catalog", delete_version=True, vacuum=True
+    database,
+    plan,
+    schema="catalogdb",
+    table="catalog",
+    delete_version=True,
+    vacuum=True,
 ):
     """Removes all rows in ``table`` and ``table_to_`` that match a version."""
 
@@ -279,10 +285,14 @@ def remove_version(
         print("Removed entry in 'version'.")
 
 
-def vacuum_table(database, table_name, vacuum=True, analyze=True, maintenance_work_mem="50GB"):
+def vacuum_table(
+    database, table_name, vacuum=True, analyze=True, maintenance_work_mem="50GB"
+):
     """Vacuums and analyses a table."""
 
-    statement = ("VACUUM " if vacuum else "") + ("ANALYZE " if analyze else "") + table_name
+    statement = (
+        ("VACUUM " if vacuum else "") + ("ANALYZE " if analyze else "") + table_name
+    )
 
     with database.atomic():
         # Change isolation level to allow executing commands such as VACUUM.
@@ -333,8 +343,11 @@ def get_configuration_values(database, parameters):
 
     with database.atomic():
         for parameter in parameters:
-            value = database.execute_sql(f"SHOW {parameter}").fetchone()[0]
-            values[parameter] = value
+            try:
+                value = database.execute_sql(f"SHOW {parameter}").fetchone()[0]
+                values[parameter] = value
+            except ProgrammingError:
+                pass
 
     return values
 
