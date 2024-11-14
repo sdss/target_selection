@@ -8,8 +8,7 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToTIC_v8,
-                                             Gaia_DR2, TIC_v8, TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, Gaia_DR2, TIC_v8, TwoMassPSC
 
 from target_selection.cartons import BaseCarton
 
@@ -26,6 +25,7 @@ from target_selection.cartons import BaseCarton
 # to the corresponding model name which is in catalogdb.py.
 # For example:
 # CatalogToTIC_v8--->'catalog_to_tic_v8'
+
 
 class OPS_APOGEE_Stds_Carton(BaseCarton):
     """
@@ -68,80 +68,89 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     Lead contact: Kevin Covey
     """
 
-    name = 'ops_std_apogee'
-    category = 'standard_apogee'
+    name = "ops_std_apogee"
+    category = "standard_apogee"
     cadence = None
-    program = 'ops_std'
+    program = "ops_std"
     priority = 5500
     mapper = None
-    instrument = 'APOGEE'
+    instrument = "APOGEE"
     can_offset = False
 
     def build_query(self, version_id, query_region=None):
-
-        query = (Catalog
-                 .select(CatalogToTIC_v8.catalogid, Catalog.ra, Catalog.dec,
-                         TwoMassPSC.h_m, TwoMassPSC.j_m, TwoMassPSC.k_m,
-                         TwoMassPSC.h_msigcom,
-                         TwoMassPSC.j_msigcom,
-                         TwoMassPSC.k_msigcom,
-                         TwoMassPSC.rd_flg, TwoMassPSC.ph_qual,
-                         TwoMassPSC.gal_contam, TwoMassPSC.prox,
-                         TwoMassPSC.cc_flg, TwoMassPSC.ext_key,
-                         peewee.fn.healpix_ang2ipix_nest(
-                             128, Catalog.ra, Catalog.dec).alias('healpix_128'),
-                         (TwoMassPSC.j_m - TwoMassPSC.k_m).alias('j_minus_k'))
-                 .join(CatalogToTIC_v8,
-                       on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
-                 .join(TIC_v8,
-                       on=(CatalogToTIC_v8.target_id == TIC_v8.id))
-                 .join(TwoMassPSC,
-                       on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
-                 .join(Gaia_DR2,
-                       on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
-                 .where(CatalogToTIC_v8.version_id == version_id,
-                        CatalogToTIC_v8.best >> True,
-                        TwoMassPSC.h_m > 7,
-                        TwoMassPSC.h_m < 11,
-                        (TwoMassPSC.j_m - TwoMassPSC.k_m) > -0.25,
-                        TwoMassPSC.j_msigcom < 0.1,
-                        TwoMassPSC.h_msigcom < 0.1,
-                        TwoMassPSC.k_msigcom < 0.1,
-                        (TwoMassPSC.rd_flg == '111') |
-                        (TwoMassPSC.rd_flg == '211') |
-                        (TwoMassPSC.rd_flg == '121') |
-                        (TwoMassPSC.rd_flg == '221') |
-                        (TwoMassPSC.rd_flg == '112') |
-                        (TwoMassPSC.rd_flg == '212') |
-                        (TwoMassPSC.rd_flg == '122') |
-                        (TwoMassPSC.rd_flg == '222'),
-                        (TwoMassPSC.ph_qual == 'AAA') |
-                        (TwoMassPSC.ph_qual == 'BAA') |
-                        (TwoMassPSC.ph_qual == 'ABA') |
-                        (TwoMassPSC.ph_qual == 'BBA') |
-                        (TwoMassPSC.ph_qual == 'AAB') |
-                        (TwoMassPSC.ph_qual == 'BAB') |
-                        (TwoMassPSC.ph_qual == 'ABB') |
-                        (TwoMassPSC.ph_qual == 'BBB'),
-                        TwoMassPSC.gal_contam == 0,
-                        TwoMassPSC.prox > 6.0,
-                        TwoMassPSC.cc_flg == '000',
-                        TwoMassPSC.ext_key.is_null(),
-                        peewee.fn.sqrt(peewee.fn.pow(Gaia_DR2.pmra, 2) +
-                                       peewee.fn.pow(Gaia_DR2.pmdec, 2)) < 100,
-                        Gaia_DR2.parallax < 10))
+        query = (
+            Catalog.select(
+                CatalogToTIC_v8.catalogid,
+                Catalog.ra,
+                Catalog.dec,
+                TwoMassPSC.h_m,
+                TwoMassPSC.j_m,
+                TwoMassPSC.k_m,
+                TwoMassPSC.h_msigcom,
+                TwoMassPSC.j_msigcom,
+                TwoMassPSC.k_msigcom,
+                TwoMassPSC.rd_flg,
+                TwoMassPSC.ph_qual,
+                TwoMassPSC.gal_contam,
+                TwoMassPSC.prox,
+                TwoMassPSC.cc_flg,
+                TwoMassPSC.ext_key,
+                peewee.fn.healpix_ang2ipix_nest(128, Catalog.ra, Catalog.dec).alias("healpix_128"),
+                (TwoMassPSC.j_m - TwoMassPSC.k_m).alias("j_minus_k"),
+            )
+            .join(CatalogToTIC_v8, on=(Catalog.catalogid == CatalogToTIC_v8.catalogid))
+            .join(TIC_v8, on=(CatalogToTIC_v8.target_id == TIC_v8.id))
+            .join(TwoMassPSC, on=(TIC_v8.twomass_psc == TwoMassPSC.designation))
+            .join(Gaia_DR2, on=(TIC_v8.gaia_int == Gaia_DR2.source_id))
+            .where(
+                CatalogToTIC_v8.version_id == version_id,
+                CatalogToTIC_v8.best >> True,
+                TwoMassPSC.h_m > 7,
+                TwoMassPSC.h_m < 11,
+                (TwoMassPSC.j_m - TwoMassPSC.k_m) > -0.25,
+                TwoMassPSC.j_msigcom < 0.1,
+                TwoMassPSC.h_msigcom < 0.1,
+                TwoMassPSC.k_msigcom < 0.1,
+                (TwoMassPSC.rd_flg == "111")
+                | (TwoMassPSC.rd_flg == "211")
+                | (TwoMassPSC.rd_flg == "121")
+                | (TwoMassPSC.rd_flg == "221")
+                | (TwoMassPSC.rd_flg == "112")
+                | (TwoMassPSC.rd_flg == "212")
+                | (TwoMassPSC.rd_flg == "122")
+                | (TwoMassPSC.rd_flg == "222"),
+                (TwoMassPSC.ph_qual == "AAA")
+                | (TwoMassPSC.ph_qual == "BAA")
+                | (TwoMassPSC.ph_qual == "ABA")
+                | (TwoMassPSC.ph_qual == "BBA")
+                | (TwoMassPSC.ph_qual == "AAB")
+                | (TwoMassPSC.ph_qual == "BAB")
+                | (TwoMassPSC.ph_qual == "ABB")
+                | (TwoMassPSC.ph_qual == "BBB"),
+                TwoMassPSC.gal_contam == 0,
+                TwoMassPSC.prox > 6.0,
+                TwoMassPSC.cc_flg == "000",
+                TwoMassPSC.ext_key.is_null(),
+                peewee.fn.sqrt(peewee.fn.pow(Gaia_DR2.pmra, 2) + peewee.fn.pow(Gaia_DR2.pmdec, 2))
+                < 100,
+                Gaia_DR2.parallax < 10,
+            )
+        )
 
         # Below ra, dec and radius are in degrees
         # query_region[0] is ra of center of the region
         # query_region[1] is dec of center of the region
         # query_region[2] is radius of the region
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
         return query
 
     def post_process(self, model):
@@ -149,13 +158,13 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         Select the 5 bluest sources (i.e. 5 smallest J-K) in each healpix pixel.
         """
 
-        self.database.execute_sql("update sandbox.temp_ops_std_apogee " +
-                                  "set selected = false")
+        self.database.execute_sql("update sandbox.temp_ops_std_apogee " + "set selected = false")
 
         cursor = self.database.execute_sql(
-            "select catalogid, healpix_128, j_minus_k from " +
-            " sandbox.temp_ops_std_apogee " +
-            " order by healpix_128 asc, j_minus_k asc;")
+            "select catalogid, healpix_128, j_minus_k from "
+            + " sandbox.temp_ops_std_apogee "
+            + " order by healpix_128 asc, j_minus_k asc;"
+        )
 
         output = cursor.fetchall()
 
@@ -166,7 +175,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         current_target = 0
         for i in range(len(output)):
             current_healpix = output[i][1]
-            if (count[current_healpix] < 5):
+            if count[current_healpix] < 5:
                 count[current_healpix] = count[current_healpix] + 1
                 list_of_catalog_id[current_target] = output[i][0]
                 current_target = current_target + 1
@@ -174,5 +183,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         max_target = current_target
         for k in range(max_target + 1):
             self.database.execute_sql(
-                " update sandbox.temp_ops_std_apogee set selected = true " +
-                " where catalogid = " + str(list_of_catalog_id[k]) + ";")
+                " update sandbox.temp_ops_std_apogee set selected = true "
+                + " where catalogid = "
+                + str(list_of_catalog_id[k])
+                + ";"
+            )

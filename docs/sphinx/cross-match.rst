@@ -261,6 +261,15 @@ Here ``work_mem`` and ``temp_buffers`` are set to 10GB for all tables, but for p
 
 In general it makes sense to set high but safe global values for the database configuration and increase them for some very large tables. In doing so be careful to not run out of memory. This can happen easily if setting ``work_mem`` to high in phase 1. If many joins happen during linking, each one of them taking at least ``work_mem`` amount of memory, the server can easily run out of memory.
 
+Dry-run mode
+^^^^^^^^^^^^
+
+It is possible to run a cross-match with a single catalogue in dry-run mode. In this mode the cross-match is executed as usual but the results are not inserted into the final ``catalogdb.catalog`` table. All the cross-match occurs in temporary tables ``catalog_<hash>`` and ``catalog_to_<hash>`` in the ``sandbox`` schema (where ``<hash>`` is a unique identifier based on the plan ID). When running in dry-run mode the temporary tables are populated, the final tables not loaded, and the temporary tables are not removed and can be accessed after the cross-match execution.
+
+To run a cross-match plan in dry-run mode we call `~.XMatchPlanner.run` with the argument ``dry_run=True`` ::
+
+    xmatch.run(dry_run=True)
+
 Removing a run
 ^^^^^^^^^^^^^^
 
@@ -269,3 +278,61 @@ Sometimes a run fails and we want to remove the data that it has already inserte
     from sdssdb.peewee.sdss5db import database
     from target_selection.utils import remove_version
     remove_version(database, '0.2.0')
+
+Addendum runs
+^^^^^^^^^^^^^
+
+"Addendum" cross-match runs can be used to append catalogues to an existing cross-match run. The result is the same as if that catalogue had been processed along with the original run in last place. The ``catalogids`` for the newly appended catalogue belong to the same ``version_id`` as the original cross-match.
+
+Addendum runs are defined and run in the same way as a normal run but the configuration YAML must include a ``version_id`` key with the value of the ``version_id`` of the original run. Here is an example of a valid addendum plan that adds the catalogue ``marvels_dr11_star`` to the ``v1`` cross-match (``version_id=31``):
+
+.. code-block:: yaml
+
+    '1.1.1':
+        run_id: 9
+        query_radius: 1.0
+        show_sql: True
+        schema: catalogdb
+        output_table: catalog
+        start_node: gaia_dr3_source
+        debug: true
+        log_path: xmatch_{plan}.log
+        path_mode: config_list
+        extra_nodes:
+            - 'tycho2'
+            - 'catalog_to_tycho2'
+            - 'twomass_psc'
+            - 'catalog_to_twomass_psc'
+        version_id: 31
+        order:
+            - marvels_dr11_star
+        tables:
+            marvels_dr11_star:
+                ra_column: ra_final
+                dec_column: dec_final
+        join_paths:
+            - ['marvels_dr11_star', 'tycho2', 'catalog_to_tycho2', 'catalog']
+            - ['marvels_dr11_star', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+        database_options:
+            work_mem: '10GB'
+            temp_buffers: '5GB'
+            maintenance_work_mem: '5GB'
+            enable_hashjoin: false
+
+There are a few things to note here, the most important of which is the inclusion of the line ``version_id: 31`` which tells the cross-match code to add this catalogue to the existing cross-match run with that ``version_id``. The ``run_id`` does not need to be the same as the one for the original cross-match, and in general it's a good idea to use a unique ``run_id`` for each plan, including addendum runs.
+
+Note that we are still including a ``start_node`` even if that node is not being cross-matched. This is a leftover from the requirements for a full run and may be removed in the future; for now it is necessary to include a ``start_node`` but it is otherwise ignored.
+
+Here we have chosen to explicitely defined the join paths for phase 1. This is not required and if we had used the normal join method (``path_mode: original``) the cross-match would have used all available foreign key relationships. Instead we use ``path_mode: config_list`` which requires including ``join_paths``. Each join path is a list of nodes, starting in the table to process (``marvels_dr11_star``) and ending in the ``catalog`` table. It is also necessary to include those tables in ``extra_nodes`` as we are not explicitely cross-matching ``tycho2`` and ``twomass_psc``. This is another leftover from how the code behaves for a full run and may be improved in the future.
+
+The remaining parameters are all the same as in a normal cross-match run, including the keywords in ``tables.marvels_dr11_star``.
+
+Once the plan is defined it can be run in the same way as a normal cross-match run ::
+
+    from sdssdb.peewee.sdss5db import database
+    from target_selection.xmatch import XMatchPlanner
+
+    database.become_admin()
+
+    xmatch = XMatchPlanner.read(database, '1.1.1', config_file='/path/to/xmatch.yaml')
+    xmatch.run(dry_run=False)

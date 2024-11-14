@@ -29,12 +29,12 @@ class OPS_Sky_Boss_Best_Carton(BaseCarton):
 
     """
 
-    name = 'ops_sky_boss_best'
+    name = "ops_sky_boss_best"
     cadence = None
-    category = 'sky_boss'
-    program = 'ops_sky'
+    category = "sky_boss"
+    program = "ops_sky"
     mapper = None
-    instrument = 'BOSS'
+    instrument = "BOSS"
     inertial = True
     priority = 5000
     can_offset = False
@@ -46,8 +46,7 @@ class OPS_Sky_Boss_Best_Carton(BaseCarton):
         pars = self.parameters
 
         query = (
-            Skies_v2
-            .select(
+            Skies_v2.select(
                 CatalogToSkies_v2.catalogid,
                 Skies_v2.ra,
                 Skies_v2.dec,
@@ -55,33 +54,30 @@ class OPS_Sky_Boss_Best_Carton(BaseCarton):
                 Skies_v2.tile_32,
             )
             .join(CatalogToSkies_v2)
-            .where(CatalogToSkies_v2.version_id == version_id,
-                   CatalogToSkies_v2.best >> True)
-            .where(Skies_v2.valid_gaia >> True,
-                   Skies_v2.valid_tmass >> True,
-                   Skies_v2.valid_tycho2 >> True,
-                   Skies_v2.valid_tmass_xsc >> True)
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
             .where(
-                fn.COALESCE(Skies_v2.sep_neighbour_ls8, a_large_value) > pars['min_sep_ls8'],
-                fn.COALESCE(Skies_v2.sep_neighbour_ps1dr2, a_large_value) > pars['min_sep_ps1dr2'],
-                (
-                    (Skies_v2.valid_ls8 >> True) &
-                    (Skies_v2.sep_neighbour_ls8 < pars['max_sep_ls8'])
-                ) |
-                (
-                    (Skies_v2.valid_ps1dr2 >> True) &
-                    (Skies_v2.sep_neighbour_ps1dr2 < pars['max_sep_ps1dr2'])
-                )
+                Skies_v2.valid_gaia >> True,
+                Skies_v2.valid_tmass >> True,
+                Skies_v2.valid_tycho2 >> True,
+                Skies_v2.valid_tmass_xsc >> True,
+            )
+            .where(
+                fn.COALESCE(Skies_v2.sep_neighbour_ls8, a_large_value) > pars["min_sep_ls8"],
+                fn.COALESCE(Skies_v2.sep_neighbour_ps1dr2, a_large_value) > pars["min_sep_ps1dr2"],
+                ((Skies_v2.valid_ls8 >> True) & (Skies_v2.sep_neighbour_ls8 < pars["max_sep_ls8"]))
+                | (
+                    (Skies_v2.valid_ps1dr2 >> True)
+                    & (Skies_v2.sep_neighbour_ps1dr2 < pars["max_sep_ps1dr2"])
+                ),
             )
         )
 
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
-                                                       Skies_v2.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra, Skies_v2.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
 
@@ -98,12 +94,12 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
 
     """
 
-    name = 'ops_sky_boss_good'
+    name = "ops_sky_boss_good"
     cadence = None
-    category = 'sky_boss'
-    program = 'ops_sky'
+    category = "sky_boss"
+    program = "ops_sky"
     mapper = None
-    instrument = 'BOSS'
+    instrument = "BOSS"
     inertial = True
     priority = 5001
     can_offset = False
@@ -114,8 +110,7 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
         pars = self.parameters
 
         query = (
-            Skies_v2
-            .select(
+            Skies_v2.select(
                 CatalogToSkies_v2.catalogid,
                 Skies_v2.ra,
                 Skies_v2.dec,
@@ -123,37 +118,38 @@ class OPS_Sky_Boss_Good_Carton(BaseCarton):
                 Skies_v2.tile_32,
             )
             .join(CatalogToSkies_v2)
-            .where(Skies_v2.sep_neighbour_gaia > pars['min_sep_gaia'])
-            .where(CatalogToSkies_v2.version_id == version_id,
-                   CatalogToSkies_v2.best >> True)
-            .where(Skies_v2.valid_gaia >> True,
-                   Skies_v2.valid_tmass >> True,
-                   Skies_v2.valid_tycho2 >> True,
-                   Skies_v2.valid_tmass_xsc >> True)
+            .where(Skies_v2.sep_neighbour_gaia > pars["min_sep_gaia"])
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
+            .where(
+                Skies_v2.valid_gaia >> True,
+                Skies_v2.valid_tmass >> True,
+                Skies_v2.valid_tycho2 >> True,
+                Skies_v2.valid_tmass_xsc >> True,
+            )
         )
 
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
-                                                       Skies_v2.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra, Skies_v2.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
 
 
 class TempTableFallbackCarton(Model):
-    """ The peewee model class TempTableFallbackCarton is used below in the
-        carton class OPS_Sky_Boss_Fallback_Carton.
+    """The peewee model class TempTableFallbackCarton is used below in the
+    carton class OPS_Sky_Boss_Fallback_Carton.
     """
+
     tile_32 = peewee.IntegerField()
     nsky = peewee.BigIntegerField()
 
     class Meta:
-        schema = 'sandbox'
+        schema = "sandbox"
         database = database
-        table_name = 'temp_ops_sky_boss_good_missing_pix_xyz'
+        table_name = "temp_ops_sky_boss_good_missing_pix_xyz"
 
 
 class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
@@ -165,21 +161,21 @@ class OPS_Sky_Boss_Fallback_Carton(BaseCarton):
        Select tile_32 locations that have few best/good skies available
        Take all sky locations in those pixels
 
-   """
+    """
 
-    name = 'ops_sky_boss_fallback'
+    name = "ops_sky_boss_fallback"
     cadence = None
-    category = 'sky_boss'
-    program = 'ops_sky'
+    category = "sky_boss"
+    program = "ops_sky"
     mapper = None
-    instrument = 'BOSS'
+    instrument = "BOSS"
     inertial = True
     priority = 5002
     can_offset = False
 
     load_magnitudes = False
 
-    '''
+    """
     Here is the SQL to generate the query.
 
 # Algorithm:
@@ -217,14 +213,14 @@ WHERE selected_gaia is true
   AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0
   AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;
 
-    '''
-    def build_query(self, version_id, query_region=None):
+    """
 
+    def build_query(self, version_id, query_region=None):
         pars = self.parameters
 
         # The below lines ensure that the
         # input parameters for the SQL query have the proper types.
-        local_min_sep_gaia = float(pars['min_sep_gaia'])
+        local_min_sep_gaia = float(pars["min_sep_gaia"])
         local_version_id = int(version_id)
 
         # We have put commit() after the 'drop table' and 'select into' commands
@@ -235,101 +231,110 @@ WHERE selected_gaia is true
         # However, below we are using the name
         # sandbox.temp_ops_sky_boss_good_missing_pix_xyz.
         cursor = self.database.execute_sql(
-            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_xyz ;")
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_xyz ;"
+        )
 
         # Above comment uses the name sandbox.temp_ops_sky_boss_good.
         # However, sandbox.temp_ops_sky_boss_good is produced by the
         # ops_sky_boss_good carton.
         # Hence, below we are using the name sandbox.temp_ops_sky_boss_good_xyz.
         cursor = self.database.execute_sql(
-            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_xyz ;")
+            "DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_xyz ;"
+        )
         self.database.commit()
 
         # This query is from the ops_sky_boss_good carton.
         cursor = self.database.execute_sql(
-            "select ct.catalogid, " +
-            "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 " +
-            "into sandbox.temp_ops_sky_boss_good_xyz " +
-            "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct " +
-            "where sk.pix_32768 = ct.target_id and " +
-            "sk.sep_neighbour_gaia > " + str(local_min_sep_gaia) + " and " +
-            "ct.version_id = " + str(local_version_id) + " and " +
-            "ct.best = true and " +
-            "sk.valid_gaia = true and " +
-            "sk.valid_tmass = true and " +
-            "sk.valid_tycho2 = true and " +
-            "sk.valid_tmass_xsc = true ;")
+            "select ct.catalogid, "
+            + "sk.ra, sk.dec, sk.pix_32768, sk.tile_32 "
+            + "into sandbox.temp_ops_sky_boss_good_xyz "
+            + "from catalogdb.skies_v2 as sk, catalogdb.catalog_to_skies_v2 as ct "
+            + "where sk.pix_32768 = ct.target_id and "
+            + "sk.sep_neighbour_gaia > "
+            + str(local_min_sep_gaia)
+            + " and "
+            + "ct.version_id = "
+            + str(local_version_id)
+            + " and "
+            + "ct.best = true and "
+            + "sk.valid_gaia = true and "
+            + "sk.valid_tmass = true and "
+            + "sk.valid_tycho2 = true and "
+            + "sk.valid_tmass_xsc = true ;"
+        )
         self.database.commit()
 
         cursor = self.database.execute_sql(
-            "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky " +
-            "INTO sandbox.temp_ops_sky_boss_good_missing_pix_xyz " +
-            "FROM (SELECT generate_series(0,12287) AS tile_32) AS p " +
-            "LEFT OUTER JOIN " +
-            "(SELECT tile_32,count(*) AS nsky " +
-            "FROM sandbox.temp_ops_sky_boss_good_xyz GROUP BY tile_32) AS b " +
-            "ON p.tile_32 = b.tile_32 " +
-            "WHERE COALESCE(b.nsky,0) < 1000 ;")
+            "SELECT p.tile_32,COALESCE(b.nsky,0) as nsky "
+            + "INTO sandbox.temp_ops_sky_boss_good_missing_pix_xyz "
+            + "FROM (SELECT generate_series(0,12287) AS tile_32) AS p "
+            + "LEFT OUTER JOIN "
+            + "(SELECT tile_32,count(*) AS nsky "
+            + "FROM sandbox.temp_ops_sky_boss_good_xyz GROUP BY tile_32) AS b "
+            + "ON p.tile_32 = b.tile_32 "
+            + "WHERE COALESCE(b.nsky,0) < 1000 ;"
+        )
 
         cursor = self.database.execute_sql(
-            "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix_xyz (tile_32);")
+            "CREATE INDEX ON sandbox.temp_ops_sky_boss_good_missing_pix_xyz (tile_32);"
+        )
 
         cursor = self.database.execute_sql(  # noqa: F841
-            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix_xyz;")
+            "ANALYZE sandbox.temp_ops_sky_boss_good_missing_pix_xyz;"
+        )
         self.database.commit()
 
-# We do not use the table
-# sandbox.temp_ops_sky_boss_good_missing_pix_skies in this carton.
-# Hence, we do not issue the below drop table from the example SQL code above
-#           DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;
-#
-# Below SQL query is implemented as a peewee query after this comment.
-#        cursor = self.database.execute_sql(
-#            "SELECT p.nsky,s.*" +
-#            "INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies " +
-#            "FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p " +
-#            "JOIN skies_v2 AS s " +
-#            "ON p.tile_32 = s.tile_32 " +
-#            "WHERE selected_gaia is true " +
-#            "AND COALESCE(sep_neighbour_gaia,1e30) > 3.0 " +
-#            "AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0 " +
-#            "AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0 " +
-#            "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
+        # We do not use the table
+        # sandbox.temp_ops_sky_boss_good_missing_pix_skies in this carton.
+        # Hence, we do not issue the below drop table from the example SQL code above
+        #           DROP TABLE IF EXISTS sandbox.temp_ops_sky_boss_good_missing_pix_skies;
+        #
+        # Below SQL query is implemented as a peewee query after this comment.
+        #        cursor = self.database.execute_sql(
+        #            "SELECT p.nsky,s.*" +
+        #            "INTO sandbox.temp_ops_sky_boss_good_missing_pix_skies " +
+        #            "FROM sandbox.temp_ops_sky_boss_good_missing_pix AS p " +
+        #            "JOIN skies_v2 AS s " +
+        #            "ON p.tile_32 = s.tile_32 " +
+        #            "WHERE selected_gaia is true " +
+        #            "AND COALESCE(sep_neighbour_gaia,1e30) > 3.0 " +
+        #            "AND COALESCE(sep_neighbour_ps1dr2,1e30) > 3.0 " +
+        #            "AND COALESCE(sep_neighbour_tycho2,1e30) > 15.0 " +
+        #            "AND COALESCE(sep_neighbour_tmass,1e30) > 5.0;")
 
         # The peewee model TempTableFallbackCarton corresponds to
         # the table sandbox.temp_ops_sky_boss_good_missing_pix_xyz.
         #
 
         query = (
-            CatalogToSkies_v2
-            .select(
+            CatalogToSkies_v2.select(
                 CatalogToSkies_v2.catalogid,
                 Skies_v2.ra,
                 Skies_v2.dec,
                 Skies_v2.pix_32768,
                 Skies_v2.tile_32,
-                TempTableFallbackCarton.nsky
+                TempTableFallbackCarton.nsky,
             )
-            .join(Skies_v2,
-                  on=(CatalogToSkies_v2.target_id == Skies_v2.pix_32768))
-            .join(TempTableFallbackCarton,
-                  on=(Skies_v2.tile_32 == TempTableFallbackCarton.tile_32))
-            .where(CatalogToSkies_v2.version_id == version_id,
-                   CatalogToSkies_v2.best >> True)
-            .where(Skies_v2.selected_gaia >> True,
-                   fn.coalesce(Skies_v2.sep_neighbour_gaia, 1e30) > 3.0,
-                   fn.coalesce(Skies_v2.sep_neighbour_ps1dr2, 1e30) > 3.0,
-                   fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
-                   fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0)
+            .join(Skies_v2, on=(CatalogToSkies_v2.target_id == Skies_v2.pix_32768))
+            .join(
+                TempTableFallbackCarton, on=(Skies_v2.tile_32 == TempTableFallbackCarton.tile_32)
+            )
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
+            .where(
+                Skies_v2.selected_gaia >> True,
+                fn.coalesce(Skies_v2.sep_neighbour_gaia, 1e30) > 3.0,
+                fn.coalesce(Skies_v2.sep_neighbour_ps1dr2, 1e30) > 3.0,
+                fn.coalesce(Skies_v2.sep_neighbour_tycho2, 1e30) > 15.0,
+                fn.coalesce(Skies_v2.sep_neighbour_tmass, 1e30) > 5.0,
+            )
         )
 
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
-                                                       Skies_v2.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra, Skies_v2.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
 
@@ -343,12 +348,12 @@ class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
 
     """
 
-    name = 'ops_sky_apogee_best'
+    name = "ops_sky_apogee_best"
     cadence = None
-    category = 'sky_apogee'
-    program = 'ops_sky'
+    category = "sky_apogee"
+    program = "ops_sky"
     mapper = None
-    instrument = 'APOGEE'
+    instrument = "APOGEE"
     inertial = True
     priority = 5200
     can_offset = False
@@ -356,26 +361,30 @@ class OPS_Sky_APOGEE_Best_Carton(BaseCarton):
     load_magnitudes = False
 
     def build_query(self, version_id, query_region=None):
-
-        query = (Skies_v2
-                 .select(CatalogToSkies_v2.catalogid,
-                         Skies_v2.ra, Skies_v2.dec,
-                         Skies_v2.pix_32768, Skies_v2.tile_32)
-                 .join(CatalogToSkies_v2)
-                 .where(CatalogToSkies_v2.version_id == version_id,
-                        CatalogToSkies_v2.best >> True)
-                 .where(Skies_v2.valid_gaia >> True,
-                        Skies_v2.valid_tmass >> True,
-                        Skies_v2.valid_tycho2 >> True,
-                        Skies_v2.valid_tmass_xsc >> True))
+        query = (
+            Skies_v2.select(
+                CatalogToSkies_v2.catalogid,
+                Skies_v2.ra,
+                Skies_v2.dec,
+                Skies_v2.pix_32768,
+                Skies_v2.tile_32,
+            )
+            .join(CatalogToSkies_v2)
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
+            .where(
+                Skies_v2.valid_gaia >> True,
+                Skies_v2.valid_tmass >> True,
+                Skies_v2.valid_tycho2 >> True,
+                Skies_v2.valid_tmass_xsc >> True,
+            )
+        )
 
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
-                                                       Skies_v2.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra, Skies_v2.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query
 
@@ -389,12 +398,12 @@ class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
 
     """
 
-    name = 'ops_sky_apogee_good'
+    name = "ops_sky_apogee_good"
     cadence = None
-    category = 'sky_apogee'
-    program = 'ops_sky'
+    category = "sky_apogee"
+    program = "ops_sky"
     mapper = None
-    instrument = 'APOGEE'
+    instrument = "APOGEE"
     inertial = True
     priority = 5201
     can_offset = False
@@ -402,23 +411,24 @@ class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
     load_magnitudes = False
 
     def build_query(self, version_id, query_region=None):
-
-        query = (Skies_v2
-                 .select(CatalogToSkies_v2.catalogid,
-                         Skies_v2.ra, Skies_v2.dec,
-                         Skies_v2.pix_32768, Skies_v2.tile_32)
-                 .join(CatalogToSkies_v2)
-                 .where(CatalogToSkies_v2.version_id == version_id,
-                        CatalogToSkies_v2.best >> True)
-                 .where(Skies_v2.selected_tmass >> True,
-                        Skies_v2.valid_tmass >> False)
-                 .where(Skies_v2.mag_neighbour_tmass > 10.0))
+        query = (
+            Skies_v2.select(
+                CatalogToSkies_v2.catalogid,
+                Skies_v2.ra,
+                Skies_v2.dec,
+                Skies_v2.pix_32768,
+                Skies_v2.tile_32,
+            )
+            .join(CatalogToSkies_v2)
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
+            .where(Skies_v2.selected_tmass >> True, Skies_v2.valid_tmass >> False)
+            .where(Skies_v2.mag_neighbour_tmass > 10.0)
+        )
         if query_region:
-            query = (query
-                     .where(peewee.fn.q3c_radial_query(Skies_v2.ra,
-                                                       Skies_v2.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra, Skies_v2.dec, query_region[0], query_region[1], query_region[2]
+                )
+            )
 
         return query

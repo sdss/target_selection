@@ -8,10 +8,14 @@
 
 import peewee
 
-from sdssdb.peewee.sdss5db.catalogdb import (Catalog, CatalogToGaia_DR3,
-                                             CatalogToTwoMassPSC, Gaia_DR3,
-                                             SDSS_DR17_APOGEE_Allstarmerge,
-                                             TwoMassPSC)
+from sdssdb.peewee.sdss5db.catalogdb import (
+    Catalog,
+    CatalogToGaia_DR3,
+    CatalogToTwoMassPSC,
+    Gaia_DR3,
+    SDSS_DR17_APOGEE_Allstarmerge,
+    TwoMassPSC,
+)
 
 from target_selection.cartons import BaseCarton
 
@@ -74,33 +78,34 @@ from target_selection.cartons import BaseCarton
 # The v0.5 version of this carton used catalogdb.sdss_apogeeallstarmerge_r13.
 #
 
+
 class MWM_Legacy_ir2opt_boss_Carton(BaseCarton):
     """
-Shorthand name: mwm_legacy_ir2opt_boss
+    Shorthand name: mwm_legacy_ir2opt_boss
 
-APOGEE targets to be observed with BOSS fibres.
-To be used as a filler for MWM-led plates.
+    APOGEE targets to be observed with BOSS fibres.
+    To be used as a filler for MWM-led plates.
 
-Simplified Description of selection criteria: Select all Gaia targets that
-have an APOGEE counterpart (i.e., have an entry in sdss_dr17_apogee_allstarmerge)
-with 13 < G < 18, BP > 13, and RP > 13.
+    Simplified Description of selection criteria: Select all Gaia targets that
+    have an APOGEE counterpart (i.e., have an entry in sdss_dr17_apogee_allstarmerge)
+    with 13 < G < 18, BP > 13, and RP > 13.
 
-Wiki page: NA
+    Wiki page: NA
 
-Additional source catalogs needed: Gaia DR2, sdss_dr17_apogee_allstarmerge
+    Additional source catalogs needed: Gaia DR2, sdss_dr17_apogee_allstarmerge
 
-Additional cross-matching needed: NA
+    Additional cross-matching needed: NA
 
-Return columns: catalog_id, source_id, apogee_id, phot_g_mean_mag,
-phot_rp_mean_mag, phot_bp_mean_mag
+    Return columns: catalog_id, source_id, apogee_id, phot_g_mean_mag,
+    phot_rp_mean_mag, phot_bp_mean_mag
     """
 
-    name = 'mwm_legacy_ir2opt_boss'
-    category = 'science'
-    instrument = 'BOSS'
-    cadence = 'bright_1x1'
-    program = 'mwm_legacy'
-    mapper = 'MWM'
+    name = "mwm_legacy_ir2opt_boss"
+    category = "science"
+    instrument = "BOSS"
+    cadence = "bright_1x1"
+    program = "mwm_legacy"
+    mapper = "MWM"
     priority = 6100
     can_offset = True
 
@@ -108,45 +113,54 @@ phot_rp_mean_mag, phot_bp_mean_mag
     # ltrim('2M20', '2M') will also trim the second 2.
 
     def build_query(self, version_id, query_region=None):
-
-        query = (Catalog
-                 .select(CatalogToGaia_DR3.catalogid,
-                         Gaia_DR3.source_id,
-                         Gaia_DR3.ra.alias('gaia_dr3_ra'),
-                         Gaia_DR3.dec.alias('gaia_dr3_dec'),
-                         Gaia_DR3.phot_g_mean_mag,
-                         Gaia_DR3.phot_bp_mean_mag,
-                         Gaia_DR3.phot_rp_mean_mag,
-                         TwoMassPSC.pts_key,
-                         TwoMassPSC.designation)
-                 .join(CatalogToGaia_DR3,
-                       on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
-                 .join(Gaia_DR3,
-                       on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
-                 .switch(CatalogToGaia_DR3)
-                 .join(CatalogToTwoMassPSC,
-                       on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid))
-                 .join(TwoMassPSC,
-                       on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
-                 .join(SDSS_DR17_APOGEE_Allstarmerge,
-                       on=(TwoMassPSC.designation ==
-                           peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, '2M', '')))
-                 .where(CatalogToGaia_DR3.version_id == version_id,
-                        CatalogToGaia_DR3.best >> True,
-                        CatalogToTwoMassPSC.version_id == version_id,
-                        CatalogToTwoMassPSC.best >> True,
-                        Gaia_DR3.phot_g_mean_mag.between(8, 18)))
+        query = (
+            Catalog.select(
+                CatalogToGaia_DR3.catalogid,
+                Gaia_DR3.source_id,
+                Gaia_DR3.ra.alias("gaia_dr3_ra"),
+                Gaia_DR3.dec.alias("gaia_dr3_dec"),
+                Gaia_DR3.phot_g_mean_mag,
+                Gaia_DR3.phot_bp_mean_mag,
+                Gaia_DR3.phot_rp_mean_mag,
+                TwoMassPSC.pts_key,
+                TwoMassPSC.designation,
+            )
+            .join(CatalogToGaia_DR3, on=(Catalog.catalogid == CatalogToGaia_DR3.catalogid))
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .switch(CatalogToGaia_DR3)
+            .join(
+                CatalogToTwoMassPSC,
+                on=(CatalogToGaia_DR3.catalogid == CatalogToTwoMassPSC.catalogid),
+            )
+            .join(TwoMassPSC, on=(CatalogToTwoMassPSC.target_id == TwoMassPSC.pts_key))
+            .join(
+                SDSS_DR17_APOGEE_Allstarmerge,
+                on=(
+                    TwoMassPSC.designation
+                    == peewee.fn.replace(SDSS_DR17_APOGEE_Allstarmerge.apogee_id, "2M", "")
+                ),
+            )
+            .where(
+                CatalogToGaia_DR3.version_id == version_id,
+                CatalogToGaia_DR3.best >> True,
+                CatalogToTwoMassPSC.version_id == version_id,
+                CatalogToTwoMassPSC.best >> True,
+                Gaia_DR3.phot_g_mean_mag.between(8, 18),
+            )
+        )
 
         # Gaia_DR3 peewee model class corresponds to
         # table catalogdb.gaia_dr3_source.
 
         if query_region:
-            query = (query
-                     .join_from(CatalogToGaia_DR3, Catalog)
-                     .where(peewee.fn.q3c_radial_query(Catalog.ra,
-                                                       Catalog.dec,
-                                                       query_region[0],
-                                                       query_region[1],
-                                                       query_region[2])))
+            query = query.join_from(CatalogToGaia_DR3, Catalog).where(
+                peewee.fn.q3c_radial_query(
+                    Catalog.ra,
+                    Catalog.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
 
         return query

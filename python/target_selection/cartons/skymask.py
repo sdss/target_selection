@@ -19,14 +19,19 @@ from astropy.coordinates import SkyCoord, search_around_sky
 from astropy import units as u
 
 
-known_masktypes = ["mangle", "hpxmoc", "circles", ]
-known_senses = ["include", "exclude", ]
-
-
+known_masktypes = [
+    "mangle",
+    "hpxmoc",
+    "circles",
+]
+known_senses = [
+    "include",
+    "exclude",
+]
 
 
 class SkyMask(object):
-    '''
+    """
     This is a generic masking class that carries out selections of targets based on their RA,DEC
 
     Parameters
@@ -48,16 +53,18 @@ class SkyMask(object):
                    - if a string then gives the column name containing the radius information
                    - if a float then assume a uniform radius for all circles
 
-    '''
+    """
 
-    def __init__(self,
-                 filename=None,
-                 masktype="mangle",
-                 sense="include",
-                 name=None,
-                 col_lon="racen",
-                 col_lat="deccen",
-                 radius="radius"):
+    def __init__(
+        self,
+        filename=None,
+        masktype="mangle",
+        sense="include",
+        name=None,
+        col_lon="racen",
+        col_lat="deccen",
+        radius="radius",
+    ):
         assert filename is not None
         assert len(filename) > 0
         self.filename = os.path.expanduser(filename)
@@ -70,7 +77,7 @@ class SkyMask(object):
 
         self.col_lon = col_lon
         self.col_lat = col_lat
-        self.radius  = radius
+        self.radius = radius
 
         if name is not None:
             self.name = name
@@ -81,7 +88,6 @@ class SkyMask(object):
         return f"SkyMask({self.masktype}) {self.name}"
 
     def apply_mangle(self, lon=None, lat=None):
-
         try:
             m = mangle.Mangle(self.filename)
         except:
@@ -91,9 +97,7 @@ class SkyMask(object):
 
         return m_mask
 
-
     def apply_hpxmoc(self, lon=None, lat=None):
-
         try:
             moc = MOC()
             moc.read(self.filename, filetype="fits")
@@ -102,15 +106,13 @@ class SkyMask(object):
 
         # get the moc nside at the max resolution of the MOC
         nside = hp.order2nside(moc.order)
-        #get the healpix pixels indices of the targets at the max resolution
-        idx = hp.ang2pix(nside, lon, lat, lonlat=True, nest=True )
+        # get the healpix pixels indices of the targets at the max resolution
+        idx = hp.ang2pix(nside, lon, lat, lonlat=True, nest=True)
 
         m_mask = moc.contains(idx)
         return m_mask
 
-
     def apply_circles(self, lon=None, lat=None):
-
         # read the list of circles from the file
 
         try:
@@ -124,7 +126,9 @@ class SkyMask(object):
             circle_lon = data[self.col_lon]
             circle_lat = data[self.col_lat]
         except:
-            raise Exception(f"Failed to find circle columns: {self.filename}[1][{self.col_lon},{self.col_lat}]")
+            raise Exception(
+                f"Failed to find circle columns: {self.filename}[1][{self.col_lon},{self.col_lat}]"
+            )
 
         if isinstance(self.radius, float):
             circle_radius = np.full(len(data), self.radius)
@@ -139,26 +143,21 @@ class SkyMask(object):
         hdul.close()
 
         ### need to use a single radius for all objects
-        seplimit = u.Quantity(circle_radius.max(), unit='deg')
+        seplimit = u.Quantity(circle_radius.max(), unit="deg")
 
         coords_c = SkyCoord(circle_lon, circle_lat, frame="icrs", unit="deg")
         coords_t = SkyCoord(lon, lat, frame="icrs", unit="deg")
-        idx_t, idx_c, d2d, d3d  = search_around_sky(coords_t, coords_c, seplimit)
-
+        idx_t, idx_c, d2d, d3d = search_around_sky(coords_t, coords_c, seplimit)
 
         ## filter the list of matches to use the per-circle radius
-        i_t_ok = [ i_t for i_t,i_c,d in zip(idx_t, idx_c, d2d) if d.deg < circle_radius[i_c]]
+        i_t_ok = [i_t for i_t, i_c, d in zip(idx_t, idx_c, d2d) if d.deg < circle_radius[i_c]]
 
         m_mask = np.zeros(len(lon), np.bool)
         m_mask[i_t_ok] = True
 
         return m_mask
 
-
-
-
     def apply(self, lon=None, lat=None, flags=None):
-
         nlon = len(lon) if hasattr(lon, "__len__") else 1
         nlat = len(lat) if hasattr(lat, "__len__") else 1
 

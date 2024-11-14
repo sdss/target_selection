@@ -11,7 +11,7 @@ class TargetSelectionError(Exception):
     """A custom core TargetSelection exception"""
 
     def __init__(self, message=None):
-        message = 'There has been an error.' if not message else message
+        message = "There has been an error." if not message else message
         super(TargetSelectionError, self).__init__(message)
 
 
@@ -19,12 +19,13 @@ class TargetSelectionNotImplemented(TargetSelectionError):
     """A custom exception for not yet implemented features."""
 
     def __init__(self, message=None):
-        message = 'This feature is not implemented yet.' if not message else message
+        message = "This feature is not implemented yet." if not message else message
         super(TargetSelectionNotImplemented, self).__init__(message)
 
 
 class TargetSelectionMissingDependency(TargetSelectionError):
     """A custom exception for missing dependencies."""
+
     pass
 
 
@@ -38,11 +39,13 @@ class TargetSelectionWarning(Warning):
 
 class TargetSelectionUserWarning(UserWarning, TargetSelectionWarning):
     """The primary warning class."""
+
     pass
 
 
 class TargetSelectionDeprecationWarning(TargetSelectionUserWarning):
     """A warning for deprecated features."""
+
     pass
 
 
