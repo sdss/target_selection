@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdss-target-selection"
-version = "1.3.17a0"
+version = "1.3.17"
 description = "Code to perform target selection for BHM/MWM using catalogdb"
 authors = ["José Sánchez-Gallego <gallegoj@uw.edu>"]
 license = "BSD 3-Clause"
