@@ -2,7 +2,11 @@
 
 ## Next version
 
+## 1.3.17 - November 26, 2024
+
 ### 🚀 New
+
+* manual carton target_selection plan 1.2.17
 
 * [#425](https://github.com/sdss/target_selection/pull/425) New code to update the ``sdss_id`` tables by @zachway1996
 
