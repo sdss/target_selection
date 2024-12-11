@@ -613,6 +613,78 @@
             "ntargets": "22146"
         },
         {
+            "name": "openfibertargets_nov2020_11",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "Again with the Quasars: Second Epochs for SDSS-I/II Quasars observed only once",
+            "selection": "Spectroscopically confirmed optically bright SDSS QSOs, selected from the SDSS QSO catalogue (DR16Q, <a href='https://ui.adsabs.harvard.edu/abs/2020ApJS..250....8L/abstract'>Lyke et al., 2020</a>). The sample is limited to QSOs that have only a single spectrum available in DR16 (NSPEC=0), and that fall inside the magnitude range bounded by Gaia G&lt;19.15 OR sdss_psfmag_i&lt;19.0 and Gaia G&gt;12.5;. Only QSOs with a Gaia counterpart are included.",
+            "tables" : "manual",
+            "cadences" : "bright_1x1 or dark_1x1 depending on target brightness",
+            "priority" : "6080",
+            "code" : "n/a",
+            "ntargets": "39684"
+        },
+        {
+            "name": "openfibertargets_nov2020_18",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "Hard X-ray sources: hard-band selected X-ray sources (in contrast to soft-band selected eROSITA sources)",
+            "selection": "The basis for our sample is the publicly available 4XMM-DR9 and Swift 2SXPS source catalogs (<a href='https://ui.adsabs.harvard.edu/abs/2020A%26A...641A.136W/abstract'>Webb et al., 2020</a>; <a href='https://ui.adsabs.harvard.edu/abs/2020ApJS..247...54E/abstract'>Evans et al., 2020</a>). From both catalogs, we select sources with robust, point-like detections in the relevant energy band (4.5-12 keV or 2-10 keV) and exclude sources lying within the Galactic plane (|b|&lt;20deg) or the area corresponding to the LMC, SMC and M31. Details of the construction of a robust, extragalactic serendipitous X-ray sample are given by Delaney et al. (in prep). We further restrict our sample to sources lying within the footprint of the LegacySurvey8 imaging and identify robust optical counterparts using Nway (Salvato et al., 2018).  For our final sample, we apply X-ray flux limits of f<sub>x</sub>&gt;5e-14 erg/cm2/s for sources in the eROSITA-DE (West Galactic) hemisphere, and a higher limit of f<sub>x</sub>gt;1e-13 erg/cm2/s in the East Galactic hemisphere. These X-ray limits provide well-defined samples with a high fraction of optically bright counterparts (see Figure 2). Finally, we apply magnitude limits of 15.5&lt;sdss_mag_r&lt;21.5 for our dark-time targets (in the eROSITA-DE sky) and 14.5&lt;sdss_mag_r&lt;20.5 for our bright-time targets.",
+            "tables" : "manual",
+            "cadences" : "bright_1x1 or dark_1x1 depending on target brightness",
+            "priority" : "6080",
+            "code" : "n/a",
+            "ntargets": "10012"
+        },
+        {
+            "name": "openfibertargets_nov2020_26",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "Quasar Winds: continued monitoring of BAL quasars, already observed in past SDSS surveys.",
+            "selection": "Our main sample of representative BAL quasars has been drawn from the SDSS Data Release 5 BAL-quasar catalog of <a href='https://ui.adsabs.harvard.edu/abs/2009ApJ...692..758G/abstract'>Gibson et al. (2009)</a>, which contains 5039 BAL quasars spectroscopically identified during SDSS-I/II. From this catalog, we have objectively selected a sample of 2005 BAL quasars that: 1.) Are bright with sdss_mag_i&lt;19.3. We also require i&gt;15 to avoid the possibility of saturation effects (practically, this has minimal effects). Most targets have sdss_mag_i= 17-19.3. 2.) Have high signal-to-noise ratio SDSS-I/II spectra. Specifically, we require the SN1700 parameter from <a href='https://ui.adsabs.harvard.edu/abs/2009ApJ...692..758G/abstract'>Gibson et al. (2009)</a> to be SN1700&gt;6 when available. 3.) Have clearly detected BAL absorption. Specifically, we require the “balnicity index” from <a href='https://ui.adsabs.harvard.edu/abs/2009ApJ...692..758G/abstract'>Gibson et al. (2009)</a> to be BI0&gt;100 km/s for at least one BAL trough. This effectively cuts out possible BAL misclassifications owing to, e.g., underlying continuum placement uncertainties.  4.) Have  excellent  spectral  coverage  of  the  CIV,  SiIV,  MgII, and/or  AlIII BAL  regions  of interest (covering at least outflow velocities of 0 to 25,000 km/s).To accomplish this, we require redshifts of 1.68-4.93 for C IV BALs, 1.96-5.55 for Si IV BALs, 0.48-2.28 for Mg II BALs, and 1.23-3.93 for AlI BALs. If a BAL quasar with troughs from multiple ions satisfies one of these required redshift conditions, then it is accepted.",
+            "tables" : "manual",
+            "cadences" : "dark_1x1",
+            "priority" : "6080",
+            "code" : "n/a",
+            "ntargets": "2105"
+        },
+        {
+            "name": "openfibertargets_nov2020_27",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "ASQOSS: All Bright Quasars: all QSO candidates with WISE-colors & optical information. ",
+            "selection": "ASQOSS is based on a sophisticated target selection approach designed to yield the largest possible sample of quasars, across the entire sky, primarily based on optical-IR photometry (<a href='https://ui.adsabs.harvard.edu/abs/2017AJ....154..269Y/abstract'>Yang et al., 2017</a>, <a href='https://ui.adsabs.harvard.edu/abs/2019MNRAS.489.4741S/abstract'>Shu et al., 2019</a>, <a href='https://ui.adsabs.harvard.edu/abs/2023ApJS..264....9Y/abstract'>Yang et al., 2023</a>). It includes many (c.122k or 29%, at Gaia G&lt;19.5) previously known quasars (i.e., with optical spectroscopy) but is dominated by quasar candidates - targets for which our selection algorithm has yielded a high probability of being quasars. The selection procedure includes the following considerations and criteria: i) Quasar-like colors, All sky: Optical+MIR photometry using Gaia and unWISE (W1+W2); Southern hemisphere: additional selection based on optical (DES grizy), and NIR (VISTA VHS+Viking, 2MASS-JHK) colors, ii) Additional variability-based selection (from multi-epoch DES imaging), iii) All targets are robustly detected by Gaia with no proper motion is measured. In addition, the high-extinction regions near the Galactic plane, with E(B-V)&gt;2, as well as the Magellanic clouds and M31 are excluded.",
+            "tables" : "manual",
+            "cadences" : "bright_1x1 or dark_1x1 depending on target brightness",
+            "priority" : "6085",
+            "code" : "n/a",
+            "ntargets": "814963"
+        },
+        {
+            "name": "openfibertargets_nov2020_30",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "JWST North Ecliptic Pole time-domain field: Spectra of all bright objects in a field that will also be observed by Chandra and many other facilities.",
+            "selection": "This sample covers all Pan-STARRS1 objects with 13&lt;g&lt;20 and a maximum separation of 12 arcmin from (RA,Dec)=(17:22:44.35, +65:49:18.05)",
+            "tables" : "manual",
+            "cadences" : "dark_1x1",
+            "priority" : "6080",
+            "code" : "n/a",
+            "ntargets": "237"
+        },
+        {
+            "name": "openfibertargets_nov2020_33",
+            "plan": "0.5.3",
+            "tag": "0.3.3",
+            "summary" : "Variability-Selected AGN and Blazars: Confirmation and Characterization of Variability-Selected AGN, QSOs, and Blazars (objects without previous spectra)",
+            "selection": "Our parent sample comprises all ZTF objects with an AGN, QSO or blazar predicted label, that do not have a previous spectrum or AGN/QSO classification in a public catalog. We further restrict the sample with a magnitude limit in g &lt; 19.5 for sources in the Eastern Galactic hemisphere and g &lt; 20.5 for sources in the eROSITA-DE (Western Galactic hemisphere) to comply with a minimum S/N ratio of 3 on the continuum, for the respective bright and dark time conditions. We note that the majority of our 'eROSITA-DE' candidates have g&lt;19.5 and thus could also be observed in bright time.",
+            "tables" : "manual",
+            "cadences" : "bright_1x1 or dark_1x1 depending on target brightness",
+            "priority" : "6080",
+            "code" : "n/a",
+            "ntargets": "22250"
+        },
+        {
             "name": "",
             "plan": "0.5.0",
             "tag": "0.3.0",

@@ -30,7 +30,7 @@ GEN_LIST="v0.plates"
 cd ~/SDSSV/gitwork/target_selection/docs/website/bhm_cartons/${DR}
 
 # this one when running from home
-alias sdssdb='psql -h localhost -p 7502 -U sdss_user -d sdss5db'
+sdssdb='psql -h localhost -p 7502 -U sdss_user -d sdss5db'
 
 # this one when running on a Utah machine
 #alias sdssdb='psql -h operations.sdss.org -U sdss_user -d sdss5db'
@@ -38,10 +38,15 @@ alias sdssdb='psql -h localhost -p 7502 -U sdss_user -d sdss5db'
 Q="\copy ( SELECT 
           c.carton,v.plan,v.tag,
           CASE WHEN (c.carton ~ 'bhm_colr' OR c.carton ~ 'bhm_gua')  THEN 'ancillary'
+               WHEN (c.program = 'open_fiber')  THEN 'open-fiber'
                WHEN (c.program = 'bhm_filler' OR c.carton ~ 'bhm_csc')  THEN 'non-core'
-               WHEN (c.program = 'bhm_spiders' AND (c.carton ~ '_supercosmos' OR c.carton ~ '_efeds_stragglers' OR c.carton ~ '_skymapperdr2' OR c.carton ~ 'agn_gaia' OR c.carton ~ '_sep'))  THEN 'non-core'
+               WHEN (c.program = 'bhm_spiders' AND 
+                      (c.carton ~ '_supercosmos' OR c.carton ~ '_efeds_stragglers' OR 
+                       c.carton ~ '_skymapperdr2' OR c.carton ~ 'agn_gaia' OR 
+                       c.carton ~ '_sep'))  THEN 'non-core'
                ELSE 'core' END as status,
-          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' ELSE c.program END as program, 
+          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' 
+               ELSE c.program END as program, 
           tg.label
 FROM ${MINIDB}.${DR}_targeting_generation as tg
 JOIN ${MINIDB}.${DR}_targeting_generation_to_carton as tg2c
@@ -50,12 +55,14 @@ join ${MINIDB}.${DR}_carton as c
 on tg2c.carton_pk = c.carton_pk 
 join  ${MINIDB}.${DR}_targetdb_version as v
   on c.version_pk = v.pk
-where c.carton ~ 'bhm'
+where (c.carton ~ 'bhm' OR 
+       c.carton in ('openfibertargets_nov2020_11', 'openfibertargets_nov2020_18', 'openfibertargets_nov2020_26', 
+                    'openfibertargets_nov2020_27', 'openfibertargets_nov2020_30', 'openfibertargets_nov2020_33'))
   and v.plan = c.target_selection_plan
 order by c.carton_pk)
 to 'q_result.csv' with csv header"
 
-sdssdb -c "$Q"
+$sdssdb -c "$Q"
 
 # this builds a table per targeting generation
 
@@ -75,17 +82,24 @@ for GEN in $GEN_LIST; do
 <th class=\"has-text-align-center\" data-align=\"center\">status</th>\
 </tr>\
 \n</thead>\n<tbody>\n");}
-$1~/^bhm_/ && $6 == gen {
+$1~/^bhm_|^openfiber/ && $6 == gen {
     prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
     if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+    if (prog=="open_fiber") {
+        prog="open_fiber_programs";     
+        PROG="Open fiber programs";
+        prog_url=sprintf("https://testng.sdss.org/%s/targeting/%s", dr, prog);
+    } else {
+        prog_url=sprintf("https://testng.sdss.org/%s/bhm/programs/%s", dr, prog);
+    };
     printf("<tr>\
 <td><a href=\"#%s_plan%s\" data-type=\"internal\">%s</a></td>\
-<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://testng.sdss.org/%s/bhm/programs/%s\">%s</a></td>\
+<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"%s\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/blob/%s/python/target_selection/config/target_selection.yml\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/tree/%s/\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 </tr>\n",
-    $1, plan, $1, dr, prog, PROG, plan, plan, tag, tag, $4)}
+    $1, plan, $1, prog_url, PROG, plan, plan, tag, tag, $4)}
 END {
 printf("</tbody></table><figcaption>All BHM cartons from targeting generation \"%s\"</figcaption></figure>\n", gen);
 }' q_result.csv > carton_table_block_generation_${GEN}.html
@@ -100,10 +114,12 @@ done
 Q="\copy ( SELECT 
           c.carton,v.plan,v.tag,
           CASE WHEN (c.carton ~ 'bhm_colr' OR c.carton ~ 'bhm_gua')  THEN 'ancillary'
+               WHEN (c.program = 'open_fiber')  THEN 'open-fiber'
                WHEN (c.program = 'bhm_filler' OR c.carton ~ 'bhm_csc')  THEN 'non-core'
                WHEN (c.program = 'bhm_spiders' AND (c.carton ~ '_supercosmos' OR c.carton ~ '_efeds_stragglers' OR c.carton ~ '_skymapperdr2' OR c.carton ~ 'agn_gaia' OR c.carton ~ '_sep'))  THEN 'non-core'
                ELSE 'core' END as status,
-          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' ELSE c.program END as program, 
+          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' 
+               ELSE c.program END as program, 
           SUM(CASE WHEN tg.label = 'v0.5.epsilon-7-core-0' THEN 1 ELSE 0 END) in_tg1,
           SUM(CASE WHEN tg.label = 'v0.5.2' THEN 1 ELSE 0 END) in_tg2,
           SUM(CASE WHEN tg.label = 'v0.5.3' THEN 1 ELSE 0 END) in_tg3,
@@ -116,13 +132,15 @@ join ${MINIDB}.${DR}_carton as c
 on tg2c.carton_pk = c.carton_pk 
 join  ${MINIDB}.${DR}_targetdb_version as v
   on c.version_pk = v.pk
-where c.carton ~ 'bhm'
+where (c.carton ~ 'bhm' OR 
+       c.carton in ('openfibertargets_nov2020_11', 'openfibertargets_nov2020_18', 'openfibertargets_nov2020_26', 
+                    'openfibertargets_nov2020_27', 'openfibertargets_nov2020_30', 'openfibertargets_nov2020_33'))
   and v.plan = c.target_selection_plan
 group by c.carton_pk,c.carton,v.plan,v.tag,c.program 
 order by c.carton_pk)
 to 'q2_result.csv' with csv header"
 
-sdssdb -c "$Q"
+$sdssdb -c "$Q"
 
 
 #toomuchdetail gawk --field-separator=',' \
@@ -189,19 +207,26 @@ gawk --field-separator=',' \
 </tr>\
 \n</thead>\n<tbody>\n",
 agens[1], agens[2]);}
-$1~/^bhm_/ && $NF~/v0.5/ {
+$1~/^bhm_|openfiber/ && $NF~/v0.5/ {
     prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
     if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+    if (prog=="open_fiber") {
+        prog="open_fiber_programs";     
+        PROG="Open fiber programs";
+        prog_url=sprintf("https://testng.sdss.org/%s/targeting/%s", dr, prog);
+    } else {
+        prog_url=sprintf("https://testng.sdss.org/%s/bhm/programs/%s", dr, prog);
+    };
     printf("<tr>\
 <td><a href=\"#%s_plan%s\" data-type=\"internal\">%s</a></td>\
-<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://testng.sdss.org/%s/bhm/programs/%s\">%s</a></td>\
+<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"%s\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/blob/%s/python/target_selection/config/target_selection.yml\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/tree/%s/\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 </tr>\n",
-    $1, plan, $1, dr, prog, PROG, plan, plan, tag, tag, $4, 
+    $1, plan, $1, prog_url, PROG, plan, plan, tag, tag, $4, 
     ($6 > 0 ? "&#9989;" : ""), 
     ($7 > 0 || $8 > 0 || $9 > 0 ? "&#9989;" : "") )}
 END {
@@ -303,6 +328,14 @@ perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019PASA...36.
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...2L\/abstract}{Liu\net al., 2022}/\\citealt{Liu2022}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022ApJS..259...35A\/abstract}{Abdurro'\''uf\net al., 2022}/\\citealt{Abdurrouf_2021_sdssDR17}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2011ApJ...729..141B\/abstract}{Bovy\net al., 2011}/\\citealt{Bovy2011}/g'  $TEXOUT
+
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2009ApJ...692..758G\/abstract}{Gibson\net al. \(2009\)}/\\citealt{Gibson2009}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020A%26A...641A.136W\/abstract}{Webb\net al., 2020}/\\citealt{Webb2020}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020ApJS..247...54E\/abstract}{Evans\net al., 2020}/\\citealt{Evans2020}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2017AJ....154..269Y\/abstract}{Yang\net al., 2017}/\\citealt{Yang2017}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2023ApJS..264....9Y\/abstract}{Yang\net al., 2023}/\\citealt{Yang2023}/g'  $TEXOUT
+ 
+ 
 # perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
 
 # get the section numbering right
