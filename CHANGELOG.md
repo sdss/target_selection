@@ -2,6 +2,11 @@
 
 ## Next version
 
+### ✨ Improved
+
+* Allow to pass a database connection to sdss_id functions.
+
+
 ## 1.3.17 - November 26, 2024
 
 ### 🚀 New
