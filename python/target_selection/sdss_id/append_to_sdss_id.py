@@ -23,9 +23,6 @@ from .create_catalogidx_to_catalogidy import (
 )
 
 
-database.connect(dbname="sdss5db", user="sdss_user")
-
-
 class TempCatalogidV21(peewee.Model):
     """Model for a temporary table of all catalogids within a version."""
 
@@ -425,7 +422,7 @@ class AppendToTables:
         this point, the ra/dec_sdss_id are assigned, which are just the coordinates of
         the most recent catalogid in the match."""
 
-        large_cte_query = f"""DROP TABLE sandbox.sdss_id_stacked_addendum;
+        large_cte_query = f"""DROP TABLE IF EXISTS sandbox.sdss_id_stacked_addendum;
         CREATE TABLE sandbox.sdss_id_stacked_addendum as (
             with cat_ids21 as (select distinct tc.catalogid21, cat.lead from
                 sandbox.temp_catalogid_v21 tc join catalog cat on cat.catalogid=tc.catalogid21),

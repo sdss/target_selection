@@ -22,9 +22,6 @@ from sdssdb.peewee.sdss5db.targetdb import Target
 import target_selection
 
 
-database.connect(dbname="sdss5db", user="sdss_user")  # Use 'sdss' to get read/write permissions
-
-
 class TempMatch(peewee.Model):
     """Model for the first output table with all the matches."""
 
@@ -413,7 +410,11 @@ class MetaXMatch:
         parts = int((len(results_list) - 1) / self.split_insert_nunmber) + 1
 
         # Check if connection has timed out. Reconnect if it has
-        database.connect(dbname="sdss5db", user="sdss_user", reuse_if_open=True)
+        database.connect(
+            dbname=database.dbname,
+            user=database.connection_params.get("user") if database.connection_params else None,
+            reuse_if_open=True,
+        )
 
         for npart in range(parts):
             with self.database.atomic():
