@@ -571,7 +571,8 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     ]
 
     insert_query = UniqueMatch.insert_from(query, fields).returning()
-    n_unique = insert_query.execute()
+    cursor = insert_query.execute()
+    n_unique = cursor.rowcount
     tf = time.time()
     log.info(f"Created unique pairs table with {n_unique} " f"entries in {(tf - ti):.2f} seconds")
 
