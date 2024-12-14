@@ -1,5 +1,14 @@
 # Changelog
 
+## Next version
+
+### ✨ Improved
+
+* Added extra magnitudes to the temporary table of the `too` carton.
+* Report number of rows added during carton loading.
+* Add note to the v1 cross-match config file about run 1.2.0 being reserved for ToOs.
+
+
 ## 1.3.18 - December 13, 2024
 
 ### ✨ Improved
