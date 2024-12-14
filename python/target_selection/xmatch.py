@@ -1145,9 +1145,9 @@ class XMatchPlanner(object):
         Parameters
         ----------
         vacuum : bool
-            Vacuum all output tables before processing new catalogues.
+            Vacuum all output tables before and after processing new catalogues.
         analyze : bool
-            Analyze all output tables before processing new catalogues.
+            Analyze all output tables before and after processing new catalogues.
         from_ : str
             Table from which to start running the process. Useful in reruns
             to skip tables already processed.
@@ -1217,7 +1217,7 @@ class XMatchPlanner(object):
                 self.process_model(model, force=force)
 
                 if not dry_run:
-                    self.load_output_tables(model, keep_temp=keep_temp)
+                    self.load_output_tables(model, keep_temp=keep_temp, vacuum=vacuum)
 
         self.log.info(f"Cross-matching completed in {timer.interval:.3f} s.")
 
@@ -2031,16 +2031,16 @@ class XMatchPlanner(object):
 
         self._analyze(rel_model_sb, catalog=False)
 
-    def load_output_tables(self, model, keep_temp=False):
+    def load_output_tables(self, model, keep_temp=False, vacuum=True):
         """Loads the temporary tables into the output tables."""
 
-        self._load_output_table(TempCatalog, Catalog, keep_temp=keep_temp)
+        self._load_output_table(TempCatalog, Catalog, keep_temp=keep_temp, vacuum=vacuum)
 
         rel_model_sb = self.get_relational_model(model, sandboxed=True, create=False)
         rel_model = self.get_relational_model(model, sandboxed=False, create=True)
-        self._load_output_table(rel_model_sb, rel_model, keep_temp=keep_temp)
+        self._load_output_table(rel_model_sb, rel_model, keep_temp=keep_temp, vacuum=vacuum)
 
-    def _load_output_table(self, from_model, to_model, keep_temp=False):
+    def _load_output_table(self, from_model, to_model, keep_temp=False, vacuum=True):
         """Copies the temporary table to the real output table."""
 
         to_table = f"{to_model._meta.schema}.{to_model._meta.table_name}"
@@ -2069,7 +2069,7 @@ class XMatchPlanner(object):
             self.database.drop_tables([from_model])
             self.log.info(f"Dropped temporary table {from_table}.")
 
-        if n_rows > 0:
+        if n_rows > 0 and vacuum:
             self.log.debug(f"Running VACUUM ANALYZE on {to_table}.")
             vacuum_table(self.database, to_table, vacuum=True, analyze=True)
 
