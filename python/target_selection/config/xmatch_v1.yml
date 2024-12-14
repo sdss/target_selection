@@ -1,3 +1,9 @@
+##############################################
+# Do not use plan 1.2.0. It is reserved for  #
+# ToO cross-matching and defined in the tool #
+# package.                                   #
+##############################################
+
 '1.1.5':
     run_id: 14
     query_radius: 1.0
