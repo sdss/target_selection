@@ -51,6 +51,10 @@ class ToO_Carton(BaseCarton):
                 ToO_Metadata.r_mag.alias("r"),
                 ToO_Metadata.i_mag.alias("i"),
                 ToO_Metadata.z_mag.alias("z"),
+                ToO_Metadata.gaia_bp_mag.alias("bp"),
+                ToO_Metadata.gaia_rp_mag.alias("rp"),
+                ToO_Metadata.gaia_g_mag.alias("gaia_g"),
+                ToO_Metadata.h_mag.alias("h"),
                 ToO_Metadata.optical_prov,
             )
             .join(C2TT, on=(ToO_Target.too_id == C2TT.target_id))
