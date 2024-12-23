@@ -66,15 +66,6 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
     priority = 6085
     can_offset = False
 
-    # target_selection propagates the following columns if they are generated
-    # during the query (with exactly the below name)
-    # g, r, i, z, h, j, k, bp, rp gaia_g, optical_prov
-    #
-    # If any g,r, i, z, optical_prov are missing, then the code will
-    # try to find them in SDSS, PS1, and Gaia.
-    #
-    # Hence, we use the names gaia_g, bp, rp below.
-
     def build_query(self, version_id, query_region=None):
         query = (
             CatalogToGaia_DR3.select(
