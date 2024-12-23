@@ -66,6 +66,9 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
     priority = 6085
     can_offset = False
 
+    # In the below query,
+    # Gaia_DR3.l is for galactic longitude
+    # Gaia_DR3.b is for galactic latitude
     def build_query(self, version_id, query_region=None):
         query = (
             CatalogToGaia_DR3.select(
@@ -75,10 +78,13 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
                 Gaia_DR3.dec.alias("gaia_dr3_dec"),
                 Gaia_DR3.pmra.alias("gaia_dr3_pmra"),
                 Gaia_DR3.pmdec.alias("gaia_dr3_pmdec"),
-                Gaia_DR3.bp_rp.alias("bp_rp_0"),
                 Gaia_DR3.phot_g_mean_mag.alias("gaia_g"),
                 Gaia_DR3.phot_bp_mean_mag.alias("bp"),
                 Gaia_DR3.phot_rp_mean_mag.alias("rp"),
+                Gaia_DR3.bp_rp,
+                Gaia_DR3.parallax,
+                Gaia_DR3.l,
+                Gaia_DR3.b
             )
             .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .where(

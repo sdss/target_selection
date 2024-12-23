@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.20 - December 20, 2024
+
+### New
+
+* added target_selection plan 1.2.18
+* added carton openfibertargets_mwm_mdwarfs_plato_apogee
+
 ## 1.3.19 - December 14, 2024
 
 ### ✨ Improved
