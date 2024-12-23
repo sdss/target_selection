@@ -57,12 +57,12 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
     Lead contact: Diogo Souto
     """
 
-    name = 'openfibertargets_mwm_mdwarfs_plato_apogee'
-    category = 'science'
-    instrument = 'APOGEE'
-    cadence = 'bright_1x1'
+    name = "openfibertargets_mwm_mdwarfs_plato_apogee"
+    category = "science"
+    instrument = "APOGEE"
+    cadence = "bright_1x1"
     program = "open_fiber"
-    mapper = 'MWM'
+    mapper = "MWM"
     priority = 6085
     can_offset = False
 
@@ -89,28 +89,29 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
                 Gaia_DR3.phot_bp_mean_mag.alias("bp"),
                 Gaia_DR3.phot_rp_mean_mag.alias("rp"),
             )
-            .join(Gaia_DR3,
-                  on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
+            .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .where(
                 CatalogToGaia_DR3.version_id == version_id,
                 CatalogToGaia_DR3.best >> True,
                 Gaia_DR3.parallax > 0,
-                Gaia_DR3.l >= 255.9-23,
-                Gaia_DR3.l <= 255.9+23,
-                Gaia_DR3.b >= -24.6-23,
-                Gaia_DR3.b <= -24.6+23,
-                Gaia_DR3.phot_g_mean_mag +
-                5 * peewee.fn.LOG10(Gaia_DR3.parallax) - 10 >
-                -8.62 * Gaia_DR3.bp_rp + 24.96,
-                Gaia_DR3.phot_g_mean_mag +
-                5 * peewee.fn.LOG10(Gaia_DR3.parallax) - 10 >=
-                2.334 * Gaia_DR3.bp_rp + 2.259,
-                Gaia_DR3.phot_g_mean_mag -
-                (-0.17276 + 0.47885*(Gaia_DR3.bp_rp) +
-                 (-0.71953)*peewee.fn.power(Gaia_DR3.bp_rp, 2) +
-                 0.24374*peewee.fn.power(Gaia_DR3.bp_rp, 3) +
-                 (-0.04458)*peewee.fn.power(Gaia_DR3.bp_rp, 4) +
-                 0.00317*peewee.fn.power(Gaia_DR3.bp_rp, 5)) < 16
+                Gaia_DR3.l >= 255.9 - 23,
+                Gaia_DR3.l <= 255.9 + 23,
+                Gaia_DR3.b >= -24.6 - 23,
+                Gaia_DR3.b <= -24.6 + 23,
+                Gaia_DR3.phot_g_mean_mag + 5 * peewee.fn.LOG10(Gaia_DR3.parallax) - 10
+                > -8.62 * Gaia_DR3.bp_rp + 24.96,
+                Gaia_DR3.phot_g_mean_mag + 5 * peewee.fn.LOG10(Gaia_DR3.parallax) - 10
+                >= 2.334 * Gaia_DR3.bp_rp + 2.259,
+                Gaia_DR3.phot_g_mean_mag
+                - (
+                    -0.17276
+                    + 0.47885 * (Gaia_DR3.bp_rp)
+                    + (-0.71953) * peewee.fn.power(Gaia_DR3.bp_rp, 2)
+                    + 0.24374 * peewee.fn.power(Gaia_DR3.bp_rp, 3)
+                    + (-0.04458) * peewee.fn.power(Gaia_DR3.bp_rp, 4)
+                    + 0.00317 * peewee.fn.power(Gaia_DR3.bp_rp, 5)
+                )
+                < 16,
             )
         )
 
