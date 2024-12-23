@@ -25,7 +25,6 @@ from target_selection.cartons import BaseCarton
 class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
     """
     Shorthand name: openfibertargets_mwm_mdwarfs_plato_apogee
-    Existing carton code:
     Link: Stellar Parameters and Abundances for PLATO M-dwarf targets
     Simplified Description of selection criteria:
     ADQL query in Gaia archive for Gaia DR3:
