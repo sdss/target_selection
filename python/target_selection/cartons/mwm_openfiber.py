@@ -84,7 +84,7 @@ class Openfibertargets_mwm_mdwarfs_plato_apogee_Carton(BaseCarton):
                 Gaia_DR3.bp_rp,
                 Gaia_DR3.parallax,
                 Gaia_DR3.l,
-                Gaia_DR3.b
+                Gaia_DR3.b,
             )
             .join(Gaia_DR3, on=(CatalogToGaia_DR3.target_id == Gaia_DR3.source_id))
             .where(
