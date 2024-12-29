@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.20 - December 20, 2024
+## 1.3.20 - December 29, 2024
 
 ### New
 
