@@ -1,11 +1,19 @@
 # Changelog
 
+## 1.3.21 - March 19, 2025
+
+### 🏷️ Changed
+
+* Update `sdssdb` to 0.13.2.
+
+
 ## 1.3.20 - December 29, 2024
 
-### New
+### 🚀 New
 
 * added target_selection plan 1.2.18
 * added carton openfibertargets_mwm_mdwarfs_plato_apogee
+
 
 ## 1.3.19 - December 14, 2024
 
