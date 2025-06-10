@@ -209,6 +209,43 @@ printf("</tbody></table><figcaption>All BHM cartons from targeting generations %
 }' q2_result.csv > carton_table_block_multi_generation_v0.5.html
 
 
+# try to make the table narrower so it can fit without a scrollbar
+# compactify the information in the targeting_generation membership columns
+gawk --field-separator=',' \
+         -v dr=$DR \
+         -v gens="v0.5.epsilon-7-core-0 and v0.5.2/v0.5.3/v0.5.5" \
+'BEGIN {
+    split(gens,agens," and ");
+    printf("<figure class=\"wp-block-table is-style-stripes\">\n\
+<table>\n\
+<thead>\n\
+<tr>\
+<th>carton name</th>\
+<th class=\"has-text-align-center\" data-align=\"center\">science <br>program</th>\
+<th class=\"has-text-align-center\" data-align=\"center\">target <br>selection <br>plan</th>\
+<th class=\"has-text-align-center\" data-align=\"center\">target <br>selection <br>tag</th>\
+<th class=\"has-text-align-center\" data-align=\"center\">status</th>\
+</tr>\
+\n</thead>\n<tbody>\n");}
+$1~/^bhm_/ && $NF~/v0.5/ {
+    prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
+    if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+    if (($6 > 0) && ($7 > 0 || $8 > 0 || $9 > 0)) {tgsym=""} 
+    else if ($6>0) {tgsym=sprintf("<span title=\"only in targeting generation %s\">&Dagger;</span>",agens[1])} 
+    else {tgsym=sprintf("<span title=\"only in targeting generations %s\">&clubs;</span>",agens[2])}; 
+    printf("<tr>\
+<td><a href=\"#%s_plan%s\" data-type=\"internal\">%s</a>%s</td>\
+<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://testng.sdss.org/%s/bhm/programs/%s\">%s</a></td>\
+<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/blob/%s/python/target_selection/config/target_selection.yml\">%s</a></td>\
+<td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/tree/%s/\">%s</a></td>\
+<td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
+</tr>\n",
+    $1, plan, $1, tgsym, dr, prog, PROG, plan, plan, tag, tag, $4)}
+END {
+printf("</tbody></table><figcaption>All BHM cartons (with versions) from targeting generations %s. Carton-versions marked with a &Dagger; symbol are only present in targeting generation %s. Carton-versions marked with a &clubs; symbol are only present in targeting generations %s. </figcaption></figure>\n", gens, agens[1], agens[2]);
+}' q2_result.csv > carton_table_block_multi_generation_v0.5_slim.html
+
+
 
 # ######################################
 # ## manually select the eFEDS plates cartons
