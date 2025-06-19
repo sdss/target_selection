@@ -23,7 +23,7 @@ MINIDB=minidb_$DR
 #   5 | v0.5.5                | dr19
 # (5 rows)
 
-GEN_LIST="v0.plates v0.5.epsilon-7-core-0 v0.5.2 v0.5.3 v0.5.5"
+#GEN_LIST="v0.plates v0.5.epsilon-7-core-0 v0.5.2 v0.5.3 v0.5.5"
 GEN_LIST="v0.plates"
 
 # change the below to your favoured output location
@@ -85,7 +85,7 @@ $1~/^bhm_/ && $6 == gen {
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/tree/%s/\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 </tr>\n",
-    $1, plan, $1, dr, prog, PROG, plan, plan, tag, tag, $4)}
+    $1, plan, $1, dr, prog, PROG, tag, plan, tag, tag, $4)}
 END {
 printf("</tbody></table><figcaption>All BHM cartons from targeting generation \"%s\"</figcaption></figure>\n", gen);
 }' q_result.csv > carton_table_block_generation_${GEN}.html
@@ -201,7 +201,7 @@ $1~/^bhm_/ && $NF~/v0.5/ {
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 </tr>\n",
-    $1, plan, $1, dr, prog, PROG, plan, plan, tag, tag, $4, 
+    $1, plan, $1, dr, prog, PROG, tag, plan, tag, tag, $4, 
     ($6 > 0 ? "&#9989;" : ""), 
     ($7 > 0 || $8 > 0 || $9 > 0 ? "&#9989;" : "") )}
 END {
@@ -240,7 +240,7 @@ $1~/^bhm_/ && $NF~/v0.5/ {
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://github.com/sdss/target_selection/tree/%s/\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\">%s</td>\
 </tr>\n",
-    $1, plan, $1, tgsym, dr, prog, PROG, plan, plan, tag, tag, $4)}
+    $1, plan, $1, tgsym, dr, prog, PROG, tag, plan, tag, tag, $4)}
 END {
 printf("</tbody></table><figcaption>All BHM cartons (with versions) from targeting generations %s. Carton-versions marked with a &Dagger; symbol are only present in targeting generation %s. Carton-versions marked with a &clubs; symbol are only present in targeting generations %s. </figcaption></figure>\n", gens, agens[1], agens[2]);
 }' q2_result.csv > carton_table_block_multi_generation_v0.5_slim.html
