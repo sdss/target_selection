@@ -457,8 +457,7 @@ class MWM_CB_GALEX_Vol_boss_Carton(BaseCarton):
         )
 
         log.debug(
-            "Remaining after filtering for nearby galaxies: "
-            f"{cb_temp4.select().count():,} rows."
+            f"Remaining after filtering for nearby galaxies: {cb_temp4.select().count():,} rows."
         )
 
         # Get unique Gaia and GALEX targets with minimum separaton, independently, and keep

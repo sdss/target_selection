@@ -1563,8 +1563,7 @@ class XMatchPlanner(object):
                     query.create_table(temp_table, temporary=True)
 
                     self.log.debug(
-                        f"Copying data into relational model "
-                        f"{rel_model_sb._meta.table_name!r}."
+                        f"Copying data into relational model {rel_model_sb._meta.table_name!r}."
                     )
 
                     fields = [
@@ -1642,7 +1641,7 @@ class XMatchPlanner(object):
         use_pm = model_epoch and (is_model_expression or (model_epoch != catalog_epoch))
 
         if use_pm:
-            self.log.debug("Determining maximum epoch delta " "between catalogues.")
+            self.log.debug("Determining maximum epoch delta between catalogues.")
 
             if isinstance(model_epoch, (int, float)):
                 max_delta_epoch = float(abs(model_epoch - catalog_epoch))
@@ -2005,8 +2004,7 @@ class XMatchPlanner(object):
                 ).returning()
 
                 self.log.debug(
-                    f"Running INSERT query into {self._temp_table}"
-                    f"{self._get_sql(insert_query)}"
+                    f"Running INSERT query into {self._temp_table}{self._get_sql(insert_query)}"
                 )
 
                 cursor = insert_query.execute()
@@ -2023,8 +2021,7 @@ class XMatchPlanner(object):
         if n_rows > 0.5 * self._temp_count:  # Cluster if > 50% of rows are new
             self.log.debug(f"Running CLUSTER on {self._temp_table} with q3c index.")
             self.database.execute_sql(
-                f"CLUSTER {self.temp_schema}.{self._temp_table} "
-                f"using {self._temp_table}_q3c_idx;"
+                f"CLUSTER {self.temp_schema}.{self._temp_table} using {self._temp_table}_q3c_idx;"
             )
             self.log.debug(f"Running ANALYZE on {self._temp_table}.")
             self.database.execute_sql(f"ANALYZE {self.temp_schema}.{self._temp_table};")
@@ -2091,7 +2088,7 @@ class XMatchPlanner(object):
         elif self.log.rich_console:
             return f": {rich.markup.escape(query_str)}"
         elif self._options["show_sql"]:
-            return f': {color_text(query_str, "blue")}'
+            return f": {color_text(query_str, 'blue')}"
         else:
             return "."
 

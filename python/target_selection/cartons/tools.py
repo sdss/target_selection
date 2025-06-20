@@ -589,7 +589,7 @@ def create_table_as(
         schema = None
 
     path = f"{schema}.{table_name}" if schema else table_name
-    create_sql = f'CREATE {"TEMPORARY " if temporary else ""}TABLE {path} AS '
+    create_sql = f"CREATE {'TEMPORARY ' if temporary else ''}TABLE {path} AS "
 
     if database is None and isinstance(query, peewee.ModelSelect):
         database = query.model._meta.database

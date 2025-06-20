@@ -352,8 +352,7 @@ def is_view(database, view_name, schema="public", materialized=False):
 
     if not materialized:
         query = (
-            f"SELECT * FROM pg_views where schemaname = {schema!r} "
-            f"AND viewname = {view_name!r};"
+            f"SELECT * FROM pg_views where schemaname = {schema!r} AND viewname = {view_name!r};"
         )
     else:
         query = (
