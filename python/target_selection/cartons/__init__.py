@@ -33,7 +33,6 @@ for file_ in files:
                 locals().update({objname: obj})
 
     except Exception as ee:
-        raise
         warnings.warn(f"cannot import file {file_}: {ee}", TargetSelectionImportWarning)
 
 os.chdir(cwd)
