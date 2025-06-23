@@ -289,47 +289,57 @@ def get_file_carton(filename):
             self.copy_data(temp_table)
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' + 
-                ' SET "Gaia_DR3_Source_ID" = NULL' +
-                ' WHERE "Gaia_DR3_Source_ID"=0')
+                f'UPDATE "{temp_table}"'
+                + ' SET "Gaia_DR3_Source_ID" = NULL'
+                + ' WHERE "Gaia_DR3_Source_ID"=0'
+            )
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' +
-                ' SET "Gaia_DR2_Source_ID" = NULL' +
-                ' WHERE "Gaia_DR2_Source_ID"=0')
+                f'UPDATE "{temp_table}"'
+                + ' SET "Gaia_DR2_Source_ID" = NULL'
+                + ' WHERE "Gaia_DR2_Source_ID"=0'
+            )
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' +
-                ' SET "LegacySurvey_DR10_ID" = NULL' +
-                ' WHERE "LegacySurvey_DR10_ID"=0')
+                f'UPDATE "{temp_table}"'
+                + ' SET "LegacySurvey_DR10_ID" = NULL'
+                + ' WHERE "LegacySurvey_DR10_ID"=0'
+            )
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' +
-                ' SET "LegacySurvey_DR8_ID"= NULL' +
-                ' WHERE "LegacySurvey_DR8_ID"=0')
+                f'UPDATE "{temp_table}"'
+                + ' SET "LegacySurvey_DR8_ID"= NULL'
+                + ' WHERE "LegacySurvey_DR8_ID"=0'
+            )
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' +
-                ' SET "PanSTARRS_DR2_ID" = NULL' +
-                ' WHERE "PanSTARRS_DR2_ID"=0')
+                f'UPDATE "{temp_table}"'
+                + ' SET "PanSTARRS_DR2_ID" = NULL'
+                + ' WHERE "PanSTARRS_DR2_ID"=0'
+            )
 
             self.database.execute_sql(
-                f'UPDATE "{temp_table}"' +
-                ' SET "TwoMASS_ID" = NULL' +
-                ' WHERE "TwoMASS_ID"=\'NA\' ')
+                f'UPDATE "{temp_table}"'
+                + ' SET "TwoMASS_ID" = NULL'
+                + " WHERE \"TwoMASS_ID\"='NA' "
+            )
 
             self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")'
+            )
             self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")'
+            )
             self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR10_ID")')
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR10_ID")'
+            )
             self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")'
+            )
             self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
-            self.database.execute_sql(
-                f'CREATE UNIQUE INDEX ON "{temp_table}" ("TwoMASS_ID")')
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")'
+            )
+            self.database.execute_sql(f'CREATE UNIQUE INDEX ON "{temp_table}" ("TwoMASS_ID")')
 
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
