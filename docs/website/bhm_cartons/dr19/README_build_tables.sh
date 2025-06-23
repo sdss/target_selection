@@ -6,7 +6,7 @@
 # run some queries against the database, format the output, paste the result into 'Custom HTML' clock in wordpress.
 
 DR=dr19
-BASEDIR=~/SDSSV/gitwork/target_selection_again/docs/website/bhm_cartons/$DR
+BASEDIR=~/SDSSV/gitwork/target_selection/docs/website/bhm_cartons/$DR
 
 cd $BASEDIR
 
@@ -40,8 +40,9 @@ Q="\copy ( SELECT
           CASE WHEN (c.carton ~ 'bhm_colr' OR c.carton ~ 'bhm_gua')  THEN 'ancillary'
                WHEN (c.program = 'bhm_filler' OR c.carton ~ 'bhm_csc')  THEN 'non-core'
                WHEN (c.program = 'bhm_spiders' AND (c.carton ~ '_supercosmos' OR c.carton ~ '_efeds_stragglers' OR c.carton ~ '_skymapperdr2' OR c.carton ~ 'agn_gaia' OR c.carton ~ '_sep'))  THEN 'non-core'
+               WHEN (c.program = 'open_fiber')  THEN 'openfiber'
                ELSE 'core' END as status,
-          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' ELSE c.program END as program, 
+          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr' OR c.program ~ 'open_fiber' OR c.program ~ 'manual') THEN 'ancillary' ELSE c.program END as program, 
           tg.label
 FROM ${MINIDB}.${DR}_targeting_generation as tg
 JOIN ${MINIDB}.${DR}_targeting_generation_to_carton as tg2c
@@ -50,8 +51,9 @@ join ${MINIDB}.${DR}_carton as c
 on tg2c.carton_pk = c.carton_pk 
 join  ${MINIDB}.${DR}_targetdb_version as v
   on c.version_pk = v.pk
-where c.carton ~ 'bhm'
-  and v.plan = c.target_selection_plan
+where ( (c.carton ~ 'bhm' 
+         OR c.carton IN ('openfibertargets_nov2020_11', 'openfibertargets_nov2020_18', 'openfibertargets_nov2020_26', 'openfibertargets_nov2020_27', 'openfibertargets_nov2020_30', 'openfibertargets_nov2020_33') ) 
+  AND v.plan = c.target_selection_plan )
 order by c.carton_pk)
 to 'q_result.csv' with csv header"
 
@@ -76,8 +78,9 @@ for GEN in $GEN_LIST; do
 </tr>\
 \n</thead>\n<tbody>\n");}
 $1~/^bhm_/ && $6 == gen {
-    prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
-    if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+    prog=$5;  gsub("bhm_", "", prog); PROG=sprintf("BHM %s",toupper(prog)); tag=$3;plan=$2;
+    if (prog=="filler") {prog="ancillary";};
+    if (prog=="ancillary") {PROG="BHM Ancillary programs";};
     printf("<tr>\
 <td><a href=\"#%s_plan%s\" data-type=\"internal\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://testng.sdss.org/%s/bhm/programs/%s\">%s</a></td>\
@@ -102,8 +105,9 @@ Q="\copy ( SELECT
           CASE WHEN (c.carton ~ 'bhm_colr' OR c.carton ~ 'bhm_gua')  THEN 'ancillary'
                WHEN (c.program = 'bhm_filler' OR c.carton ~ 'bhm_csc')  THEN 'non-core'
                WHEN (c.program = 'bhm_spiders' AND (c.carton ~ '_supercosmos' OR c.carton ~ '_efeds_stragglers' OR c.carton ~ '_skymapperdr2' OR c.carton ~ 'agn_gaia' OR c.carton ~ '_sep'))  THEN 'non-core'
+               WHEN (c.program = 'open_fiber')  THEN 'openfiber'
                ELSE 'core' END as status,
-          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr') THEN 'ancillary' ELSE c.program END as program, 
+          CASE WHEN (c.program ~ 'gua' OR c.program ~ 'colr' OR c.program ~ 'open_fiber' OR c.program ~ 'manual') THEN 'ancillary' ELSE c.program END as program, 
           SUM(CASE WHEN tg.label = 'v0.5.epsilon-7-core-0' THEN 1 ELSE 0 END) in_tg1,
           SUM(CASE WHEN tg.label = 'v0.5.2' THEN 1 ELSE 0 END) in_tg2,
           SUM(CASE WHEN tg.label = 'v0.5.3' THEN 1 ELSE 0 END) in_tg3,
@@ -116,8 +120,9 @@ join ${MINIDB}.${DR}_carton as c
 on tg2c.carton_pk = c.carton_pk 
 join  ${MINIDB}.${DR}_targetdb_version as v
   on c.version_pk = v.pk
-where c.carton ~ 'bhm'
-  and v.plan = c.target_selection_plan
+where ( (c.carton ~ 'bhm' 
+         OR c.carton IN ('openfibertargets_nov2020_11', 'openfibertargets_nov2020_18', 'openfibertargets_nov2020_26', 'openfibertargets_nov2020_27', 'openfibertargets_nov2020_30', 'openfibertargets_nov2020_33') ) 
+  AND v.plan = c.target_selection_plan )
 group by c.carton_pk,c.carton,v.plan,v.tag,c.program 
 order by c.carton_pk)
 to 'q2_result.csv' with csv header"
@@ -190,8 +195,9 @@ gawk --field-separator=',' \
 \n</thead>\n<tbody>\n",
 agens[1], agens[2]);}
 $1~/^bhm_/ && $NF~/v0.5/ {
-    prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
-    if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+    prog=$5;  gsub("bhm_", "", prog); PROG=sprintf("BHM %s",toupper(prog)); tag=$3;plan=$2;
+    if (prog=="filler") {prog="ancillary";};
+    if (prog=="ancillary") {PROG="BHM Ancillary programs";};
     printf("<tr>\
 <td><a href=\"#%s_plan%s\" data-type=\"internal\">%s</a></td>\
 <td class=\"has-text-align-center\" data-align=\"center\"><a href=\"https://testng.sdss.org/%s/bhm/programs/%s\">%s</a></td>\
@@ -227,9 +233,10 @@ gawk --field-separator=',' \
 <th class=\"has-text-align-center\" data-align=\"center\">status</th>\
 </tr>\
 \n</thead>\n<tbody>\n");}
-$1~/^bhm_/ && $NF~/v0.5/ {
-    prog=$5; PROG=toupper(prog);  gsub("bhm_", "", prog); tag=$3;plan=$2;
-    if (prog=="filler") {prog="ancillary"; PROG="BHM Ancillary programs";};
+$1~/^bhm_|^openfiber/ && $NF~/v0.5/ {
+    prog=$5;  gsub("bhm_", "", prog); PROG=sprintf("BHM %s",toupper(prog)); tag=$3;plan=$2;
+    if (prog=="filler") {prog="ancillary";};
+    if (prog=="ancillary") {PROG="BHM Ancillary programs";};
     if (($6 > 0) && ($7 > 0 || $8 > 0 || $9 > 0)) {tgsym=""} 
     else if ($6>0) {tgsym=sprintf("<span title=\"only in targeting generation %s\">&Dagger;</span>",agens[1])} 
     else {tgsym=sprintf("<span title=\"only in targeting generations %s\">&clubs;</span>",agens[2])}; 
@@ -245,6 +252,10 @@ END {
 printf("</tbody></table><figcaption>All BHM cartons (with versions) from targeting generations %s. Carton-versions marked with a &Dagger; symbol are only present in targeting generation %s. Carton-versions marked with a &clubs; symbol are only present in targeting generations %s. </figcaption></figure>\n", gens, agens[1], agens[2]);
 }' q2_result.csv > carton_table_block_multi_generation_v0.5_slim.html
 
+
+# paste into HTML box in wordpress - these comands help
+xclip -sel c < carton_table_block_generation_v0.plates.html
+xclip -sel c < carton_table_block_multi_generation_v0.5_slim.html
 
 
 # ######################################
@@ -314,7 +325,7 @@ END {\
 
 # paste into HTML box in wordpress - these comands help
 xclip -sel c < carton_table_block_generation_v0.plates.html
-xclip -sel c < carton_table_block_multi_generation_v0.5.html
+xclip -sel c < carton_table_block_multi_generation_v0.5_slim.html
 xclip -sel c < bhm_target_cartons.html
 
 
