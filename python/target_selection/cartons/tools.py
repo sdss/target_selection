@@ -574,6 +574,8 @@ def get_file_carton(filename):
                 self.log.warning(
                     f"The number of rows in the file table ({n_file_table}) does not "
                     f"match the number of rows returned by the query ({n_query})."
+                    f"This may be due to duplicate or invalid external catalog IDs "
+                    f"in the manual carton input fits file"
                 )
 
     return FileCarton
