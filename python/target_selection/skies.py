@@ -77,9 +77,9 @@ class CatalogueParams(BaseModel):
         """Check that all the pm fields are set or null."""
 
         if self.pmra_column is not None or self.pmdec_column is not None:
-            assert (
-                self.pmra_column is not None and self.pmdec_column is not None
-            ), "both pmra_column and pmdec_column must be set."
+            assert self.pmra_column is not None and self.pmdec_column is not None, (
+                "both pmra_column and pmdec_column must be set."
+            )
 
             assert self.ref_epoch is not None, "ref_epoch must be set if pmra_column is set."
 
@@ -1170,8 +1170,7 @@ def create_veto_mask(
 
     targets = pandas.read_sql(query, database)
     print(
-        f"Working on {len(targets):,} bright stars "
-        f"({mag_column} < {mag_threshold}) from {table}"
+        f"Working on {len(targets):,} bright stars ({mag_column} < {mag_threshold}) from {table}"
     )
 
     # compute coords on unit sphere
@@ -1190,7 +1189,7 @@ def create_veto_mask(
     # we only one copy of each masked pixel:
     ipix = numpy.unique(ipix_list)
     npix = len(ipix)
-    print(f"Result: {npix:,} masked pixels (NSIDE={nside}), area={npix*pixarea:.4f} sqdeg")
+    print(f"Result: {npix:,} masked pixels (NSIDE={nside}), area={npix * pixarea:.4f} sqdeg")
 
     if moc_filename is not None:
         m = MOC.from_healpix_cells(ipix=ipix, depth=numpy.repeat(hpx_order, len(ipix)))

@@ -908,9 +908,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
                 pass
             elif mode == "fail":
                 raise TargetSelectionError(
-                    f"Found existing targets for "
-                    f"carton {self.name!r} with plan "
-                    f"{self.plan!r}."
+                    f"Found existing targets for carton {self.name!r} with plan {self.plan!r}."
                 )
             else:
                 raise ValueError(f'Invalid mode {mode!r}. Use "fail", "overwrite", or "append".')
@@ -1173,9 +1171,7 @@ class BaseCarton(metaclass=abc.ABCMeta):
             if "cadence" in RModel._meta.fields:
                 if RModel.select().where(~(RModel.cadence >> None)).exists():
                     raise TargetSelectionError(
-                        "both carton cadence and target "
-                        "cadence defined. This is not "
-                        "allowed."
+                        "both carton cadence and target cadence defined. This is not allowed."
                     )
 
             cadence_pk = tdb.Cadence.get(label=self.cadence)

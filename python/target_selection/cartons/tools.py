@@ -288,12 +288,59 @@ def get_file_carton(filename):
             # Copy the data
             self.copy_data(temp_table)
 
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR10_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")')
-            self.database.execute_sql(f'CREATE INDEX ON "{temp_table}" ("TwoMASS_ID")')
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "Gaia_DR3_Source_ID" = NULL'
+                + ' WHERE "Gaia_DR3_Source_ID"=0'
+            )
+
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "Gaia_DR2_Source_ID" = NULL'
+                + ' WHERE "Gaia_DR2_Source_ID"=0'
+            )
+
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "LegacySurvey_DR10_ID" = NULL'
+                + ' WHERE "LegacySurvey_DR10_ID"=0'
+            )
+
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "LegacySurvey_DR8_ID"= NULL'
+                + ' WHERE "LegacySurvey_DR8_ID"=0'
+            )
+
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "PanSTARRS_DR2_ID" = NULL'
+                + ' WHERE "PanSTARRS_DR2_ID"=0'
+            )
+
+            self.database.execute_sql(
+                f'UPDATE "{temp_table}"'
+                + ' SET "TwoMASS_ID" = NULL'
+                + " WHERE \"TwoMASS_ID\"='NA' "
+            )
+
+            self.database.execute_sql(
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")'
+            )
+            self.database.execute_sql(
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR2_Source_ID")'
+            )
+            self.database.execute_sql(
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR10_ID")'
+            )
+            self.database.execute_sql(
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("LegacySurvey_DR8_ID")'
+            )
+            self.database.execute_sql(
+                f'CREATE UNIQUE INDEX ON "{temp_table}" ("PanSTARRS_DR2_ID")'
+            )
+            self.database.execute_sql(f'CREATE UNIQUE INDEX ON "{temp_table}" ("TwoMASS_ID")')
+
             vacuum_table(self.database, temp_table, vacuum=False, analyze=True)
 
             inertial_case = peewee.Case(
@@ -527,6 +574,8 @@ def get_file_carton(filename):
                 self.log.warning(
                     f"The number of rows in the file table ({n_file_table}) does not "
                     f"match the number of rows returned by the query ({n_query})."
+                    f"This may be due to duplicate or invalid external catalog IDs "
+                    f"in the manual carton input fits file"
                 )
 
     return FileCarton
@@ -589,7 +638,7 @@ def create_table_as(
         schema = None
 
     path = f"{schema}.{table_name}" if schema else table_name
-    create_sql = f'CREATE {"TEMPORARY " if temporary else ""}TABLE {path} AS '
+    create_sql = f"CREATE {'TEMPORARY ' if temporary else ''}TABLE {path} AS "
 
     if database is None and isinstance(query, peewee.ModelSelect):
         database = query.model._meta.database

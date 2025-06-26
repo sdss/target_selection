@@ -160,19 +160,19 @@ class MetaXMatch:
                 st_dec = "pos" + st_dec
             else:
                 st_dec = st_dec.replace("-", "neg")
-            output_name = f"catalogidx_to_catalogidy" f"_ra{racen}_dec{st_dec}_rad{int(radius)}"
+            output_name = f"catalogidx_to_catalogidy_ra{racen}_dec{st_dec}_rad{int(radius)}"
             log_message = f"###  Using ra={racen:5.1f}  dec={deccen:5.1f}  rad={radius:04.1f}  ###"
         elif self.ra_region:
             ra_start, ra_stop = self.ra_region
             if ra_start >= ra_stop:
                 raise ValueError("Starting RA must be smaller than stopping RA!")
-            output_name = f"catalogidx_to_catalogidy" f"_ra{int(ra_start)}_ra{int(ra_stop)}"
+            output_name = f"catalogidx_to_catalogidy_ra{int(ra_start)}_ra{int(ra_stop)}"
             log_message = f"###  Using ra={ra_start:5.1f}  to  ra={ra_stop:5.1f}               ###"
         elif self.individual_table:
             ind_table = self.individual_table
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
-            output_name = f"catalogidx_to_catalogidy" f"_{ind_table}"
+            output_name = f"catalogidx_to_catalogidy_{ind_table}"
             log_message = f"###  Using catalogids from file  {ind_table}              ###"
         elif self.catalogid_list:
             output_name = "catalogidx_to_catalogidy_from_catalogid_list"
@@ -187,7 +187,7 @@ class MetaXMatch:
             if "." in ind_table:
                 ind_table = ind_table.split(".")[-1]
             output_name = (
-                f"catalogidx_to_catalogidy" f"_{ind_table}" f"_ra{int(ra_start)}_ra{int(ra_stop)}"
+                f"catalogidx_to_catalogidy_{ind_table}_ra{int(ra_start)}_ra{int(ra_stop)}"
             )
             log_message = (
                 f"###  Using catalogids from file  {ind_table} "
@@ -574,7 +574,7 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     cursor = insert_query.execute()
     n_unique = cursor.rowcount
     tf = time.time()
-    log.info(f"Created unique pairs table with {n_unique} " f"entries in {(tf - ti):.2f} seconds")
+    log.info(f"Created unique pairs table with {n_unique} entries in {(tf - ti):.2f} seconds")
 
 
 """

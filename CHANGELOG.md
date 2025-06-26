@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.22 - June 20, 2025
+
+### New
+
+* added target_selection plan 1.2.19 for openfiber cartons.
+
 ## 1.3.21 - March 19, 2025
 
 ### 🏷️ Changed
