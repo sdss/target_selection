@@ -24,7 +24,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 )
 
 # DEBUG STUFF TO USE TEMP TABLE
-# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite' # noqa: E501
 # CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
@@ -90,9 +90,10 @@ class BhmAqmesBaseCarton(BaseCarton):
 
     def get_fieldlist(self, cadence_v0=None):
         """
-        read the AQMES field centres from a fits file and convert to a list of dicts
-        New: it is now the responsibility of the calling function to convert from a
-        v1 cadence into a v0 cadence name
+        read the AQMES field centres from a fits file and convert
+        to a list of dicts
+        New: it is now the responsibility of the calling function to
+        convert from a v1 cadence into a v0 cadence name
         """
         stub = self.parameters.get("fieldlist", None)
         if stub is None or stub == "" or stub == "None":
@@ -277,7 +278,8 @@ class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     # cadence_v0p5 = 'dark_10x4_4yr'
 
     # TD's note to self:
-    # add something like the following if want to add carton-specific selections
+    # add something like the following
+    #    (if we want to add carton-specific selections)
     #    def build_query(self, version_id, query_region=None):
     #        query = super().build_query(version_id, query_region)
     #        query = query.where( # .... add extra terms here
