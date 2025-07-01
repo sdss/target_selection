@@ -127,7 +127,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 if r["CADENCE"] == cadence_v0
             ]
         except BaseException:
-            raise Exception("Error interpreting contents of " f"fieldlist file: {filename}")
+            raise Exception(f"Error interpreting contents of fieldlist file: {filename}")
 
         assert len(fieldlist) > 0
 
