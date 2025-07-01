@@ -60,7 +60,7 @@ cadence_map_v0p5_to_v0 = {
 cadence_map_v1_to_v0 = {
     "dark_10x4": "bhm_aqmes_medium_10x4",
     "dark_10x4_4yr": "bhm_aqmes_medium_10x4",
-    "dark_3x4": "bhm_aqmes_wide_2x4",    # this apparent mismatch is deliberate
+    "dark_3x4": "bhm_aqmes_wide_2x4",  # this apparent mismatch is deliberate
     "dark_2x4": "bhm_aqmes_wide_2x4",
     "dark_1x4": "bhm_spiders_1x4",
     "dark_flexible_2x2": "bhm_spiders_1x4",
@@ -127,8 +127,7 @@ class BhmAqmesBaseCarton(BaseCarton):
                 if r["CADENCE"] == cadence_v0
             ]
         except BaseException:
-            raise Exception("Error interpreting contents of "
-                            f"fieldlist file: {filename}")
+            raise Exception("Error interpreting contents of " f"fieldlist file: {filename}")
 
         assert len(fieldlist) > 0
 
@@ -144,8 +143,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         q = False
         for f in fieldlist:
             q = q | peewee.fn.q3c_radial_query(
-                self.alias_c.ra, self.alias_c.dec,
-                f["racen"], f["deccen"], f["radius"]
+                self.alias_c.ra, self.alias_c.dec, f["racen"], f["deccen"], f["radius"]
             )
         return query.where(q)
 
@@ -160,8 +158,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         self.alias_c2s = c2s
 
         # set the Carton priority+values here - read from yaml
-        priority_floor = peewee.Value(int(self.parameters.get("priority",
-                                                              999999)))
+        priority_floor = peewee.Value(int(self.parameters.get("priority", 999999)))
         value = peewee.Value(self.parameters.get("value", 1.0)).cast("float")
         instrument = peewee.Value(self.instrument)
         inertial = peewee.Value(self.inertial).cast("bool")
@@ -172,8 +169,7 @@ class BhmAqmesBaseCarton(BaseCarton):
         if hasattr(self, "cadence_v0"):
             cadence_v0 = peewee.Value(self.cadence_v0)
         else:
-            cadence_v0 = peewee.Value(
-                cadence_map_v1_to_v0[cadence_v1]).cast("text")
+            cadence_v0 = peewee.Value(cadence_map_v1_to_v0[cadence_v1]).cast("text")
         # cadence_v0 = peewee.Value(
         #         cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
         # cadence = peewee.Value(self.cadence_v0p5).cast('text')
@@ -238,9 +234,7 @@ class BhmAqmesBaseCarton(BaseCarton):
             )
             .join(c2s)
             .join(s)
-            .join(t, on=((s.plate == t.plate) &
-                         (s.mjd == t.mjd) &
-                         (s.fiberid == t.fiberid)))
+            .join(t, on=((s.plate == t.plate) & (s.mjd == t.mjd) & (s.fiberid == t.fiberid)))
             .where(
                 c.version_id == version_id,
                 c2s.version_id == version_id,
@@ -258,8 +252,7 @@ class BhmAqmesBaseCarton(BaseCarton):
 
         # query = self.append_spatial_query(query,
         #                                   self.get_fieldlist(cadence_v1))
-        query = self.append_spatial_query(query,
-                                          self.get_fieldlist(cadence_v0))
+        query = self.append_spatial_query(query, self.get_fieldlist(cadence_v0))
 
         return query
 
