@@ -1,3 +1,37 @@
+'1.2.20':
+  xmatch_plan: 1.0.0
+  cartons:
+    - bhm_aqmes_wide3
+    - bhm_aqmes_wide3_faint
+  open_fiber_path: /uufs/chpc.utah.edu/common/home/sdss50/sdsswork/target/open_fiber/postv1/draft2/
+  schema: sandbox
+  magnitudes:
+    h: [catalog_to_twomass_psc, twomass_psc, twomass_psc.h_m]
+    j: [catalog_to_twomass_psc, twomass_psc, twomass_psc.j_m]
+    k: [catalog_to_twomass_psc, twomass_psc, twomass_psc.k_m]
+    bp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_bp_mean_mag]
+    rp: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_rp_mean_mag]
+    gaia_g: [catalog_to_gaia_dr3_source, gaia_dr3_source, gaia_dr3_source.phot_g_mean_mag]
+  database_options:
+    work_mem: '200MB'
+    enable_bitmapscan: false
+    enable_seqscan: false
+  parameters:
+    bhm_aqmes_wide3:
+      priority: 1209
+      value: 100.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+      mag_i_min: 16.0
+      mag_i_max: 19.1
+      cadence: 'dark_3x4'
+    bhm_aqmes_wide3_faint:
+      priority: 3209
+      value: 1.0
+      fieldlist: masks/candidate_target_fields_bhm_aqmes_wide_v0.3.1.fits
+      mag_i_min: 19.1
+      mag_i_max: 21.0
+      cadence: 'dark_3x4'
+
 '1.2.19':
   xmatch_plan: 1.0.0
   cartons:

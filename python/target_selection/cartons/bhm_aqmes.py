@@ -24,7 +24,7 @@ from sdssdb.peewee.sdss5db.catalogdb import (
 )
 
 # DEBUG STUFF TO USE TEMP TABLE
-# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite'
+# CatalogToSDSS_DR19p_Speclite._meta.table_name = 'temp_catalog_to_sdss_dr19p_speclite' # noqa: E501
 # CatalogToSDSS_DR19p_Speclite._meta._schema = 'sandbox'
 
 from target_selection.cartons.base import BaseCarton
@@ -42,8 +42,8 @@ radius_apo = 1.49  # degrees
 #  bhm_aqmes_wide2_faint
 #  bhm_aqmes_wide1
 #  bhm_aqmes_wide1_faint
-#  # bhm_aqmes_wide3        # dumped in v0.5
-#  # bhm_aqmes_wide3-faint  # dumped in v0.5
+#  bhm_aqmes_wide3        # reintroduced c. June 2025
+#  bhm_aqmes_wide3_faint  # reintroduced c. June 2025
 #  bhm_aqmes_bonus_dark
 #  bhm_aqmes_bonus_bright
 
@@ -60,6 +60,7 @@ cadence_map_v0p5_to_v0 = {
 cadence_map_v1_to_v0 = {
     "dark_10x4": "bhm_aqmes_medium_10x4",
     "dark_10x4_4yr": "bhm_aqmes_medium_10x4",
+    "dark_3x4": "bhm_aqmes_wide_2x4",  # this apparent mismatch is deliberate
     "dark_2x4": "bhm_aqmes_wide_2x4",
     "dark_1x4": "bhm_spiders_1x4",
     "dark_flexible_2x2": "bhm_spiders_1x4",
@@ -89,9 +90,10 @@ class BhmAqmesBaseCarton(BaseCarton):
 
     def get_fieldlist(self, cadence_v0=None):
         """
-        read the AQMES field centres from a fits file and convert to a list of dicts
-        New: it is now the responsibility of the calling function to convert from a
-        v1 cadence into a v0 cadence name
+        read the AQMES field centres from a fits file and convert
+        to a list of dicts
+        New: it is now the responsibility of the calling function to
+        convert from a v1 cadence into a v0 cadence name
         """
         stub = self.parameters.get("fieldlist", None)
         if stub is None or stub == "" or stub == "None":
@@ -168,7 +170,8 @@ class BhmAqmesBaseCarton(BaseCarton):
             cadence_v0 = peewee.Value(self.cadence_v0)
         else:
             cadence_v0 = peewee.Value(cadence_map_v1_to_v0[cadence_v1]).cast("text")
-        # cadence_v0 = peewee.Value(cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
+        # cadence_v0 = peewee.Value(
+        #         cadence_map_v0p5_to_v0[self.cadence_v0p5]).cast('text')
         # cadence = peewee.Value(self.cadence_v0p5).cast('text')
 
         priority = priority_floor
@@ -243,11 +246,12 @@ class BhmAqmesBaseCarton(BaseCarton):
                 t.psfmag[3] >= self.parameters["mag_i_min"],
                 t.psfmag[3] < self.parameters["mag_i_max"],
             )
-            # .distinct([t.pk])   # avoid duplicates - trust the QSO parent sample
+            # .distinct([t.pk])   # avoid duplicates - trust QSO parent sample
             .distinct([c.catalogid])  # avoid duplicates - trust the catalog
         )
 
-        # query = self.append_spatial_query(query, self.get_fieldlist(cadence_v1))
+        # query = self.append_spatial_query(query,
+        #                                   self.get_fieldlist(cadence_v1))
         query = self.append_spatial_query(query, self.get_fieldlist(cadence_v0))
 
         return query
@@ -267,7 +271,8 @@ class BhmAqmesMedCarton(BhmAqmesBaseCarton):
     # cadence_v0p5 = 'dark_10x4_4yr'
 
     # TD's note to self:
-    # add something like the following if want to add carton-specific selections
+    # add something like the following
+    #    (if we want to add carton-specific selections)
     #    def build_query(self, version_id, query_region=None):
     #        query = super().build_query(version_id, query_region)
     #        query = query.where( # .... add extra terms here
@@ -346,6 +351,25 @@ class BhmAqmesWide1FaintCarton(BhmAqmesBaseCarton):
     """
 
     name = "bhm_aqmes_wide1_faint"
+    cadence_v0 = "bhm_aqmes_wide_2x4"
+    program = "bhm_filler"
+
+
+class BhmAqmesWide3Carton(BhmAqmesBaseCarton):
+    """
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 16.0 AND 19.1
+    """
+
+    name = "bhm_aqmes_wide3"
+    cadence_v0 = "bhm_aqmes_wide_2x4"
+
+
+class BhmAqmesWide3FaintCarton(BhmAqmesBaseCarton):
+    """
+    SELECT * FROM sdss_dr16_qso WHERE psfmag_i BETWEEN 19.1 AND 21.0
+    """
+
+    name = "bhm_aqmes_wide3_faint"
     cadence_v0 = "bhm_aqmes_wide_2x4"
     program = "bhm_filler"
 
