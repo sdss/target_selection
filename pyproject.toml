@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdss-target-selection"
-version = "1.4.1a0"
+version = "1.4.1"
 description = "Code to perform target selection for BHM/MWM using catalogdb"
 authors = ["José Sánchez-Gallego <gallegoj@uw.edu>"]
 license = "BSD 3-Clause"
@@ -25,7 +25,7 @@ include = ["python/target_selection/config/*", "python/target_selection/masks/*"
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^1"
-sdssdb = "0.13.2"
+sdssdb = "0.13.3"
 sdsstools = "^1.6.0"
 click = "^8.0"
 astropy = ">=5.0.0"

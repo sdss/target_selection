@@ -3523,14 +3523,14 @@ numpy = "*"
 
 [[package]]
 name = "sdssdb"
-version = "0.13.2"
+version = "0.13.3"
 description = "SDSS product for database management"
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "sdssdb-0.13.2-py3-none-any.whl", hash = "sha256:f570fa275299e46d86ebff87f9af73dcb1bd0915477fe7f34abe25de731a6639"},
-    {file = "sdssdb-0.13.2.tar.gz", hash = "sha256:fe3b0b832be647612eabf919a761792b9efff6fa538d2dfb430c7bf610f59e18"},
+    {file = "sdssdb-0.13.3-py3-none-any.whl", hash = "sha256:3a54aab17beb18eb3e5b99e70316b476dd57fab629a9a0fdf53f5e51edd2a8f4"},
+    {file = "sdssdb-0.13.3.tar.gz", hash = "sha256:794639bd1c7b82e3bb03bf33717c905ba5f05b4ce77e688b9224ac10549c093d"},
 ]
 
 [package.dependencies]
@@ -3539,6 +3539,7 @@ peewee = ">=3.17.6"
 pgpasslib = ">=1.1.0"
 psycopg2-binary = ">=2.7.7"
 sdsstools = {version = ">=1.7.0", markers = "python_version >= \"3.8\""}
+six = ">=1.12.0"
 sqlalchemy = ">=1.3.6,<2"
 
 [package.extras]
@@ -4495,4 +4496,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "bbe355782cb0981dcb6663a06f45d02799afcd0d74cb76160e3300905c19c3e3"
+content-hash = "ca28fde14425a1cb74bf927e2592b42e29b7769660c62a6ac9c1e172cc3ce93a"

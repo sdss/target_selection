@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1 - July 15, 2025
+
+### 🔧 Fixed
+
+* Update `sdssdb` to 0.13.3.
+
+
 ## 1.4.0 - July 15, 2025
 
 ### 🚀 New
