@@ -108,6 +108,7 @@ def XMatchModel(
     skip_phases=None,
     query_radius=None,
     join_weight=1,
+    allow_multiple_bests=False,
     database_options=None,
 ):
     """Expands the model `peewee:Metadata` with cross-matching parameters.
@@ -171,6 +172,12 @@ def XMatchModel(
         The weight used by `.XMatchPlanner.get_join_paths` to determine
         the cost of using this table as a join. Lower weights translate to
         better chances of that join path to be selected.
+    allow_multiple_bests : bool
+        When set to False, the default, a catalogid can only be associated with
+        one target in the model with ``best=True`` (the catalogid can be associated
+        with multiple targets in phase 2, but only one will be marked as best).
+        When set to True, a catalog id can be associated with multiple targets
+        in the model with ``best=True``.
     database_options : dict
         A dictionary of database configuration parameters to be set locally
         for this model for each processing phase transaction, temporarily
@@ -224,6 +231,8 @@ def XMatchModel(
     meta.xmatch.skip = skip
     meta.xmatch.skip_phases = skip_phases or []
     meta.xmatch.query_radius = query_radius
+
+    meta.xmatch.allow_multiple_bests = allow_multiple_bests
 
     meta.xmatch.row_count = int(
         get_row_count(
@@ -1463,6 +1472,8 @@ class XMatchPlanner(object):
     def _run_phase_1(self, model):
         """Runs the linking against matched catalogids stage."""
 
+        xmatch = model._meta.xmatch
+
         table_name = model._meta.table_name
         rel_model_sb = self.get_relational_model(model, create=True, sandboxed=True)
 
@@ -1499,6 +1510,11 @@ class XMatchPlanner(object):
             # a sequential scan.
             join_rel_model = join_models[-1]
 
+            # Whether to allow multiple best matches for the same target.
+            catalogid_condition = rel_model_sb.catalogid == join_rel_model.catalogid
+            if xmatch.allow_multiple_bests:
+                catalogid_condition = peewee.SQL("FALSE")
+
             query = (
                 self._build_join(join_models)
                 .select(
@@ -1514,10 +1530,7 @@ class XMatchPlanner(object):
                     ~fn.EXISTS(
                         rel_model_sb.select(SQL("1")).where(
                             rel_model_sb.version_id == self.version_id,
-                            (
-                                (rel_model_sb.target_id == model_pk)
-                                | (rel_model_sb.catalogid == join_rel_model.catalogid)
-                            ),
+                            ((rel_model_sb.target_id == model_pk) | catalogid_condition),
                         )
                     )
                 )
@@ -1749,6 +1762,11 @@ class XMatchPlanner(object):
             peewee.Value(2).alias("added_by_phase"),
         )
 
+        # Whether to allow multiple best matches for the same target.
+        catalogid_condition = rel_model_sb.catalogid == xmatched.c.catalogid
+        if xmatch.allow_multiple_bests:
+            catalogid_condition = peewee.SQL("FALSE")
+
         # We only need to care about already linked targets if phase 1 run.
         if 1 in self._phases_run:
             in_query = in_query.where(
@@ -1756,23 +1774,22 @@ class XMatchPlanner(object):
                 ~fn.EXISTS(
                     rel_model_sb.select(SQL("1")).where(
                         (rel_model_sb.version_id == self.version_id)
-                        & (
-                            (rel_model_sb.catalogid == xmatched.c.catalogid)
-                            | (rel_model_sb.target_id == xmatched.c.target_id)
-                        )
+                        & (catalogid_condition | (rel_model_sb.target_id == xmatched.c.target_id))
                     )
                 ),
             )
+
+        # Whether to allow multiple best matches for the same target.
+        catalogid_condition = rel_model.catalogid == xmatched.c.catalogid
+        if xmatch.allow_multiple_bests:
+            catalogid_condition = peewee.SQL("FALSE")
 
         if rel_model.table_exists():
             in_query = in_query.where(
                 ~fn.EXISTS(
                     rel_model.select(SQL("1")).where(
                         (rel_model.version_id == self.version_id)
-                        & (
-                            (rel_model.catalogid == xmatched.c.catalogid)
-                            | (rel_model.target_id == xmatched.c.target_id)
-                        )
+                        & (catalogid_condition | (rel_model.target_id == xmatched.c.target_id))
                     )
                 )
             )

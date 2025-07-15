@@ -1,14 +1,21 @@
 # Changelog
 
-# 1.3.23 - July 1, 2025
+## 1.4.0 - July 15, 2025
 
-### New
+### 🚀 New
+
+* Added the flag `allow_multiple_bests` to the `XMatchPlanner` class to allow multiple best matches for a given `catalogid` in the cross-match.
+
+
+## 1.3.23 - July 1, 2025
+
+### 🚀 New
 
 * added target_selection plan 1.2.20 for bhm_aqmes cartons.
 
 ## 1.3.22 - June 20, 2025
 
-### New
+### 🚀 New
 
 * added target_selection plan 1.2.19 for openfiber cartons.
 
