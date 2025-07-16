@@ -65,6 +65,7 @@ class ToO_Carton(BaseCarton):
                 C2TT.best >> True,
                 C2TT.catalogid.not_in(too_in_carton),
             )
+            .distinct(C2TT.catalogid)
         )
 
         return query

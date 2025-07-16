@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.2 - July 16, 2025
+
+### 🔧 Fixed
+
+* Apply a `DISTINCT` to the catalogids in the `too` carton to avoid duplicates.
+
+
 ## 1.4.1 - July 15, 2025
 
 ### 🔧 Fixed
