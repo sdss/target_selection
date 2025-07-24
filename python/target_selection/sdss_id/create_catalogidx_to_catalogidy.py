@@ -546,7 +546,7 @@ def create_unique_from_region(input_tablename, save_log_output=False):
     
     UniqueMatch_permissions = f"""GRANT ALL ON TABLE sandbox.{output_tablename}
                                     TO sdss, sdss_user;"""
-    self.database.execute_sql(UniqueMatch_permissions)
+    database.execute_sql(UniqueMatch_permissions)
     
     add_index_UniqueMatch = f"""CREATE INDEX ON
                                     sandbox.{output_tablename} (catalogidx);
