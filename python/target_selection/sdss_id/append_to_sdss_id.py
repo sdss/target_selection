@@ -344,6 +344,14 @@ class AppendToTables:
                                         sandbox.temp_catalogid_v31 (catalogid31); """
         self.database.execute_sql(temp_catalodids_indexes)
 
+        temp_catalogids_permissions = """ GRANT ALL ON TABLE sandbox.temp_catalogid_v21 
+                                            TO sdss, sdss_user;
+                                          GRANT ALL ON TABLE sandbox.temp_catalogid_v25 
+                                            TO sdss, sdss_user;
+                                          GRANT ALL ON TABLE sandbox.temp_catalogid_v31 
+                                            TO sdss, sdss_user; """
+        self.database.execute_sql(temp_catalogids_permissions)
+
         TempCatalogidV21.insert_from(v21_cid_query_x, [TempCatalogidV21.catalogid21]).execute()
         TempCatalogidV21.insert_from(v21_cid_query_y, [TempCatalogidV21.catalogid21]).execute()
         TempCatalogidV25.insert_from(v25_cid_query_x, [TempCatalogidV25.catalogid25]).execute()
@@ -452,6 +460,10 @@ class AppendToTables:
             select * from add_outer31);"""
         self.database.execute_sql(large_cte_query)
 
+        stacked_addendum_permission = """ GRANT ALL  ON TABLE sandbox.sdss_id_stacked_addendum
+                                            TO sdss, sdss_user; """
+        self.database.execute_sql(stacked_addendum_permission)
+
         add_ra_dec_columns = """ ALTER TABLE sandbox.sdss_id_stacked_addendum
                                     ADD COLUMN ra_sdss_id double precision;
                                  ALTER TABLE sandbox.sdss_id_stacked_addendum
@@ -538,6 +550,10 @@ class AppendToTables:
         else:
             # self.database.create_tables([SdssIdFlatAddendum])
             SdssIdFlatAddendum.create_table()
+
+        stacked_flat_permission = """ GRANT ALL  ON TABLE sandbox.sdss_id_flat_addendum
+                                            TO sdss, sdss_user; """
+        self.database.execute_sql(stacked_flat_permission)
 
         sid_flat_fields = [
             SdssIdFlatAddendum.sdss_id,
