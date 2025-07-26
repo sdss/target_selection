@@ -1,5 +1,12 @@
 # Changelog
 
+## Next release
+
+### 🔧 Fixed
+
+* [#510](https://github.com/sdss/target_selection/pull/510) Fix sdss_id tables permissions.
+
+
 ## 1.4.2 - July 16, 2025
 
 ### 🔧 Fixed
