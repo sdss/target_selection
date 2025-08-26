@@ -90,7 +90,7 @@ def get_file_carton(filename):
                     "Error in get_file_carton(): "
                     + filename
                     + " has null specified in the fits file columns."
-                    + "Hence the table has masked values."
+                    + " Hence the table has masked values."
                 )
 
             unique_cartonname = numpy.unique(self._table["cartonname"])
