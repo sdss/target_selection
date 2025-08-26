@@ -11,6 +11,7 @@ import tempfile
 
 import numpy
 import peewee
+from astropy.io import fits
 from astropy.table import Table
 
 from sdssdb.utils.ingest import create_model_from_table
@@ -55,9 +56,20 @@ def get_file_carton(filename):
         def __init__(self, targeting_plan, config_file=None, schema=None, table_name=None):
             self._file_path = filename
 
+            hdu_list = fits.open(self._file_path, memmap=True)
+
+            col_list = str(hdu_list[1].columns)
+
+            if "null =" in col_list:
+                raise TargetSelectionError(
+                    "Error in get_file_carton(): "
+                    + filename
+                    + " has null specified in the fits file columns."
+                )
+
+            hdu_list.close()
+
             self._table = Table.read(self._file_path)
-            if self._table.masked:
-                self._table = self._table.filled()
 
             self._run_sanity_checks()
 
@@ -72,6 +84,14 @@ def get_file_carton(filename):
 
         def _run_sanity_checks(self):
             """Runs a series of sanity checks on the FITS table."""
+
+            if self._table.has_masked_values:
+                raise TargetSelectionError(
+                    "Error in get_file_carton(): "
+                    + filename
+                    + " has null specified in the fits file columns."
+                    + "Hence the table has masked values."
+                )
 
             unique_cartonname = numpy.unique(self._table["cartonname"])
             if len(unique_cartonname) == 1:
