@@ -1,6 +1,6 @@
 # Changelog
 
-## Next release
+## 1.4.4 - October 18, 2025
 
 ### 🔧 Fixed
 
