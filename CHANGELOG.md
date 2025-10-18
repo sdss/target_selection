@@ -1,5 +1,12 @@
 # Changelog
 
+## Next release
+
+### 🔧 Fixed
+
+* Cast reference epoch to real in `is_valid_sky()` function.
+
+
 ## 1.4.3 - July 26, 2025
 
 ### 🔧 Fixed

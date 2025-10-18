@@ -1345,7 +1345,7 @@ def is_valid_sky(
         if cat_params.pmra_column:
             pm_selects.append(f"{cat_params.pmra_column} AS pmra")
             pm_selects.append(f"{cat_params.pmdec_column} AS pmdec")
-            pm_selects.append(f"{cat_params.ref_epoch} AS ref_epoch")
+            pm_selects.append(f"{cat_params.ref_epoch}::real AS ref_epoch")
             has_pm = True
 
         selects = [
@@ -1370,7 +1370,7 @@ def is_valid_sky(
         else:
             q_targets = polars.read_database(query, database)
 
-        q_targets = q_targets.with_row_count(name="n")
+        q_targets = q_targets.with_row_index(name="n")
 
         if cat_params.ref_epoch is not None:
             q_targets = q_targets.cast({"ref_epoch": polars.Float32})
