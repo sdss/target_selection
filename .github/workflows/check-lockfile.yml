@@ -2,34 +2,24 @@ name: Check lockfile
 
 on:
   push:
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+    paths:
+      - pyproject.toml
+      - uv.lock
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+    paths:
+      - pyproject.toml
+      - uv.lock
 
 jobs:
   check-lockfile:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install poetry
-        run: |
-          pipx install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Check lockfile
         run: |
-          poetry check --lock
+          uv lock --check
