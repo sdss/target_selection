@@ -101,19 +101,19 @@ class BaseCarton(metaclass=abc.ABCMeta):
         self.tag = __version__ if self.plan != "0.0.0-test" else None
 
         if config_file:
-            this_config = read_yaml_file(config_file)
+            this_config: dict = read_yaml_file(config_file)
         else:
-            this_config = config.copy()
+            this_config: dict = config.copy()
 
         if self.plan not in this_config:
             raise TargetSelectionError(f"({self.name}): cannot find plan {self.plan!r} in config.")
 
-        self.config = this_config[self.plan]
+        self.config: dict = this_config[self.plan]
 
         if "parameters" in self.config:
-            self.parameters = self.config["parameters"].get(self.name, None)
+            self.parameters: dict = self.config["parameters"].get(self.name, {})
         else:
-            self.parameters = None
+            self.parameters: dict = {}
 
         try:
             self.xmatch_plan = self.config["xmatch_plan"]
