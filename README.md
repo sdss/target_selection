@@ -1,6 +1,6 @@
 # target_selection
 
-![Versions](https://img.shields.io/badge/python->=3.10-blue)
+![Versions](https://img.shields.io/badge/python->=3.11-blue)
 [![Documentation Status](https://readthedocs.org/projects/sdss-target-selection/badge/?version=latest)](https://sdss-target-selection.readthedocs.io/en/latest/?badge=latest)
 
 Code to perform target selection for BHM/MWM using catalogdb.
