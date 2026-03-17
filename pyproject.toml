@@ -1,6 +1,6 @@
 [project]
 name = "sdss-target-selection"
-version = "1.5.0"
+version = "1.5.1a1"
 description = "Code to perform target selection for BHM/MWM using catalogdb"
 authors = [{ name = "José Sánchez-Gallego", email = "gallegoj@uw.edu" }]
 license = "BSD-3-Clause"
