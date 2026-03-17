@@ -2664,7 +2664,7 @@ wheels = [
 
 [[package]]
 name = "sdss-target-selection"
-version = "1.5.0a1"
+version = "1.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "adbc-driver-postgresql" },
