@@ -1,5 +1,16 @@
 # Changelog
 
+## Next release
+
+### 🔥 Breaking changes
+
+* [#513](https://github.com/sdss/target_selection/pull/513) Drop support for Python 3.10.
+
+### ⚙️ Engineering
+
+* [#513](https://github.com/sdss/target_selection/pull/513) Update package management internals with `uv` (replacing `poetry`), update workflows, fix issues with the RTDs build, and update the `README.md` with instructions for development.
+
+
 ## 1.4.4 - October 18, 2025
 
 ### 🔧 Fixed

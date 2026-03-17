@@ -236,7 +236,9 @@ def run(
                     OpenFiberCartons[i] = get_file_carton(open_fiber_files[i])
 
                 if include:
-                    OpenFiberCartons = [OFC for OFC in OpenFiberCartons if OFC.name in include]
+                    OpenFiberCartons = [
+                        OFC for OFC in OpenFiberCartons if OFC and OFC.name in include
+                    ]
                 Cartons += OpenFiberCartons
 
                 tsmod.log.info(f"{len(OpenFiberCartons)} open fiber cartons selected.")
@@ -293,7 +295,7 @@ def load_files(plan, files, program, category):
     from target_selection.cartons.tools import get_file_carton
 
     for fn in files:
-        Carton = get_file_carton(fn, "", category, program)
+        Carton = get_file_carton(fn)
         carton = Carton(plan)
         carton.run(overwrite=True)
         carton.load(overwrite=True)
