@@ -1,0 +1,6 @@
+carton_pk|carton|plan|tag|targeting_generations|ntargets|cadences|priority
+1165|manual_bhm_spiders_comm_lco|0.5.23|0.3.22|{dr20.manual}|3160|{dark_1x4}|{1000}
+1639|bhm_rm_core|1.0.48|1.0.48|{dr20.manual}|3757|{dark_100x8,dark_174x8}|{1002,1007,1012,1017,1022,1027,1032,1037,1042,1047,1097}
+1640|bhm_rm_known_spec|1.0.48|1.0.48|{dr20.manual}|3212|{dark_100x8,dark_174x8}|{1001,1011,1016,1021,1026,1031,1036,1041,1046,1051}
+1641|bhm_rm_var|1.0.48|1.0.48|{dr20.manual}|871|{dark_174x8}|{1008,1013,1018,1023,1028,1033,1038}
+1642|bhm_rm_ancillary|1.0.48|1.0.48|{dr20.manual}|1114|{dark_100x8,dark_174x8}|{1009,1014,1019,1024,1029,1034,1039,1044,1049,1099}

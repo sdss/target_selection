@@ -453,53 +453,13 @@ END {\
        if(n[f]!=1){\
            printf("%-50s %d!=1\n", f, n[f]);\
     }}\
-}' bhm_target_cartons.html carton_table_block_generation_v0.plates.html carton_table_block_multi_generation_v0.5.html
+}' bhm_target_cartons.html carton_table_block_generation_v0.plates.html carton_table_block_multi_generation_v0.5_slim.html carton_table_block_multi_generation_v1.0_slim.html carton_table_block_generation_dr20.manual.html
 
 
-# paste into HTML box in wordpress - these comands help
-xclip -sel c < carton_table_block_generation_v0.plates.html
-xclip -sel c < carton_table_block_multi_generation_v0.5_slim.html
+# paste carton descriptions into HTML box in wordpress - this command helps
 xclip -sel c < bhm_target_cartons.html
 
 
-# Then do this auto conversion to latex:
-#
-TEXOUT=bhm_target_cartons.tex
-pandoc --from=html --to=latex --output=$TEXOUT bhm_target_cartons.html
+##Now convert to latex
 
-# replace the references with bibtex equivalents:
-
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020ApJS..250....8L\/abstract}{Lyke\net al., 2020}/\\citealt{Lyke2020}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2014ApJ...785..104R\/abstract}{Rykoff\net al., 2014}/\\citealt{Rykoff2014}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020MNRAS.499.4768I\/abstract}{Ider\nChitham et al., 2020}/\\citealt{IderChitham2020}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...3S\/abstract}{Salvato\net al., 2022}/\\citealt{Salvato2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...3S\/abstract}{Salvato\net al. 2022}/\\citealt{Salvato2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al., 2019}/\\citealt{Shu2019}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019MNRAS.489.4741S\/abstract}{Shu\net al., \(2019\)}/\\citet{Shu2019}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2021ApJS..253....8M\/abstract}{CatWISE2020}/CatWISE2020 \\citep{Marocco2021}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen, \(2022\)}/\\citet{Yang2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen \(2022\)}/\\citet{Yang2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022arXiv220608989Y\/abstract}{Yang\nand Shen, 2022}/\\citealt{Yang2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2019PASA...36...33O\/abstract}{SkyMapper-dr2}/SkyMapper-dr2 \\citep{Onken2019}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022A\\%26A...661A...2L\/abstract}{Liu\net al., 2022}/\\citealt{Liu2022}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2022ApJS..259...35A\/abstract}{Abdurro'\''uf\net al., 2022}/\\citealt{Abdurrouf_2021_sdssDR17}/g'  $TEXOUT
-perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2011ApJ...729..141B\/abstract}{Bovy\net al., 2011}/\\citealt{Bovy2011}/g'  $TEXOUT
-# perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
-
-# get the section numbering right
-perl -0777 -pi -e 's/\\subsubsection{/\\subsection{/g'  $TEXOUT
-
-# formatting
-perl -0777 -pi -e 's/\\textbf{/\\noindent\\textbf{/g'  $TEXOUT
-
-#replace some spurious stuff
-perl -0777 -pi -e 's/σ/\$\\sigma\$/g'  $TEXOUT
-perl -0777 -pi -e 's/→/\$\\rightarrow\$/g'  $TEXOUT
-
-# perl -0777 -pi -e 's///g'  $TEXOUT
-awk 'BEGIN {flag=1} NF==0 {flag=1} $0~/Catalogdb tables required/ {flag=0} flag==1 {print $0}' $TEXOUT >  temp.$TEXOUT
-mv temp.$TEXOUT  $TEXOUT
-
-# checks (should result in zero rows)
-grep -A1 adsab $TEXOUT
-
+./convert_html_to_latex.sh
