@@ -42,7 +42,9 @@ perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2021PASA...38.
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2023MNRAS.521.1620D\/abstract}{Delaney\net al., 2023}/\\citealt{Delaney2023}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2020A\\%26A...641A.136W\/abstract}{Webb\net al., 2020}/\\citealt{Webb2020}/g'  $TEXOUT
 perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2018ApJ...868...99F\/abstract}{French\n\\& Zabludoff \(2018\)}/\\citealt{French2018}/g'  $TEXOUT
-# perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2021ApJS..256...21N\/abstract}{Ni\net al. \(2021\)}/\\citealt{Ni2021}/g'  $TEXOUT
+perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/2026A\\%26A...706A.144W\/abstract}{Waddel\net al. \(2026\)}/\\citealt{Waddel2026}/g'  $TEXOUT
+
 # perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
 # perl -0777 -pi -e 's/\\href{https:\/\/ui.adsabs.harvard.edu\/abs\/xxx\/abstract}{xxx\net al., xxxx}/\\citealt{xxxxx}/g'  $TEXOUT
 
@@ -63,3 +65,15 @@ mv temp.$TEXOUT  $TEXOUT
 
 # checks (should result in zero rows)
 grep -A1 adsab $TEXOUT
+
+
+# now select only cartons that were not previously reported in DR18, DR19
+
+gawk '/plan1.0/ {flag=1} flag==1 {print $0}' $TEXOUT > ${TEXOUT%.*}_${DR}.tex
+
+echo "Now upload ${TEXOUT%.*}_${DR}.tex into the DR20 overleaf
+"
+
+echo "Don't forget to paste carton descriptions into HTML box in wordpress - this command helps:
+xclip -sel c < bhm_target_cartons.html
+"

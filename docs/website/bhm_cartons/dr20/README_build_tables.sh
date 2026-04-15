@@ -434,31 +434,31 @@ $2, $3, $4, crossmatch, $7, $8, $6)}' q3_result.csv
 # e.g.
 python proc_carton_desc_${DR}.py > bhm_target_cartons.html
 
-# now check for missing/surplus cartons
-gawk 'ARGIND==1 && /h3 id/ {\
-    split($0,a,"\"");\
-    f=a[2];\
-    r[f]++;\
-    n[f]=0;} \
-ARGIND>=2 && /href="#/ {\
-    split($0,a,"\"");\
-    f=a[2];\
-    gsub("#","",f); \
-    n[f]++;\
-    ok="missing"; \
-    if(r[f]>0){ok="ok"}; \
-    printf("%-50s %s\n", f, ok)}\
-END {\
-    for (f in n){\
-       if(n[f]!=1){\
-           printf("%-50s %d!=1\n", f, n[f]);\
-    }}\
-}' bhm_target_cartons.html carton_table_block_generation_v0.plates.html carton_table_block_multi_generation_v0.5_slim.html carton_table_block_multi_generation_v1.0_slim.html carton_table_block_generation_dr20.manual.html
+# now check for missing/surplus cartons - This is currently broken - manual checks only
+# gawk 'ARGIND==1 && /h3 id/ {\
+#     split($0,a,"\"");\
+#     f=a[2];\
+#     r[f]++;\
+#     n[f]=0;} \
+# ARGIND>=2 && /href="#/ {\
+#     split($0,a,"\"");\
+#     f=a[2];\
+#     gsub("#","",f); \
+#     n[f]++;\
+#     ok="missing"; \
+#     if(r[f]>0){ok="ok"}; \
+#     printf("%-50s %s\n", f, ok)}\
+# END {\
+#     for (f in n){\
+#        if(n[f]!=1){\
+#            printf("%-50s %d!=1\n", f, n[f]);\
+#     }}\
+# }' bhm_target_cartons.html carton_table_block_generation_v0.plates.html carton_table_block_multi_generation_v0.5_slim.html carton_table_block_multi_generation_v1.0_slim.html carton_table_block_generation_dr20.manual.html
 
 
-# paste carton descriptions into HTML box in wordpress - this command helps
+echo "Now paste carton descriptions into HTML box in wordpress - this command helps:
 xclip -sel c < bhm_target_cartons.html
-
+"
 
 ##Now convert to latex
 
