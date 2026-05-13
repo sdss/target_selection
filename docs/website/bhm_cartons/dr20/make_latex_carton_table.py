@@ -16,13 +16,13 @@ s = '''
 % --------------- BHM Cartons ------------------------\%
 \\begin{table}[ht]
 \\centering
-\\caption{New BHM cartons in DR20.
-The tag and plan columns are used in versioning the code used to generate the carton.
-$N_\\mathrm{targets}$ gives the number of targets in the carton.}
-\\label{tab:boss_cartons}
+\\caption{New BHM (and extragalactic openfiber) cartons in DR20.
+The tag and plan columns are used to version the code used to generate the
+cartons\\footnote{\\url{https://github.com/sdss/target_selection}{github.com/sdss/target\\_selection}}
+$N_\\mathrm{targets}$ gives the number of targets in each carton.}
+\\label{tab:bhm_cartons}
 \\begin{tabular}{lccr}
-\\hline
-carton name & tag & plan & $N_\\mathrm{targets}$ \\\\
+Carton name & tag & plan & $N_\\mathrm{targets}$ \\\\
 \\hline'''
 
 
