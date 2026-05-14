@@ -13,17 +13,20 @@ with open(descfile) as f:
 # write table preamble
 
 s = '''
-% --------------- BHM Cartons ------------------------\%
+% --------------- BHM Cartons ------------------------%
 \\begin{table}[ht]
 \\centering
 \\caption{New BHM (and extragalactic openfiber) cartons in DR20.
-The tag and plan columns are used to version the code used to generate the
-cartons\\footnote{\\url{https://github.com/sdss/target_selection}{github.com/sdss/target\\_selection}}
+The plan column specifies the version of \\texttt{target\\_selection} code used to generate each
+carton\\footnote{\\url{https://github.com/sdss/target_selection}{github.com/sdss/target\\_selection}}
 $N_\\mathrm{targets}$ gives the number of targets in each carton.}
 \\label{tab:bhm_cartons}
-\\begin{tabular}{lccr}
-Carton name & tag & plan & $N_\\mathrm{targets}$ \\\\
-\\hline'''
+%\\begin{tabular}{lccr}
+\\begin{tabular}{lcr}
+%Carton name & plan & tag & $N_\\mathrm{targets}$ \\\\
+Carton name & plan & $N_\\mathrm{targets}$ \\\\
+\\hline
+'''
 
 
 with open(outfile, "wt") as of:
@@ -41,16 +44,17 @@ with open(outfile, "wt") as of:
         crossmatch = c["crossmatch"]
 
         s = [
-            "\\texttt{" + c["name"].replace("_", "\\_") + "}",
-            c["plan"],
-            c["tag"],
-            c["ntargets"],
+            '\\hyperref[' + c["name"] + '_plan' + c['plan'] + ']{\\texttt{' + c["name"].replace('_', '\\_') + '}}',
+            c['plan'],
+            # c['tag'],
+            c['ntargets'],
         ]
-        str_out = " & ".join(s)
-        print(str_out, "\\\\")
-        of.write(str_out)
+        str_out = " & ".join(s) + " \\\\"
+        print(str_out)
+        of.write(str_out + '\n')
 
-    s = '''\\hline
+    s = '''
+\\hline
 \\end{tabular}
 \\end{table}
 % --------------- BHM Cartons ------------------------%

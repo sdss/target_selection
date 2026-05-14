@@ -1,15 +1,70 @@
 
-% --------------- BHM Cartons ------------------------\%
+% --------------- BHM Cartons ------------------------%
 \begin{table}[ht]
 \centering
 \caption{New BHM (and extragalactic openfiber) cartons in DR20.
-The tag and plan columns are used to version the code used to generate the
-cartons\footnote{\url{https://github.com/sdss/target_selection}{github.com/sdss/target\_selection}}
+The plan column specifies the version of \texttt{target\_selection} code used to generate each
+carton\footnote{\url{https://github.com/sdss/target_selection}{github.com/sdss/target\_selection}}
 $N_\mathrm{targets}$ gives the number of targets in each carton.}
 \label{tab:bhm_cartons}
-\begin{tabular}{lccr}
-Carton name & tag & plan & $N_\mathrm{targets}$ \\
-\hline\texttt{openfibertargets\_nov2020\_11} & 1.0.7 & 1.0.7 & 39684\texttt{openfibertargets\_nov2020\_18} & 1.0.7 & 1.0.7 & 10090\texttt{openfibertargets\_nov2020\_26} & 1.0.7 & 1.0.7 & 2105\texttt{openfibertargets\_nov2020\_27} & 1.0.7 & 1.0.7 & 814965\texttt{openfibertargets\_nov2020\_30} & 1.0.7 & 1.0.7 & 237\texttt{openfibertargets\_nov2020\_33} & 1.0.10 & 1.0.10 & 22246\texttt{bhm\_rm\_core} & 1.0.12 & 1.0.12 & 3741\texttt{bhm\_rm\_known\_spec} & 1.0.12 & 1.0.12 & 3206\texttt{bhm\_rm\_var} & 1.0.12 & 1.0.12 & 871\texttt{bhm\_rm\_ancillary} & 1.0.12 & 1.0.12 & 1114\texttt{bhm\_rm\_xrayqso} & 1.0.12 & 1.0.12 & 43\texttt{bhm\_csc\_boss} & 1.0.37 & 1.0.37 & 135154\texttt{bhm\_csc\_apogee} & 1.0.37 & 1.0.37 & 54593\texttt{bhm\_gua\_dark} & 1.0.37 & 1.0.37 & 1936784\texttt{bhm\_gua\_bright} & 1.0.37 & 1.0.37 & 185644\texttt{bhm\_spiders\_clusters\_lsdr10} & 1.0.37 & 1.0.37 & 440276\texttt{bhm\_spiders\_agn\_lsdr10} & 1.0.37 & 1.0.37 & 975978\texttt{bhm\_spiders\_agn\_hard} & 1.0.37 & 1.0.37 & 2603\texttt{bhm\_spiders\_agn\_gaiadr3} & 1.0.37 & 1.0.37 & 717805\texttt{bhm\_spiders\_agn\_tda} & 1.0.37 & 1.0.37 & 9627\texttt{bhm\_spiders\_agn\_sep} & 1.0.37 & 1.0.37 & 1681\texttt{bhm\_aqmes\_med} & 1.0.37 & 1.0.37 & 2663\texttt{bhm\_aqmes\_med\_faint} & 1.0.37 & 1.0.37 & 16853\texttt{bhm\_aqmes\_wide2} & 1.0.37 & 1.0.37 & 24142\texttt{bhm\_aqmes\_wide2\_faint} & 1.0.37 & 1.0.37 & 99586\texttt{bhm\_aqmes\_bonus\_core} & 1.0.37 & 1.0.37 & 83163\texttt{bhm\_aqmes\_bonus\_bright} & 1.0.37 & 1.0.37 & 10848\texttt{bhm\_aqmes\_bonus\_faint} & 1.0.37 & 1.0.37 & 424163\texttt{bhm\_colr\_galaxies\_lsdr10} & 1.0.38 & 1.0.38 & 6246703\texttt{openfibertargets\_bhm\_racsradio\_boss} & 1.2.0 & 1.2.7 & 149989\texttt{openfibertargets\_bhm\_varagn\_boss} & 1.2.0 & 1.2.7 & 6966\texttt{openfibertargets\_bhm\_morexray\_boss} & 1.2.0 & 1.2.7 & 103105\texttt{openfibertargets\_bhm\_hightderates\_psb\_boss} & 1.2.0 & 1.2.7 & 8934\texttt{openfibertargets\_bhm\_hightderates\_qbs\_boss} & 1.2.0 & 1.2.7 & 29659\texttt{openfibertargets\_bhm\_quaia\_boss} & 1.2.0 & 1.2.7 & 999906\texttt{openfibertargets\_bhm\_lofarradio\_boss} & 1.2.1 & 1.3.0 & 210483\texttt{bhm\_csc\_boss\_d3} & 1.2.4 & 1.3.3 & 97267\texttt{bhm\_spiders\_clusters\_lsdr10\_d3} & 1.2.4 & 1.3.3 & 427445\texttt{bhm\_spiders\_agn\_gaiadr3\_d3} & 1.2.4 & 1.3.3 & 398493\texttt{bhm\_spiders\_agn\_sep\_d3} & 1.2.4 & 1.3.3 & 863\texttt{bhm\_aqmes\_wide1} & 1.2.4 & 1.3.3 & 24142\texttt{bhm\_aqmes\_wide1\_faint} & 1.2.4 & 1.3.3 & 99586\texttt{bhm\_gua\_dark\_d3} & 1.2.4 & 1.3.3 & 1936784\texttt{bhm\_spiders\_agn\_hard\_d3} & 1.2.4 & 1.3.3 & 798\texttt{bhm\_spiders\_agn\_tda\_d3} & 1.2.4 & 1.3.3 & 8141\texttt{bhm\_spiders\_agn\_lsdr10\_d3} & 1.2.4 & 1.3.3 & 851160\texttt{bhm\_colr\_galaxies\_lsdr10\_d3} & 1.2.16 & 1.3.15 & 6091854\texttt{bhm\_rm\_core} & 1.0.48 & 1.0.48 & 3757\texttt{bhm\_rm\_known\_spec} & 1.0.48 & 1.0.48 & 3212\texttt{bhm\_rm\_var} & 1.0.48 & 1.0.48 & 871\texttt{bhm\_rm\_ancillary} & 1.0.48 & 1.0.48 & 1114\hline
+%\begin{tabular}{lccr}
+\begin{tabular}{lcr}
+%Carton name & plan & tag & $N_\mathrm{targets}$ \\
+Carton name & plan & $N_\mathrm{targets}$ \\
+\hline
+\hyperref[openfibertargets_nov2020_11_plan1.0.7]{\texttt{openfibertargets\_nov2020\_11}} & 1.0.7 & 39684 \\
+\hyperref[openfibertargets_nov2020_18_plan1.0.7]{\texttt{openfibertargets\_nov2020\_18}} & 1.0.7 & 10090 \\
+\hyperref[openfibertargets_nov2020_26_plan1.0.7]{\texttt{openfibertargets\_nov2020\_26}} & 1.0.7 & 2105 \\
+\hyperref[openfibertargets_nov2020_27_plan1.0.7]{\texttt{openfibertargets\_nov2020\_27}} & 1.0.7 & 814965 \\
+\hyperref[openfibertargets_nov2020_30_plan1.0.7]{\texttt{openfibertargets\_nov2020\_30}} & 1.0.7 & 237 \\
+\hyperref[openfibertargets_nov2020_33_plan1.0.10]{\texttt{openfibertargets\_nov2020\_33}} & 1.0.10 & 22246 \\
+\hyperref[bhm_rm_core_plan1.0.12]{\texttt{bhm\_rm\_core}} & 1.0.12 & 3741 \\
+\hyperref[bhm_rm_known_spec_plan1.0.12]{\texttt{bhm\_rm\_known\_spec}} & 1.0.12 & 3206 \\
+\hyperref[bhm_rm_var_plan1.0.12]{\texttt{bhm\_rm\_var}} & 1.0.12 & 871 \\
+\hyperref[bhm_rm_ancillary_plan1.0.12]{\texttt{bhm\_rm\_ancillary}} & 1.0.12 & 1114 \\
+\hyperref[bhm_rm_xrayqso_plan1.0.12]{\texttt{bhm\_rm\_xrayqso}} & 1.0.12 & 43 \\
+\hyperref[bhm_csc_boss_plan1.0.37]{\texttt{bhm\_csc\_boss}} & 1.0.37 & 135154 \\
+\hyperref[bhm_csc_apogee_plan1.0.37]{\texttt{bhm\_csc\_apogee}} & 1.0.37 & 54593 \\
+\hyperref[bhm_gua_dark_plan1.0.37]{\texttt{bhm\_gua\_dark}} & 1.0.37 & 1936784 \\
+\hyperref[bhm_gua_bright_plan1.0.37]{\texttt{bhm\_gua\_bright}} & 1.0.37 & 185644 \\
+\hyperref[bhm_spiders_clusters_lsdr10_plan1.0.37]{\texttt{bhm\_spiders\_clusters\_lsdr10}} & 1.0.37 & 440276 \\
+\hyperref[bhm_spiders_agn_lsdr10_plan1.0.37]{\texttt{bhm\_spiders\_agn\_lsdr10}} & 1.0.37 & 975978 \\
+\hyperref[bhm_spiders_agn_hard_plan1.0.37]{\texttt{bhm\_spiders\_agn\_hard}} & 1.0.37 & 2603 \\
+\hyperref[bhm_spiders_agn_gaiadr3_plan1.0.37]{\texttt{bhm\_spiders\_agn\_gaiadr3}} & 1.0.37 & 717805 \\
+\hyperref[bhm_spiders_agn_tda_plan1.0.37]{\texttt{bhm\_spiders\_agn\_tda}} & 1.0.37 & 9627 \\
+\hyperref[bhm_spiders_agn_sep_plan1.0.37]{\texttt{bhm\_spiders\_agn\_sep}} & 1.0.37 & 1681 \\
+\hyperref[bhm_aqmes_med_plan1.0.37]{\texttt{bhm\_aqmes\_med}} & 1.0.37 & 2663 \\
+\hyperref[bhm_aqmes_med_faint_plan1.0.37]{\texttt{bhm\_aqmes\_med\_faint}} & 1.0.37 & 16853 \\
+\hyperref[bhm_aqmes_wide2_plan1.0.37]{\texttt{bhm\_aqmes\_wide2}} & 1.0.37 & 24142 \\
+\hyperref[bhm_aqmes_wide2_faint_plan1.0.37]{\texttt{bhm\_aqmes\_wide2\_faint}} & 1.0.37 & 99586 \\
+\hyperref[bhm_aqmes_bonus_core_plan1.0.37]{\texttt{bhm\_aqmes\_bonus\_core}} & 1.0.37 & 83163 \\
+\hyperref[bhm_aqmes_bonus_bright_plan1.0.37]{\texttt{bhm\_aqmes\_bonus\_bright}} & 1.0.37 & 10848 \\
+\hyperref[bhm_aqmes_bonus_faint_plan1.0.37]{\texttt{bhm\_aqmes\_bonus\_faint}} & 1.0.37 & 424163 \\
+\hyperref[bhm_colr_galaxies_lsdr10_plan1.0.38]{\texttt{bhm\_colr\_galaxies\_lsdr10}} & 1.0.38 & 6246703 \\
+\hyperref[openfibertargets_bhm_racsradio_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_racsradio\_boss}} & 1.2.0 & 149989 \\
+\hyperref[openfibertargets_bhm_varagn_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_varagn\_boss}} & 1.2.0 & 6966 \\
+\hyperref[openfibertargets_bhm_morexray_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_morexray\_boss}} & 1.2.0 & 103105 \\
+\hyperref[openfibertargets_bhm_hightderates_psb_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_hightderates\_psb\_boss}} & 1.2.0 & 8934 \\
+\hyperref[openfibertargets_bhm_hightderates_qbs_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_hightderates\_qbs\_boss}} & 1.2.0 & 29659 \\
+\hyperref[openfibertargets_bhm_quaia_boss_plan1.2.0]{\texttt{openfibertargets\_bhm\_quaia\_boss}} & 1.2.0 & 999906 \\
+\hyperref[openfibertargets_bhm_lofarradio_boss_plan1.2.1]{\texttt{openfibertargets\_bhm\_lofarradio\_boss}} & 1.2.1 & 210483 \\
+\hyperref[bhm_csc_boss_d3_plan1.2.4]{\texttt{bhm\_csc\_boss\_d3}} & 1.2.4 & 97267 \\
+\hyperref[bhm_spiders_clusters_lsdr10_d3_plan1.2.4]{\texttt{bhm\_spiders\_clusters\_lsdr10\_d3}} & 1.2.4 & 427445 \\
+\hyperref[bhm_spiders_agn_gaiadr3_d3_plan1.2.4]{\texttt{bhm\_spiders\_agn\_gaiadr3\_d3}} & 1.2.4 & 398493 \\
+\hyperref[bhm_spiders_agn_sep_d3_plan1.2.4]{\texttt{bhm\_spiders\_agn\_sep\_d3}} & 1.2.4 & 863 \\
+\hyperref[bhm_aqmes_wide1_plan1.2.4]{\texttt{bhm\_aqmes\_wide1}} & 1.2.4 & 24142 \\
+\hyperref[bhm_aqmes_wide1_faint_plan1.2.4]{\texttt{bhm\_aqmes\_wide1\_faint}} & 1.2.4 & 99586 \\
+\hyperref[bhm_gua_dark_d3_plan1.2.4]{\texttt{bhm\_gua\_dark\_d3}} & 1.2.4 & 1936784 \\
+\hyperref[bhm_spiders_agn_hard_d3_plan1.2.4]{\texttt{bhm\_spiders\_agn\_hard\_d3}} & 1.2.4 & 798 \\
+\hyperref[bhm_spiders_agn_tda_d3_plan1.2.4]{\texttt{bhm\_spiders\_agn\_tda\_d3}} & 1.2.4 & 8141 \\
+\hyperref[bhm_spiders_agn_lsdr10_d3_plan1.2.4]{\texttt{bhm\_spiders\_agn\_lsdr10\_d3}} & 1.2.4 & 851160 \\
+\hyperref[bhm_colr_galaxies_lsdr10_d3_plan1.2.16]{\texttt{bhm\_colr\_galaxies\_lsdr10\_d3}} & 1.2.16 & 6091854 \\
+\hyperref[bhm_rm_core_plan1.0.48]{\texttt{bhm\_rm\_core}} & 1.0.48 & 3757 \\
+\hyperref[bhm_rm_known_spec_plan1.0.48]{\texttt{bhm\_rm\_known\_spec}} & 1.0.48 & 3212 \\
+\hyperref[bhm_rm_var_plan1.0.48]{\texttt{bhm\_rm\_var}} & 1.0.48 & 871 \\
+\hyperref[bhm_rm_ancillary_plan1.0.48]{\texttt{bhm\_rm\_ancillary}} & 1.0.48 & 1114 \\
+
+\hline
 \end{tabular}
 \end{table}
 % --------------- BHM Cartons ------------------------%
