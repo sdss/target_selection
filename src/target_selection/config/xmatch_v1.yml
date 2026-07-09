@@ -4,6 +4,90 @@
 # package.                                   #
 ##############################################
 
+'1.1.9':
+  run_id: 18
+  query_radius: 1.0
+  show_sql: True
+  schema: catalogdb
+  output_table: catalog
+  start_node: gaia_dr3_source
+  debug: true
+  log_path: xmatch_{plan}.log
+  path_mode: config_list
+  version_id: 31
+  extra_nodes:
+    - 'twomass_psc'
+    - 'catalog_to_twomass_psc'
+  order:
+    - glimpse_proper
+  tables:
+    glimpse_proper:
+      ra_column: ra
+      dec_column: dec
+  join_paths:
+    - ['glimpse_proper', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+  database_options:
+    work_mem: '10GB'
+    temp_buffers: '5GB'
+    maintenance_work_mem: '5GB'
+    enable_hashjoin: false
+
+'1.1.8':
+  run_id: 17
+  query_radius: 1.0
+  show_sql: True
+  schema: catalogdb
+  output_table: catalog
+  start_node: gaia_dr3_source
+  debug: true
+  log_path: xmatch_{plan}.log
+  path_mode: config_list
+  version_id: 31
+  extra_nodes:
+    - 'twomass_psc'
+    - 'catalog_to_twomass_psc'
+  order:
+    - deep_glimpse
+  tables:
+    deep_glimpse:
+      ra_column: ra
+      dec_column: dec
+  join_paths:
+    - ['glimpse_proper', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+  database_options:
+    work_mem: '10GB'
+    temp_buffers: '5GB'
+    maintenance_work_mem: '5GB'
+    enable_hashjoin: false
+
+'1.1.7':
+  run_id: 16
+  query_radius: 1.0
+  show_sql: True
+  schema: catalogdb
+  output_table: catalog
+  start_node: gaia_dr3_source
+  debug: true
+  log_path: xmatch_{plan}.log
+  path_mode: config_list
+  version_id: 31
+  extra_nodes:
+    - 'twomass_psc'
+    - 'catalog_to_twomass_psc'
+  order:
+    - apoglimpse
+  tables:
+    apoglimpse:
+      ra_column: ra
+      dec_column: dec
+  join_paths:
+    - ['apoglimpse', 'twomass_psc', 'catalog_to_twomass_psc', 'catalog']
+  database_options:
+    work_mem: '10GB'
+    temp_buffers: '5GB'
+    maintenance_work_mem: '5GB'
+    enable_hashjoin: false
+
 '1.1.5':
     run_id: 14
     query_radius: 1.0
