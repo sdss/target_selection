@@ -28,7 +28,8 @@ dependencies = [
     "pydantic>=2.8.2,<3.0.0",
     "typing-extensions>=4.12.2",
     "pyarrow",
-    "adbc-driver-postgresql"
+    "adbc-driver-postgresql",
+    "ty>=0.0.61",
 ]
 
 [project.urls]
