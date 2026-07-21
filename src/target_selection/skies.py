@@ -13,7 +13,7 @@ import os
 import warnings
 from functools import partial
 
-from typing import Literal, Sequence, overload
+from typing import Any, Literal, overload
 
 import enlighten
 import healpy
@@ -86,7 +86,7 @@ class CatalogueParams(BaseModel):
         return self
 
 
-DEFAULT_CATALOGUE_PARAMS = {
+DEFAULT_CATALOGUE_PARAMS: dict[str, dict[str, Any]] = {
     "twomass_psc": {
         "ra_column": "ra",
         "dec_column": "decl",
@@ -1200,7 +1200,7 @@ def create_veto_mask(
 
 @overload
 def is_valid_sky(
-    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    coords: npt.ArrayLike,
     database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
@@ -1212,7 +1212,7 @@ def is_valid_sky(
 
 @overload
 def is_valid_sky(
-    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    coords: npt.ArrayLike,
     database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
@@ -1223,7 +1223,7 @@ def is_valid_sky(
 
 
 def is_valid_sky(
-    coords: npt.NDArray[numpy.float_] | Sequence[Sequence[float]],
+    coords: npt.ArrayLike,
     database: PeeweeDatabaseConnection | str,
     catalogues: list | None = None,
     param_overrides: dict | None = None,
@@ -1302,6 +1302,8 @@ def is_valid_sky(
     # Get and validate catalogue parameters.
     c_params: dict[str, CatalogueParams] = {}
     for cat_name in catalogues:
+        default_params: dict[str, Any] = {}
+
         if cat_name in DEFAULT_CATALOGUE_PARAMS:
             default_params = DEFAULT_CATALOGUE_PARAMS[cat_name].copy()
         else:
@@ -1309,7 +1311,6 @@ def is_valid_sky(
                 raise ValueError(
                     f"Catalogue {cat_name} has no defaults and was not found in param_overrides."
                 )
-            default_params = {}
 
         # Update the default params with the overrides.
         default_params.update((param_overrides or {}).get(cat_name, {}))
