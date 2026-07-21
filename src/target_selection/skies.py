@@ -1296,7 +1296,7 @@ def is_valid_sky(
             orient="row",
         )
         .with_columns(**{cat: polars.lit(True, polars.Boolean) for cat in catalogues})
-        .with_row_count("n")
+        .with_row_index("n")
     )
 
     # Get and validate catalogue parameters.
