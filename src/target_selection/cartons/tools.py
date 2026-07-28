@@ -185,6 +185,7 @@ def get_file_carton(filename):
                 "mwm_validation",
                 "mwm_wd",
                 "mwm_yso",
+                "hge_sdssv_test",
                 "open_fiber",
                 "ops",
                 "ops_sky",
