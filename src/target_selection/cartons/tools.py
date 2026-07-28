@@ -16,6 +16,7 @@ from astropy.table import Table
 
 from sdssdb.utils.ingest import create_model_from_table
 
+from target_selection import log
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import vacuum_table
@@ -86,12 +87,11 @@ def get_file_carton(filename):
             """Runs a series of sanity checks on the FITS table."""
 
             if self._table.has_masked_values:
-                raise TargetSelectionError(
-                    "Error in get_file_carton(): "
-                    + filename
-                    + " has null specified in the fits file columns."
-                    + " Hence the table has masked values."
-                )
+                log.warning("The table has masked values. Filling with default values.")
+                self._table = self._table.filled()
+
+            # Convert bytestrings to unicode. This seems to be needed in Numpy>2.
+            self._table.convert_bytestring_to_unicode()
 
             unique_cartonname = numpy.unique(self._table["cartonname"])
             if len(unique_cartonname) == 1:
@@ -185,6 +185,7 @@ def get_file_carton(filename):
                 "mwm_validation",
                 "mwm_wd",
                 "mwm_yso",
+                "hge_sdssv_test",
                 "open_fiber",
                 "ops",
                 "ops_sky",
@@ -309,6 +310,10 @@ def get_file_carton(filename):
             self.copy_data(temp_table)
 
             self.database.execute_sql(
+                f'UPDATE "{temp_table}" SET "catalogid" = NULL WHERE "catalogid"=0'
+            )
+
+            self.database.execute_sql(
                 f'UPDATE "{temp_table}"'
                 + ' SET "Gaia_DR3_Source_ID" = NULL'
                 + ' WHERE "Gaia_DR3_Source_ID"=0'
@@ -343,6 +348,8 @@ def get_file_carton(filename):
                 + ' SET "TwoMASS_ID" = NULL'
                 + " WHERE \"TwoMASS_ID\"='NA' "
             )
+
+            self.database.execute_sql(f'CREATE UNIQUE INDEX ON "{temp_table}" ("catalogid")')
 
             self.database.execute_sql(
                 f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")'
@@ -393,6 +400,7 @@ def get_file_carton(filename):
             # Calculate number of rows in the table for each parent catalogue identifier and
             # run some sanity checks.
             len_table = len(self._table)
+            len_catalogid = len(self._table[self._table["catalogid"] > 0])
             len_gaia_dr3 = len(self._table[self._table["Gaia_DR3_Source_ID"] > 0])
             len_gaia_dr2 = len(self._table[self._table["Gaia_DR2_Source_ID"] > 0])
             len_legacysurvey_dr10 = len(self._table[self._table["LegacySurvey_DR10_ID"] > 0])
@@ -413,7 +421,8 @@ def get_file_carton(filename):
 
             # There must be exactly one non-zero id per row else raise an exception.
             if (
-                len_gaia_dr3
+                len_catalogid
+                + len_gaia_dr3
                 + len_gaia_dr2
                 + len_legacysurvey_dr10
                 + len_legacysurvey_dr8
@@ -489,7 +498,7 @@ def get_file_carton(filename):
                     }
                 )
 
-            if len(model_data) == 0:
+            if len(model_data) == 0 and len_catalogid == 0:
                 raise TargetSelectionError(
                     "Error in get_file_carton(): no join model found for the file carton."
                 )
@@ -501,6 +510,18 @@ def get_file_carton(filename):
 
             queries = []
 
+            # First we add a query for the catalogid column, which is simpler than
+            # the catalog_to_X cases.
+            if len_catalogid > 0:
+                # The distance_rank is probably not needed but we add it so that the
+                # columns in the union are consistent.
+                query_catalogid = (
+                    Catalog.select(*query_columns, peewee.Value(1).alias("distance_rank"))
+                    .join(temp, on=(temp.catalogid == Catalog.catalogid))
+                    .distinct(Catalog.catalogid)
+                )
+                queries.append(query_catalogid)
+
             for data in model_data:
                 catalog_to_model = data["catalog_to"]
                 parent_field = data["parent_field"]
@@ -510,7 +531,7 @@ def get_file_carton(filename):
                 # identifier for this case.
                 temp_field = getattr(temp, temp_column)
 
-                # Get the psrent model. The only reason why we need to join all the way to the
+                # Get the parent model. The only reason why we need to join all the way to the
                 # parent catalogue model is 2MASS for which the column TwoMASS_ID in the file
                 # carton corresponds to the designation column in the TwoMassPSC model, which
                 # is not the primary key.
