@@ -16,6 +16,7 @@ from astropy.table import Table
 
 from sdssdb.utils.ingest import create_model_from_table
 
+from target_selection import log
 from target_selection.cartons import BaseCarton
 from target_selection.exceptions import TargetSelectionError
 from target_selection.utils import vacuum_table
@@ -86,9 +87,9 @@ def get_file_carton(filename):
             """Runs a series of sanity checks on the FITS table."""
 
             if self._table.has_masked_values:
-                raise TargetSelectionError(
-                    "Error in get_file_carton(): "
-                    + filename
+                log.warning("The table has masked values. Filling with default values.")
+                self._table = self._table.filled()
+
                     + " has null specified in the fits file columns."
                     + " Hence the table has masked values."
                 )
