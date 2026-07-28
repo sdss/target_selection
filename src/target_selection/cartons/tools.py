@@ -431,7 +431,7 @@ def get_file_carton(filename):
             ) != len_table:
                 raise TargetSelectionError(
                     "Error in get_file_carton(): "
-                    + "(len_gaia_dr3 + len_gaia_dr2 + "
+                    + "(len_catalogid + len_gaia_dr3 + len_gaia_dr2 + "
                     + "len_legacysurvey_dr10 + len_legacysurvey_dr8 +"
                     + "len_panstarrs_dr2 + len_twomass_psc) != "
                     + "len_table"
