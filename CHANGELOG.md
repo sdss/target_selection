@@ -1,5 +1,12 @@
 # Changelog
 
+## Next version
+
+### 🚀 New
+
+* Added `target_selection` plan 1.2.21.
+
+
 ## 1.5.0 - March 16, 2026
 
 ### 🔥 Breaking changes
