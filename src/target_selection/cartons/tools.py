@@ -207,7 +207,7 @@ def get_file_carton(filename):
                 "veto_location_apogee",
             ]
 
-            # The valid_category list is from CartonImportTable.pdf
+            # The valid_mapper list is from CartonImportTable.pdf
             valid_mapper = ["", "MWM", "BHM"]
 
             unique_category = numpy.unique(self._table["category"])
