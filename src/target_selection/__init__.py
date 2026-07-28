@@ -20,6 +20,11 @@ log = get_logger(NAME)
 __version__ = get_package_version(path=__file__, package_name=NAME)
 
 
+# sdssdb>=1.0.0 defauts to using psycopg3 but that seems to break some things.
+# For now let's just use psycopg2.
+os.environ["SDSSDB_PSYCOPG3"] = "0"
+
+
 manager = enlighten.get_manager()
 
 # Avoid an annoying message when importing dustmaps

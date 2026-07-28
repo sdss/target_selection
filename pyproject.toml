@@ -10,7 +10,7 @@ requires-python = ">=3.11,<4"
 
 dependencies = [
     "numpy>=2.0.0",
-    "sdssdb==0.13.3",
+    "sdssdb>=1.0.0",
     "sdsstools>=1.6.0,<2.0.0",
     "click>=8.0,<9.0",
     "astropy>=5.0.0",
