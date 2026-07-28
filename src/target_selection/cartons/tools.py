@@ -310,6 +310,10 @@ def get_file_carton(filename):
             self.copy_data(temp_table)
 
             self.database.execute_sql(
+                f'UPDATE "{temp_table}" SET "catalogid" = NULL WHERE "catalogid"=0'
+            )
+
+            self.database.execute_sql(
                 f'UPDATE "{temp_table}"'
                 + ' SET "Gaia_DR3_Source_ID" = NULL'
                 + ' WHERE "Gaia_DR3_Source_ID"=0'
@@ -344,6 +348,8 @@ def get_file_carton(filename):
                 + ' SET "TwoMASS_ID" = NULL'
                 + " WHERE \"TwoMASS_ID\"='NA' "
             )
+
+            self.database.execute_sql(f'CREATE UNIQUE INDEX ON "{temp_table}" ("catalogid")')
 
             self.database.execute_sql(
                 f'CREATE UNIQUE INDEX ON "{temp_table}" ("Gaia_DR3_Source_ID")'
