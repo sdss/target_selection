@@ -4,6 +4,7 @@
 
 ### 🚀 New
 
+* [#516](https://github.com/sdss/target_selection/pull/516) Support `catalogid` in file cartons.
 * Added `target_selection` plan 1.2.21.
 
 
