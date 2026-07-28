@@ -90,9 +90,8 @@ def get_file_carton(filename):
                 log.warning("The table has masked values. Filling with default values.")
                 self._table = self._table.filled()
 
-                    + " has null specified in the fits file columns."
-                    + " Hence the table has masked values."
-                )
+            # Convert bytestrings to unicode. This seems to be needed in Numpy>2.
+            self._table.convert_bytestring_to_unicode()
 
             unique_cartonname = numpy.unique(self._table["cartonname"])
             if len(unique_cartonname) == 1:
