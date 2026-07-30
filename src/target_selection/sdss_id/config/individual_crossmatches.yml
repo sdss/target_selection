@@ -27,6 +27,10 @@
         - sdss_dr17_specobj
         - mangatarget
         - mastar_goodstars
+        - virac2
+        - deep_glimpse
+        - apoglimpse
+        - glimpse_proper
 '0.5.0':
     run_id: 3
     version_id: 25
