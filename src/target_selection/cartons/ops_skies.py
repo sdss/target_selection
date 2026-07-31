@@ -432,3 +432,82 @@ class OPS_Sky_APOGEE_Good_Carton(BaseCarton):
             )
 
         return query
+
+
+class OPS_Sky_APOGEE_HGE_Carton(BaseCarton):
+    """Skies selected for the HGE test field.
+
+    Definition:
+        Select sky positions from catalogdb.skies_v2 that don't have a
+        nearby Gaia, Tycho2, 2MASS, 2MASS_XSC, or VIRAC2 source.
+
+    """
+
+    name = "ops_sky_apogee_hge"
+    cadence = None
+    category = "sky_apogee"
+    program = "ops_sky"
+    mapper = None
+    instrument = "APOGEE"
+    inertial = True
+    priority = 5200
+    can_offset = False
+
+    load_magnitudes = False
+
+    def build_query(self, version_id, query_region=None):
+
+        # skies_v2 was created with cross-match v0.5.
+        version_id = 25
+
+        # HGE tes field
+        query_region_cte = (
+            Skies_v2.select(Skies_v2.pix_32768)
+            .where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra,
+                    Skies_v2.dec,
+                    251.840255,
+                    -45.32220145693,
+                    3.0,
+                )
+            )
+            .cte("query_region", materialized=True)
+        )
+
+        query = (
+            Skies_v2.select(
+                CatalogToSkies_v2.catalogid,
+                Skies_v2.ra,
+                Skies_v2.dec,
+                Skies_v2.pix_32768,
+                Skies_v2.tile_32,
+            )
+            .join(
+                query_region_cte,
+                on=(Skies_v2.pix_32768 == query_region_cte.c.pix_32768),
+            )
+            .switch(Skies_v2)
+            .join(CatalogToSkies_v2)
+            .where(CatalogToSkies_v2.version_id == version_id, CatalogToSkies_v2.best >> True)
+            .where(
+                Skies_v2.valid_gaia >> True,
+                Skies_v2.valid_tmass >> True,
+                Skies_v2.valid_tycho2 >> True,
+                Skies_v2.valid_tmass_xsc >> True,
+                Skies_v2.valid_virac2 >> True,
+            )
+        ).with_cte(query_region_cte)
+
+        if query_region:
+            query = query.where(
+                peewee.fn.q3c_radial_query(
+                    Skies_v2.ra,
+                    Skies_v2.dec,
+                    query_region[0],
+                    query_region[1],
+                    query_region[2],
+                )
+            )
+
+        return query

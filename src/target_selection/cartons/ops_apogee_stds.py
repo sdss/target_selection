@@ -9,6 +9,7 @@
 import peewee
 
 from sdssdb.peewee.sdss5db.catalogdb import Catalog, CatalogToTIC_v8, Gaia_DR2, TIC_v8, TwoMassPSC
+from sdssdb.peewee.sdss5db.targetdb import Target
 
 from target_selection.cartons import BaseCarton
 
@@ -52,7 +53,7 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     The 5 bluest sources (i.e. 5 smallest J-K) in each healpix are then
     selected and saved for the output carton.
 
-    (note – the HEALPIX binning and sub-querying might be useful
+    (note - the HEALPIX binning and sub-querying might be useful
     to implement as a function that can be run for future cartons;
     I can imagine that this capability might prove useful
     for updated BOSS calibrator cartons, and
@@ -76,6 +77,9 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
     mapper = None
     instrument = "APOGEE"
     can_offset = False
+
+    h_min = 7
+    h_max = 11
 
     def build_query(self, version_id, query_region=None):
         query = (
@@ -105,8 +109,8 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
             .where(
                 CatalogToTIC_v8.version_id == version_id,
                 CatalogToTIC_v8.best >> True,
-                TwoMassPSC.h_m > 7,
-                TwoMassPSC.h_m < 11,
+                TwoMassPSC.h_m > self.h_min,
+                TwoMassPSC.h_m < self.h_max,
                 (TwoMassPSC.j_m - TwoMassPSC.k_m) > -0.25,
                 TwoMassPSC.j_msigcom < 0.1,
                 TwoMassPSC.h_msigcom < 0.1,
@@ -158,11 +162,11 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         Select the 5 bluest sources (i.e. 5 smallest J-K) in each healpix pixel.
         """
 
-        self.database.execute_sql("update sandbox.temp_ops_std_apogee " + "set selected = false")
+        self.database.execute_sql(f"update sandbox.temp_{self.name} " + "set selected = false")
 
         cursor = self.database.execute_sql(
             "select catalogid, healpix_128, j_minus_k from "
-            + " sandbox.temp_ops_std_apogee "
+            + f" sandbox.temp_{self.name} "
             + " order by healpix_128 asc, j_minus_k asc;"
         )
 
@@ -183,8 +187,63 @@ class OPS_APOGEE_Stds_Carton(BaseCarton):
         max_target = current_target
         for k in range(max_target + 1):
             self.database.execute_sql(
-                " update sandbox.temp_ops_std_apogee set selected = true "
+                f" update sandbox.temp_{self.name} set selected = true "
                 + " where catalogid = "
                 + str(list_of_catalog_id[k])
                 + ";"
             )
+
+
+class OPS_APOGEE_HGE_Stds_Carton(OPS_APOGEE_Stds_Carton):
+    """Carton of standards for the HGE test fields.
+
+    This carton pushes the H-mag range to [7, 13].
+
+    """
+
+    name = "ops_std_apogee_hge"
+    category = "standard_apogee"
+    cadence = None
+    program = "ops_std"
+    priority = 5500
+    mapper = None
+    instrument = "APOGEE"
+    can_offset = False
+
+    h_min = 7
+    h_max = 13
+
+    def build_query(self, version_id, query_region=None):
+
+        query_region_cte = (
+            TwoMassPSC.select(TwoMassPSC.pts_key)
+            .where(
+                peewee.fn.q3c_radial_query(
+                    TwoMassPSC.ra,
+                    TwoMassPSC.decl,
+                    251.840255,
+                    -45.32220145693,
+                    3.0,
+                )
+            )
+            .cte("query_region", materialized=True)
+        )
+
+        query = super().build_query(version_id, query_region)
+
+        # Apply the CTE. Also, we want to select only standards that are already in
+        # targetdb.target to avoid having to subset the database in pipelines.
+        # Some checks indicate that this doesn't change the number of targets
+        # significantly.
+        query = (
+            query.switch(TwoMassPSC)
+            .join(
+                query_region_cte,
+                on=(TwoMassPSC.pts_key == query_region_cte.c.pts_key),
+            )
+            .switch(Catalog)
+            .join(Target, on=(Catalog.catalogid == Target.catalogid))
+            .with_cte(query_region_cte)
+        )
+
+        return query
