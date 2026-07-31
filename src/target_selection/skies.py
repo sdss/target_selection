@@ -659,7 +659,7 @@ def get_sky_table(
         columns += f", {radius_column} as radius"
 
     if tiles is None:
-        tiles = numpy.arange(healpy.nside2npix(tile_nside))
+        tiles = list(numpy.arange(healpy.nside2npix(tile_nside)))
 
     if downsample_data is not None:
         downsample_data = downsample_data.loc[:, ["tile_32", "valid"]]
@@ -704,7 +704,7 @@ def get_sky_table(
                 if all_skies is None:
                     all_skies = tile_skies
                 else:
-                    all_skies = all_skies.append(tile_skies)
+                    all_skies = pandas.concat([all_skies, tile_skies])
 
             pbar.update()
 
@@ -1017,6 +1017,26 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
     else:
         warnings.warn("Found file tmass_xsc_skies.h5", TargetSelectionUserWarning)
 
+    if not os.path.exists("virac2_skies.h5"):
+        log.info("Procesing virac2.")
+        get_sky_table(
+            database,
+            "catalogdb.virac2",
+            "virac2_skies.h5",
+            dec_column="de",
+            mag_column="phot_h_mean_mag",
+            mag_threshold=default_mag_threshold,
+            min_separation=default_min_separation,
+            scale_a=default_param_a,
+            scale_b=default_param_b,
+            nsample=nsample,
+            downsample_data=tmass,
+            tiles=tiles,
+            **kwargs,
+        )
+    else:
+        warnings.warn("Found file virac2_skies.h5", TargetSelectionUserWarning)
+
     skies: pandas.DataFrame | None = None
     col_order = []
 
@@ -1027,6 +1047,7 @@ def create_sky_catalogue(database, tiles=None, **kwargs):
         "tmass_skies.h5",
         "tycho2_skies.h5",
         "tmass_xsc_skies.h5",
+        "virac2_skies.h5",
     ]:
         table_name = file_[0:-9]
 
