@@ -1,5 +1,17 @@
 # Changelog
 
+## Next release
+
+### 🚀 New
+
+* Added cartons `ops_std_apogee_hge` and `ops_sky_apogee_hge` with run `1.2.22`.
+* Add VIRAC2 to the list of catalogues checked when creating sky catalogues.
+
+### ⚙️ Engineering
+
+* Pin `pandas<3`.
+
+
 ## 1.5.1 - July 28, 2026
 
 ### 🚀 New
