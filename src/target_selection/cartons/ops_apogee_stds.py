@@ -210,7 +210,7 @@ class OPS_APOGEE_HGE_Stds_Carton(OPS_APOGEE_Stds_Carton):
     instrument = "APOGEE"
     can_offset = False
 
-    h_min = 7
+    h_min = 9
     h_max = 13
 
     def build_query(self, version_id, query_region=None):
